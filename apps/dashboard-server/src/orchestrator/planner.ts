@@ -49,21 +49,15 @@ export function plannerSpecFor(team: Team): AgentSpec {
   };
 }
 
-// TODO(M2/2.2): the schema block below still describes the legacy
-// 3-slot team. Until 2.2 rewrites this to be role-array-aware, the
-// planner produces plans in the old shape that safeParsePlan rejects
-// for any team with non-{architect,developer,qa} roles. Existing
-// 3-role teams continue to work because the planner still emits the
-// old role names verbatim.
 const DAG_SCHEMA_BLOCK = `Plan {
   goal: string
-  team: { architect: AgentSpec, developer: AgentSpec, qa: AgentSpec }
+  team: { roles: AgentSpec[] }
   nodes: TaskNode[]
   edges: Edge[]
 }
 TaskNode {
   id: string                         // unique within plan
-  role: "architect" | "developer" | "qa"
+  role: string                       // MUST be one of team.roles[].role; kebab-case
   prompt: string                     // task instruction for that node
   deps: string[]                     // node ids this node depends on
   successCriteria: { preflight?: string; build?: string; test?: string; lint?: string; custom?: string }
@@ -83,12 +77,15 @@ TaskNode {
   //   custom: node -e <one-arg JS string that calls require('fs').accessSync(...) for each expected file>
   // The harness invokes the command via the OS shell, so wrap the JS in
   // double quotes inside the JSON value. node exits 1 if accessSync throws.
+  // For string-content checks, normalise CRLF first:
+  //   node -e "const c=require('fs').readFileSync('result.txt','utf8').replace(/\\r?\\n$/,''); if(c!==EXPECTED){process.exit(1)}"
+  // (the harness commits files via git on Windows, which may write CRLF).
   maxTurns: number                   // 5..100 inclusive
 }
 Edge { from: string; to: string }    // mirrors deps as flat list
 AgentSpec {
-  role: "architect" | "developer" | "qa"
-  model: string
+  role: string                       // kebab-case identifier
+  model: "opus" | "sonnet" | "haiku"
   allowedTools: string[]
   systemPrompt: string
 }`;
@@ -106,6 +103,11 @@ export function buildPlannerPrompt(goal: string, team: Team): string {
     '```json',
     teamJson,
     '```',
+    ``,
+    `## Constraints`,
+    `- The team has ${team.roles.length} ${team.roles.length === 1 ? 'role' : 'roles'}: ${team.roles.map((r) => `\`${r.role}\``).join(', ')}.`,
+    `- Every TaskNode.role MUST exactly equal one of these literal strings.`,
+    `- Mirror the team verbatim in the output JSON; do not invent extra roles.`,
     ``,
     `## DAG schema`,
     '```',
