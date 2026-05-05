@@ -76,8 +76,12 @@ test.describe('Phase F1 smoke', () => {
     await expect(page.getByText('developer', { exact: false }).first()).toBeVisible();
     await expect(page.getByText('qa', { exact: false }).first()).toBeVisible();
 
-    // Step 6: Lock & Run.
+    // Step 6: Lock & Run — opens a confirm dialog, then click the dialog's
+    // "Lock & Run" button to actually start the run.
     await page.getByRole('button', { name: 'Lock & Run' }).click();
+    const confirmDialog = page.getByRole('dialog', { name: /Lock plan and start run/i });
+    await expect(confirmDialog).toBeVisible();
+    await confirmDialog.getByRole('button', { name: 'Lock & Run' }).click();
 
     // Step 7: navigate to /projects/<id>/run/<runId>.
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/run/[^/]+$`), {
