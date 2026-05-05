@@ -36,6 +36,7 @@ function makeFakeDeps() {
       now: () => Date.now(),
       autoCommit: vi.fn(async () => 'a'.repeat(40)),
       mergeBranches: vi.fn(async () => ({ ok: true as const })),
+      interTaskPacingMs: 0,
     },
   };
 }
@@ -118,10 +119,7 @@ describe('walker chaining', () => {
       budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 2 },
     });
     // q has deps ['b1', 'b2']. baseBranch should be harness/rdiamond/b1; mergeBranches called with ['harness/rdiamond/b2'].
-    expect(deps.mergeBranches).toHaveBeenCalledWith(
-      expect.any(String),
-      ['harness/rdiamond/b2'],
-    );
+    expect(deps.mergeBranches).toHaveBeenCalledWith(expect.any(String), ['harness/rdiamond/b2']);
   });
 
   it('calls autoCommit after subprocess success and before worktree.remove', async () => {
@@ -165,10 +163,7 @@ describe('walker chaining', () => {
     expect(deps.worktree.add).toHaveBeenCalledWith(
       expect.objectContaining({ branchName: 'harness/r3/result' }),
     );
-    expect(deps.mergeBranches).toHaveBeenLastCalledWith(
-      expect.any(String),
-      ['harness/r3/q'],
-    );
+    expect(deps.mergeBranches).toHaveBeenLastCalledWith(expect.any(String), ['harness/r3/q']);
   });
 
   it('diamond plan: result branch merges both leaf branches', async () => {
@@ -193,9 +188,9 @@ describe('walker chaining', () => {
       repoPath: '/tmp/repo',
       budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 2 },
     });
-    expect(deps.mergeBranches).toHaveBeenLastCalledWith(
-      expect.any(String),
-      ['harness/r4/l1', 'harness/r4/l2'],
-    );
+    expect(deps.mergeBranches).toHaveBeenLastCalledWith(expect.any(String), [
+      'harness/r4/l1',
+      'harness/r4/l2',
+    ]);
   });
 });

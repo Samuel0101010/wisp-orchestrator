@@ -61,9 +61,9 @@ function makeFakeRuntime(overrides: Partial<RunRuntime> = {}): FakeRuntime {
           planId: args.planId,
           status: 'running',
           startedAt,
-          budgetMinutes: args.budgetMinutes ?? 360,
+          budgetMinutes: args.budgetMinutes ?? 120,
           budgetTurns: args.budgetTurns ?? 500,
-          maxParallel: args.maxParallel ?? 3,
+          maxParallel: args.maxParallel ?? 2,
         })
         .run();
       return { ok: true, runId };

@@ -219,6 +219,7 @@ function makeHarness(args: {
     now: timers.now,
     autoCommit: async () => 'a'.repeat(40),
     mergeBranches: async () => ({ ok: true }),
+    interTaskPacingMs: 0,
   };
 
   const walker = new Walker(deps);

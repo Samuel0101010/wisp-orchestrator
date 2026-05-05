@@ -26,10 +26,7 @@ function repoRoot(): string {
 function listSourceFiles(): string[] {
   const root = repoRoot();
   // git ls-files honors .gitignore. Restrict to TS/TSX in src dirs.
-  const out = execSync(
-    `git -C "${root}" ls-files ${SOURCE_GLOBS.join(' ')}`,
-    { encoding: 'utf8' },
-  );
+  const out = execSync(`git -C "${root}" ls-files ${SOURCE_GLOBS.join(' ')}`, { encoding: 'utf8' });
   return out
     .split('\n')
     .map((l) => l.trim())

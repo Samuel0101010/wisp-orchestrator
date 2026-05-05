@@ -70,10 +70,14 @@ export async function listWorktrees(opts: ListWorktreesOpts): Promise<WorktreeEn
 }
 
 const GIT_COMMIT_OVERRIDES = [
-  '-c', 'user.email=harness@agent-harness.local',
-  '-c', 'user.name=Agent Harness',
-  '-c', 'commit.gpgsign=false',
-  '-c', 'tag.gpgsign=false',
+  '-c',
+  'user.email=harness@agent-harness.local',
+  '-c',
+  'user.name=Agent Harness',
+  '-c',
+  'commit.gpgsign=false',
+  '-c',
+  'tag.gpgsign=false',
 ];
 
 /**

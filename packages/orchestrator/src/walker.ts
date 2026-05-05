@@ -97,6 +97,8 @@ export interface WalkerDeps {
     worktreePath: string,
     branches: string[],
   ) => Promise<{ ok: true } | { ok: false; conflict: string }>;
+  /** Minimum milliseconds between subprocess launches. 0 disables pacing. */
+  interTaskPacingMs: number;
 }
 
 /**
@@ -203,6 +205,8 @@ export class Walker {
 
   /** Set when dispatch() is currently active; prevents re-entrancy storms. */
   private dispatching = false;
+  /** Timestamp of the last subprocess launch batch. 0 means no launch yet. */
+  private lastLaunchAt = 0;
 
   constructor(deps: WalkerDeps) {
     this.deps = deps;
@@ -468,6 +472,18 @@ export class Walker {
           return;
         }
 
+        // Inter-task pacing: enforce a minimum gap between subprocess launches.
+        const pacingMs = this.deps.interTaskPacingMs;
+        if (pacingMs > 0 && this.lastLaunchAt > 0) {
+          const wait = this.lastLaunchAt + pacingMs - this.deps.now();
+          if (wait > 0) {
+            this.deps.setTimeout(() => {
+              void this.dispatch();
+            }, wait);
+            return;
+          }
+        }
+
         // Launch up to `slotsFree` ready tasks.
         const toLaunch = ready.slice(0, slotsFree);
         for (const t of toLaunch) {
@@ -480,6 +496,7 @@ export class Walker {
             void this.dispatch();
           });
         }
+        this.lastLaunchAt = this.deps.now();
 
         // Yield: don't busy-loop. We only loop in this iteration if there are
         // still free slots AND ready tasks, which we filled above. Break.
@@ -534,7 +551,11 @@ export class Walker {
     try {
       if (!worktreePath) {
         const parentBranch = this.computeParentBranch(node);
-        worktreePath = await this.deps.worktree.add({ repoPath, branchName, baseBranch: parentBranch });
+        worktreePath = await this.deps.worktree.add({
+          repoPath,
+          branchName,
+          baseBranch: parentBranch,
+        });
         t.worktreePath = worktreePath;
         createdWorktreeNow = true;
       }

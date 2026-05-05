@@ -9,7 +9,22 @@ async function withTmpRepo(fn: (repo: string) => Promise<void>): Promise<void> {
   const repo = await mkdtemp(join(tmpdir(), 'harness-ac-'));
   try {
     await execa('git', ['init', '-b', 'main'], { cwd: repo });
-    await execa('git', ['-c', 'user.email=t@t.t', '-c', 'user.name=t', '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-m', 'init'], { cwd: repo });
+    await execa(
+      'git',
+      [
+        '-c',
+        'user.email=t@t.t',
+        '-c',
+        'user.name=t',
+        '-c',
+        'commit.gpgsign=false',
+        'commit',
+        '--allow-empty',
+        '-m',
+        'init',
+      ],
+      { cwd: repo },
+    );
     await fn(repo);
   } finally {
     await rm(repo, { recursive: true, force: true });

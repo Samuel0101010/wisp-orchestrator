@@ -4,7 +4,13 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { addWorktree, computeWorktreePath, listWorktrees, removeWorktree, mergeBranchesInWorktree } from '../worktree.js';
+import {
+  addWorktree,
+  computeWorktreePath,
+  listWorktrees,
+  removeWorktree,
+  mergeBranchesInWorktree,
+} from '../worktree.js';
 
 let gitAvailable = false;
 
