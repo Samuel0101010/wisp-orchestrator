@@ -26,6 +26,7 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty",
     "lint": "eslint src",
+    "pretest": "tsc -b",
     "test": "vitest run",
     "dev": "tsc -b -w"
   },
