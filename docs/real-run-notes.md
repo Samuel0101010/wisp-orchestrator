@@ -282,3 +282,80 @@ The first two attempts on the same goal failed and exercised the new
    The retry-once + verify-event approach handled it gracefully; the
    stronger team prompt ("you MUST use Write") gets the architect over
    the line on the first attempt of attempt 3.
+
+---
+
+## v1.0 Pfad B run — full-stack hello.ts + vitest with preflight
+
+**Goal:** "Add an exported hello(name) function returning the string `Hello, <name>` to a new TypeScript module at src/hello.ts plus a vitest test at src/hello.test.ts. Initialise package.json with vitest and typescript as dev dependencies; the test must pass via `pnpm test`."
+
+Three-role haiku team, fresh repo `harness-r2`, port 4504, run id
+`07f1c0e0-36fc-4546-b610-a34312cf6bac` on plan `d5ac6665` (second
+attempt; first failed with the `CI=true` bug fixed in commit `1851e7e`
+below).
+
+**Outcome:** ✅ `status=completed, outcome=success`. Result branch
+`harness/07f1c0e0-36fc-4546-b610-a34312cf6bac/result` carries:
+`architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
+`pnpm-lock.yaml`, `src/hello.ts`, `src/hello.test.ts`.
+
+`src/hello.ts`:
+```ts
+export function hello(name: string): string {
+  return `Hello, ${name}`;
+}
+```
+
+| Task | Status | Tokens in | Tokens out | Turns | Duration |
+|---|---|---|---|---|---|
+| arch-scaffold | done | 6 366 | 1 770 | 4 | 21.0 s |
+| dev-implement | done | 8 837 | 2 069 | 13 | 64.4 s |
+| qa-verify | done | 9 315 | 2 811 | 20 | 91.3 s |
+| **total** | — | **24 518** | **6 650** | **37** | **176.7 s wall** |
+
+**Planner emitted preflight on dev + qa**, confirming Task 1.3's
+DAG_SCHEMA_BLOCK update is steering the planner correctly:
+- `dev-implement.successCriteria` = `{preflight: "pnpm install", test: "pnpm test"}`
+- `qa-verify.successCriteria` = `{preflight: "pnpm install", build: "npx tsc --noEmit", test: "pnpm test"}`
+
+**Diagnosis arc on the way to success:**
+
+1. **First r2 run** (run `08a555e3`, before fix): architect + dev
+   succeeded; QA preflight failed with
+   `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY` — pnpm refused to
+   clobber the chained-in `node_modules` because the verifier
+   subprocess had no TTY. New `harness.verify-failed` event carried
+   the full pnpm error message verbatim, making root-cause
+   identification trivial.
+2. **Foundation patch** (commit `1851e7e`): set `env: { CI: 'true' }`
+   in `verification.ts`'s `defaultExec`. This is the canonical pnpm
+   non-interactive switch. Re-ran on the same plan id.
+3. **Second r2 run** (run `07f1c0e0`, after fix): architect succeeded;
+   dev's first attempt failed preflight with `ERR_PNPM_NO_PKG_MANIFEST`
+   (architect described package.json in `architecture.md` but didn't
+   write it); dev's retry created package.json + ran install + wrote
+   src/ + tests, all gates passed. QA succeeded clean. Result branch
+   finalized.
+
+**End-to-end Stage-1 validations against real Claude:**
+
+| Task 1.x capability | Pfad A | Pfad B |
+|---|---|---|
+| 1.1 `harness.verify-failed` event with full payload | ✅ both attempts | ✅ both runs |
+| 1.2 retry-prompt cap | not exercised (small errors) | dev recovered on retry — no crash |
+| 1.3 `successCriteria.preflight` runs first + short-circuits | not used | ✅ planner emitted it; ran before build/test/lint |
+| 1.4 `task.usage` parses result frame | ✅ tokensIn 64,994 | ✅ tokensIn 24,518 |
+| 1.5 verify-failed persists in events table | ✅ inspectable via SQLite | ✅ inspectable via SQLite |
+| Stage A5 result branch finalize | ✅ first ever success | ✅ |
+| New: `CI=true` keeps pnpm install non-interactive | n/a | ✅ |
+
+**Open issues / future-work signals:**
+
+- The architect frequently describes files (package.json, tsconfig)
+  in `architecture.md` instead of writing them. Dev recovers via the
+  retry, but a stronger architect prompt or a "scaffold" sub-role
+  (M2-style team customisation) would eliminate one full retry cycle
+  per run.
+- No diamond-merge / parallel-task validation here — both runs were
+  linear DAGs. Stage A4 still unvalidated against real Claude;
+  M2's variable-team work should provide a goal that exercises it.
