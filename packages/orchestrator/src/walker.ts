@@ -817,11 +817,12 @@ export class Walker {
 
     // Verification failed.
     if (t.retries < 1) {
+      const attempt = t.retries + 1;
       this.deps.emit({
         type: 'harness.verify-failed',
         payload: {
           taskId: node.id,
-          attempt: t.retries + 1,
+          attempt,
           failures: verifyResult.failures,
           output: verifyResult.output,
         },
@@ -832,11 +833,12 @@ export class Walker {
       return;
     }
 
+    const attempt = t.retries + 1;
     this.deps.emit({
       type: 'harness.verify-failed',
       payload: {
         taskId: node.id,
-        attempt: t.retries + 1,
+        attempt,
         failures: verifyResult.failures,
         output: verifyResult.output,
       },

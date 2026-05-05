@@ -348,10 +348,11 @@ describe('Walker — failure modes', () => {
     });
     const plan = makePlan([node('t1', 'architect')]);
     await h.walker.start({ runId: 'r1', plan, repoPath: '/fake', budget: DEFAULT_BUDGET });
-    const e = h.emitted.find((x) => x.type === 'harness.verify-failed');
-    expect(e).toBeDefined();
-    expect(e!.payload.failures[0].kind).toBe('lint');
-    expect(e!.payload.attempt).toBe(1);
+    const events = h.emitted.filter((x) => x.type === 'harness.verify-failed');
+    expect(events).toHaveLength(2);
+    expect(events[0]!.payload.failures[0].kind).toBe('lint');
+    expect(events[0]!.payload.attempt).toBe(1);
+    expect(events[1]!.payload.attempt).toBe(2);
   });
 
   it('verification fails first, retry succeeds → task done with retries=1', async () => {
