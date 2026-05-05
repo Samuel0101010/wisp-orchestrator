@@ -1,2 +1,4 @@
-// Re-exports — populated incrementally by Tasks 3.2 (store), 3.3 (tools), 3.4 (server).
+export { MemoryStore, type MemoryListEntry } from './store.js';
+
+// Tasks 3.3 / 3.4 will add tools + server exports below.
 export const PACKAGE_NAME = '@agent-harness/memory-mcp';
