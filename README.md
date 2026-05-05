@@ -27,6 +27,28 @@ This repository is the M1 milestone — the smallest end-to-end slice that exerc
 - Claude Max subscription (the orchestrator inherits `~/.claude/` credentials and unsets `ANTHROPIC_API_KEY` so subprocesses never silently fall back to API billing)
 - Windows, macOS, or Linux
 
+## Anthropic Terms of Service
+
+Agent Harness invokes only the official `claude` binary as a subprocess. It
+never reads `~/.claude/credentials`, never extracts subscription OAuth tokens,
+never calls `api.anthropic.com` endpoints directly, and actively unsets
+`ANTHROPIC_API_KEY` before each spawn so subscription auth is the only path.
+
+Subscriptions (Claude Pro / Max) are designed for personal use of the official
+Claude products including Claude Code and its plugin/subagent system. Using
+this plugin to run intensive headless workflows on a subscription account is
+your responsibility under Anthropic's ToS. Balanced defaults
+(`maxParallel=2`, `budgetMinutes=120`, `interTaskPacingMs=5000`,
+`autoResumeRateLimit=false`) keep the traffic profile in line with intensive
+human use rather than automated bulk usage. For commercial automation, set
+`HARNESS_AUTH_MODE=api` and provide your own `ANTHROPIC_API_KEY` (paid per
+token).
+
+Two compliance test files (`tests/compliance/`) statically verify these
+architectural commitments on every CI run. See
+[docs/anthropic-compliance.md](./docs/anthropic-compliance.md) for the full
+architectural rationale.
+
 ## Install
 
 There are two supported paths.

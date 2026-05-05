@@ -4,7 +4,7 @@ import { z } from 'zod';
 // `task.failed`. M5 (QA replan loop) will reintroduce richer outcomes.
 const taskOutcome = z.literal('pass');
 const runOutcome = z.enum(['success', 'failure', 'budget_exceeded', 'cancelled']);
-const pausedReason = z.enum(['rate-limit', 'user', 'shutdown']);
+const pausedReason = z.enum(['rate-limit', 'user', 'shutdown', 'consecutive-failures']);
 const resourceKind = z.enum(['time', 'turns']);
 
 export const harnessEventSchema = z.discriminatedUnion('type', [

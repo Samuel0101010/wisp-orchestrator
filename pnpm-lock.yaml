@@ -256,6 +256,15 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@20.19.39)(jsdom@25.0.1)(lightningcss@1.32.0)
 
+  tests/compliance:
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.39)(jsdom@25.0.1)(lightningcss@1.32.0)
+
   tests/e2e:
     devDependencies:
       '@playwright/test':

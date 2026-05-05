@@ -217,6 +217,10 @@ function makeHarness(args: {
     snapshot: async () => '/fake/snap.json',
     setTimeout: timers.setTimeout,
     now: timers.now,
+    autoCommit: async () => 'a'.repeat(40),
+    mergeBranches: async () => ({ ok: true }),
+    interTaskPacingMs: 0,
+    autoResumeRateLimit: true,
   };
 
   const walker = new Walker(deps);
@@ -781,6 +785,213 @@ describe('Walker — cancel', () => {
     if (last?.type === 'run.completed') {
       expect(last.payload.outcome).toBe('cancelled');
     }
+  });
+});
+
+describe('Walker — D1: autoResumeRateLimit flag', () => {
+  function makeRateLimitHarness(autoResumeRateLimit: boolean, runId: string) {
+    const resetAt = 5_000;
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'a',
+        [
+          {
+            events: [
+              {
+                type: 'rate-limit.hit' as const,
+                payload: { runId, taskId: 'a', resetAt, source: 'stdout-marker' as const },
+              },
+              { type: 'task.failed' as const, payload: { taskId: 'a', error: 'rate-limited' } },
+            ],
+            finishWith: [],
+          },
+          // Second attempt (after resume): succeeds.
+          {},
+        ],
+      ],
+    ]);
+
+    const emitted: HarnessEvent[] = [];
+    const spawns: Array<{ taskId: string; opts: RunClaudeOpts }> = [];
+    const fake = makeFakePool({ scriptByTaskId: scripts, spawns });
+    fake.setMaxParallel(99);
+    const wt = makeWorktreeFake();
+    const timers = makeFakeTimers();
+    const taskStates = new Map<string, TaskState>();
+    const runStateLog: Array<Parameters<WalkerDeps['onRunState']>[1]> = [];
+
+    const deps: WalkerDeps = {
+      pool: fake.pool as unknown as WalkerDeps['pool'],
+      worktree: wt,
+      verify: async () => ({ pass: true, output: 'ok', failures: [] }),
+      emit: (ev) => {
+        emitted.push(ev);
+      },
+      onTaskState: async (id, patch) => {
+        taskStates.set(id, { ...taskStates.get(id), ...patch });
+      },
+      onRunState: async (_id, patch) => {
+        runStateLog.push(patch);
+      },
+      snapshot: async () => '/fake/snap.json',
+      setTimeout: timers.setTimeout,
+      now: timers.now,
+      autoCommit: async () => 'a'.repeat(40),
+      mergeBranches: async () => ({ ok: true }),
+      interTaskPacingMs: 0,
+      autoResumeRateLimit,
+    };
+
+    return { walker: new Walker(deps), emitted, timers, resetAt };
+  }
+
+  it('rate-limit pause does NOT schedule auto-resume when autoResumeRateLimit=false', async () => {
+    const runId = 'r-d1-off';
+    const { walker, emitted, timers, resetAt } = makeRateLimitHarness(false, runId);
+    const plan = makePlan([node('a', 'architect')]);
+
+    const startPromise = walker.start({
+      runId,
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // Wait for the rate-limit pause.
+    await waitForEvent(emitted, 'run.paused');
+    expect(walker.status().state).toBe('paused');
+    expect(walker.status().pausedReason).toBe('rate-limit');
+
+    // Advance well past resetAt and the 5h default — auto-resume must NOT fire.
+    timers.advance(resetAt + 5 * 60 * 60 * 1000 + 1);
+    await new Promise((r) => setImmediate(r));
+
+    // Still paused — user must resume manually.
+    expect(walker.status().state).toBe('paused');
+
+    // Cleanup.
+    await walker.cancel();
+    await startPromise;
+  });
+
+  it('rate-limit pause DOES schedule auto-resume when autoResumeRateLimit=true', async () => {
+    const runId = 'r-d1-on';
+    const { walker, emitted, timers, resetAt } = makeRateLimitHarness(true, runId);
+    const plan = makePlan([node('a', 'architect')]);
+
+    const startPromise = walker.start({
+      runId,
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // Wait for the rate-limit pause.
+    await waitForEvent(emitted, 'run.paused');
+    expect(walker.status().state).toBe('paused');
+    expect(walker.status().pausedReason).toBe('rate-limit');
+
+    // Advance past resetAt — auto-resume fires.
+    timers.advance(resetAt + 1);
+
+    const outcome = await startPromise;
+    expect(outcome).toBe('success');
+    const types = emitted.map((e) => e.type);
+    expect(types).toContain('run.resumed');
+  });
+});
+
+describe('Walker — D3: consecutive-failures pause', () => {
+  it('pauses with reason consecutive-failures after 3 task failures in a row', async () => {
+    // Three independent tasks all failing terminally (2 retries each, so the
+    // pool script needs 2 fail entries per task to exhaust the retry).
+    const failScript = (id: string): FakeTask[] => [
+      {
+        events: [{ type: 'task.failed', payload: { taskId: id, error: 'boom' } }],
+        finishWith: [],
+      },
+      {
+        events: [{ type: 'task.failed', payload: { taskId: id, error: 'boom2' } }],
+        finishWith: [],
+      },
+    ];
+    const scripts = new Map<string, FakeTask[]>([
+      ['t1', failScript('t1')],
+      ['t2', failScript('t2')],
+      ['t3', failScript('t3')],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts, maxParallel: 1 });
+    const plan = makePlan([node('t1', 'architect'), node('t2', 'developer'), node('t3', 'qa')]);
+
+    const startPromise = h.walker.start({
+      runId: 'r-d3-pause',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // Wait for the walker to pause after 3 consecutive failures.
+    await waitForEvent(h.emitted, 'run.paused');
+
+    expect(h.walker.status().state).toBe('paused');
+    expect(h.walker.status().pausedReason).toBe('consecutive-failures');
+    expect(h.runStateLog).toEqual(
+      expect.arrayContaining([expect.objectContaining({ pausedReason: 'consecutive-failures' })]),
+    );
+
+    // Cleanup.
+    await h.walker.cancel();
+    await startPromise;
+  });
+
+  it('resets consecutive-failures counter on a task success', async () => {
+    // t1 fails (terminal, retries exhausted): consecutiveFailures → 1
+    // t2 fails (terminal):                    consecutiveFailures → 2
+    // t3 succeeds:                            consecutiveFailures → 0
+    // t4 fails (terminal):                    consecutiveFailures → 1
+    // t5 fails (terminal):                    consecutiveFailures → 2
+    // → only 2 failures after the reset, so threshold of 3 is never reached.
+    const failScript = (id: string): FakeTask[] => [
+      {
+        events: [{ type: 'task.failed', payload: { taskId: id, error: 'boom' } }],
+        finishWith: [],
+      },
+      {
+        events: [{ type: 'task.failed', payload: { taskId: id, error: 'boom2' } }],
+        finishWith: [],
+      },
+    ];
+    const scripts = new Map<string, FakeTask[]>([
+      ['t1', failScript('t1')],
+      ['t2', failScript('t2')],
+      // t3 uses the default (success) script — no entry needed
+      ['t4', failScript('t4')],
+      ['t5', failScript('t5')],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts, maxParallel: 1 });
+    const plan = makePlan([
+      node('t1', 'architect'),
+      node('t2', 'developer'),
+      node('t3', 'qa'),
+      node('t4', 'architect'),
+      node('t5', 'developer'),
+    ]);
+
+    const outcome = await h.walker.start({
+      runId: 'r-d3-reset',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // Walker should complete (failure outcome due to failed tasks), not pause.
+    expect(outcome).toBe('failure');
+    expect(h.walker.status().state).toBe('completed');
+    // Must NOT have emitted run.paused with consecutive-failures reason.
+    const pausedEvent = h.emitted.find(
+      (e) => e.type === 'run.paused' && e.payload.pausedReason === 'consecutive-failures',
+    );
+    expect(pausedEvent).toBeUndefined();
   });
 });
 
