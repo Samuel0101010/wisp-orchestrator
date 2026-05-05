@@ -67,7 +67,7 @@ export interface RunState {
 }
 
 export interface WorktreeAdapter {
-  add(args: { repoPath: string; branchName: string }): Promise<string>;
+  add(args: { repoPath: string; branchName: string; baseBranch?: string }): Promise<string>;
   remove(args: { repoPath: string; worktreePath: string; force?: boolean }): Promise<void>;
 }
 
@@ -504,6 +504,11 @@ export class Walker {
     return n;
   }
 
+  private computeParentBranch(node: TaskNode): string | undefined {
+    if (node.deps.length === 0) return undefined;
+    return `harness/${this.runId}/${node.deps[0]}`;
+  }
+
   private async runTask(t: TaskRuntime): Promise<void> {
     if (!this.runId || !this.plan || !this.repoPath) return;
     const runId = this.runId;
@@ -520,7 +525,8 @@ export class Walker {
     let worktreePath: string | null = t.worktreePath;
     try {
       if (!worktreePath) {
-        worktreePath = await this.deps.worktree.add({ repoPath, branchName });
+        const parentBranch = this.computeParentBranch(node);
+        worktreePath = await this.deps.worktree.add({ repoPath, branchName, baseBranch: parentBranch });
         t.worktreePath = worktreePath;
       }
     } catch (err) {
