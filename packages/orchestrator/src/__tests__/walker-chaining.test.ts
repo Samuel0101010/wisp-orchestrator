@@ -34,6 +34,7 @@ function makeFakeDeps() {
         return () => clearTimeout(t);
       },
       now: () => Date.now(),
+      autoCommit: vi.fn(async () => 'a'.repeat(40)),
     },
   };
 }
@@ -85,6 +86,33 @@ describe('walker chaining', () => {
       { branchName: 'harness/r1/a', baseBranch: undefined },
       { branchName: 'harness/r1/d', baseBranch: 'harness/r1/a' },
       { branchName: 'harness/r1/q', baseBranch: 'harness/r1/d' },
+    ]);
+  });
+
+  it('calls autoCommit after subprocess success and before worktree.remove', async () => {
+    const { deps } = makeFakeDeps();
+    const order: string[] = [];
+    deps.autoCommit = vi.fn(async (_path: string, taskId: string) => {
+      order.push(`commit:${taskId}`);
+      return 'a'.repeat(40);
+    });
+    deps.worktree.remove = vi.fn(async (opts: { worktreePath: string }) => {
+      order.push(`remove:${opts.worktreePath}`);
+    });
+    const walker = new Walker(deps as never);
+    await walker.start({
+      runId: 'r2',
+      plan: linearPlan,
+      repoPath: '/tmp/repo',
+      budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 1 },
+    });
+    expect(order).toEqual([
+      'commit:a',
+      'remove:/tmp/harness-r2-a',
+      'commit:d',
+      'remove:/tmp/harness-r2-d',
+      'commit:q',
+      'remove:/tmp/harness-r2-q',
     ]);
   });
 });

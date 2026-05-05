@@ -90,6 +90,8 @@ export interface WalkerDeps {
    */
   setTimeout: (cb: () => void, ms: number) => () => void;
   now: () => number;
+  /** Commits the worktree so downstream tasks see the artifacts on the branch tip. */
+  autoCommit: (worktreePath: string, taskId: string) => Promise<string>;
 }
 
 /**
@@ -670,6 +672,22 @@ export class Walker {
     }
 
     if (verifyResult.pass) {
+      // First, persist the task's output via auto-commit. If this fails, the task
+      // hasn't really succeeded — downstream chaining would fail anyway.
+      try {
+        await this.deps.autoCommit(worktreePath, node.id);
+      } catch (err) {
+        const errStr = err instanceof Error ? err.message : String(err);
+        t.status = 'failed';
+        const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
+        await this.deps.onTaskState(node.id, { status: 'failed', durationMs: elapsed });
+        this.deps.emit({
+          type: 'task.failed',
+          payload: { taskId: node.id, error: `auto-commit failed: ${errStr}` },
+        });
+        return;
+      }
+
       t.status = 'done';
       const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
       await this.deps.onTaskState(node.id, {
