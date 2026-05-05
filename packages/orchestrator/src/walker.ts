@@ -214,6 +214,9 @@ export class Walker {
   /** Timestamp of the last subprocess launch batch. 0 means no launch yet. */
   private lastLaunchAt = 0;
 
+  private consecutiveFailures = 0;
+  private static readonly CONSECUTIVE_FAILURE_THRESHOLD = 3;
+
   constructor(deps: WalkerDeps) {
     this.deps = deps;
   }
@@ -573,6 +576,10 @@ export class Walker {
         payload: { taskId: node.id, error: `worktree add failed: ${errStr}` },
       });
       await this.deps.onTaskState(node.id, { status: 'failed', worktreeBranch: branchName });
+      this.consecutiveFailures += 1;
+      if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+        await this.pause('consecutive-failures');
+      }
       return;
     }
 
@@ -586,6 +593,10 @@ export class Walker {
           type: 'task.failed',
           payload: { taskId: node.id, error: `dep-merge conflict: ${mergeResult.conflict}` },
         });
+        this.consecutiveFailures += 1;
+        if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+          await this.pause('consecutive-failures');
+        }
         return;
       }
     }
@@ -700,6 +711,10 @@ export class Walker {
         sessionId: t.sessionId,
       });
       this.deps.emit({ type: 'task.failed', payload: { taskId: node.id, error: errMsg } });
+      this.consecutiveFailures += 1;
+      if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+        await this.pause('consecutive-failures');
+      }
       return;
     }
 
@@ -733,9 +748,14 @@ export class Walker {
           type: 'task.failed',
           payload: { taskId: node.id, error: `auto-commit failed: ${errStr}` },
         });
+        this.consecutiveFailures += 1;
+        if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+          await this.pause('consecutive-failures');
+        }
         return;
       }
 
+      this.consecutiveFailures = 0;
       t.status = 'done';
       const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
       await this.deps.onTaskState(node.id, {
@@ -773,6 +793,10 @@ export class Walker {
         error: `verification failed after retry: ${verifyResult.output}`,
       },
     });
+    this.consecutiveFailures += 1;
+    if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+      await this.pause('consecutive-failures');
+    }
     // Leave worktree intact for forensics.
   }
 
