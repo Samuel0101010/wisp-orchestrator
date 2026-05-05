@@ -116,17 +116,27 @@ function mapCliEvent(parsed: ParsedLine, taskId: string): HarnessEvent | null {
         payload: { taskId, tool, input: parsed.input },
       };
     }
-    case 'usage': {
-      const tokensIn = Number(parsed.tokensIn ?? 0);
-      const tokensOut = Number(parsed.tokensOut ?? 0);
-      const turns = Number(parsed.turns ?? 0);
+    case 'result': {
+      const usage = (parsed as Record<string, unknown>).usage as
+        | Record<string, unknown>
+        | undefined;
+      if (!usage) return null;
+      const inputTokens = Number((usage as Record<string, number | undefined>).input_tokens ?? 0);
+      const cacheCreate = Number(
+        (usage as Record<string, number | undefined>).cache_creation_input_tokens ?? 0,
+      );
+      const outputTokens = Number((usage as Record<string, number | undefined>).output_tokens ?? 0);
+      const numTurns = Number((parsed as Record<string, unknown>).num_turns ?? 0);
+      const tokensIn =
+        (Number.isFinite(inputTokens) ? inputTokens : 0) +
+        (Number.isFinite(cacheCreate) ? cacheCreate : 0);
       return {
         type: 'task.usage',
         payload: {
           taskId,
-          tokensIn: Number.isFinite(tokensIn) ? Math.max(0, Math.trunc(tokensIn)) : 0,
-          tokensOut: Number.isFinite(tokensOut) ? Math.max(0, Math.trunc(tokensOut)) : 0,
-          turns: Number.isFinite(turns) ? Math.max(0, Math.trunc(turns)) : 0,
+          tokensIn: Math.max(0, Math.trunc(tokensIn)),
+          tokensOut: Math.max(0, Math.trunc(Number.isFinite(outputTokens) ? outputTokens : 0)),
+          turns: Math.max(0, Math.trunc(Number.isFinite(numTurns) ? numTurns : 0)),
         },
       };
     }

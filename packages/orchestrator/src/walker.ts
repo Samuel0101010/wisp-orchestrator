@@ -817,12 +817,32 @@ export class Walker {
 
     // Verification failed.
     if (t.retries < 1) {
+      const attempt = t.retries + 1;
+      this.deps.emit({
+        type: 'harness.verify-failed',
+        payload: {
+          taskId: node.id,
+          attempt,
+          failures: verifyResult.failures,
+          output: verifyResult.output,
+        },
+      });
       t.retries += 1;
       t.status = 'pending';
       t.lastError = `verification failed:\n${verifyResult.output}`;
       return;
     }
 
+    const attempt = t.retries + 1;
+    this.deps.emit({
+      type: 'harness.verify-failed',
+      payload: {
+        taskId: node.id,
+        attempt,
+        failures: verifyResult.failures,
+        output: verifyResult.output,
+      },
+    });
     t.status = 'failed';
     const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
     await this.deps.onTaskState(node.id, { status: 'failed', durationMs: elapsed });
@@ -972,6 +992,18 @@ export class Walker {
 
 // ---------- prompt composition ----------
 
+const RETRY_ERROR_HEAD_LINES = 30;
+const RETRY_ERROR_TAIL_LINES = 60;
+
+function truncateRetryError(s: string): string {
+  const lines = s.split(/\r?\n/);
+  if (lines.length <= RETRY_ERROR_HEAD_LINES + RETRY_ERROR_TAIL_LINES + 2) return s;
+  const head = lines.slice(0, RETRY_ERROR_HEAD_LINES).join('\n');
+  const tail = lines.slice(-RETRY_ERROR_TAIL_LINES).join('\n');
+  const omitted = lines.length - RETRY_ERROR_HEAD_LINES - RETRY_ERROR_TAIL_LINES;
+  return `${head}\n[… ${omitted} lines omitted …]\n${tail}`;
+}
+
 export function composeTaskPrompt(plan: Plan, node: TaskNode, retryError: string | null): string {
   const parts: string[] = [];
   parts.push(`# Goal\n${plan.goal}`);
@@ -987,7 +1019,7 @@ export function composeTaskPrompt(plan: Plan, node: TaskNode, retryError: string
   }
   if (retryError) {
     parts.push(
-      `# Retry context\nPrevious attempt failed: ${retryError}\nPlease address and re-implement.`,
+      `# Retry context\nPrevious attempt failed: ${truncateRetryError(retryError)}\nPlease address and re-implement.`,
     );
   }
   return parts.join('\n\n');
