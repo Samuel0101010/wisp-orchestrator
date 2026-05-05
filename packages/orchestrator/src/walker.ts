@@ -67,7 +67,7 @@ export interface RunState {
 }
 
 export interface WorktreeAdapter {
-  add(args: { repoPath: string; branchName: string }): Promise<string>;
+  add(args: { repoPath: string; branchName: string; baseBranch?: string }): Promise<string>;
   remove(args: { repoPath: string; worktreePath: string; force?: boolean }): Promise<void>;
 }
 
@@ -90,6 +90,21 @@ export interface WalkerDeps {
    */
   setTimeout: (cb: () => void, ms: number) => () => void;
   now: () => number;
+  /** Commits the worktree so downstream tasks see the artifacts on the branch tip. */
+  autoCommit: (worktreePath: string, taskId: string) => Promise<string>;
+  /** Merges additional dep branches into the worktree (diamond DAG support). */
+  mergeBranches: (
+    worktreePath: string,
+    branches: string[],
+  ) => Promise<{ ok: true } | { ok: false; conflict: string }>;
+  /** Minimum milliseconds between subprocess launches. 0 disables pacing. */
+  interTaskPacingMs: number;
+  /**
+   * When true, rate-limit pauses auto-schedule a resume timer after the reset
+   * window. When false (default), the walker stays paused until the user
+   * explicitly calls resume() — matching ToS-conservative posture.
+   */
+  autoResumeRateLimit: boolean;
 }
 
 /**
@@ -196,6 +211,11 @@ export class Walker {
 
   /** Set when dispatch() is currently active; prevents re-entrancy storms. */
   private dispatching = false;
+  /** Timestamp of the last subprocess launch batch. 0 means no launch yet. */
+  private lastLaunchAt = 0;
+
+  private consecutiveFailures = 0;
+  private static readonly CONSECUTIVE_FAILURE_THRESHOLD = 3;
 
   constructor(deps: WalkerDeps) {
     this.deps = deps;
@@ -300,8 +320,8 @@ export class Walker {
       payload: { runId: this.runId, pausedReason: reason, resumeAt: resumeAt ?? null },
     });
 
-    // Schedule auto-resume only for rate-limit pauses.
-    if (reason === 'rate-limit') {
+    // Schedule auto-resume only for rate-limit pauses AND only when explicitly enabled.
+    if (reason === 'rate-limit' && this.deps.autoResumeRateLimit) {
       const delay = Math.max(
         (resumeAt ?? this.deps.now() + RATE_LIMIT_DEFAULT_MS) - this.deps.now(),
         0,
@@ -461,6 +481,18 @@ export class Walker {
           return;
         }
 
+        // Inter-task pacing: enforce a minimum gap between subprocess launches.
+        const pacingMs = this.deps.interTaskPacingMs;
+        if (pacingMs > 0 && this.lastLaunchAt > 0) {
+          const wait = this.lastLaunchAt + pacingMs - this.deps.now();
+          if (wait > 0) {
+            this.deps.setTimeout(() => {
+              void this.dispatch();
+            }, wait);
+            return;
+          }
+        }
+
         // Launch up to `slotsFree` ready tasks.
         const toLaunch = ready.slice(0, slotsFree);
         for (const t of toLaunch) {
@@ -473,6 +505,7 @@ export class Walker {
             void this.dispatch();
           });
         }
+        this.lastLaunchAt = this.deps.now();
 
         // Yield: don't busy-loop. We only loop in this iteration if there are
         // still free slots AND ready tasks, which we filled above. Break.
@@ -504,6 +537,11 @@ export class Walker {
     return n;
   }
 
+  private computeParentBranch(node: TaskNode): string | undefined {
+    if (node.deps.length === 0) return undefined;
+    return `harness/${this.runId}/${node.deps[0]}`;
+  }
+
   private async runTask(t: TaskRuntime): Promise<void> {
     if (!this.runId || !this.plan || !this.repoPath) return;
     const runId = this.runId;
@@ -518,10 +556,17 @@ export class Walker {
     t.abort = abort;
 
     let worktreePath: string | null = t.worktreePath;
+    let createdWorktreeNow = false;
     try {
       if (!worktreePath) {
-        worktreePath = await this.deps.worktree.add({ repoPath, branchName });
+        const parentBranch = this.computeParentBranch(node);
+        worktreePath = await this.deps.worktree.add({
+          repoPath,
+          branchName,
+          baseBranch: parentBranch,
+        });
         t.worktreePath = worktreePath;
+        createdWorktreeNow = true;
       }
     } catch (err) {
       t.status = 'failed';
@@ -531,7 +576,29 @@ export class Walker {
         payload: { taskId: node.id, error: `worktree add failed: ${errStr}` },
       });
       await this.deps.onTaskState(node.id, { status: 'failed', worktreeBranch: branchName });
+      this.consecutiveFailures += 1;
+      if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+        await this.pause('consecutive-failures');
+      }
       return;
+    }
+
+    if (createdWorktreeNow && node.deps.length > 1) {
+      const otherDepBranches = node.deps.slice(1).map((d) => `harness/${this.runId}/${d}`);
+      const mergeResult = await this.deps.mergeBranches(worktreePath, otherDepBranches);
+      if (!mergeResult.ok) {
+        t.status = 'failed';
+        await this.deps.onTaskState(node.id, { status: 'failed', worktreeBranch: branchName });
+        this.deps.emit({
+          type: 'task.failed',
+          payload: { taskId: node.id, error: `dep-merge conflict: ${mergeResult.conflict}` },
+        });
+        this.consecutiveFailures += 1;
+        if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+          await this.pause('consecutive-failures');
+        }
+        return;
+      }
     }
 
     await this.deps.onTaskState(node.id, {
@@ -644,6 +711,10 @@ export class Walker {
         sessionId: t.sessionId,
       });
       this.deps.emit({ type: 'task.failed', payload: { taskId: node.id, error: errMsg } });
+      this.consecutiveFailures += 1;
+      if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+        await this.pause('consecutive-failures');
+      }
       return;
     }
 
@@ -664,6 +735,27 @@ export class Walker {
     }
 
     if (verifyResult.pass) {
+      // First, persist the task's output via auto-commit. If this fails, the task
+      // hasn't really succeeded — downstream chaining would fail anyway.
+      try {
+        await this.deps.autoCommit(worktreePath, node.id);
+      } catch (err) {
+        const errStr = err instanceof Error ? err.message : String(err);
+        t.status = 'failed';
+        const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
+        await this.deps.onTaskState(node.id, { status: 'failed', durationMs: elapsed });
+        this.deps.emit({
+          type: 'task.failed',
+          payload: { taskId: node.id, error: `auto-commit failed: ${errStr}` },
+        });
+        this.consecutiveFailures += 1;
+        if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+          await this.pause('consecutive-failures');
+        }
+        return;
+      }
+
+      this.consecutiveFailures = 0;
       t.status = 'done';
       const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
       await this.deps.onTaskState(node.id, {
@@ -701,6 +793,10 @@ export class Walker {
         error: `verification failed after retry: ${verifyResult.output}`,
       },
     });
+    this.consecutiveFailures += 1;
+    if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+      await this.pause('consecutive-failures');
+    }
     // Leave worktree intact for forensics.
   }
 
@@ -746,10 +842,74 @@ export class Walker {
     }
   }
 
+  /**
+   * After a successful run, consolidate all leaf-task branches into a single
+   * `harness/<runId>/result` branch on top of the repo's HEAD. The user can
+   * inspect this one branch to see every task's contribution as a merge commit.
+   *
+   * Best-effort: if anything fails (worktree creation, merge conflict), the
+   * leaf branches stay intact and the run is still considered successful — the
+   * user can manually merge them.
+   */
+  private async finalizeResultBranch(): Promise<void> {
+    if (!this.runId || !this.repoPath || !this.plan) return;
+    const plan = this.plan;
+    const runId = this.runId;
+    const repoPath = this.repoPath;
+
+    // Leaves: nodes with no successors AND status === 'done'.
+    const successors = new Set<string>();
+    for (const n of plan.nodes) {
+      for (const dep of n.deps) successors.add(dep);
+    }
+    const leafBranches: string[] = [];
+    for (const n of plan.nodes) {
+      if (successors.has(n.id)) continue; // not a leaf
+      const t = this.tasks.get(n.id);
+      if (t?.status === 'done') {
+        leafBranches.push(`harness/${runId}/${n.id}`);
+      }
+    }
+    if (leafBranches.length === 0) return;
+
+    const resultBranch = `harness/${runId}/result`;
+    let resultPath: string;
+    try {
+      resultPath = await this.deps.worktree.add({
+        repoPath,
+        branchName: resultBranch,
+        // baseBranch undefined → branch from HEAD
+      });
+    } catch {
+      // Best-effort — leaves already exist for the user to merge manually.
+      return;
+    }
+
+    try {
+      await this.deps.mergeBranches(resultPath, leafBranches);
+    } finally {
+      try {
+        await this.deps.worktree.remove({ repoPath, worktreePath: resultPath, force: true });
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   private async finalize(outcome: RunOutcome): Promise<void> {
     if (!this.runId) return;
     if (this.finalOutcome === null) this.finalOutcome = outcome;
     this.state = 'completed';
+
+    // Best-effort consolidate leaves into a single result branch on success.
+    if (outcome === 'success') {
+      try {
+        await this.finalizeResultBranch();
+      } catch {
+        // Don't let finalize failures change the run outcome.
+      }
+    }
+
     const status =
       outcome === 'success'
         ? 'completed'

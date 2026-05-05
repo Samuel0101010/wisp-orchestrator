@@ -108,11 +108,14 @@ beforeEach(() => {
     fetchCalls.push({ url, init });
     return fetchHandler(url, init);
   }) as typeof fetch;
+  // Pre-acknowledge first-run modal so existing tests bypass the new gate.
+  localStorage.setItem('agent-harness:first-run-ack-v1', '1');
 });
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
   vi.restoreAllMocks();
+  localStorage.clear();
 });
 
 function renderEditor(projectId = 'p1') {

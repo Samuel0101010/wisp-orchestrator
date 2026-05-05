@@ -30,6 +30,8 @@ import {
   SubprocessPool,
   Walker,
   addWorktree,
+  commitWorktreeChanges,
+  mergeBranchesInWorktree,
   removeWorktree,
   runVerification,
   type InitialWalkerState,
@@ -39,6 +41,8 @@ import {
   type WalkerDeps,
 } from '@agent-harness/orchestrator';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import { env } from '../env.js';
+import { getLastAuthProbe } from '../auth-status.js';
 
 // Shape of the in-memory ws bus.
 export interface WsBus {
@@ -69,9 +73,9 @@ export interface StartRunArgs {
   maxParallel?: number;
 }
 
-const DEFAULT_BUDGET_MIN = 360;
+const DEFAULT_BUDGET_MIN = 120;
 const DEFAULT_BUDGET_TURNS = 500;
-const DEFAULT_MAX_PARALLEL = 3;
+const DEFAULT_MAX_PARALLEL = 2;
 const DEFAULT_SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
 
 interface ResidentRun {
@@ -151,6 +155,10 @@ export class RunRuntime {
         return () => clearTimeout(t);
       },
       now: () => Date.now(),
+      autoCommit: commitWorktreeChanges,
+      mergeBranches: mergeBranchesInWorktree,
+      interTaskPacingMs: env.HARNESS_INTER_TASK_PACING_MS,
+      autoResumeRateLimit: env.HARNESS_AUTO_RESUME_RATE_LIMIT,
     };
   }
 
@@ -172,7 +180,7 @@ export class RunRuntime {
     args: StartRunArgs,
   ): Promise<
     | { ok: true; runId: string }
-    | { ok: false; status: 404 | 409 | 400; error: string; details?: unknown }
+    | { ok: false; status: 404 | 409 | 400 | 503; error: string; details?: unknown }
   > {
     const planRow = await this.db.select().from(plans).where(eq(plans.id, args.planId)).get();
     if (!planRow) return { ok: false, status: 404, error: 'plan not found' };
@@ -194,6 +202,18 @@ export class RunRuntime {
         error: 'plan dag is invalid',
         details: { message: (err as Error).message },
       };
+    }
+
+    if (env.HARNESS_AUTH_MODE === 'subscription' && !env.HARNESS_MOCK_CLI) {
+      const last = getLastAuthProbe();
+      if (last && !last.ok) {
+        return {
+          ok: false,
+          status: 503,
+          error: 'auth-failed',
+          details: { hint: last.hint },
+        };
+      }
     }
 
     const runId = randomUUID();

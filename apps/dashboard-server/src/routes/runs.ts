@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, gte } from 'drizzle-orm';
 import { z } from 'zod';
-import { checkpoints, runs, tasks } from '@agent-harness/schemas';
+import { checkpoints, plans, runs, tasks } from '@agent-harness/schemas';
 import { db } from '../db/index.js';
 import { env } from '../env.js';
 import { wrap } from './wrap.js';
@@ -41,6 +41,24 @@ export function getDefaultRuntime(): RunRuntime {
 export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync {
   const runtime = deps.runtime ?? defaultRuntimeInstance();
   const router: FastifyPluginAsync = async (app) => {
+    app.get(
+      '/api/runs/daily-count',
+      wrap(async () => {
+        const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const rows = await db
+          .select({ projectId: plans.projectId })
+          .from(runs)
+          .innerJoin(plans, eq(runs.planId, plans.id))
+          .where(gte(runs.startedAt, cutoff))
+          .all();
+        const byProject: Record<string, number> = {};
+        for (const r of rows) {
+          byProject[r.projectId] = (byProject[r.projectId] ?? 0) + 1;
+        }
+        return { totalLast24h: rows.length, byProject };
+      }),
+    );
+
     app.get(
       '/api/runs',
       wrap(async (req) => {

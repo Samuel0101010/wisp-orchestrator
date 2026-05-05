@@ -10,7 +10,13 @@ export type { RateLimitHit } from './rate-limit.js';
 export { probeSubscriptionAuth } from './auth.js';
 export type { AuthProbeResult, ProbeOpts } from './auth.js';
 
-export { addWorktree, removeWorktree, listWorktrees, computeWorktreePath } from './worktree.js';
+export {
+  addWorktree,
+  removeWorktree,
+  listWorktrees,
+  computeWorktreePath,
+  mergeBranchesInWorktree,
+} from './worktree.js';
 export type {
   AddWorktreeOpts,
   RemoveWorktreeOpts,
@@ -26,6 +32,8 @@ export type {
   VerificationKind,
   RunVerificationOpts,
 } from './verification.js';
+
+export { commitWorktreeChanges } from './auto-commit.js';
 
 export { Walker, composeTaskPrompt } from './walker.js';
 export type {

@@ -94,6 +94,30 @@ This document describes the M1 vertical slice. It assumes you have read the [REA
 9. **Snapshots.** A timer in `RunRuntime` calls `walker.snapshot()` every 10 minutes (configurable). Each snapshot writes a JSON file under `${HARNESS_DATA_DIR}/snapshots/` and inserts a `checkpoints` row.
 10. **Run completion.** The Walker drains its queue; the run row gets `status='completed'`, `outcome='success'` (all leaf tasks done), `'failure'` (any leaf failed), `'cancelled'` (user cancel), or `'budget_exceeded'` (wallclock or turns cap hit).
 
+## Worktree chaining
+
+Each task runs in its own git worktree, branched off the dependency graph.
+Branches are named `harness/<runId>/<taskId>`. The walker:
+
+1. Creates the worktree from the parent task's branch (or from `HEAD` for
+   root tasks). Multi-dep nodes branch from the first dep and merge the
+   rest in via `git merge --no-ff`; conflicts mark the task as failed.
+2. Runs the `claude -p` subprocess in the worktree.
+3. On verification success, calls `commitWorktreeChanges` (forced harness
+   identity, `--allow-empty`, signing disabled) so the branch tip carries
+   the artifacts forward. Without this, downstream tasks would branch off
+   an empty parent branch.
+4. Removes the worktree directory but keeps the branch.
+5. After a successful run, finalizes a `harness/<runId>/result` branch by
+   creating a fresh worktree from `HEAD` and `git merge --no-ff`-ing every
+   leaf task's branch into it. The user inspects this single branch to see
+   the run's full output as a chain of merge commits.
+
+A failed run skips the result-branch finalize step; leaf branches stay
+intact for forensics. Multi-dep merge conflicts mark the dependent task
+failed without auto-resolution — the worktree is left for the user to
+inspect.
+
 ## Resilience matrix
 
 | Failure mode                              | Detection                                                                       | Mitigation                                                                                                                           |
@@ -172,7 +196,7 @@ Run outcome (set on terminal transition): `success | failure | budget_exceeded |
 
 Task outcome on `task.completed` is always `'pass'` in M1 — verification failure flows through `task.failed`, not a `'fail'` outcome. M5 (QA replan loop) will reintroduce richer task outcomes if needed.
 
-`pausedReason` enum: `'rate-limit' | 'user' | 'shutdown'`.
+`pausedReason` enum: `'rate-limit' | 'user' | 'shutdown' | 'consecutive-failures'`.
 
 ### Task states
 
