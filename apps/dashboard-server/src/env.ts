@@ -27,6 +27,13 @@ const envSchema = z.object({
   HARNESS_CORS_ORIGIN: z.string().default('http://localhost:5173'),
   HARNESS_MOCK_CLI: booleanLike,
   HARNESS_SERVE_WEB: booleanLike,
+  HARNESS_INTER_TASK_PACING_MS: z
+    .string()
+    .optional()
+    .transform((v) => (v === undefined ? 5000 : Number.parseInt(v, 10)))
+    .pipe(z.number().int().min(0).max(600_000)),
+  HARNESS_AUTO_RESUME_RATE_LIMIT: booleanLike,
+  HARNESS_AUTH_MODE: z.enum(['subscription', 'api']).default('subscription'),
 });
 
 export type Env = z.infer<typeof envSchema>;
