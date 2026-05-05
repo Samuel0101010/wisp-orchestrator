@@ -30,6 +30,7 @@ import {
   SubprocessPool,
   Walker,
   addWorktree,
+  commitWorktreeChanges,
   removeWorktree,
   runVerification,
   type InitialWalkerState,
@@ -151,6 +152,7 @@ export class RunRuntime {
         return () => clearTimeout(t);
       },
       now: () => Date.now(),
+      autoCommit: commitWorktreeChanges,
     };
   }
 

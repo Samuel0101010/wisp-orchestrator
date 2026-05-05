@@ -217,6 +217,7 @@ function makeHarness(args: {
     snapshot: async () => '/fake/snap.json',
     setTimeout: timers.setTimeout,
     now: timers.now,
+    autoCommit: async () => 'a'.repeat(40),
   };
 
   const walker = new Walker(deps);
