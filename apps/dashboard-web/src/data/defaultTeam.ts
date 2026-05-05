@@ -28,6 +28,5 @@ export const QA_DEFAULT: AgentSpec = {
 };
 
 export const DEFAULT_TEAM: Team = {
-  // TODO(M2/2.5): variable team UI — expand to support more than 3 roles.
   roles: [ARCHITECT_DEFAULT, DEVELOPER_DEFAULT, QA_DEFAULT],
 };
