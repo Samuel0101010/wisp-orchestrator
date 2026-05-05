@@ -93,17 +93,14 @@ describe('runtime emit — harness.verify-failed', () => {
           { kind: 'lint', cmd: 'pnpm lint', exitCode: 1, tail: 'no-unused-vars: foo' },
           { kind: 'test', cmd: 'pnpm test', exitCode: 1, tail: 'expected 3 got 4' },
         ],
-        output: '[lint] pnpm lint (200ms, exit=1)\nno-unused-vars: foo\n[test] pnpm test (1s, exit=1)\nexpected 3 got 4',
+        output:
+          '[lint] pnpm lint (200ms, exit=1)\nno-unused-vars: foo\n[test] pnpm test (1s, exit=1)\nexpected 3 got 4',
       },
     });
 
     await new Promise((r) => setImmediate(r));
 
-    const rows = await db
-      .select()
-      .from(eventsTable)
-      .where(eq(eventsTable.runId, runId))
-      .all();
+    const rows = await db.select().from(eventsTable).where(eq(eventsTable.runId, runId)).all();
     const verifyEvent = rows.find((r) => r.type === 'harness.verify-failed');
     expect(verifyEvent).toBeDefined();
     expect(verifyEvent!.taskId).toBe('t-1');

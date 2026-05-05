@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { HarnessEvent, Plan, Team, TaskNode } from '@agent-harness/schemas';
-import { Walker, composeTaskPrompt, type BudgetConfig, type TaskState, type WalkerDeps } from '../walker.js';
+import {
+  Walker,
+  composeTaskPrompt,
+  type BudgetConfig,
+  type TaskState,
+  type WalkerDeps,
+} from '../walker.js';
 import type { VerificationResult } from '../verification.js';
 import type { RunClaudeOpts } from '../subprocess.js';
 

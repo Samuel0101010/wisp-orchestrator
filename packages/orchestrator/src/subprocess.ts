@@ -117,13 +117,19 @@ function mapCliEvent(parsed: ParsedLine, taskId: string): HarnessEvent | null {
       };
     }
     case 'result': {
-      const usage = (parsed as Record<string, unknown>).usage as Record<string, unknown> | undefined;
+      const usage = (parsed as Record<string, unknown>).usage as
+        | Record<string, unknown>
+        | undefined;
       if (!usage) return null;
       const inputTokens = Number((usage as Record<string, number | undefined>).input_tokens ?? 0);
-      const cacheCreate = Number((usage as Record<string, number | undefined>).cache_creation_input_tokens ?? 0);
+      const cacheCreate = Number(
+        (usage as Record<string, number | undefined>).cache_creation_input_tokens ?? 0,
+      );
       const outputTokens = Number((usage as Record<string, number | undefined>).output_tokens ?? 0);
       const numTurns = Number((parsed as Record<string, unknown>).num_turns ?? 0);
-      const tokensIn = (Number.isFinite(inputTokens) ? inputTokens : 0) + (Number.isFinite(cacheCreate) ? cacheCreate : 0);
+      const tokensIn =
+        (Number.isFinite(inputTokens) ? inputTokens : 0) +
+        (Number.isFinite(cacheCreate) ? cacheCreate : 0);
       return {
         type: 'task.usage',
         payload: {

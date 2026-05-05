@@ -122,12 +122,14 @@ export async function runVerification(
       return {
         pass: false,
         output: transcript,
-        failures: [{
-          kind: 'preflight',
-          cmd: preflightCmd,
-          exitCode: res.timedOut ? 124 : res.exitCode,
-          tail: tail(combined),
-        }],
+        failures: [
+          {
+            kind: 'preflight',
+            cmd: preflightCmd,
+            exitCode: res.timedOut ? 124 : res.exitCode,
+            tail: tail(combined),
+          },
+        ],
       };
     }
   }
