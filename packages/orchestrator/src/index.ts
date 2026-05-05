@@ -27,6 +27,8 @@ export type {
   RunVerificationOpts,
 } from './verification.js';
 
+export { commitWorktreeChanges } from './auto-commit.js';
+
 export { Walker, composeTaskPrompt } from './walker.js';
 export type {
   WalkerDeps,
