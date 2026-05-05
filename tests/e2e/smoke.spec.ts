@@ -24,6 +24,17 @@ test.describe('Phase F1 smoke', () => {
       );
     }
 
+    // Pre-acknowledge the first-run ToS modal so it doesn't intercept the
+    // Lock & Run flow. addInitScript runs before any page script on every
+    // navigation, so localStorage is seeded by the time React hydrates.
+    await page.addInitScript(() => {
+      try {
+        window.localStorage.setItem('agent-harness:first-run-ack-v1', '1');
+      } catch {
+        // localStorage may be unavailable in some contexts; ignore.
+      }
+    });
+
     // Step 1: Visit /. Sidebar visible.
     await page.goto('/');
     await expect(page.getByText('Agent Harness', { exact: false }).first()).toBeVisible();
