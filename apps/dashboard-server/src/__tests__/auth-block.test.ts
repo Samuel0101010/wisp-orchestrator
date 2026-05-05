@@ -30,9 +30,11 @@ async function seedLockedPlan(): Promise<{ planId: string; projectId: string }> 
   const validPlan = {
     goal: 'g',
     team: {
-      architect: { role: 'architect', model: 'opus', allowedTools: [], systemPrompt: 'a' },
-      developer: { role: 'developer', model: 'sonnet', allowedTools: [], systemPrompt: 'b' },
-      qa: { role: 'qa', model: 'sonnet', allowedTools: [], systemPrompt: 'c' },
+      roles: [
+        { role: 'architect', model: 'opus', allowedTools: [], systemPrompt: 'a'.repeat(60) },
+        { role: 'developer', model: 'sonnet', allowedTools: [], systemPrompt: 'b'.repeat(60) },
+        { role: 'qa', model: 'sonnet', allowedTools: [], systemPrompt: 'c'.repeat(60) },
+      ],
     },
     nodes: [
       { id: 'a', role: 'architect', prompt: 'p', deps: [], successCriteria: {}, maxTurns: 5 },

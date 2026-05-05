@@ -75,24 +75,26 @@ describe('TeamBuilder', () => {
       if (url.endsWith('/team')) {
         return new Response(
           JSON.stringify({
-            architect: {
-              role: 'architect',
-              model: 'haiku',
-              allowedTools: ['Read'],
-              systemPrompt: `arch ${FILLER}`,
-            },
-            developer: {
-              role: 'developer',
-              model: 'sonnet',
-              allowedTools: ['Edit'],
-              systemPrompt: `dev ${FILLER}`,
-            },
-            qa: {
-              role: 'qa',
-              model: 'sonnet',
-              allowedTools: ['Read'],
-              systemPrompt: `qa ${FILLER}`,
-            },
+            roles: [
+              {
+                role: 'architect',
+                model: 'haiku',
+                allowedTools: ['Read'],
+                systemPrompt: `arch ${FILLER}`,
+              },
+              {
+                role: 'developer',
+                model: 'sonnet',
+                allowedTools: ['Edit'],
+                systemPrompt: `dev ${FILLER}`,
+              },
+              {
+                role: 'qa',
+                model: 'sonnet',
+                allowedTools: ['Read'],
+                systemPrompt: `qa ${FILLER}`,
+              },
+            ],
           }),
           { status: 200 },
         );
@@ -105,9 +107,7 @@ describe('TeamBuilder', () => {
     await waitFor(() => {
       expect(screen.getByTestId('badge-architect')).toHaveTextContent('haiku');
     });
-    expect(
-      (screen.getByLabelText('Model', { selector: '#architect-model' }) as HTMLInputElement).value,
-    ).toBe('haiku');
+    expect((screen.getByTestId('model-architect') as HTMLSelectElement).value).toBe('haiku');
   });
 
   it('disables save when systemPrompt < 50 chars and shows red counter', async () => {
@@ -122,9 +122,8 @@ describe('TeamBuilder', () => {
       expect(screen.getByTestId('badge-architect')).toBeInTheDocument();
     });
 
-    const archPrompt = screen.getByLabelText('System prompt', {
-      selector: '#architect-prompt',
-    }) as HTMLTextAreaElement;
+    // Index 0 = architect (first card), use getAllByLabelText for 'System prompt'
+    const archPrompt = screen.getAllByLabelText('System prompt')[0] as HTMLTextAreaElement;
     fireEvent.change(archPrompt, { target: { value: 'too short' } });
 
     const saveBtn = screen.getByRole('button', { name: /save team/i });
@@ -158,14 +157,92 @@ describe('TeamBuilder', () => {
     await waitFor(() => {
       expect(putBody).not.toBeNull();
     });
-    const body = putBody as {
-      architect: { role: string; model: string };
-      developer: { role: string; model: string };
-      qa: { role: string; model: string };
+    const body = putBody as { roles: { role: string; model: string }[] };
+    const byRole = (r: string) => body.roles.find((a) => a.role === r)!;
+    expect(byRole('architect').role).toBe('architect');
+    expect(byRole('architect').model).toBe('opus');
+    expect(byRole('developer').model).toBe('sonnet');
+    expect(byRole('qa').role).toBe('qa');
+  });
+
+  it('add role appends a new card up to 8', async () => {
+    fetchHandler = (url) => {
+      if (url.endsWith('/team')) return new Response('{}', { status: 404 });
+      return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
     };
-    expect(body.architect.role).toBe('architect');
-    expect(body.architect.model).toBe('opus');
-    expect(body.developer.model).toBe('sonnet');
-    expect(body.qa.role).toBe('qa');
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    const addBtn = screen.getByTestId('add-role');
+    // Default team has 3; click 5 times to reach 8.
+    for (let i = 0; i < 5; i++) fireEvent.click(addBtn);
+    expect(addBtn).toBeDisabled();
+    expect(addBtn.textContent).toContain('(8/8)');
+  });
+
+  it('remove button removes the card and is disabled when only one role remains', async () => {
+    fetchHandler = (url) => {
+      if (url.endsWith('/team')) return new Response('{}', { status: 404 });
+      return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
+    };
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('remove-architect'));
+    await waitFor(() => expect(screen.queryByTestId('badge-architect')).toBeNull());
+    // Remove until one left.
+    fireEvent.click(screen.getByTestId('remove-developer'));
+    // Now only qa remains; its remove button should be disabled.
+    expect(screen.getByTestId('remove-qa')).toBeDisabled();
+  });
+
+  it('flags duplicate role names and blocks save', async () => {
+    fetchHandler = (url) => {
+      if (url.endsWith('/team')) return new Response('{}', { status: 404 });
+      return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
+    };
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    const devRoleInput = screen.getByTestId('role-name-1') as HTMLInputElement;
+    fireEvent.change(devRoleInput, { target: { value: 'architect' } });
+    const saveBtn = screen.getByRole('button', { name: /save team/i });
+    expect(saveBtn).toBeDisabled();
+  });
+
+  it('saves a 4-role team with custom role names', async () => {
+    let putBody: unknown = null;
+    fetchHandler = (url, init) => {
+      if (url.endsWith('/team') && init?.method === 'PUT') {
+        putBody = init.body ? JSON.parse(String(init.body)) : null;
+        return new Response(String(init.body), { status: 200 });
+      }
+      if (url.endsWith('/team')) return new Response('{}', { status: 404 });
+      return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
+    };
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('add-role'));
+    // Fourth card should now be present at index 3 (role name empty).
+    const newRole = screen.getByTestId('role-name-3') as HTMLInputElement;
+    fireEvent.change(newRole, { target: { value: 'reviewer' } });
+    const newPrompt = screen.getAllByLabelText('System prompt')[3] as HTMLTextAreaElement;
+    fireEvent.change(newPrompt, {
+      target: {
+        value: 'reviewer system prompt long enough to satisfy the 50 char minimum easily.',
+      },
+    });
+    const saveBtn = screen.getByRole('button', { name: /save team/i });
+    await waitFor(() => expect(saveBtn).toBeEnabled());
+    fireEvent.click(saveBtn);
+    await waitFor(() => expect(putBody).not.toBeNull());
+    const body = putBody as { roles: { role: string }[] };
+    expect(body.roles).toHaveLength(4);
+    expect(body.roles[3]!.role).toBe('reviewer');
   });
 });

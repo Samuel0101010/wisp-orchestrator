@@ -9,27 +9,27 @@ import { db, sqlite } from '../db/index.js';
 
 const FILLER = 'x'.repeat(80);
 
-function makeTeam(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function makeRole(
+  role: string,
+  model: string = 'sonnet',
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
-    architect: {
-      role: 'architect',
-      model: 'opus',
-      allowedTools: ['Read', 'Write(architecture.md)'],
-      systemPrompt: `arch ${FILLER}`,
-    },
-    developer: {
-      role: 'developer',
-      model: 'sonnet',
-      allowedTools: ['Read', 'Edit', 'Write'],
-      systemPrompt: `dev ${FILLER}`,
-    },
-    qa: {
-      role: 'qa',
-      model: 'sonnet',
-      allowedTools: ['Read', 'Bash(pnpm test)'],
-      systemPrompt: `qa ${FILLER}`,
-    },
+    role,
+    model,
+    allowedTools: ['Read'],
+    systemPrompt: `${role} ${FILLER}`,
     ...overrides,
+  };
+}
+
+function makeTeam(roles?: Record<string, unknown>[]): { roles: Record<string, unknown>[] } {
+  return {
+    roles: roles ?? [
+      makeRole('architect', 'opus', { allowedTools: ['Read', 'Write(architecture.md)'] }),
+      makeRole('developer', 'sonnet', { allowedTools: ['Read', 'Edit', 'Write'] }),
+      makeRole('qa', 'sonnet', { allowedTools: ['Read', 'Bash(pnpm test)'] }),
+    ],
   };
 }
 
@@ -70,40 +70,96 @@ describe('team routes', () => {
     expect(res.statusCode).toBe(404);
   });
 
-  it('PUT with role/slot mismatch returns 400', async () => {
-    const bad = makeTeam({
-      architect: {
-        role: 'developer',
-        model: 'opus',
-        allowedTools: [],
-        systemPrompt: `wrong slot ${FILLER}`,
-      },
-    });
+  it('PUT with duplicate role names returns 400', async () => {
+    const bad = makeTeam([makeRole('architect', 'opus'), makeRole('architect', 'sonnet')]);
     const res = await app.inject({
       method: 'PUT',
       url: `/api/projects/${projectId}/team`,
       payload: bad,
     });
     expect(res.statusCode).toBe(400);
-    expect(res.json().message).toMatch(/architect.role/);
+  });
+
+  it('PUT a 4-role team with custom role names returns 200', async () => {
+    const team = makeTeam([
+      makeRole('architect', 'opus'),
+      makeRole('backend-dev', 'sonnet'),
+      makeRole('frontend-dev', 'sonnet'),
+      makeRole('qa', 'haiku'),
+    ]);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: team,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { roles: Array<{ role: string; model: string }> };
+    expect(body.roles).toHaveLength(4);
+    expect(body.roles.map((r) => r.role)).toEqual([
+      'architect',
+      'backend-dev',
+      'frontend-dev',
+      'qa',
+    ]);
+  });
+
+  it('PUT an 8-role team is accepted (max boundary)', async () => {
+    const roles = Array.from({ length: 8 }, (_, i) => makeRole(`role-${i + 1}`));
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: { roles },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('PUT a 9-role team returns 400 (over max)', async () => {
+    const roles = Array.from({ length: 9 }, (_, i) => makeRole(`role-${i + 1}`));
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: { roles },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT an empty roles array returns 400', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: { roles: [] },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT with non-kebab-case role name returns 400', async () => {
+    const bad = makeTeam([makeRole('Architect'), makeRole('developer'), makeRole('qa')]);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: bad,
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT with model not in opus/sonnet/haiku returns 400', async () => {
+    const bad = makeTeam([makeRole('architect', 'gpt-4'), makeRole('developer'), makeRole('qa')]);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: bad,
+    });
+    expect(res.statusCode).toBe(400);
   });
 
   it('PUT with too-short systemPrompt returns 400', async () => {
-    const bad = makeTeam({
-      architect: {
-        role: 'architect',
-        model: 'opus',
-        allowedTools: [],
-        systemPrompt: 'too short',
-      },
-    });
+    const bad = makeTeam([makeRole('architect', 'opus', { systemPrompt: 'too short' })]);
     const res = await app.inject({
       method: 'PUT',
       url: `/api/projects/${projectId}/team`,
       payload: bad,
     });
     expect(res.statusCode).toBe(400);
-    expect(res.json().message).toMatch(/systemPrompt/);
   });
 
   it('PUT on nonexistent project returns 404', async () => {
@@ -132,11 +188,12 @@ describe('team routes', () => {
       url: `/api/projects/${projectId}/team`,
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().architect.model).toBe('opus');
-    expect(res.json().developer.model).toBe('sonnet');
+    const body = res.json() as { roles: Array<{ role: string; model: string }> };
+    expect(body.roles.find((r) => r.role === 'architect')?.model).toBe('opus');
+    expect(body.roles.find((r) => r.role === 'developer')?.model).toBe('sonnet');
   });
 
-  it('persists rolesJson in slotted shape (object with architect/developer/qa keys)', async () => {
+  it('persists rolesJson in the new {roles:[...]} shape', async () => {
     const team = makeTeam();
     const create = await app.inject({
       method: 'PUT',
@@ -147,25 +204,17 @@ describe('team routes', () => {
 
     const rows = await db.select().from(teams).where(eq(teams.projectId, projectId)).all();
     expect(rows).toHaveLength(1);
-    const stored = rows[0]!.rolesJson as unknown;
-    // Must be a slotted object, NOT an array.
-    expect(Array.isArray(stored)).toBe(false);
-    expect(stored).toMatchObject({
-      architect: { role: 'architect' },
-      developer: { role: 'developer' },
-      qa: { role: 'qa' },
-    });
+    const stored = rows[0]!.rolesJson as { roles: Array<{ role: string }> };
+    expect(Array.isArray(stored.roles)).toBe(true);
+    expect(stored.roles.some((r) => r.role === 'architect')).toBe(true);
   });
 
   it('PUT same project again replaces (no duplicate row)', async () => {
-    const team = makeTeam({
-      developer: {
-        role: 'developer',
-        model: 'haiku',
-        allowedTools: ['Read'],
-        systemPrompt: `dev v2 ${FILLER}`,
-      },
-    });
+    const team = makeTeam([
+      makeRole('architect', 'opus'),
+      makeRole('developer', 'haiku'),
+      makeRole('qa', 'sonnet'),
+    ]);
     const res = await app.inject({
       method: 'PUT',
       url: `/api/projects/${projectId}/team`,
@@ -180,6 +229,7 @@ describe('team routes', () => {
       method: 'GET',
       url: `/api/projects/${projectId}/team`,
     });
-    expect(fetched.json().developer.model).toBe('haiku');
+    const body = fetched.json() as { roles: Array<{ role: string; model: string }> };
+    expect(body.roles.find((r) => r.role === 'developer')?.model).toBe('haiku');
   });
 });
