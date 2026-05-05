@@ -86,6 +86,22 @@ export const harnessEventSchema = z.discriminatedUnion('type', [
       source: z.string(),
     }),
   }),
+  z.object({
+    type: z.literal('harness.verify-failed'),
+    payload: z.object({
+      taskId: z.string(),
+      attempt: z.number().int().positive(),
+      failures: z.array(
+        z.object({
+          kind: z.enum(['build', 'test', 'lint', 'custom', 'preflight']),
+          cmd: z.string(),
+          exitCode: z.number().int(),
+          tail: z.string(),
+        }),
+      ),
+      output: z.string(),
+    }),
+  }),
 ]);
 
 export type HarnessEvent = z.infer<typeof harnessEventSchema>;

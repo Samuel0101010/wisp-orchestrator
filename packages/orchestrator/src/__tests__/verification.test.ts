@@ -145,6 +145,47 @@ describe('runVerification', () => {
     });
   }, 30_000);
 
+  it('runs preflight first; on failure, short-circuits other gates', async () => {
+    await withTmp(async (cwd) => {
+      const calls: string[] = [];
+      const res = await runVerification(
+        cwd,
+        { preflight: 'pnpm install', build: 'pnpm build' },
+        {
+          __exec: async (cmd) => {
+            calls.push(cmd);
+            if (cmd === 'pnpm install') {
+              return { exitCode: 1, stdout: '', stderr: 'lockfile mismatch', timedOut: false };
+            }
+            return { exitCode: 0, stdout: 'ok', stderr: '', timedOut: false };
+          },
+        },
+      );
+      expect(res.pass).toBe(false);
+      expect(res.failures).toHaveLength(1);
+      expect(res.failures[0]!.kind).toBe('preflight');
+      expect(calls).toEqual(['pnpm install']); // build was not invoked
+    });
+  });
+
+  it('runs preflight then proceeds to build/test/lint on success', async () => {
+    await withTmp(async (cwd) => {
+      const calls: string[] = [];
+      const res = await runVerification(
+        cwd,
+        { preflight: 'pnpm install', build: 'pnpm build', test: 'pnpm test' },
+        {
+          __exec: async (cmd) => {
+            calls.push(cmd);
+            return { exitCode: 0, stdout: '', stderr: '', timedOut: false };
+          },
+        },
+      );
+      expect(res.pass).toBe(true);
+      expect(calls).toEqual(['pnpm install', 'pnpm build', 'pnpm test']);
+    });
+  });
+
   // Skipped: SIGTERM via shell:true does not reliably reach the grandchild
   // process across either Windows (cmd.exe) or POSIX (orphaned node grandchild
   // re-parents to init when the shell is killed), so we cannot deterministically

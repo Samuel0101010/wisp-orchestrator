@@ -16,13 +16,14 @@
 import { execa } from 'execa';
 
 export interface SuccessCriteria {
+  preflight?: string;
   build?: string;
   test?: string;
   lint?: string;
   custom?: string;
 }
 
-export type VerificationKind = 'build' | 'test' | 'lint' | 'custom';
+export type VerificationKind = 'preflight' | 'build' | 'test' | 'lint' | 'custom';
 
 export interface VerificationFailure {
   kind: VerificationKind;
@@ -79,6 +80,11 @@ const defaultExec: ExecFn = async (cmd, { cwd, timeoutMs, signal }) => {
       // execa v9 renamed `signal` to `cancelSignal`.
       cancelSignal: signal,
       stripFinalNewline: false,
+      // CI=true makes pnpm/npm non-interactive. Without this, pnpm install
+      // aborts when it wants to confirm clobbering an existing node_modules
+      // (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY) — common after
+      // worktree-chaining brings the upstream task's node_modules along.
+      env: { ...process.env, CI: 'true' },
     });
     return {
       exitCode: typeof result.exitCode === 'number' ? result.exitCode : 1,
@@ -101,6 +107,37 @@ export async function runVerification(
 ): Promise<VerificationResult> {
   const exec = opts.__exec ?? defaultExec;
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+  // Preflight runs once before the rest. On failure, short-circuit.
+  const preflightCmd = criteria.preflight?.trim() ?? '';
+  if (preflightCmd.length > 0) {
+    if (opts.signal?.aborted) {
+      return {
+        pass: false,
+        output: `[preflight] ${preflightCmd}\nABORTED`,
+        failures: [{ kind: 'preflight', cmd: preflightCmd, exitCode: 130, tail: 'aborted' }],
+      };
+    }
+    const t0 = Date.now();
+    const res = await exec(preflightCmd, { cwd, timeoutMs, signal: opts.signal });
+    const ms = Date.now() - t0;
+    const combined = `${res.stdout}\n${res.stderr}`;
+    if (res.timedOut || res.exitCode !== 0) {
+      const transcript = `[preflight] ${preflightCmd} (${ms}ms, exit=${res.timedOut ? 124 : res.exitCode})\n${tail(combined)}`;
+      return {
+        pass: false,
+        output: transcript,
+        failures: [
+          {
+            kind: 'preflight',
+            cmd: preflightCmd,
+            exitCode: res.timedOut ? 124 : res.exitCode,
+            tail: tail(combined),
+          },
+        ],
+      };
+    }
+  }
 
   const planned = ORDER.map((kind) => ({ kind, cmd: criteria[kind]?.trim() ?? '' })).filter(
     (e) => e.cmd.length > 0,

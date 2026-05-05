@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import type { HarnessEvent, Plan, Team, TaskNode } from '@agent-harness/schemas';
-import { Walker, type BudgetConfig, type TaskState, type WalkerDeps } from '../walker.js';
+import {
+  Walker,
+  composeTaskPrompt,
+  type BudgetConfig,
+  type TaskState,
+  type WalkerDeps,
+} from '../walker.js';
 import type { VerificationResult } from '../verification.js';
 import type { RunClaudeOpts } from '../subprocess.js';
 
@@ -336,6 +342,23 @@ describe('Walker — failure modes', () => {
     expect(h.walker.status().taskStates['a']).toBe('failed');
     expect(h.walker.status().taskStates['b']).toBe('done');
     expect(h.walker.status().retries['a']).toBe(1);
+  });
+
+  it('emits harness.verify-failed when verification gate fails', async () => {
+    const h = makeHarness({
+      defaultVerify: async () => ({
+        pass: false,
+        output: 'lint: undefined var foo',
+        failures: [{ kind: 'lint' as const, cmd: 'pnpm lint', exitCode: 1, tail: 'foo' }],
+      }),
+    });
+    const plan = makePlan([node('t1', 'architect')]);
+    await h.walker.start({ runId: 'r1', plan, repoPath: '/fake', budget: DEFAULT_BUDGET });
+    const events = h.emitted.filter((x) => x.type === 'harness.verify-failed');
+    expect(events).toHaveLength(2);
+    expect(events[0]!.payload.failures[0].kind).toBe('lint');
+    expect(events[0]!.payload.attempt).toBe(1);
+    expect(events[1]!.payload.attempt).toBe(2);
   });
 
   it('verification fails first, retry succeeds → task done with retries=1', async () => {
@@ -992,6 +1015,27 @@ describe('Walker — D3: consecutive-failures pause', () => {
       (e) => e.type === 'run.paused' && e.payload.pausedReason === 'consecutive-failures',
     );
     expect(pausedEvent).toBeUndefined();
+  });
+});
+
+describe('composeTaskPrompt — retry-error truncation', () => {
+  it('caps retry-error context to head + tail with omission marker', () => {
+    const huge = Array.from({ length: 500 }, (_, i) => `line ${i}`).join('\n');
+    const plan = makePlan([node('t1', 'developer')]);
+    const out = composeTaskPrompt(plan, plan.nodes[0]!, huge);
+    expect(out.length).toBeLessThan(huge.length);
+    expect(out).toContain('line 0');
+    expect(out).toContain('line 499');
+    expect(out).toContain('[…');
+    expect(out).toContain('lines omitted');
+  });
+
+  it('passes through small retry-error unchanged', () => {
+    const small = 'short error\nwith two lines';
+    const plan = makePlan([node('t1', 'developer')]);
+    const out = composeTaskPrompt(plan, plan.nodes[0]!, small);
+    expect(out).toContain(small);
+    expect(out).not.toContain('omitted');
   });
 });
 

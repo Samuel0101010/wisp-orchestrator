@@ -209,3 +209,153 @@ and bootstrapped a working TypeScript project from them.
 The harness still has fragility above the foundation layer (verify-gate
 robustness, telemetry parsing) which the smoke surfaced and which belongs
 in M2's scope, not M1.5.
+
+---
+
+# v1.0 Stage 1 — foundation hardening (2026-05-05)
+
+Branch `v1.0/foundation-hardening`, commits `132fd4d..101197b`.
+
+## v1.0 Pfad A run — Stage A5 result branch validated
+
+**Goal:** "Write a single text file named result.txt at the project root
+containing exactly the line: HELLO WORLD." Three-role haiku team, fresh
+repo `harness-r1`, port 4503, run id `6447176a-3ec2-47e7-8294-8539dfa3244e`
+(third attempt on plan `1a7305bb`).
+
+**Outcome:** ✅ `status=completed, outcome=success`. Result branch
+`harness/6447176a-3ec2-47e7-8294-8539dfa3244e/result` created and contains
+`architecture.md`, `tasks.md`, `result.txt` (= "HELLO WORLD").
+
+| Task | Status | Tokens in | Tokens out | Turns | Duration |
+|---|---|---|---|---|---|
+| architect-1 | done | 9 451 | 3 613 | 11 | 71.2 s |
+| developer-1 | done | 51 090 | 1 363 | 9 | 43.8 s |
+| qa-1 | done | 4 453 | 334 | 2 | 10.4 s |
+| **total** | — | **64 994** | **5 310** | **22** | **125.4 s wall** |
+
+`tokensIn` non-zero across the board, confirming Task 1.4's
+`task.usage` parser fix against the real `claude -p` result frame.
+
+## Diagnoses surfaced before success
+
+The first two attempts on the same goal failed and exercised the new
+`harness.verify-failed` event end-to-end:
+
+- **Attempt 1** (plan `30bbc7de`, run `f5fca233`): architect's first
+  subprocess returned exit 0 but never invoked the `Write` tool, so the
+  custom verify gate `accessSync('architecture.md')` failed. Retry
+  failed identically. Walker emitted two `harness.verify-failed` events
+  (attempt 1 + 2) with full failure payload — kind, cmd, exitCode, tail,
+  output. Fixed by tightening the architect/developer/qa system prompts
+  ("you MUST use the Write tool, do not just chat").
+- **Attempt 2** (plan `1a7305bb`, run `cd569d96`): architect retried
+  successfully on second attempt, developer succeeded, but the QA verify
+  gate emitted by the planner was CRLF-naive
+  (`s !== 'HELLO WORLD\n' && s !== 'HELLO WORLD'`) and the dev wrote
+  `result.txt` with Windows CRLF line endings. Both QA attempts failed
+  the gate. Patched the plan's QA `successCriteria.custom` in SQLite to
+  strip a trailing `\r?\n$` before comparison; re-ran on the same plan
+  → success.
+
+**Foundation behaviors validated against real Claude:**
+
+| Capability | Status |
+|---|---|
+| `task.usage` parser reads modern result-frame | ✅ tokensIn/Out non-zero |
+| `harness.verify-failed` event with full payload | ✅ fired on every miss with `kind`, `cmd`, `exitCode`, `tail`, `output` |
+| Worktree chaining (Stage A1-A3) | ✅ developer worktree carried architect's commits |
+| Auto-commit after success (Stage A2) | ✅ each task committed by harness, no manual git inside agents |
+| Result branch finalize on success (Stage A5) | ✅ first-ever validation — `harness/<runId>/result` is the merge of qa-1's branch |
+| Cancel downstream tasks on upstream failure (Stage G3) | ✅ attempts 1 & 2 cancelled developer + qa with `cancelled: upstream dep failed` |
+| Retry-error truncation in retry prompt | not visible (small diffs); machinery in place |
+
+**Open lessons for the planner prompt:**
+
+1. The planner sometimes emits CRLF-naive verify gates on Windows. Prose
+   in `DAG_SCHEMA_BLOCK` already advises cross-platform; needs an
+   explicit CRLF-tolerance example (`replace(/\r?\n$/,'')` before string
+   compare). Out of scope for Stage 1 — captured as fodder for the M5
+   planner-quality work.
+2. Haiku architects routinely fail the first verify-pass when the gate
+   requires file existence — they describe instead of invoking `Write`.
+   The retry-once + verify-event approach handled it gracefully; the
+   stronger team prompt ("you MUST use Write") gets the architect over
+   the line on the first attempt of attempt 3.
+
+---
+
+## v1.0 Pfad B run — full-stack hello.ts + vitest with preflight
+
+**Goal:** "Add an exported hello(name) function returning the string `Hello, <name>` to a new TypeScript module at src/hello.ts plus a vitest test at src/hello.test.ts. Initialise package.json with vitest and typescript as dev dependencies; the test must pass via `pnpm test`."
+
+Three-role haiku team, fresh repo `harness-r2`, port 4504, run id
+`07f1c0e0-36fc-4546-b610-a34312cf6bac` on plan `d5ac6665` (second
+attempt; first failed with the `CI=true` bug fixed in commit `1851e7e`
+below).
+
+**Outcome:** ✅ `status=completed, outcome=success`. Result branch
+`harness/07f1c0e0-36fc-4546-b610-a34312cf6bac/result` carries:
+`architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
+`pnpm-lock.yaml`, `src/hello.ts`, `src/hello.test.ts`.
+
+`src/hello.ts`:
+```ts
+export function hello(name: string): string {
+  return `Hello, ${name}`;
+}
+```
+
+| Task | Status | Tokens in | Tokens out | Turns | Duration |
+|---|---|---|---|---|---|
+| arch-scaffold | done | 6 366 | 1 770 | 4 | 21.0 s |
+| dev-implement | done | 8 837 | 2 069 | 13 | 64.4 s |
+| qa-verify | done | 9 315 | 2 811 | 20 | 91.3 s |
+| **total** | — | **24 518** | **6 650** | **37** | **176.7 s wall** |
+
+**Planner emitted preflight on dev + qa**, confirming Task 1.3's
+DAG_SCHEMA_BLOCK update is steering the planner correctly:
+- `dev-implement.successCriteria` = `{preflight: "pnpm install", test: "pnpm test"}`
+- `qa-verify.successCriteria` = `{preflight: "pnpm install", build: "npx tsc --noEmit", test: "pnpm test"}`
+
+**Diagnosis arc on the way to success:**
+
+1. **First r2 run** (run `08a555e3`, before fix): architect + dev
+   succeeded; QA preflight failed with
+   `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY` — pnpm refused to
+   clobber the chained-in `node_modules` because the verifier
+   subprocess had no TTY. New `harness.verify-failed` event carried
+   the full pnpm error message verbatim, making root-cause
+   identification trivial.
+2. **Foundation patch** (commit `1851e7e`): set `env: { CI: 'true' }`
+   in `verification.ts`'s `defaultExec`. This is the canonical pnpm
+   non-interactive switch. Re-ran on the same plan id.
+3. **Second r2 run** (run `07f1c0e0`, after fix): architect succeeded;
+   dev's first attempt failed preflight with `ERR_PNPM_NO_PKG_MANIFEST`
+   (architect described package.json in `architecture.md` but didn't
+   write it); dev's retry created package.json + ran install + wrote
+   src/ + tests, all gates passed. QA succeeded clean. Result branch
+   finalized.
+
+**End-to-end Stage-1 validations against real Claude:**
+
+| Task 1.x capability | Pfad A | Pfad B |
+|---|---|---|
+| 1.1 `harness.verify-failed` event with full payload | ✅ both attempts | ✅ both runs |
+| 1.2 retry-prompt cap | not exercised (small errors) | dev recovered on retry — no crash |
+| 1.3 `successCriteria.preflight` runs first + short-circuits | not used | ✅ planner emitted it; ran before build/test/lint |
+| 1.4 `task.usage` parses result frame | ✅ tokensIn 64,994 | ✅ tokensIn 24,518 |
+| 1.5 verify-failed persists in events table | ✅ inspectable via SQLite | ✅ inspectable via SQLite |
+| Stage A5 result branch finalize | ✅ first ever success | ✅ |
+| New: `CI=true` keeps pnpm install non-interactive | n/a | ✅ |
+
+**Open issues / future-work signals:**
+
+- The architect frequently describes files (package.json, tsconfig)
+  in `architecture.md` instead of writing them. Dev recovers via the
+  retry, but a stronger architect prompt or a "scaffold" sub-role
+  (M2-style team customisation) would eliminate one full retry cycle
+  per run.
+- No diamond-merge / parallel-task validation here — both runs were
+  linear DAGs. Stage A4 still unvalidated against real Claude;
+  M2's variable-team work should provide a goal that exercises it.

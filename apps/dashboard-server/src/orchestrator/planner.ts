@@ -60,7 +60,11 @@ TaskNode {
   role: "architect" | "developer" | "qa"
   prompt: string                     // task instruction for that node
   deps: string[]                     // node ids this node depends on
-  successCriteria: { build?: string; test?: string; lint?: string; custom?: string }
+  successCriteria: { preflight?: string; build?: string; test?: string; lint?: string; custom?: string }
+  // preflight runs ONCE before the rest. Use it for one-time setup
+  // like "pnpm install" so build/test/lint don't each retrigger
+  // install hooks (prebuild/pretest scripts) and race the lockfile.
+  // On preflight failure, the rest of the gate is skipped.
   // Each value MUST be a shell command that the harness runs in the task's
   // worktree. The task is verified only when every configured command exits 0.
   // Never write a prose description here.
