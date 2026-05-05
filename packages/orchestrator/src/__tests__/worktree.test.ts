@@ -1,0 +1,62 @@
+import { describe, it, expect, beforeAll } from 'vitest';
+import { execa } from 'execa';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { addWorktree, computeWorktreePath, listWorktrees, removeWorktree } from '../worktree.js';
+
+let gitAvailable = false;
+
+beforeAll(async () => {
+  try {
+    await execa('git', ['--version']);
+    gitAvailable = true;
+  } catch {
+    gitAvailable = false;
+  }
+});
+
+describe('worktree manager', () => {
+  it('computes a worktree path next to the repo (not inside it)', () => {
+    const wt = computeWorktreePath('/some/repo', 'feature/foo bar');
+    expect(wt).toContain('.harness-worktrees');
+    expect(wt).not.toContain('/some/repo/.harness-worktrees');
+    expect(wt.endsWith('feature-foo-bar')).toBe(true);
+  });
+
+  it('add → list → remove lifecycle on a tmp repo', async () => {
+    if (!gitAvailable) {
+      // Skip cleanly when git is missing.
+      return;
+    }
+    const root = await mkdtemp(join(tmpdir(), 'harness-wt-'));
+    const repo = join(root, 'repo');
+    try {
+      await execa('git', ['init', '-b', 'main', repo]);
+      // Configure user so commits work in CI-like environments.
+      await execa('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+      await execa('git', ['-C', repo, 'config', 'user.name', 'Test']);
+      await writeFile(join(repo, 'README.md'), '# test\n');
+      await execa('git', ['-C', repo, 'add', '.']);
+      await execa('git', ['-C', repo, 'commit', '-m', 'init']);
+
+      const wtPath = await addWorktree({
+        repoPath: repo,
+        branchName: 'feature/x',
+      });
+      expect(existsSync(wtPath)).toBe(true);
+
+      const list = await listWorktrees({ repoPath: repo });
+      expect(list.length).toBeGreaterThanOrEqual(2); // main repo + new worktree
+      const found = list.find((e) => e.path.replace(/\\/g, '/') === wtPath.replace(/\\/g, '/'));
+      expect(found).toBeDefined();
+      expect(found?.branch).toBe('feature/x');
+
+      await removeWorktree({ repoPath: repo, worktreePath: wtPath, force: true });
+      expect(existsSync(wtPath)).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 30_000);
+});
