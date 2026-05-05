@@ -992,6 +992,18 @@ export class Walker {
 
 // ---------- prompt composition ----------
 
+const RETRY_ERROR_HEAD_LINES = 30;
+const RETRY_ERROR_TAIL_LINES = 60;
+
+function truncateRetryError(s: string): string {
+  const lines = s.split(/\r?\n/);
+  if (lines.length <= RETRY_ERROR_HEAD_LINES + RETRY_ERROR_TAIL_LINES + 2) return s;
+  const head = lines.slice(0, RETRY_ERROR_HEAD_LINES).join('\n');
+  const tail = lines.slice(-RETRY_ERROR_TAIL_LINES).join('\n');
+  const omitted = lines.length - RETRY_ERROR_HEAD_LINES - RETRY_ERROR_TAIL_LINES;
+  return `${head}\n[… ${omitted} lines omitted …]\n${tail}`;
+}
+
 export function composeTaskPrompt(plan: Plan, node: TaskNode, retryError: string | null): string {
   const parts: string[] = [];
   parts.push(`# Goal\n${plan.goal}`);
@@ -1007,7 +1019,7 @@ export function composeTaskPrompt(plan: Plan, node: TaskNode, retryError: string
   }
   if (retryError) {
     parts.push(
-      `# Retry context\nPrevious attempt failed: ${retryError}\nPlease address and re-implement.`,
+      `# Retry context\nPrevious attempt failed: ${truncateRetryError(retryError)}\nPlease address and re-implement.`,
     );
   }
   return parts.join('\n\n');
