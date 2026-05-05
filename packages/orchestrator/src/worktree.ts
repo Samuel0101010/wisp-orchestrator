@@ -69,6 +69,44 @@ export async function listWorktrees(opts: ListWorktreesOpts): Promise<WorktreeEn
   return parseWorktreePorcelain(stdout);
 }
 
+const GIT_COMMIT_OVERRIDES = [
+  '-c', 'user.email=harness@agent-harness.local',
+  '-c', 'user.name=Agent Harness',
+  '-c', 'commit.gpgsign=false',
+  '-c', 'tag.gpgsign=false',
+];
+
+/**
+ * Merge each branch in `branches` into the current branch of `worktreePath`
+ * with `git merge --no-ff`. On the first conflict, aborts the failing merge
+ * and returns `{ ok: false, conflict }` — does NOT continue with remaining
+ * branches. On success of all merges, returns `{ ok: true }`.
+ *
+ * Uses harness identity overrides so the merge commits look like other
+ * automated commits and never trip the user's signing hooks.
+ */
+export async function mergeBranchesInWorktree(
+  worktreePath: string,
+  branches: string[],
+): Promise<{ ok: true } | { ok: false; conflict: string }> {
+  for (const b of branches) {
+    try {
+      await execa(
+        'git',
+        [...GIT_COMMIT_OVERRIDES, 'merge', '--no-ff', '-m', `harness: merge ${b}`, b],
+        { cwd: worktreePath },
+      );
+    } catch (err) {
+      const e = err as { stderr?: string; stdout?: string };
+      const conflict = (e.stderr || e.stdout || String(err)).slice(0, 500);
+      // Always abort to leave the working tree in a clean state.
+      await execa('git', ['merge', '--abort'], { cwd: worktreePath, reject: false });
+      return { ok: false, conflict };
+    }
+  }
+  return { ok: true };
+}
+
 function parseWorktreePorcelain(text: string): WorktreeEntry[] {
   const out: WorktreeEntry[] = [];
   const blocks = text.split(/\r?\n\r?\n/);

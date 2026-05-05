@@ -31,6 +31,7 @@ import {
   Walker,
   addWorktree,
   commitWorktreeChanges,
+  mergeBranchesInWorktree,
   removeWorktree,
   runVerification,
   type InitialWalkerState,
@@ -153,6 +154,7 @@ export class RunRuntime {
       },
       now: () => Date.now(),
       autoCommit: commitWorktreeChanges,
+      mergeBranches: mergeBranchesInWorktree,
     };
   }
 
