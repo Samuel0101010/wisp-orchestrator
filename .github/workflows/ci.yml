@@ -41,7 +41,7 @@ jobs:
         run: pnpm format:check
 
       - name: Test (unit)
-        run: pnpm --filter "./packages/**" --filter "./apps/**" run test
+        run: pnpm --filter "./packages/**" --filter "./apps/**" --filter "./tests/compliance" run test
 
       - name: Build
         run: pnpm build
