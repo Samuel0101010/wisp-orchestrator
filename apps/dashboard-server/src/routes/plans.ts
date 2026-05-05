@@ -32,14 +32,8 @@ interface PlansRouterDeps {
   runner?: Runner;
 }
 
-// TODO(M2/2.4): replace teamPutSchema with the new {roles:[...]} shape once
-// the TeamBuilder UI sends the new format.
-const teamPutSchema = teamSchema;
-
 function safeTeamFromRow(rolesJson: unknown): Team | null {
-  // TODO(M2/2.4): remove legacy slot-shape fallback once all stored rows are
-  // in the new {roles:[...]} shape (migration 0002_variable_team.sql handles
-  // existing rows on first boot).
+  // Validates a stored rolesJson row against the current Team schema.
   const direct = teamSchema.safeParse(rolesJson);
   if (direct.success) return direct.data;
   return null;
@@ -242,9 +236,7 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           return { error: 'project not found' };
         }
 
-        const team = teamPutSchema.parse(req.body);
-        // TODO(M2/2.4): slot-coherence checks removed; teamSchema superRefine
-        // handles duplicate-role validation. Additional semantic checks live here.
+        const team = teamSchema.parse(req.body);
 
         // Store the Team object directly. Physical column is TEXT-JSON
         // so the storage shape change is transparent.

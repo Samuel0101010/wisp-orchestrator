@@ -71,8 +71,79 @@ describe('team routes', () => {
   });
 
   it('PUT with duplicate role names returns 400', async () => {
-    // TODO(M2/2.4): previously "role/slot mismatch" — now validated as duplicate role.
     const bad = makeTeam([makeRole('architect', 'opus'), makeRole('architect', 'sonnet')]);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: bad,
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT a 4-role team with custom role names returns 200', async () => {
+    const team = makeTeam([
+      makeRole('architect', 'opus'),
+      makeRole('backend-dev', 'sonnet'),
+      makeRole('frontend-dev', 'sonnet'),
+      makeRole('qa', 'haiku'),
+    ]);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: team,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as { roles: Array<{ role: string; model: string }> };
+    expect(body.roles).toHaveLength(4);
+    expect(body.roles.map((r) => r.role)).toEqual([
+      'architect',
+      'backend-dev',
+      'frontend-dev',
+      'qa',
+    ]);
+  });
+
+  it('PUT an 8-role team is accepted (max boundary)', async () => {
+    const roles = Array.from({ length: 8 }, (_, i) => makeRole(`role-${i + 1}`));
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: { roles },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('PUT a 9-role team returns 400 (over max)', async () => {
+    const roles = Array.from({ length: 9 }, (_, i) => makeRole(`role-${i + 1}`));
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: { roles },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT an empty roles array returns 400', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: { roles: [] },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT with non-kebab-case role name returns 400', async () => {
+    const bad = makeTeam([makeRole('Architect'), makeRole('developer'), makeRole('qa')]);
+    const res = await app.inject({
+      method: 'PUT',
+      url: `/api/projects/${projectId}/team`,
+      payload: bad,
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PUT with model not in opus/sonnet/haiku returns 400', async () => {
+    const bad = makeTeam([makeRole('architect', 'gpt-4'), makeRole('developer'), makeRole('qa')]);
     const res = await app.inject({
       method: 'PUT',
       url: `/api/projects/${projectId}/team`,
