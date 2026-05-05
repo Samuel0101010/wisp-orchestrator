@@ -99,6 +99,12 @@ export interface WalkerDeps {
   ) => Promise<{ ok: true } | { ok: false; conflict: string }>;
   /** Minimum milliseconds between subprocess launches. 0 disables pacing. */
   interTaskPacingMs: number;
+  /**
+   * When true, rate-limit pauses auto-schedule a resume timer after the reset
+   * window. When false (default), the walker stays paused until the user
+   * explicitly calls resume() — matching ToS-conservative posture.
+   */
+  autoResumeRateLimit: boolean;
 }
 
 /**
@@ -311,8 +317,8 @@ export class Walker {
       payload: { runId: this.runId, pausedReason: reason, resumeAt: resumeAt ?? null },
     });
 
-    // Schedule auto-resume only for rate-limit pauses.
-    if (reason === 'rate-limit') {
+    // Schedule auto-resume only for rate-limit pauses AND only when explicitly enabled.
+    if (reason === 'rate-limit' && this.deps.autoResumeRateLimit) {
       const delay = Math.max(
         (resumeAt ?? this.deps.now() + RATE_LIMIT_DEFAULT_MS) - this.deps.now(),
         0,

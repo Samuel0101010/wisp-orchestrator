@@ -37,6 +37,7 @@ function makeFakeDeps() {
       autoCommit: vi.fn(async () => 'a'.repeat(40)),
       mergeBranches: vi.fn(async () => ({ ok: true as const })),
       interTaskPacingMs: 0,
+      autoResumeRateLimit: false,
     },
   };
 }

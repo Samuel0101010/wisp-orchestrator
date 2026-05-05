@@ -157,6 +157,7 @@ export class RunRuntime {
       autoCommit: commitWorktreeChanges,
       mergeBranches: mergeBranchesInWorktree,
       interTaskPacingMs: env.HARNESS_INTER_TASK_PACING_MS,
+      autoResumeRateLimit: env.HARNESS_AUTO_RESUME_RATE_LIMIT,
     };
   }
 
