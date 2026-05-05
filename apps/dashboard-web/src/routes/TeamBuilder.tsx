@@ -81,6 +81,7 @@ interface AgentCardProps {
 }
 
 function roleLabel(role: Role): string {
+  if (role === 'qa') return 'QA';
   return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
@@ -132,7 +133,7 @@ function AgentCard({ role, draft, onChange }: AgentCardProps) {
             className={promptShort ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}
             data-testid={`prompt-count-${role}`}
           >
-            {promptLen} / min {SYSTEM_PROMPT_MIN} characters
+            {promptLen} characters {promptShort ? `(min ${SYSTEM_PROMPT_MIN})` : ''}
           </p>
         </div>
       </CardContent>
