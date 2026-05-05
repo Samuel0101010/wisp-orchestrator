@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.1.5 - M1.5 Foundation hardening (unreleased)
+
+### Fixed
+
+- Walker now chains downstream worktrees off parent task branches and
+  auto-commits each task's output, so a real Claude run produces
+  consolidated artifacts in `<repoPath>` instead of evaporating with
+  the worktree (Stage A).
+- Rate-limit pause no longer auto-resumes by default
+  (`HARNESS_AUTO_RESUME_RATE_LIMIT` to opt in); auth-probe failure
+  blocks `POST /api/runs` with HTTP 503; walker pauses with
+  `pausedReason='consecutive-failures'` after 3 consecutive task
+  failures.
+
+### Changed
+
+- Balanced runtime defaults — `maxParallel=2` (was 3),
+  `budgetMinutes=120` (was 360), `interTaskPacingMs=5000` (new).
+
+### Added
+
+- `tests/compliance` — static guards forbidding direct Anthropic
+  endpoints, `x-api-key` headers, and credential file access. CI verify
+  step includes the new package.
+- Per-project daily-runs counter in sidebar; one-time first-run
+  acknowledgment modal explaining ToS responsibility.
+- `docs/anthropic-compliance.md`; README "Anthropic Terms of Service"
+  section.
+- `HARNESS_AUTO_RESUME_RATE_LIMIT`, `HARNESS_INTER_TASK_PACING_MS`,
+  `HARNESS_AUTH_MODE` env vars.
+- Diamond-dep merge support: multi-parent tasks merge other parents
+  into the dependent task's worktree via `git merge --no-ff`.
+- Final result branch `harness/<runId>/result` consolidating all leaf
+  task branches at run end.
+
 ## 0.1.0 - M1 vertical slice (unreleased)
 
 The first end-to-end milestone: a single goal can drive a 3-role team through plan generation, execution, and verification, with full pause/resume across rate-limit windows and server restarts.
