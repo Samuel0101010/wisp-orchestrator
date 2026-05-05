@@ -824,9 +824,15 @@ describe('Walker — D1: autoResumeRateLimit flag', () => {
       pool: fake.pool as unknown as WalkerDeps['pool'],
       worktree: wt,
       verify: async () => ({ pass: true, output: 'ok', failures: [] }),
-      emit: (ev) => { emitted.push(ev); },
-      onTaskState: async (id, patch) => { taskStates.set(id, { ...taskStates.get(id), ...patch }); },
-      onRunState: async (_id, patch) => { runStateLog.push(patch); },
+      emit: (ev) => {
+        emitted.push(ev);
+      },
+      onTaskState: async (id, patch) => {
+        taskStates.set(id, { ...taskStates.get(id), ...patch });
+      },
+      onRunState: async (_id, patch) => {
+        runStateLog.push(patch);
+      },
       snapshot: async () => '/fake/snap.json',
       setTimeout: timers.setTimeout,
       now: timers.now,
@@ -915,11 +921,7 @@ describe('Walker — D3: consecutive-failures pause', () => {
       ['t3', failScript('t3')],
     ]);
     const h = makeHarness({ scriptByTaskId: scripts, maxParallel: 1 });
-    const plan = makePlan([
-      node('t1', 'architect'),
-      node('t2', 'developer'),
-      node('t3', 'qa'),
-    ]);
+    const plan = makePlan([node('t1', 'architect'), node('t2', 'developer'), node('t3', 'qa')]);
 
     const startPromise = h.walker.start({
       runId: 'r-d3-pause',
@@ -934,9 +936,7 @@ describe('Walker — D3: consecutive-failures pause', () => {
     expect(h.walker.status().state).toBe('paused');
     expect(h.walker.status().pausedReason).toBe('consecutive-failures');
     expect(h.runStateLog).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ pausedReason: 'consecutive-failures' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ pausedReason: 'consecutive-failures' })]),
     );
 
     // Cleanup.

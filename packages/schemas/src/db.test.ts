@@ -36,7 +36,12 @@ describe('drizzle table definitions', () => {
   });
 
   it('runPausedReasonValues includes rate-limit, user, shutdown, consecutive-failures', () => {
-    expect(runPausedReasonValues).toEqual(['rate-limit', 'user', 'shutdown', 'consecutive-failures']);
+    expect(runPausedReasonValues).toEqual([
+      'rate-limit',
+      'user',
+      'shutdown',
+      'consecutive-failures',
+    ]);
     const r: RunPausedReason = 'shutdown';
     expect(r).toBe('shutdown');
   });
