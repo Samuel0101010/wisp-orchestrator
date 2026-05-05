@@ -52,8 +52,6 @@ describe('parsePlan', () => {
     };
     const res = safeParsePlan(broken);
     expect(res.success).toBe(false);
-    // TODO(M2/2.4): when the route layer is refactored, add a test that the
-    // error path includes a roles-array error for missing required roles.
   });
 });
 
