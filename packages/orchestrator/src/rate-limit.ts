@@ -25,13 +25,30 @@ const RETRY_AFTER_RE = /"retry_after"\s*:\s*(\d+)/i;
 const RESET_SECONDS_RE = /"reset_seconds"\s*:\s*(\d+)/i;
 const RESET_ISO_RE = /"reset"\s*:\s*"([0-9T:\-Z+.]+)"/i;
 
+/**
+ * The claude CLI emits informational `rate_limit_event` JSON lines at session
+ * start with `rate_limit_info.status="allowed"`. They report the user's
+ * current quota window, NOT a throttle signal. Strip those lines before
+ * scanning so the generic /rate.?limit/i marker doesn't false-positive on
+ * every successful invocation.
+ */
+function stripAllowedRateLimitEvents(text: string): string {
+  const lines = text.split(/\r?\n/);
+  const kept = lines.filter((line) => {
+    if (!line.includes('"type":"rate_limit_event"')) return true;
+    return !/"status"\s*:\s*"allowed"/.test(line);
+  });
+  return kept.join('\n');
+}
+
 export function detectRateLimit(text: string): RateLimitHit | null {
   if (!text) return null;
-  const matched = MARKER_PATTERNS.some((re) => re.test(text));
+  const sanitized = stripAllowedRateLimitEvents(text);
+  const matched = MARKER_PATTERNS.some((re) => re.test(sanitized));
   if (!matched) return null;
 
   // Prefer explicit numeric retry_after over reset_seconds over ISO reset.
-  const retryAfter = text.match(RETRY_AFTER_RE);
+  const retryAfter = sanitized.match(RETRY_AFTER_RE);
   if (retryAfter && retryAfter[1] !== undefined) {
     const secs = Number(retryAfter[1]);
     if (Number.isFinite(secs)) {
@@ -43,7 +60,7 @@ export function detectRateLimit(text: string): RateLimitHit | null {
     }
   }
 
-  const resetSecs = text.match(RESET_SECONDS_RE);
+  const resetSecs = sanitized.match(RESET_SECONDS_RE);
   if (resetSecs && resetSecs[1] !== undefined) {
     const secs = Number(resetSecs[1]);
     if (Number.isFinite(secs)) {
@@ -55,7 +72,7 @@ export function detectRateLimit(text: string): RateLimitHit | null {
     }
   }
 
-  const resetIso = text.match(RESET_ISO_RE);
+  const resetIso = sanitized.match(RESET_ISO_RE);
   if (resetIso && resetIso[1] !== undefined) {
     const ms = Date.parse(resetIso[1]);
     if (Number.isFinite(ms)) {

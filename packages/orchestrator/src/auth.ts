@@ -43,7 +43,16 @@ function resolveBin(opts: ProbeOpts): { cmd: string; argPrefix: string[] } {
 
 export async function probeSubscriptionAuth(opts: ProbeOpts = {}): Promise<AuthProbeResult> {
   const { cmd, argPrefix } = resolveBin(opts);
-  const args = [...argPrefix, '-p', '--max-turns', '1', '--output-format', 'stream-json'];
+  const args = [
+    ...argPrefix,
+    '-p',
+    '--max-turns',
+    '1',
+    '--output-format',
+    'stream-json',
+    // Required by `claude -p` when --output-format is stream-json.
+    '--verbose',
+  ];
 
   const env: NodeJS.ProcessEnv = { ...process.env };
   delete env.ANTHROPIC_API_KEY;

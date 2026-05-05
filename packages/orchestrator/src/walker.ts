@@ -470,11 +470,18 @@ export class Walker {
         if (ready.length === 0 || slotsFree <= 0) {
           // If no tasks running and none ready, the DAG is drained — finalize.
           if (this.countRunning() === 0 && ready.length === 0) {
+            // Mark pending tasks whose deps will never be satisfied as
+            // cancelled. Without this, a single terminal failure upstream
+            // would leave the walker spinning forever waiting for tasks
+            // that can never become ready.
+            this.cancelTasksWithDeadDeps();
             const allDone = Array.from(this.tasks.values()).every(
               (t) => t.status === 'done' || t.status === 'failed' || t.status === 'cancelled',
             );
             if (allDone) {
-              const anyFailed = Array.from(this.tasks.values()).some((t) => t.status === 'failed');
+              const anyFailed = Array.from(this.tasks.values()).some(
+                (t) => t.status === 'failed' || t.status === 'cancelled',
+              );
               await this.finalize(anyFailed ? 'failure' : 'success');
             }
           }
@@ -527,6 +534,39 @@ export class Walker {
       if (allDepsDone) ready.push(t);
     }
     return ready;
+  }
+
+  /**
+   * Synchronously transitions every pending task with at least one terminally-
+   * failed (or cancelled) dependency to `cancelled`, emitting a `task.failed`
+   * event with a synthetic "upstream dep failed" error. Called from the
+   * dispatch finalizer when no tasks are running and none are ready, so the
+   * walker can finalize instead of spinning.
+   *
+   * Kept synchronous (no await) on purpose: introducing an await here would
+   * yield to the event loop in the middle of finalization and could re-order
+   * other in-flight runTask completions, which is its own subtle bug class.
+   */
+  private cancelTasksWithDeadDeps(): void {
+    for (const t of this.tasks.values()) {
+      if (t.status !== 'pending') continue;
+      const blocked = t.node.deps.some((dep) => {
+        const d = this.tasks.get(dep);
+        return !!d && (d.status === 'failed' || d.status === 'cancelled');
+      });
+      if (blocked) {
+        t.status = 'cancelled';
+        // Persist the cancellation; not awaiting is intentional — we want
+        // the local state machine to advance synchronously. The DB write is
+        // best-effort and bubbles up via the normal persistTaskPatch error
+        // swallow.
+        void this.deps.onTaskState(t.node.id, { status: 'failed' });
+        this.deps.emit({
+          type: 'task.failed',
+          payload: { taskId: t.node.id, error: 'cancelled: upstream dep failed' },
+        });
+      }
+    }
   }
 
   private countRunning(): number {
