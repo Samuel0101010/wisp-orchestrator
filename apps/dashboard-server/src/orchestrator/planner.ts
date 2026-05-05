@@ -61,6 +61,14 @@ TaskNode {
   prompt: string                     // task instruction for that node
   deps: string[]                     // node ids this node depends on
   successCriteria: { build?: string; test?: string; lint?: string; custom?: string }
+  // Each value MUST be a shell command. The harness runs it in the task's
+  // worktree and considers the task verified only when every configured
+  // command exits 0. Never write a prose description here.
+  // For documentation-only tasks (e.g., architect producing architecture.md),
+  // use a file-existence check, for example:
+  //   "custom": "test -f architecture.md && test -f tasks.md"
+  // On Windows the test binary ships with Git for Windows and is on PATH.
+  // Stick to simple && / || chains; avoid more advanced bash-only syntax.
   maxTurns: number                   // 5..100 inclusive
 }
 Edge { from: string; to: string }    // mirrors deps as flat list

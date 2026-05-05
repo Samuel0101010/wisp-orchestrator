@@ -195,3 +195,39 @@ describe('walker chaining', () => {
     ]);
   });
 });
+
+describe('walker — unreachable downstream cancellation', () => {
+  it('cancels pending tasks whose deps failed terminally and finalizes', async () => {
+    const { deps } = makeFakeDeps();
+    // Make verify return pass=false so every task fails after the single retry.
+    deps.verify = vi.fn(async () => ({
+      pass: false,
+      output: 'verify failed',
+      failures: [
+        {
+          kind: 'custom' as const,
+          cmd: 'fake',
+          exitCode: 1,
+          tail: 'verify failed',
+        },
+      ],
+    }));
+    const walker = new Walker(deps as never);
+    const outcome = await walker.start({
+      runId: 'rfail',
+      plan: linearPlan,
+      repoPath: '/tmp/repo',
+      budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 1 },
+    });
+    // Linear plan: a fails on retry → walker must cancel d and q (deps blocked)
+    // and finalize as 'failure' rather than hang.
+    expect(outcome).toBe('failure');
+    const taskFailedCalls = (deps.emit as ReturnType<typeof vi.fn>).mock.calls
+      .map((args) => args[0])
+      .filter((ev: { type: string }) => ev.type === 'task.failed');
+    const cancelledMsgs = taskFailedCalls
+      .map((ev: { payload: { error: string; taskId: string } }) => ev.payload)
+      .filter((p: { error: string }) => p.error.includes('upstream dep failed'));
+    expect(cancelledMsgs.length).toBe(2); // d and q
+  });
+});
