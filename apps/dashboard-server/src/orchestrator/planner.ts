@@ -61,14 +61,17 @@ TaskNode {
   prompt: string                     // task instruction for that node
   deps: string[]                     // node ids this node depends on
   successCriteria: { build?: string; test?: string; lint?: string; custom?: string }
-  // Each value MUST be a shell command. The harness runs it in the task's
-  // worktree and considers the task verified only when every configured
-  // command exits 0. Never write a prose description here.
+  // Each value MUST be a shell command that the harness runs in the task's
+  // worktree. The task is verified only when every configured command exits 0.
+  // Never write a prose description here.
+  // The harness invokes commands through the OS default shell (cmd.exe on
+  // Windows, /bin/sh on POSIX), so use cross-platform tools only. Node is
+  // guaranteed to be on PATH; bash-only utilities such as test, [, or [[ are
+  // NOT available on Windows.
   // For documentation-only tasks (e.g., architect producing architecture.md),
-  // use a file-existence check, for example:
-  //   "custom": "test -f architecture.md && test -f tasks.md"
-  // On Windows the test binary ships with Git for Windows and is on PATH.
-  // Stick to simple && / || chains; avoid more advanced bash-only syntax.
+  // use a node-based file-existence check, for example:
+  //   "custom": "node -e \"require('fs').accessSync('architecture.md');require('fs').accessSync('tasks.md')\""
+  // node exits 1 if accessSync throws, which is exactly what we want.
   maxTurns: number                   // 5..100 inclusive
 }
 Edge { from: string; to: string }    // mirrors deps as flat list
