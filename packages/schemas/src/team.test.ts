@@ -1,58 +1,66 @@
 import { describe, it, expect } from 'vitest';
 import { parseTeam, safeParseTeam } from './team.js';
 
-const validTeam = {
-  architect: {
-    role: 'architect',
-    model: 'opus',
-    allowedTools: ['Read'],
-    systemPrompt: 'arch prompt',
-  },
-  developer: {
-    role: 'developer',
-    model: 'sonnet',
-    allowedTools: ['Read', 'Edit'],
-    systemPrompt: 'dev prompt',
-  },
-  qa: {
-    role: 'qa',
-    model: 'sonnet',
-    allowedTools: ['Read'],
-    systemPrompt: 'qa prompt',
-  },
-};
+const validRole = (overrides: Partial<{ role: string; model: string; systemPrompt: string }>) => ({
+  role: overrides.role ?? 'architect',
+  model: overrides.model ?? 'sonnet',
+  allowedTools: ['Read'],
+  systemPrompt: overrides.systemPrompt ?? 'a'.repeat(60),
+});
 
-describe('parseTeam', () => {
-  it('parses a structurally valid team', () => {
-    const team = parseTeam(validTeam);
-    expect(team.architect.model).toBe('opus');
-    expect(team.developer.role).toBe('developer');
-    expect(team.qa.role).toBe('qa');
+describe('parseTeam (variable roles)', () => {
+  it('parses a 3-role team', () => {
+    const t = parseTeam({
+      roles: [
+        validRole({ role: 'architect' }),
+        validRole({ role: 'developer' }),
+        validRole({ role: 'qa' }),
+      ],
+    });
+    expect(t.roles).toHaveLength(3);
   });
 
-  it('rejects missing slot', () => {
-    const broken = { architect: validTeam.architect, developer: validTeam.developer };
-    const result = safeParseTeam(broken);
-    expect(result.success).toBe(false);
+  it('parses a 4-role team with custom role names', () => {
+    const t = parseTeam({
+      roles: [
+        validRole({ role: 'architect', model: 'opus' }),
+        validRole({ role: 'backend-dev' }),
+        validRole({ role: 'frontend-dev' }),
+        validRole({ role: 'qa' }),
+      ],
+    });
+    expect(t.roles).toHaveLength(4);
+    expect(t.roles[1]!.role).toBe('backend-dev');
   });
 
-  it('rejects bad role enum', () => {
-    const broken = {
-      ...validTeam,
-      architect: { ...validTeam.architect, role: 'wizard' },
-    };
-    const result = safeParseTeam(broken);
-    expect(result.success).toBe(false);
+  it('rejects empty roles array', () => {
+    expect(safeParseTeam({ roles: [] }).success).toBe(false);
   });
 
-  it('does NOT enforce slot/role coherence (left to route layer)', () => {
-    // architect slot containing a developer-roled spec parses OK at the schema
-    // level; the route layer is expected to reject this.
-    const swapped = {
-      ...validTeam,
-      architect: { ...validTeam.architect, role: 'developer' },
-    };
-    const result = safeParseTeam(swapped);
-    expect(result.success).toBe(true);
+  it('rejects more than 8 roles', () => {
+    const roles = Array.from({ length: 9 }, (_, i) => validRole({ role: `r${i}` }));
+    expect(safeParseTeam({ roles }).success).toBe(false);
+  });
+
+  it('rejects duplicate role names', () => {
+    const r = safeParseTeam({ roles: [validRole({ role: 'dev' }), validRole({ role: 'dev' })] });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.issues.some((i) => /duplicate role: dev/i.test(i.message))).toBe(true);
+    }
+  });
+
+  it('rejects role names that are not kebab-case', () => {
+    expect(safeParseTeam({ roles: [validRole({ role: 'Architect' })] }).success).toBe(false);
+    expect(safeParseTeam({ roles: [validRole({ role: '1abc' })] }).success).toBe(false);
+    expect(safeParseTeam({ roles: [validRole({ role: 'a' })] }).success).toBe(false); // min 2
+  });
+
+  it('rejects model not in opus/sonnet/haiku', () => {
+    expect(safeParseTeam({ roles: [validRole({ model: 'gpt-4' })] }).success).toBe(false);
+  });
+
+  it('rejects systemPrompt under 40 chars', () => {
+    expect(safeParseTeam({ roles: [validRole({ systemPrompt: 'short' })] }).success).toBe(false);
   });
 });

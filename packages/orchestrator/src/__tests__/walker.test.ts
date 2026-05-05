@@ -143,19 +143,16 @@ const FILLER = 'x'.repeat(80);
 
 function makeTeam(): Team {
   return {
-    architect: {
-      role: 'architect',
-      model: 'opus',
-      allowedTools: ['Read'],
-      systemPrompt: `arch ${FILLER}`,
-    },
-    developer: {
-      role: 'developer',
-      model: 'sonnet',
-      allowedTools: ['Read', 'Edit'],
-      systemPrompt: `dev ${FILLER}`,
-    },
-    qa: { role: 'qa', model: 'sonnet', allowedTools: ['Read'], systemPrompt: `qa ${FILLER}` },
+    roles: [
+      { role: 'architect', model: 'opus', allowedTools: ['Read'], systemPrompt: `arch ${FILLER}` },
+      {
+        role: 'developer',
+        model: 'sonnet',
+        allowedTools: ['Read', 'Edit'],
+        systemPrompt: `dev ${FILLER}`,
+      },
+      { role: 'qa', model: 'sonnet', allowedTools: ['Read'], systemPrompt: `qa ${FILLER}` },
+    ],
   };
 }
 

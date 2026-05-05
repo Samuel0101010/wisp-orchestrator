@@ -40,7 +40,8 @@ function specToDraft(spec: AgentSpec): DraftAgent {
 function draftToSpec(draft: DraftAgent): AgentSpec {
   return {
     role: draft.role,
-    model: draft.model.trim(),
+    // TODO(M2/2.5): validate model is opus/sonnet/haiku in the UI before cast.
+    model: draft.model.trim() as AgentSpec['model'],
     allowedTools: draft.allowedToolsText
       .split(',')
       .map((s) => s.trim())
@@ -50,24 +51,25 @@ function draftToSpec(draft: DraftAgent): AgentSpec {
 }
 
 function teamToDraft(team: Team): Draft {
+  // TODO(M2/2.5): variable team UI — replace fixed-slot Draft with dynamic roles array.
   return {
-    architect: specToDraft(team.architect),
-    developer: specToDraft(team.developer),
-    qa: specToDraft(team.qa),
+    architect: specToDraft(team.roles.find((r) => r.role === 'architect') ?? team.roles[0]!),
+    developer: specToDraft(team.roles.find((r) => r.role === 'developer') ?? team.roles[0]!),
+    qa: specToDraft(team.roles.find((r) => r.role === 'qa') ?? team.roles[0]!),
   };
 }
 
 function draftToTeam(draft: Draft): Team {
+  // TODO(M2/2.5): variable team UI — send all roles, not just the three slots.
   return {
-    architect: draftToSpec(draft.architect),
-    developer: draftToSpec(draft.developer),
-    qa: draftToSpec(draft.qa),
+    roles: [draftToSpec(draft.architect), draftToSpec(draft.developer), draftToSpec(draft.qa)],
   };
 }
 
 function isDraftValid(draft: Draft): boolean {
   for (const role of ROLES) {
-    const a = draft[role];
+    // TODO(M2/2.5): variable team UI — iterate draft.roles array instead.
+    const a = draft[role as keyof Draft];
     if (!a.model.trim()) return false;
     if (a.systemPrompt.length < SYSTEM_PROMPT_MIN) return false;
   }

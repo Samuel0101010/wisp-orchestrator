@@ -6,7 +6,6 @@ import type { FastifyPluginAsync } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import {
-  agentSpecSchema,
   planSchema,
   plans,
   projects,
@@ -33,57 +32,16 @@ interface PlansRouterDeps {
   runner?: Runner;
 }
 
-const teamPutSchema = z.object({
-  architect: agentSpecSchema,
-  developer: agentSpecSchema,
-  qa: agentSpecSchema,
-});
-
-const SYSTEM_PROMPT_MIN = 50;
-const SYSTEM_PROMPT_MAX = 8000;
-
-function validateTeamSlots(team: Team): string | null {
-  if (team.architect.role !== 'architect') {
-    return 'architect.role must equal "architect"';
-  }
-  if (team.developer.role !== 'developer') {
-    return 'developer.role must equal "developer"';
-  }
-  if (team.qa.role !== 'qa') {
-    return 'qa.role must equal "qa"';
-  }
-  for (const slot of ['architect', 'developer', 'qa'] as const) {
-    const sp = team[slot].systemPrompt;
-    if (sp.length < SYSTEM_PROMPT_MIN) {
-      return `${slot}.systemPrompt must be at least ${SYSTEM_PROMPT_MIN} characters (got ${sp.length})`;
-    }
-    if (sp.length > SYSTEM_PROMPT_MAX) {
-      return `${slot}.systemPrompt must be at most ${SYSTEM_PROMPT_MAX} characters (got ${sp.length})`;
-    }
-  }
-  return null;
-}
+// TODO(M2/2.4): replace teamPutSchema with the new {roles:[...]} shape once
+// the TeamBuilder UI sends the new format.
+const teamPutSchema = teamSchema;
 
 function safeTeamFromRow(rolesJson: unknown): Team | null {
-  // Storage shape is the slotted `Team` object. Validate shape just in case
-  // legacy rows exist with the old AgentSpec[] form (defensive — pre-H4).
+  // TODO(M2/2.4): remove legacy slot-shape fallback once all stored rows are
+  // in the new {roles:[...]} shape (migration 0002_variable_team.sql handles
+  // existing rows on first boot).
   const direct = teamSchema.safeParse(rolesJson);
   if (direct.success) return direct.data;
-  if (Array.isArray(rolesJson)) {
-    const slot: Record<string, unknown> = {};
-    for (const entry of rolesJson) {
-      if (entry && typeof entry === 'object' && 'role' in entry) {
-        const role = (entry as { role?: unknown }).role;
-        if (typeof role === 'string') slot[role] = entry;
-      }
-    }
-    const legacy = teamSchema.safeParse({
-      architect: slot.architect,
-      developer: slot.developer,
-      qa: slot.qa,
-    });
-    if (legacy.success) return legacy.data;
-  }
   return null;
 }
 
@@ -285,13 +243,10 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         }
 
         const team = teamPutSchema.parse(req.body);
-        const slotErr = validateTeamSlots(team);
-        if (slotErr) {
-          reply.code(400);
-          return { error: 'invalid_team', message: slotErr };
-        }
+        // TODO(M2/2.4): slot-coherence checks removed; teamSchema superRefine
+        // handles duplicate-role validation. Additional semantic checks live here.
 
-        // Store the slotted Team object directly. Physical column is TEXT-JSON
+        // Store the Team object directly. Physical column is TEXT-JSON
         // so the storage shape change is transparent.
         const existing = await db.select().from(teams).where(eq(teams.projectId, projectId)).get();
 

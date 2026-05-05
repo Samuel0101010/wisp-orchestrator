@@ -648,7 +648,8 @@ export class Walker {
     this.deps.emit({ type: 'task.started', payload: { taskId: node.id } });
 
     const role = node.role;
-    const agent = plan.team[role];
+    // TODO(M2/2.3): proper missing-role error path.
+    const agent = plan.team.roles.find((r) => r.role === role) ?? plan.team.roles[0]!;
 
     let lastTaskFailedError: string | null = null;
     let cleanExit = false;

@@ -20,15 +20,13 @@ export type NewProject = typeof projects.$inferInsert;
  * storage is TEXT-JSON; only the TypeScript view changes.
  */
 interface AgentSpecLite {
-  role: 'architect' | 'developer' | 'qa';
-  model: string;
+  role: string;
+  model: 'opus' | 'sonnet' | 'haiku';
   allowedTools: string[];
   systemPrompt: string;
 }
 export interface TeamRolesJson {
-  architect: AgentSpecLite;
-  developer: AgentSpecLite;
-  qa: AgentSpecLite;
+  roles: AgentSpecLite[];
 }
 
 export const teams = sqliteTable('teams', {
@@ -67,8 +65,10 @@ export const taskStatusValues = [
 ] as const;
 export type TaskStatus = (typeof taskStatusValues)[number];
 
-export const taskRoleValues = ['architect', 'developer', 'qa'] as const;
-export type TaskRole = (typeof taskRoleValues)[number];
+// taskRoleValues / TaskRole dropped: tasks.role now accepts any string.
+// Keep the type alias so consumers compiling against the old type don't all
+// break at once; real cleanup happens in Task 2.3+.
+export type TaskRole = string;
 
 export const tasks = sqliteTable(
   'tasks',
@@ -77,7 +77,7 @@ export const tasks = sqliteTable(
     planId: text('plan_id')
       .notNull()
       .references(() => plans.id, { onDelete: 'cascade' }),
-    role: text('role', { enum: taskRoleValues }).notNull(),
+    role: text('role').notNull(),
     title: text('title').notNull(),
     deps: text('deps', { mode: 'json' }).$type<string[]>().notNull(),
     status: text('status', { enum: taskStatusValues }).notNull(),

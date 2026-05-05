@@ -3,17 +3,19 @@ import { parsePlan, safeParsePlan, validateDag, type Plan, type AgentSpec } from
 
 const baseAgent: AgentSpec = {
   role: 'architect',
-  model: 'claude-opus-4-7',
+  model: 'opus',
   allowedTools: [],
-  systemPrompt: 'be helpful',
+  systemPrompt: 'a'.repeat(60),
 };
 
 const validPlan: Plan = {
   goal: 'Build a thing',
   team: {
-    architect: { ...baseAgent, role: 'architect' },
-    developer: { ...baseAgent, role: 'developer' },
-    qa: { ...baseAgent, role: 'qa' },
+    roles: [
+      { ...baseAgent, role: 'architect' },
+      { ...baseAgent, role: 'developer' },
+      { ...baseAgent, role: 'qa' },
+    ],
   },
   nodes: [
     {
@@ -43,17 +45,15 @@ describe('parsePlan', () => {
     expect(result.nodes).toHaveLength(2);
   });
 
-  it('fails parse with helpful path when team.architect is missing', () => {
+  it('fails parse when team.roles is empty', () => {
     const broken = {
       ...validPlan,
-      team: { developer: validPlan.team.developer, qa: validPlan.team.qa },
+      team: { roles: [] },
     };
     const res = safeParsePlan(broken);
     expect(res.success).toBe(false);
-    if (!res.success) {
-      const paths = res.error.issues.map((i) => i.path.join('.'));
-      expect(paths.some((p) => p.includes('team.architect'))).toBe(true);
-    }
+    // TODO(M2/2.4): when the route layer is refactored, add a test that the
+    // error path includes a roles-array error for missing required roles.
   });
 });
 
