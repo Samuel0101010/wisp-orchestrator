@@ -109,7 +109,12 @@ export type RunStatus = (typeof runStatusValues)[number];
 export const runOutcomeValues = ['success', 'failure', 'budget_exceeded', 'cancelled'] as const;
 export type RunOutcome = (typeof runOutcomeValues)[number];
 
-export const runPausedReasonValues = ['rate-limit', 'user', 'shutdown', 'consecutive-failures'] as const;
+export const runPausedReasonValues = [
+  'rate-limit',
+  'user',
+  'shutdown',
+  'consecutive-failures',
+] as const;
 export type RunPausedReason = (typeof runPausedReasonValues)[number];
 
 export const runs = sqliteTable('runs', {
