@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
 
 // ----- projects -----
 export const projects = sqliteTable('projects', {
@@ -70,22 +70,28 @@ export type TaskStatus = (typeof taskStatusValues)[number];
 export const taskRoleValues = ['architect', 'developer', 'qa'] as const;
 export type TaskRole = (typeof taskRoleValues)[number];
 
-export const tasks = sqliteTable('tasks', {
-  id: text('id').primaryKey(),
-  planId: text('plan_id')
-    .notNull()
-    .references(() => plans.id, { onDelete: 'cascade' }),
-  role: text('role', { enum: taskRoleValues }).notNull(),
-  title: text('title').notNull(),
-  deps: text('deps', { mode: 'json' }).$type<string[]>().notNull(),
-  status: text('status', { enum: taskStatusValues }).notNull(),
-  worktreeBranch: text('worktree_branch'),
-  sessionId: text('session_id'),
-  tokensIn: integer('tokens_in').notNull().default(0),
-  tokensOut: integer('tokens_out').notNull().default(0),
-  turnsUsed: integer('turns_used').notNull().default(0),
-  durationMs: integer('duration_ms').notNull().default(0),
-});
+export const tasks = sqliteTable(
+  'tasks',
+  {
+    id: text('id').notNull(),
+    planId: text('plan_id')
+      .notNull()
+      .references(() => plans.id, { onDelete: 'cascade' }),
+    role: text('role', { enum: taskRoleValues }).notNull(),
+    title: text('title').notNull(),
+    deps: text('deps', { mode: 'json' }).$type<string[]>().notNull(),
+    status: text('status', { enum: taskStatusValues }).notNull(),
+    worktreeBranch: text('worktree_branch'),
+    sessionId: text('session_id'),
+    tokensIn: integer('tokens_in').notNull().default(0),
+    tokensOut: integer('tokens_out').notNull().default(0),
+    turnsUsed: integer('turns_used').notNull().default(0),
+    durationMs: integer('duration_ms').notNull().default(0),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.planId, t.id] }),
+  }),
+);
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 
@@ -133,7 +139,9 @@ export const events = sqliteTable('events', {
   runId: text('run_id')
     .notNull()
     .references(() => runs.id, { onDelete: 'cascade' }),
-  taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }),
+  // Free-form text — tasks now use a compound (plan_id, id) primary key, so a
+  // single-column FK is no longer expressible. Treated as audit/log only.
+  taskId: text('task_id'),
   type: text('type').notNull(),
   payload: text('payload', { mode: 'json' }).$type<unknown>().notNull(),
   ts: integer('ts', { mode: 'timestamp_ms' })
