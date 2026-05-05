@@ -92,6 +92,11 @@ export interface WalkerDeps {
   now: () => number;
   /** Commits the worktree so downstream tasks see the artifacts on the branch tip. */
   autoCommit: (worktreePath: string, taskId: string) => Promise<string>;
+  /** Merges additional dep branches into the worktree (diamond DAG support). */
+  mergeBranches: (
+    worktreePath: string,
+    branches: string[],
+  ) => Promise<{ ok: true } | { ok: false; conflict: string }>;
 }
 
 /**
@@ -525,11 +530,13 @@ export class Walker {
     t.abort = abort;
 
     let worktreePath: string | null = t.worktreePath;
+    let createdWorktreeNow = false;
     try {
       if (!worktreePath) {
         const parentBranch = this.computeParentBranch(node);
         worktreePath = await this.deps.worktree.add({ repoPath, branchName, baseBranch: parentBranch });
         t.worktreePath = worktreePath;
+        createdWorktreeNow = true;
       }
     } catch (err) {
       t.status = 'failed';
@@ -540,6 +547,20 @@ export class Walker {
       });
       await this.deps.onTaskState(node.id, { status: 'failed', worktreeBranch: branchName });
       return;
+    }
+
+    if (createdWorktreeNow && node.deps.length > 1) {
+      const otherDepBranches = node.deps.slice(1).map((d) => `harness/${this.runId}/${d}`);
+      const mergeResult = await this.deps.mergeBranches(worktreePath, otherDepBranches);
+      if (!mergeResult.ok) {
+        t.status = 'failed';
+        await this.deps.onTaskState(node.id, { status: 'failed', worktreeBranch: branchName });
+        this.deps.emit({
+          type: 'task.failed',
+          payload: { taskId: node.id, error: `dep-merge conflict: ${mergeResult.conflict}` },
+        });
+        return;
+      }
     }
 
     await this.deps.onTaskState(node.id, {

@@ -35,6 +35,7 @@ function makeFakeDeps() {
       },
       now: () => Date.now(),
       autoCommit: vi.fn(async () => 'a'.repeat(40)),
+      mergeBranches: vi.fn(async () => ({ ok: true as const })),
     },
   };
 }
@@ -72,6 +73,23 @@ const linearPlan: Plan = {
   ],
 };
 
+const diamondPlan: Plan = {
+  goal: 'g',
+  team: linearPlan.team,
+  nodes: [
+    { id: 'a', role: 'architect', prompt: 'p', deps: [], successCriteria: {}, maxTurns: 5 },
+    { id: 'b1', role: 'developer', prompt: 'p', deps: ['a'], successCriteria: {}, maxTurns: 5 },
+    { id: 'b2', role: 'developer', prompt: 'p', deps: ['a'], successCriteria: {}, maxTurns: 5 },
+    { id: 'q', role: 'qa', prompt: 'p', deps: ['b1', 'b2'], successCriteria: {}, maxTurns: 5 },
+  ],
+  edges: [
+    { from: 'a', to: 'b1' },
+    { from: 'a', to: 'b2' },
+    { from: 'b1', to: 'q' },
+    { from: 'b2', to: 'q' },
+  ],
+};
+
 describe('walker chaining', () => {
   it('chains downstream worktrees off the parent task branches', async () => {
     const { deps, calls } = makeFakeDeps();
@@ -87,6 +105,22 @@ describe('walker chaining', () => {
       { branchName: 'harness/r1/d', baseBranch: 'harness/r1/a' },
       { branchName: 'harness/r1/q', baseBranch: 'harness/r1/d' },
     ]);
+  });
+
+  it('merges other dep branches into the diamond-leaf worktree', async () => {
+    const { deps } = makeFakeDeps();
+    const walker = new Walker(deps as never);
+    await walker.start({
+      runId: 'rdiamond',
+      plan: diamondPlan,
+      repoPath: '/tmp/repo',
+      budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 2 },
+    });
+    // q has deps ['b1', 'b2']. baseBranch should be harness/rdiamond/b1; mergeBranches called with ['harness/rdiamond/b2'].
+    expect(deps.mergeBranches).toHaveBeenCalledWith(
+      expect.any(String),
+      ['harness/rdiamond/b2'],
+    );
   });
 
   it('calls autoCommit after subprocess success and before worktree.remove', async () => {
