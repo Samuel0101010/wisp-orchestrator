@@ -12,6 +12,7 @@ export const agentSpecSchema = z.object({
 export type AgentSpec = z.infer<typeof agentSpecSchema>;
 
 export const successCriteriaSchema = z.object({
+  preflight: z.string().optional(),
   build: z.string().optional(),
   test: z.string().optional(),
   lint: z.string().optional(),
