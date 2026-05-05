@@ -338,6 +338,22 @@ describe('Walker — failure modes', () => {
     expect(h.walker.status().retries['a']).toBe(1);
   });
 
+  it('emits harness.verify-failed when verification gate fails', async () => {
+    const h = makeHarness({
+      defaultVerify: async () => ({
+        pass: false,
+        output: 'lint: undefined var foo',
+        failures: [{ kind: 'lint' as const, cmd: 'pnpm lint', exitCode: 1, tail: 'foo' }],
+      }),
+    });
+    const plan = makePlan([node('t1', 'architect')]);
+    await h.walker.start({ runId: 'r1', plan, repoPath: '/fake', budget: DEFAULT_BUDGET });
+    const e = h.emitted.find((x) => x.type === 'harness.verify-failed');
+    expect(e).toBeDefined();
+    expect(e!.payload.failures[0].kind).toBe('lint');
+    expect(e!.payload.attempt).toBe(1);
+  });
+
   it('verification fails first, retry succeeds → task done with retries=1', async () => {
     let calls = 0;
     const h = makeHarness({

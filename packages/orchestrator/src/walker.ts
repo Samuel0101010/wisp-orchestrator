@@ -817,12 +817,30 @@ export class Walker {
 
     // Verification failed.
     if (t.retries < 1) {
+      this.deps.emit({
+        type: 'harness.verify-failed',
+        payload: {
+          taskId: node.id,
+          attempt: t.retries + 1,
+          failures: verifyResult.failures,
+          output: verifyResult.output,
+        },
+      });
       t.retries += 1;
       t.status = 'pending';
       t.lastError = `verification failed:\n${verifyResult.output}`;
       return;
     }
 
+    this.deps.emit({
+      type: 'harness.verify-failed',
+      payload: {
+        taskId: node.id,
+        attempt: t.retries + 1,
+        failures: verifyResult.failures,
+        output: verifyResult.output,
+      },
+    });
     t.status = 'failed';
     const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
     await this.deps.onTaskState(node.id, { status: 'failed', durationMs: elapsed });
