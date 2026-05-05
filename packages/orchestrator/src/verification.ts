@@ -80,6 +80,11 @@ const defaultExec: ExecFn = async (cmd, { cwd, timeoutMs, signal }) => {
       // execa v9 renamed `signal` to `cancelSignal`.
       cancelSignal: signal,
       stripFinalNewline: false,
+      // CI=true makes pnpm/npm non-interactive. Without this, pnpm install
+      // aborts when it wants to confirm clobbering an existing node_modules
+      // (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY) — common after
+      // worktree-chaining brings the upstream task's node_modules along.
+      env: { ...process.env, CI: 'true' },
     });
     return {
       exitCode: typeof result.exitCode === 'number' ? result.exitCode : 1,
