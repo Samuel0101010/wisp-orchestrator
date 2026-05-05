@@ -67,3 +67,26 @@ describe('detectRateLimit', () => {
     expect(hit?.raw).toBe(text);
   });
 });
+
+describe('detectRateLimit — informational rate_limit_event lines', () => {
+  it('does NOT trip on `status:"allowed"` informational events', () => {
+    const text =
+      '{"type":"rate_limit_event","rate_limit_info":{"status":"allowed","resetsAt":1777996800,"rateLimitType":"five_hour"}}';
+    expect(detectRateLimit(text)).toBeNull();
+  });
+
+  it('still detects when status is something other than allowed', () => {
+    const text =
+      '{"type":"rate_limit_event","rate_limit_info":{"status":"exceeded","rateLimitType":"five_hour"}}';
+    expect(detectRateLimit(text)).not.toBeNull();
+  });
+
+  it('still detects when an unrelated rate-limit message is mixed in', () => {
+    const text = [
+      '{"type":"rate_limit_event","rate_limit_info":{"status":"allowed"}}',
+      'fatal: usage limit reached, retry_after: 300',
+    ].join('\n');
+    const hit = detectRateLimit(text);
+    expect(hit).not.toBeNull();
+  });
+});
