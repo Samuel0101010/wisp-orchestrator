@@ -359,3 +359,116 @@ DAG_SCHEMA_BLOCK update is steering the planner correctly:
 - No diamond-merge / parallel-task validation here — both runs were
   linear DAGs. Stage A4 still unvalidated against real Claude;
   M2's variable-team work should provide a goal that exercises it.
+
+---
+
+# v1.0 Stage 2 — variable team (2026-05-05)
+
+Branch `v1.0/m2-variable-team`, commits `1f47327..ba364bc`.
+
+## v1.0 4-role real-Claude run (M2 acceptance)
+
+**Goal:** "Add a TypeScript module src/calc.ts exporting add(a,b)
+returning a+b, plus a Vitest test src/calc.test.ts asserting at least
+the happy path. Initialise package.json with vitest+typescript as
+devDependencies. Also write a README.md at the project root that
+documents the add() function with one usage example."
+
+Four-role haiku team — architect / backend-dev / frontend-dev / qa.
+Fresh repo `harness-r3`, port 4505, run id
+`abd5e092-d99b-4b7f-a84f-83222c2da459` on plan `8e8e4a48` (second
+attempt; first failed with the platform-detection bug fixed in
+commit `ba364bc` below).
+
+**Outcome:** ✅ `status=completed, outcome=success`. Result branch
+`harness/abd5e092-d99b-4b7f-a84f-83222c2da459/result` carries:
+`architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
+`README.md`, `src/calc.ts`, `src/calc.test.ts`, `node_modules/`.
+
+`src/calc.ts`:
+```ts
+export function add(a: number, b: number): number {
+  return a + b;
+}
+```
+
+| Task | Role | Status | Tokens in | Tokens out | Turns | Duration |
+|---|---|---|---|---|---|---|
+| architect-scaffold | architect | done (1st attempt) | 6 488 | 1 896 | 4 | 22.9 s |
+| backend-implementation | backend-dev | done (1st attempt) | 8 966 | 2 095 | 13 | 61.7 s |
+| frontend-readme | frontend-dev | done (1st attempt) | 10 083 | 2 792 | 15 | 58.6 s |
+| qa-verify | qa | done (1st attempt) | 8 819 | 2 455 | 17 | 75.6 s |
+| **total** | — | — | **34 356** | **9 238** | **49** | **218.9 s wall** |
+
+Every task passed verify on its first attempt — this is the cleanest
+end-to-end run to date.
+
+## Stage A4 fan-in merge first-time validated
+
+The planner emitted `qa-verify.deps = ['backend-implementation', 'frontend-readme']` —
+a true diamond / fan-in topology. Resulting git log:
+
+```
+*   merge harness/<runId>/qa-verify       ← Stage A5 result-branch finalize
+|\
+| * qa-verify
+| *   merge harness/<runId>/frontend-readme  ← Stage A4 dep-branch fan-in
+| |\
+| | * frontend-readme
+| |/
+| * backend-implementation
+| * architect-scaffold
+|/
+* init
+```
+
+The inner merge commit ("merge harness/.../frontend-readme") is the
+first-ever real-Claude validation of `mergeBranchesInWorktree` — when
+qa-verify started, the walker added a worktree from the
+backend-implementation branch (its first dep) and merged the
+frontend-readme branch into it before the qa subprocess ran.
+
+## Diagnosis surfaced before success
+
+**First r3 run** (run `5e97d92a`, before fix): architect succeeded;
+backend-dev's first attempt failed `npx tsc --noEmit` (haiku put
+`include` inside `compilerOptions` instead of at the root of
+tsconfig.json — fixed itself on retry). But both attempts then failed
+`npx vitest run` with rollup native-binding errors. Inspecting the
+worktree's `node_modules/@rollup/` showed only `rollup-linux-x64-gnu`
+and `rollup-linux-x64-musl` — no Windows binary, despite running on
+Windows.
+
+Root cause: `pnpm config get os` returned `linux` (a stale line in
+the user's global pnpm config at `~/AppData/Local/pnpm/config/rc`)
+which overrode platform detection. pnpm therefore picked linux-only
+optionalDeps for rollup on a Windows host.
+
+**Foundation patch** (commit `ba364bc`): inject
+`npm_config_os: process.platform` and `npm_config_arch: process.arch`
+into `verification.ts` `defaultExec` env. This forces pnpm/npm to
+respect the actual runtime platform regardless of any stale global
+config, and selects the correct platform-specific optional-deps every
+time.
+
+## Stage 2 capabilities validated
+
+| M2 capability | Status |
+|---|---|
+| Schema accepts roles array (1..8, kebab-case unique) | ✅ — 4-role team round-trips through PUT/GET |
+| Planner enumerates roles literally + uses them | ✅ — all 4 custom roles appear in plan, no slot drift |
+| Walker resolves agent via `team.roles.find` | ✅ — no hardcoded slot lookup |
+| Stage A4 merge-of-dep-branches in worktree | ✅ — first real-Claude validation of the diamond fan-in |
+| Migration 0002 (idempotent UPDATE) | ✅ — smoke + in-memory rewrite test |
+| New `npm_config_os/arch` injection | ✅ — pnpm picked correct rollup binary on retry |
+
+## Open lessons
+
+- Haiku's first-attempt tsconfig.json sometimes nests `include` inside
+  `compilerOptions`. The retry-with-error-context (Stage 1 cap) lets
+  it self-correct — confirmed live this run on backend-dev attempt 1
+  → 2. The truncation cap from Task 1.2 kept the retry prompt sane.
+- The result branch carried `node_modules/` (not gitignored). For
+  personal-use this is fine; a future task could add a default
+  `.gitignore` written by the architect's scaffold so result branches
+  stay light.
