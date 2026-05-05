@@ -151,27 +151,23 @@ describe('runVerification', () => {
   // exercise execa's forceKillAfterTimeout escalation through the real exec
   // path. The escalation is documented in runVerification's JSDoc; the __exec
   // seam covers timeoutMs-as-exit-124 deterministically.
-  it.skip(
-    'kills a hung child after timeoutMs (escalates SIGTERM → SIGKILL)',
-    async () => {
-      await withTmp(async (cwd) => {
-        const start = Date.now();
-        // setInterval keeps the event loop alive forever; verifies execa's
-        // forceKillAfterTimeout escalation actually reaps the child.
-        const res = await runVerification(
-          cwd,
-          { custom: `node -e "setInterval(()=>{},1000)"` },
-          { timeoutMs: 1_000 },
-        );
-        const elapsed = Date.now() - start;
-        expect(res.pass).toBe(false);
-        expect(res.failures).toHaveLength(1);
-        expect(res.failures[0]!.exitCode).toBe(124);
-        // Should return well before 15s — even with the 5s SIGKILL escalation
-        // that's <10s total.
-        expect(elapsed).toBeLessThan(15_000);
-      });
-    },
-    30_000,
-  );
+  it.skip('kills a hung child after timeoutMs (escalates SIGTERM → SIGKILL)', async () => {
+    await withTmp(async (cwd) => {
+      const start = Date.now();
+      // setInterval keeps the event loop alive forever; verifies execa's
+      // forceKillAfterTimeout escalation actually reaps the child.
+      const res = await runVerification(
+        cwd,
+        { custom: `node -e "setInterval(()=>{},1000)"` },
+        { timeoutMs: 1_000 },
+      );
+      const elapsed = Date.now() - start;
+      expect(res.pass).toBe(false);
+      expect(res.failures).toHaveLength(1);
+      expect(res.failures[0]!.exitCode).toBe(124);
+      // Should return well before 15s — even with the 5s SIGKILL escalation
+      // that's <10s total.
+      expect(elapsed).toBeLessThan(15_000);
+    });
+  }, 30_000);
 });
