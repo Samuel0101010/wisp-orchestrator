@@ -41,7 +41,7 @@ jobs:
         run: pnpm format:check
 
       - name: Test (unit)
-        run: pnpm -r --filter "!@agent-harness/e2e" run test
+        run: pnpm --filter "./packages/**" --filter "./apps/**" run test
 
       - name: Build
         run: pnpm build
