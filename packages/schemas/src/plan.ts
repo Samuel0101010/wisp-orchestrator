@@ -1,13 +1,20 @@
 import { z } from 'zod';
 
-export const roleEnum = z.enum(['architect', 'developer', 'qa']);
-export type Role = z.infer<typeof roleEnum>;
+// Plain string alias for readability. Validation lives on
+// agentSpecSchema.role via the kebab-case regex.
+export type Role = string;
 
 export const agentSpecSchema = z.object({
-  role: roleEnum,
-  model: z.string().min(1),
+  role: z
+    .string()
+    .min(2)
+    .max(40)
+    .regex(/^[a-z][a-z0-9-]*$/, {
+      message: 'role must be kebab-case starting with a letter',
+    }),
+  model: z.enum(['opus', 'sonnet', 'haiku']),
   allowedTools: z.array(z.string()),
-  systemPrompt: z.string(),
+  systemPrompt: z.string().min(40).max(4000),
 });
 export type AgentSpec = z.infer<typeof agentSpecSchema>;
 
@@ -22,7 +29,11 @@ export type SuccessCriteria = z.infer<typeof successCriteriaSchema>;
 
 export const taskNodeSchema = z.object({
   id: z.string().min(1),
-  role: roleEnum,
+  role: z
+    .string()
+    .min(2)
+    .max(40)
+    .regex(/^[a-z][a-z0-9-]*$/),
   prompt: z.string(),
   deps: z.array(z.string()),
   successCriteria: successCriteriaSchema,
@@ -36,11 +47,19 @@ export const edgeSchema = z.object({
 });
 export type Edge = z.infer<typeof edgeSchema>;
 
-export const teamSchema = z.object({
-  architect: agentSpecSchema,
-  developer: agentSpecSchema,
-  qa: agentSpecSchema,
-});
+export const teamSchema = z
+  .object({
+    roles: z.array(agentSpecSchema).min(1).max(8),
+  })
+  .superRefine((t, ctx) => {
+    const seen = new Set<string>();
+    for (const r of t.roles) {
+      if (seen.has(r.role)) {
+        ctx.addIssue({ code: 'custom', message: `duplicate role: ${r.role}` });
+      }
+      seen.add(r.role);
+    }
+  });
 export type Team = z.infer<typeof teamSchema>;
 
 export const planSchema = z.object({

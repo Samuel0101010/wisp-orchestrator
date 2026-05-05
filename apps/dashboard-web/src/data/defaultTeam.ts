@@ -28,7 +28,5 @@ export const QA_DEFAULT: AgentSpec = {
 };
 
 export const DEFAULT_TEAM: Team = {
-  architect: ARCHITECT_DEFAULT,
-  developer: DEVELOPER_DEFAULT,
-  qa: QA_DEFAULT,
+  roles: [ARCHITECT_DEFAULT, DEVELOPER_DEFAULT, QA_DEFAULT],
 };

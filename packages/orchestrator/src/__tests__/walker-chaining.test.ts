@@ -45,24 +45,11 @@ function makeFakeDeps() {
 const linearPlan: Plan = {
   goal: 'g',
   team: {
-    architect: {
-      role: 'architect',
-      model: 'opus',
-      allowedTools: [],
-      systemPrompt: 'a'.repeat(60),
-    },
-    developer: {
-      role: 'developer',
-      model: 'sonnet',
-      allowedTools: [],
-      systemPrompt: 'b'.repeat(60),
-    },
-    qa: {
-      role: 'qa',
-      model: 'sonnet',
-      allowedTools: [],
-      systemPrompt: 'c'.repeat(60),
-    },
+    roles: [
+      { role: 'architect', model: 'opus', allowedTools: [], systemPrompt: 'a'.repeat(60) },
+      { role: 'developer', model: 'sonnet', allowedTools: [], systemPrompt: 'b'.repeat(60) },
+      { role: 'qa', model: 'sonnet', allowedTools: [], systemPrompt: 'c'.repeat(60) },
+    ],
   },
   nodes: [
     { id: 'a', role: 'architect', prompt: 'p', deps: [], successCriteria: {}, maxTurns: 5 },
