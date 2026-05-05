@@ -69,9 +69,10 @@ TaskNode {
   // guaranteed to be on PATH; bash-only utilities such as test, [, or [[ are
   // NOT available on Windows.
   // For documentation-only tasks (e.g., architect producing architecture.md),
-  // use a node-based file-existence check, for example:
-  //   "custom": "node -e \"require('fs').accessSync('architecture.md');require('fs').accessSync('tasks.md')\""
-  // node exits 1 if accessSync throws, which is exactly what we want.
+  // use a node-based file-existence check. The recommended form is:
+  //   custom: node -e <one-arg JS string that calls require('fs').accessSync(...) for each expected file>
+  // The harness invokes the command via the OS shell, so wrap the JS in
+  // double quotes inside the JSON value. node exits 1 if accessSync throws.
   maxTurns: number                   // 5..100 inclusive
 }
 Edge { from: string; to: string }    // mirrors deps as flat list
