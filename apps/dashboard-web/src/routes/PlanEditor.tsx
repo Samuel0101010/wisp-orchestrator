@@ -206,6 +206,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
   const [localPlan, setLocalPlan] = useState<Plan>(planRow.dagJson);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [confirmRegen, setConfirmRegen] = useState(false);
+  const [confirmLockRun, setConfirmLockRun] = useState(false);
   const patchPlan = usePatchPlan(planRow.id, projectId);
   const lockPlan = useLockPlan(planRow.id, projectId);
   const generatePlan = useGeneratePlan(projectId);
@@ -244,6 +245,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
   };
 
   const handleLockAndRun = async (): Promise<void> => {
+    setConfirmLockRun(false);
     try {
       let planId = planRow.id;
       if (planRow.status === 'draft') {
@@ -313,9 +315,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           </Button>
           <Button
             disabled={!canLockAndRun || lockPlan.isPending}
-            onClick={() => {
-              void handleLockAndRun();
-            }}
+            onClick={() => setConfirmLockRun(true)}
           >
             {lockPlan.isPending ? 'Locking…' : 'Lock & Run'}
           </Button>
@@ -367,6 +367,30 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           </div>
         </aside>
       </div>
+      <Dialog open={confirmLockRun} onOpenChange={setConfirmLockRun}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lock plan and start run?</DialogTitle>
+            <DialogDescription>
+              Locking makes the plan read-only and immediately starts a run. Tasks dispatch into git
+              worktrees and begin executing. You can pause or cancel from the run view.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmLockRun(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                void handleLockAndRun();
+              }}
+              disabled={lockPlan.isPending || startRun.isPending}
+            >
+              {lockPlan.isPending || startRun.isPending ? 'Starting…' : 'Lock & Run'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={confirmRegen} onOpenChange={setConfirmRegen}>
         <DialogContent>
           <DialogHeader>

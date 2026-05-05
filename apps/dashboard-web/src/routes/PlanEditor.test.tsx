@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -289,9 +289,13 @@ describe('PlanEditor', () => {
       });
     };
     renderEditor();
-    const btn = await screen.findByRole('button', { name: /lock & run/i });
-    await waitFor(() => expect(btn).toBeEnabled());
-    fireEvent.click(btn);
+    const trigger = await screen.findByRole('button', { name: /lock & run/i });
+    await waitFor(() => expect(trigger).toBeEnabled());
+    fireEvent.click(trigger);
+    // Confirm dialog opens; click the confirm button inside it.
+    const dialog = await screen.findByRole('dialog');
+    const confirm = within(dialog).getByRole('button', { name: /lock & run/i });
+    fireEvent.click(confirm);
     await waitFor(() => expect(lockCalled).toBe(true));
   });
 });

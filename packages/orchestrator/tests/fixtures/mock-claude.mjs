@@ -113,7 +113,7 @@ async function waitForStdin() {
             role: 'architect',
             prompt: 'design the system',
             deps: [],
-            successCriteria: { custom: 'true' },
+            successCriteria: { custom: 'node -e "process.exit(0)"' },
             maxTurns: 10,
           },
           {
@@ -121,7 +121,7 @@ async function waitForStdin() {
             role: 'developer',
             prompt: 'implement the design',
             deps: ['architect'],
-            successCriteria: { custom: 'true' },
+            successCriteria: { custom: 'node -e "process.exit(0)"' },
             maxTurns: 10,
           },
           {
@@ -129,7 +129,7 @@ async function waitForStdin() {
             role: 'qa',
             prompt: 'verify the implementation',
             deps: ['developer'],
-            successCriteria: { custom: 'true' },
+            successCriteria: { custom: 'node -e "process.exit(0)"' },
             maxTurns: 10,
           },
         ],
