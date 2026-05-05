@@ -17,7 +17,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
-import { useCreateProject, useGeneratedPlan, useProjectRuns, useProjects } from '@/api/queries';
+import {
+  useCreateProject,
+  useDailyRunCount,
+  useGeneratedPlan,
+  useProjectRuns,
+  useProjects,
+} from '@/api/queries';
 import { ApiError } from '@/api/client';
 
 export function Sidebar() {
@@ -30,6 +36,7 @@ export function Sidebar() {
   const { data: projects = [], isLoading } = useProjects();
   const createProject = useCreateProject();
   const activePlan = useGeneratedPlan(params.projectId);
+  const dailyCounts = useDailyRunCount();
 
   const reset = (): void => {
     setName('');
@@ -160,6 +167,19 @@ export function Sidebar() {
                     {status}
                   </Badge>
                 )}
+                {(() => {
+                  const count = dailyCounts.data?.byProject[p.id] ?? 0;
+                  if (count === 0) return null;
+                  return (
+                    <Badge
+                      variant={count >= 5 ? 'destructive' : 'secondary'}
+                      className={status ? 'ml-1 text-[9px]' : 'ml-auto text-[9px]'}
+                      data-testid={`sidebar-daily-count-${p.id}`}
+                    >
+                      {count} today
+                    </Badge>
+                  );
+                })()}
               </Link>
               {active && <RecentRuns projectId={p.id} />}
             </div>

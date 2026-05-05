@@ -270,3 +270,16 @@ export function useProjectRuns(projectId: string | undefined) {
     },
   });
 }
+
+export interface DailyRunCount {
+  totalLast24h: number;
+  byProject: Record<string, number>;
+}
+
+export function useDailyRunCount() {
+  return useQuery<DailyRunCount>({
+    queryKey: ['runs-daily-count'],
+    queryFn: () => apiFetch<DailyRunCount>('/api/runs/daily-count'),
+    refetchInterval: 60_000,
+  });
+}
