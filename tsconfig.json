@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/schemas" },
+    { "path": "packages/orchestrator" },
+    { "path": "apps/dashboard-server" },
+    { "path": "apps/dashboard-web" }
+  ]
+}

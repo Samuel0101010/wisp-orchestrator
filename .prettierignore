@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.vite
+coverage
+pnpm-lock.yaml
+*.md
+!README.md
+# Playwright artifacts
+tests/e2e/test-results
+tests/e2e/playwright-report
