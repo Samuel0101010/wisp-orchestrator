@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.turbo/
+.vite/
+.next/
+*.tsbuildinfo
+
+# Test / coverage
+coverage/
+
+# Playwright
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/.last-run.json
+
+# Logs
+*.log
+
+# Env
+.env
+.env.local
+
+# SQLite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Runtime data
+worktrees/
+.claude-plugin-data/
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
