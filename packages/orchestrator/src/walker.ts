@@ -18,6 +18,7 @@
  */
 
 import type {
+  AgentSpec,
   HarnessEvent,
   Plan,
   RunOutcome,
@@ -595,6 +596,24 @@ export class Walker {
     const abort = new AbortController();
     t.abort = abort;
 
+    const agent: AgentSpec | undefined = plan.team.roles.find((r) => r.role === node.role);
+    if (!agent) {
+      t.status = 'failed';
+      await this.deps.onTaskState(node.id, { status: 'failed' });
+      this.deps.emit({
+        type: 'task.failed',
+        payload: {
+          taskId: node.id,
+          error: `role '${node.role}' not in team`,
+        },
+      });
+      this.consecutiveFailures += 1;
+      if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+        await this.pause('consecutive-failures');
+      }
+      return;
+    }
+
     let worktreePath: string | null = t.worktreePath;
     let createdWorktreeNow = false;
     try {
@@ -646,15 +665,6 @@ export class Walker {
       worktreeBranch: branchName,
     });
     this.deps.emit({ type: 'task.started', payload: { taskId: node.id } });
-
-    const role = node.role;
-    // TODO(M2/2.3): wire this into the walker's task.failed event path so
-    // the run terminates the offending task gracefully instead of crashing
-    // the whole walker.
-    const agent = plan.team.roles.find((r) => r.role === role);
-    if (!agent) {
-      throw new Error(`role '${role}' not found in plan.team.roles`);
-    }
 
     let lastTaskFailedError: string | null = null;
     let cleanExit = false;

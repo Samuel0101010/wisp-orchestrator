@@ -389,6 +389,47 @@ describe('Walker — failure modes', () => {
     // Second spawn's prompt should mention "verification failed".
     expect(h.spawns[1]!.opts.prompt).toMatch(/verification failed/);
   });
+
+  it('fails the task gracefully when its role is not in team.roles', async () => {
+    const h = makeHarness({});
+    // Build a plan where the node references a role the team does not have.
+    const plan: Plan = {
+      goal: 'g',
+      team: {
+        roles: [
+          {
+            role: 'architect',
+            model: 'sonnet',
+            allowedTools: ['Read'],
+            systemPrompt: 'a'.repeat(60),
+          },
+        ],
+      },
+      nodes: [
+        {
+          id: 't1',
+          role: 'mystery',
+          prompt: 'p',
+          deps: [],
+          successCriteria: {},
+          maxTurns: 5,
+        },
+      ],
+      edges: [],
+    };
+    const outcome = await h.walker.start({
+      runId: 'rmiss',
+      plan,
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(outcome).toBe('failure');
+    const ev = h.emitted.find((e) => e.type === 'task.failed');
+    expect(ev).toBeDefined();
+    expect(ev!.payload.error).toContain("role 'mystery' not in team");
+    // No worktree should have been added for the failed task.
+    expect(h.worktree.added.length).toBe(0);
+  });
 });
 
 describe('Walker — rate-limit pause/resume', () => {

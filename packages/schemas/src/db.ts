@@ -65,11 +65,8 @@ export const taskStatusValues = [
 ] as const;
 export type TaskStatus = (typeof taskStatusValues)[number];
 
-// taskRoleValues / TaskRole dropped: tasks.role now accepts any string.
-// Keep the type alias so consumers compiling against the old type don't all
-// break at once; real cleanup happens in Task 2.3+.
-// TODO(M2/2.3): drop the `TaskRole = string` alias once the walker
-// resolves roles via team.roles.find without going through this type.
+// Kept as a plain string alias because tasks.role is no longer constrained
+// to an enum at the schema layer (since M2/2.1).
 export type TaskRole = string;
 
 export const tasks = sqliteTable(
