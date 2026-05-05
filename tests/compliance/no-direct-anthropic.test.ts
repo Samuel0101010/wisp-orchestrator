@@ -16,6 +16,7 @@ const SOURCE_GLOBS = [
   'apps/dashboard-web/src',
   'packages/orchestrator/src',
   'packages/schemas/src',
+  'packages/memory-mcp/src',
 ];
 
 function repoRoot(): string {
