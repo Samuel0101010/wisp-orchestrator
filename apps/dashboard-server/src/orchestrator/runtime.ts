@@ -42,6 +42,7 @@ import {
 } from '@agent-harness/orchestrator';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { env } from '../env.js';
+import { getLastAuthProbe } from '../auth-status.js';
 
 // Shape of the in-memory ws bus.
 export interface WsBus {
@@ -179,7 +180,7 @@ export class RunRuntime {
     args: StartRunArgs,
   ): Promise<
     | { ok: true; runId: string }
-    | { ok: false; status: 404 | 409 | 400; error: string; details?: unknown }
+    | { ok: false; status: 404 | 409 | 400 | 503; error: string; details?: unknown }
   > {
     const planRow = await this.db.select().from(plans).where(eq(plans.id, args.planId)).get();
     if (!planRow) return { ok: false, status: 404, error: 'plan not found' };
@@ -201,6 +202,18 @@ export class RunRuntime {
         error: 'plan dag is invalid',
         details: { message: (err as Error).message },
       };
+    }
+
+    if (env.HARNESS_AUTH_MODE === 'subscription' && !env.HARNESS_MOCK_CLI) {
+      const last = getLastAuthProbe();
+      if (last && !last.ok) {
+        return {
+          ok: false,
+          status: 503,
+          error: 'auth-failed',
+          details: { hint: last.hint },
+        };
+      }
     }
 
     const runId = randomUUID();
