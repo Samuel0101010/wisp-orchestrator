@@ -895,6 +895,106 @@ describe('Walker — D1: autoResumeRateLimit flag', () => {
   });
 });
 
+describe('Walker — D3: consecutive-failures pause', () => {
+  it('pauses with reason consecutive-failures after 3 task failures in a row', async () => {
+    // Three independent tasks all failing terminally (2 retries each, so the
+    // pool script needs 2 fail entries per task to exhaust the retry).
+    const failScript = (id: string): FakeTask[] => [
+      {
+        events: [{ type: 'task.failed', payload: { taskId: id, error: 'boom' } }],
+        finishWith: [],
+      },
+      {
+        events: [{ type: 'task.failed', payload: { taskId: id, error: 'boom2' } }],
+        finishWith: [],
+      },
+    ];
+    const scripts = new Map<string, FakeTask[]>([
+      ['t1', failScript('t1')],
+      ['t2', failScript('t2')],
+      ['t3', failScript('t3')],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts, maxParallel: 1 });
+    const plan = makePlan([
+      node('t1', 'architect'),
+      node('t2', 'developer'),
+      node('t3', 'qa'),
+    ]);
+
+    const startPromise = h.walker.start({
+      runId: 'r-d3-pause',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // Wait for the walker to pause after 3 consecutive failures.
+    await waitForEvent(h.emitted, 'run.paused');
+
+    expect(h.walker.status().state).toBe('paused');
+    expect(h.walker.status().pausedReason).toBe('consecutive-failures');
+    expect(h.runStateLog).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ pausedReason: 'consecutive-failures' }),
+      ]),
+    );
+
+    // Cleanup.
+    await h.walker.cancel();
+    await startPromise;
+  });
+
+  it('resets consecutive-failures counter on a task success', async () => {
+    // t1 fails (terminal, retries exhausted): consecutiveFailures → 1
+    // t2 fails (terminal):                    consecutiveFailures → 2
+    // t3 succeeds:                            consecutiveFailures → 0
+    // t4 fails (terminal):                    consecutiveFailures → 1
+    // t5 fails (terminal):                    consecutiveFailures → 2
+    // → only 2 failures after the reset, so threshold of 3 is never reached.
+    const failScript = (id: string): FakeTask[] => [
+      {
+        events: [{ type: 'task.failed', payload: { taskId: id, error: 'boom' } }],
+        finishWith: [],
+      },
+      {
+        events: [{ type: 'task.failed', payload: { taskId: id, error: 'boom2' } }],
+        finishWith: [],
+      },
+    ];
+    const scripts = new Map<string, FakeTask[]>([
+      ['t1', failScript('t1')],
+      ['t2', failScript('t2')],
+      // t3 uses the default (success) script — no entry needed
+      ['t4', failScript('t4')],
+      ['t5', failScript('t5')],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts, maxParallel: 1 });
+    const plan = makePlan([
+      node('t1', 'architect'),
+      node('t2', 'developer'),
+      node('t3', 'qa'),
+      node('t4', 'architect'),
+      node('t5', 'developer'),
+    ]);
+
+    const outcome = await h.walker.start({
+      runId: 'r-d3-reset',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // Walker should complete (failure outcome due to failed tasks), not pause.
+    expect(outcome).toBe('failure');
+    expect(h.walker.status().state).toBe('completed');
+    // Must NOT have emitted run.paused with consecutive-failures reason.
+    const pausedEvent = h.emitted.find(
+      (e) => e.type === 'run.paused' && e.payload.pausedReason === 'consecutive-failures',
+    );
+    expect(pausedEvent).toBeUndefined();
+  });
+});
+
 // ---------- helpers ----------
 
 function createGate(): { release: () => void; promise: Promise<void> } {

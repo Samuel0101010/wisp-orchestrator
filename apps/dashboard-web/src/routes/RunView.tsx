@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Pause, Play, Square, Activity, FileText, AlertTriangle, Coins } from 'lucide-react';
-import type { HarnessEvent, TaskRole } from '@agent-harness/schemas';
+import type { HarnessEvent, RunPausedReason, TaskRole } from '@agent-harness/schemas';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -433,7 +433,7 @@ function RunHeaderActions({
 
 interface RunPausedBannerProps {
   runId: string;
-  pausedReason: 'rate-limit' | 'user' | 'shutdown';
+  pausedReason: RunPausedReason;
   resumeAt: number | null;
   nowMs: number;
 }
