@@ -8,5 +8,4 @@ SET roles_json = json_object(
     json_extract(roles_json, '$.qa')
   )
 )
-WHERE json_extract(roles_json, '$.architect') IS NOT NULL
-  AND json_extract(roles_json, '$.roles') IS NULL;
+WHERE json_extract(roles_json, '$.roles') IS NULL;

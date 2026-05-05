@@ -49,6 +49,12 @@ export function plannerSpecFor(team: Team): AgentSpec {
   };
 }
 
+// TODO(M2/2.2): the schema block below still describes the legacy
+// 3-slot team. Until 2.2 rewrites this to be role-array-aware, the
+// planner produces plans in the old shape that safeParsePlan rejects
+// for any team with non-{architect,developer,qa} roles. Existing
+// 3-role teams continue to work because the planner still emits the
+// old role names verbatim.
 const DAG_SCHEMA_BLOCK = `Plan {
   goal: string
   team: { architect: AgentSpec, developer: AgentSpec, qa: AgentSpec }

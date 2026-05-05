@@ -167,6 +167,17 @@ export function TeamBuilder() {
   const teamExists = Boolean(teamQuery.data);
   const valid = useMemo(() => isDraftValid(draft), [draft]);
 
+  // Guard: refuse to PUT when the loaded team is not in the legacy 3-slot shape
+  // so the UI cannot silently destroy variable-team data before Task 2.5 ships.
+  const isLegacyShape = useMemo(() => {
+    const team = teamQuery.data;
+    if (!team) return true; // no team yet — allow creating a new one
+    return (
+      team.roles.length === 3 &&
+      team.roles.every((r) => r.role === 'architect' || r.role === 'developer' || r.role === 'qa')
+    );
+  }, [teamQuery.data]);
+
   if (!projectId) {
     return (
       <Card>
@@ -220,6 +231,12 @@ export function TeamBuilder() {
           <span className="font-medium text-foreground">{projectName}</span>.
         </p>
       </div>
+      {!isLegacyShape && (
+        <p className="text-sm text-muted-foreground">
+          This team has custom roles — please wait for the variable-team UI (Task M2/2.5) before
+          editing here.
+        </p>
+      )}
       <div className="grid gap-4 lg:grid-cols-3">
         <AgentCard
           role="architect"
@@ -243,7 +260,7 @@ export function TeamBuilder() {
             {generatePlan.isPending ? 'Generating…' : 'Generate Plan'}
           </Button>
         )}
-        <Button onClick={handleSave} disabled={!valid || saveTeam.isPending}>
+        <Button onClick={handleSave} disabled={!valid || saveTeam.isPending || !isLegacyShape}>
           {saveTeam.isPending ? 'Saving…' : 'Save Team'}
         </Button>
       </div>

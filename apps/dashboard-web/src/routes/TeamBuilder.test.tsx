@@ -75,24 +75,26 @@ describe('TeamBuilder', () => {
       if (url.endsWith('/team')) {
         return new Response(
           JSON.stringify({
-            architect: {
-              role: 'architect',
-              model: 'haiku',
-              allowedTools: ['Read'],
-              systemPrompt: `arch ${FILLER}`,
-            },
-            developer: {
-              role: 'developer',
-              model: 'sonnet',
-              allowedTools: ['Edit'],
-              systemPrompt: `dev ${FILLER}`,
-            },
-            qa: {
-              role: 'qa',
-              model: 'sonnet',
-              allowedTools: ['Read'],
-              systemPrompt: `qa ${FILLER}`,
-            },
+            roles: [
+              {
+                role: 'architect',
+                model: 'haiku',
+                allowedTools: ['Read'],
+                systemPrompt: `arch ${FILLER}`,
+              },
+              {
+                role: 'developer',
+                model: 'sonnet',
+                allowedTools: ['Edit'],
+                systemPrompt: `dev ${FILLER}`,
+              },
+              {
+                role: 'qa',
+                model: 'sonnet',
+                allowedTools: ['Read'],
+                systemPrompt: `qa ${FILLER}`,
+              },
+            ],
           }),
           { status: 200 },
         );
@@ -158,14 +160,11 @@ describe('TeamBuilder', () => {
     await waitFor(() => {
       expect(putBody).not.toBeNull();
     });
-    const body = putBody as {
-      architect: { role: string; model: string };
-      developer: { role: string; model: string };
-      qa: { role: string; model: string };
-    };
-    expect(body.architect.role).toBe('architect');
-    expect(body.architect.model).toBe('opus');
-    expect(body.developer.model).toBe('sonnet');
-    expect(body.qa.role).toBe('qa');
+    const body = putBody as { roles: { role: string; model: string }[] };
+    const byRole = (r: string) => body.roles.find((a) => a.role === r)!;
+    expect(byRole('architect').role).toBe('architect');
+    expect(byRole('architect').model).toBe('opus');
+    expect(byRole('developer').model).toBe('sonnet');
+    expect(byRole('qa').role).toBe('qa');
   });
 });
