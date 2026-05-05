@@ -791,10 +791,74 @@ export class Walker {
     }
   }
 
+  /**
+   * After a successful run, consolidate all leaf-task branches into a single
+   * `harness/<runId>/result` branch on top of the repo's HEAD. The user can
+   * inspect this one branch to see every task's contribution as a merge commit.
+   *
+   * Best-effort: if anything fails (worktree creation, merge conflict), the
+   * leaf branches stay intact and the run is still considered successful — the
+   * user can manually merge them.
+   */
+  private async finalizeResultBranch(): Promise<void> {
+    if (!this.runId || !this.repoPath || !this.plan) return;
+    const plan = this.plan;
+    const runId = this.runId;
+    const repoPath = this.repoPath;
+
+    // Leaves: nodes with no successors AND status === 'done'.
+    const successors = new Set<string>();
+    for (const n of plan.nodes) {
+      for (const dep of n.deps) successors.add(dep);
+    }
+    const leafBranches: string[] = [];
+    for (const n of plan.nodes) {
+      if (successors.has(n.id)) continue; // not a leaf
+      const t = this.tasks.get(n.id);
+      if (t?.status === 'done') {
+        leafBranches.push(`harness/${runId}/${n.id}`);
+      }
+    }
+    if (leafBranches.length === 0) return;
+
+    const resultBranch = `harness/${runId}/result`;
+    let resultPath: string;
+    try {
+      resultPath = await this.deps.worktree.add({
+        repoPath,
+        branchName: resultBranch,
+        // baseBranch undefined → branch from HEAD
+      });
+    } catch {
+      // Best-effort — leaves already exist for the user to merge manually.
+      return;
+    }
+
+    try {
+      await this.deps.mergeBranches(resultPath, leafBranches);
+    } finally {
+      try {
+        await this.deps.worktree.remove({ repoPath, worktreePath: resultPath, force: true });
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   private async finalize(outcome: RunOutcome): Promise<void> {
     if (!this.runId) return;
     if (this.finalOutcome === null) this.finalOutcome = outcome;
     this.state = 'completed';
+
+    // Best-effort consolidate leaves into a single result branch on success.
+    if (outcome === 'success') {
+      try {
+        await this.finalizeResultBranch();
+      } catch {
+        // Don't let finalize failures change the run outcome.
+      }
+    }
+
     const status =
       outcome === 'success'
         ? 'completed'

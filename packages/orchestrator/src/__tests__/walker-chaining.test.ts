@@ -104,6 +104,7 @@ describe('walker chaining', () => {
       { branchName: 'harness/r1/a', baseBranch: undefined },
       { branchName: 'harness/r1/d', baseBranch: 'harness/r1/a' },
       { branchName: 'harness/r1/q', baseBranch: 'harness/r1/d' },
+      { branchName: 'harness/r1/result', baseBranch: undefined },
     ]);
   });
 
@@ -147,6 +148,54 @@ describe('walker chaining', () => {
       'remove:/tmp/harness-r2-d',
       'commit:q',
       'remove:/tmp/harness-r2-q',
+      'remove:/tmp/harness-r2-result',
     ]);
+  });
+
+  it('on success, creates harness/<runId>/result merging all leaf branches', async () => {
+    const { deps } = makeFakeDeps();
+    const walker = new Walker(deps as never);
+    await walker.start({
+      runId: 'r3',
+      plan: linearPlan,
+      repoPath: '/tmp/repo',
+      budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 1 },
+    });
+    // Linear plan: only leaf is 'q'.
+    expect(deps.worktree.add).toHaveBeenCalledWith(
+      expect.objectContaining({ branchName: 'harness/r3/result' }),
+    );
+    expect(deps.mergeBranches).toHaveBeenLastCalledWith(
+      expect.any(String),
+      ['harness/r3/q'],
+    );
+  });
+
+  it('diamond plan: result branch merges both leaf branches', async () => {
+    const twoLeafPlan: Plan = {
+      goal: 'g',
+      team: linearPlan.team,
+      nodes: [
+        { id: 'a', role: 'architect', prompt: 'p', deps: [], successCriteria: {}, maxTurns: 5 },
+        { id: 'l1', role: 'developer', prompt: 'p', deps: ['a'], successCriteria: {}, maxTurns: 5 },
+        { id: 'l2', role: 'qa', prompt: 'p', deps: ['a'], successCriteria: {}, maxTurns: 5 },
+      ],
+      edges: [
+        { from: 'a', to: 'l1' },
+        { from: 'a', to: 'l2' },
+      ],
+    };
+    const { deps } = makeFakeDeps();
+    const walker = new Walker(deps as never);
+    await walker.start({
+      runId: 'r4',
+      plan: twoLeafPlan,
+      repoPath: '/tmp/repo',
+      budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 2 },
+    });
+    expect(deps.mergeBranches).toHaveBeenLastCalledWith(
+      expect.any(String),
+      ['harness/r4/l1', 'harness/r4/l2'],
+    );
   });
 });
