@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { FirstRunModal, hasAckedFirstRun } from '@/components/FirstRunModal';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   type Edge,
@@ -207,6 +208,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [confirmRegen, setConfirmRegen] = useState(false);
   const [confirmLockRun, setConfirmLockRun] = useState(false);
+  const [firstRunOpen, setFirstRunOpen] = useState(false);
   const patchPlan = usePatchPlan(planRow.id, projectId);
   const lockPlan = useLockPlan(planRow.id, projectId);
   const generatePlan = useGeneratePlan(projectId);
@@ -315,7 +317,13 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           </Button>
           <Button
             disabled={!canLockAndRun || lockPlan.isPending}
-            onClick={() => setConfirmLockRun(true)}
+            onClick={() => {
+              if (!hasAckedFirstRun()) {
+                setFirstRunOpen(true);
+              } else {
+                setConfirmLockRun(true);
+              }
+            }}
           >
             {lockPlan.isPending ? 'Locking…' : 'Lock & Run'}
           </Button>
@@ -367,6 +375,13 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           </div>
         </aside>
       </div>
+      <FirstRunModal
+        open={firstRunOpen}
+        onAck={() => {
+          setFirstRunOpen(false);
+          setConfirmLockRun(true);
+        }}
+      />
       <Dialog open={confirmLockRun} onOpenChange={setConfirmLockRun}>
         <DialogContent>
           <DialogHeader>
