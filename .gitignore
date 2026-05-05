@@ -33,7 +33,8 @@ tests/e2e/.last-run.json
 # Runtime data
 worktrees/
 .claude-plugin-data/
-data/
+/data/
+apps/*/data/
 
 # OS
 .DS_Store
