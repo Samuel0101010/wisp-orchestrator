@@ -84,7 +84,16 @@ const defaultExec: ExecFn = async (cmd, { cwd, timeoutMs, signal }) => {
       // aborts when it wants to confirm clobbering an existing node_modules
       // (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY) — common after
       // worktree-chaining brings the upstream task's node_modules along.
-      env: { ...process.env, CI: 'true' },
+      // npm_config_os/arch override any stale `os=…` line in the user's
+      // global pnpm config so platform-specific optionalDeps (e.g. the
+      // rollup native binary) are picked correctly. process.platform is
+      // 'win32'/'darwin'/'linux'; process.arch is 'x64'/'arm64'/etc.
+      env: {
+        ...process.env,
+        CI: 'true',
+        npm_config_os: process.platform,
+        npm_config_arch: process.arch,
+      },
     });
     return {
       exitCode: typeof result.exitCode === 'number' ? result.exitCode : 1,
