@@ -15,6 +15,8 @@
  *                             of NDJSON events, exit 0 (used by F1 e2e harness mode).
  *   MOCK_MODE=task         — emit 3 text-delta + 1 tool-use + 1 usage, exit 0
  *                             (used by F1 for architect/developer/qa task slots).
+ *   MOCK_MODE=usage-with-cache — emit a result frame with cache_creation tokens, exit 0
+ *                             (used to test cache-token summing in the parser).
  *
  * Reads stdin (drains it) so callers writing the prompt don't block.
  */
@@ -52,7 +54,17 @@ async function waitForStdin() {
       emit({ type: 'text-delta', text: 'Hello ' });
       emit({ type: 'text-delta', text: 'world' });
       emit({ type: 'tool-use', tool: 'Read', input: { path: '/tmp/x' } });
-      emit({ type: 'usage', tokensIn: 12, tokensOut: 7, turns: 1 });
+      emit({
+        type: 'result',
+        subtype: 'success',
+        num_turns: 1,
+        usage: {
+          input_tokens: 12,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 7,
+        },
+      });
       emit({ type: 'completion' });
       process.exit(0);
       break;
@@ -145,7 +157,17 @@ async function waitForStdin() {
         process.exit(2);
       }
       emit({ type: 'text-delta', text: 'planning…' });
-      emit({ type: 'usage', tokensIn: 100, tokensOut: 50, turns: 1 });
+      emit({
+        type: 'result',
+        subtype: 'success',
+        num_turns: 1,
+        usage: {
+          input_tokens: 100,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 50,
+        },
+      });
       emit({ type: 'completion' });
       process.exit(0);
       break;
@@ -155,7 +177,32 @@ async function waitForStdin() {
       emit({ type: 'text-delta', text: 'working' });
       emit({ type: 'tool-use', tool: 'Read', input: { path: 'README.md' } });
       emit({ type: 'text-delta', text: 'done' });
-      emit({ type: 'usage', tokensIn: 42, tokensOut: 18, turns: 5 });
+      emit({
+        type: 'result',
+        subtype: 'success',
+        num_turns: 5,
+        usage: {
+          input_tokens: 42,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 18,
+        },
+      });
+      emit({ type: 'completion' });
+      process.exit(0);
+      break;
+    case 'usage-with-cache':
+      emit({
+        type: 'result',
+        subtype: 'success',
+        num_turns: 3,
+        usage: {
+          input_tokens: 6,
+          cache_creation_input_tokens: 35447,
+          cache_read_input_tokens: 0,
+          output_tokens: 8,
+        },
+      });
       emit({ type: 'completion' });
       process.exit(0);
       break;

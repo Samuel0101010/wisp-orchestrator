@@ -101,6 +101,27 @@ describe('runClaude (mock)', () => {
     }
   });
 
+  it('parses task.usage from result frame, summing input + cache_creation tokens', async () => {
+    const events = await collect(
+      runClaude({
+        cwd: tmpdir(),
+        prompt: 'hi',
+        allowedTools: [],
+        maxTurns: 1,
+        taskId: 't-cache',
+        __mockBin: MOCK_BIN,
+        __mockEnv: { MOCK_MODE: 'usage-with-cache' },
+      }),
+    );
+    const usage = events.find((e) => e.type === 'task.usage');
+    expect(usage).toBeDefined();
+    if (usage?.type === 'task.usage') {
+      expect(usage.payload.tokensIn).toBe(6 + 35447);
+      expect(usage.payload.tokensOut).toBe(8);
+      expect(usage.payload.turns).toBe(3);
+    }
+  });
+
   it('skips garbled / unknown lines without crashing and still completes', async () => {
     const events = await collect(
       runClaude({
