@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
-// Drop roleEnum; role is now a free-form kebab-case identifier.
-// Keep Role = string type alias so external consumers don't all break at once.
-// TODO(M2/2.5): drop the `Role = string` alias once the web TeamBuilder
-// has been refactored to consume `r.role` as the authoritative string.
+// Plain string alias for readability. Validation lives on
+// agentSpecSchema.role via the kebab-case regex.
 export type Role = string;
 
 export const agentSpecSchema = z.object({
