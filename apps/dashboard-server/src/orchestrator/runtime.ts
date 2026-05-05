@@ -11,7 +11,7 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import {
   checkpoints,
   events as eventsTable,
@@ -511,7 +511,7 @@ export class RunRuntime {
     }
   }
 
-  private async persistTaskPatch(_planId: string, taskId: string, patch: TaskState): Promise<void> {
+  private async persistTaskPatch(planId: string, taskId: string, patch: TaskState): Promise<void> {
     const update: Record<string, unknown> = {};
     if (patch.status !== undefined) {
       update.status = TASK_STATUS_MAP[patch.status];
@@ -524,7 +524,11 @@ export class RunRuntime {
     if (patch.durationMs !== undefined) update.durationMs = patch.durationMs;
     if (Object.keys(update).length === 0) return;
     try {
-      await this.db.update(tasks).set(update).where(eq(tasks.id, taskId)).run();
+      await this.db
+        .update(tasks)
+        .set(update)
+        .where(and(eq(tasks.planId, planId), eq(tasks.id, taskId)))
+        .run();
     } catch {
       // ignore
     }
