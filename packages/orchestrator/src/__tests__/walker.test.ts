@@ -1179,6 +1179,32 @@ describe('Walker — QA-driven replan (M5)', () => {
     await h.walker.start({ runId: 'r-non-qa', plan, repoPath: '/fake', budget: DEFAULT_BUDGET });
     expect(replanFn).not.toHaveBeenCalled();
   });
+
+  it('uses v2 branch prefix after replan so branches do not collide with the failed plan', async () => {
+    let verifyCount = 0;
+    const h = makeHarness({
+      defaultVerify: async () => {
+        verifyCount += 1;
+        // Failed plan's qa fails twice (terminal); new plan's qa passes.
+        return verifyCount <= 2
+          ? {
+              pass: false,
+              output: 'pi precision',
+              failures: [{ kind: 'custom' as const, cmd: 'v', exitCode: 1, tail: 'x' }],
+            }
+          : { pass: true, output: 'ok', failures: [] };
+      },
+    });
+    const newPlan: Plan = makePlan([node('q', 'qa')]); // same id 'q' as the original
+    const replanFn = vi.fn(async () => ({ newPlan, newPlanId: 'plan-2' }));
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    const plan = makePlan([node('q', 'qa')]);
+    await h.walker.start({ runId: 'r-prefix', plan, repoPath: '/fake', budget: DEFAULT_BUDGET });
+    // First plan's task added under the v1 prefix (no version segment).
+    expect(h.deps.worktree.added).toContain('harness/r-prefix/q');
+    // After replan, the new plan's task adds under v2.
+    expect(h.deps.worktree.added).toContain('harness/r-prefix/v2/q');
+  });
 });
 
 // ---------- helpers ----------

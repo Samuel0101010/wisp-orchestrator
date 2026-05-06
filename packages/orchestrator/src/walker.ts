@@ -593,9 +593,21 @@ export class Walker {
     return n;
   }
 
+  /**
+   * Branch prefix for the current plan version. v1 (the original plan) has no
+   * prefix to preserve backward compatibility with existing tests + the result-
+   * branch finalize path. Replans get an explicit v2/v3/... prefix so their
+   * tasks don't collide with the predecessor plan's branches.
+   */
+  private branchPrefix(): string {
+    if (this.replanCount === 0) return `harness/${this.runId}`;
+    const version = this.replanCount + 1;
+    return `harness/${this.runId}/v${version}`;
+  }
+
   private computeParentBranch(node: TaskNode): string | undefined {
     if (node.deps.length === 0) return undefined;
-    return `harness/${this.runId}/${node.deps[0]}`;
+    return `${this.branchPrefix()}/${node.deps[0]}`;
   }
 
   private async runTask(t: TaskRuntime): Promise<void> {
@@ -605,7 +617,7 @@ export class Walker {
     const repoPath = this.repoPath;
     const node = t.node;
 
-    const branchName = `harness/${runId}/${node.id}`;
+    const branchName = `${this.branchPrefix()}/${node.id}`;
     t.branchName = branchName;
     t.rateLimited = false;
     const abort = new AbortController();
@@ -658,7 +670,7 @@ export class Walker {
     }
 
     if (createdWorktreeNow && node.deps.length > 1) {
-      const otherDepBranches = node.deps.slice(1).map((d) => `harness/${this.runId}/${d}`);
+      const otherDepBranches = node.deps.slice(1).map((d) => `${this.branchPrefix()}/${d}`);
       const mergeResult = await this.deps.mergeBranches(worktreePath, otherDepBranches);
       if (!mergeResult.ok) {
         t.status = 'failed';
@@ -1040,7 +1052,7 @@ export class Walker {
       if (successors.has(n.id)) continue; // not a leaf
       const t = this.tasks.get(n.id);
       if (t?.status === 'done') {
-        leafBranches.push(`harness/${runId}/${n.id}`);
+        leafBranches.push(`${this.branchPrefix()}/${n.id}`);
       }
     }
     if (leafBranches.length === 0) return;
