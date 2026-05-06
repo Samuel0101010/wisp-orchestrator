@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { HarnessEvent } from '@agent-harness/schemas';
-import { runClaude, ClaudeSubprocess } from '../subprocess.js';
+import { runClaude, ClaudeSubprocess, buildArgs } from '../subprocess.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MOCK_BIN = resolve(__dirname, '../../tests/fixtures/mock-claude.mjs');
@@ -138,6 +138,35 @@ describe('runClaude (mock)', () => {
     const types = events.map((e) => e.type);
     expect(types).toContain('task.text-delta');
     expect(types[types.length - 1]).toBe('task.completed');
+  });
+});
+
+describe('buildArgs — mcpConfigPath', () => {
+  it('omits --mcp-config flags when no mcpConfigPath set', () => {
+    const args = buildArgs({
+      cwd: '/x',
+      prompt: 'p',
+      allowedTools: [],
+      maxTurns: 5,
+      taskId: 't',
+    });
+    expect(args).not.toContain('--mcp-config');
+    expect(args).not.toContain('--strict-mcp-config');
+  });
+
+  it('appends --mcp-config <path> --strict-mcp-config when set', () => {
+    const args = buildArgs({
+      cwd: '/x',
+      prompt: 'p',
+      allowedTools: [],
+      maxTurns: 5,
+      taskId: 't',
+      mcpConfigPath: '/path/to/mcp.json',
+    });
+    const idx = args.indexOf('--mcp-config');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe('/path/to/mcp.json');
+    expect(args).toContain('--strict-mcp-config');
   });
 });
 

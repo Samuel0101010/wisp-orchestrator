@@ -24,6 +24,12 @@ export interface RunClaudeOpts {
   /** Optional run id, used to fill `rate-limit.hit.payload.runId`. */
   runId?: string;
   signal?: AbortSignal;
+  /**
+   * Optional MCP config JSON file path. When set, the subprocess is invoked
+   * with `--mcp-config <path> --strict-mcp-config`, exposing the configured
+   * MCP servers (e.g. agent-harness-memory) as tools to the agent.
+   */
+  mcpConfigPath?: string;
   /** Override the executable. If it ends in .js/.mjs, spawned via node. */
   __mockBin?: string;
   /** Extra env vars (test only). */
@@ -32,7 +38,7 @@ export interface RunClaudeOpts {
 
 const STDERR_TAIL_BYTES = 4096;
 
-function buildArgs(opts: RunClaudeOpts): string[] {
+export function buildArgs(opts: RunClaudeOpts): string[] {
   const args = [
     '-p',
     '--output-format',
@@ -52,6 +58,9 @@ function buildArgs(opts: RunClaudeOpts): string[] {
   }
   if (opts.systemPrompt) {
     args.push('--system-prompt', opts.systemPrompt);
+  }
+  if (opts.mcpConfigPath) {
+    args.push('--mcp-config', opts.mcpConfigPath, '--strict-mcp-config');
   }
   return args;
 }

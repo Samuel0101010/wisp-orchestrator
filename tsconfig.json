@@ -4,6 +4,7 @@
     { "path": "packages/schemas" },
     { "path": "packages/orchestrator" },
     { "path": "apps/dashboard-server" },
-    { "path": "apps/dashboard-web" }
+    { "path": "apps/dashboard-web" },
+    { "path": "packages/memory-mcp" }
   ]
 }
