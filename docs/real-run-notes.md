@@ -887,3 +887,55 @@ ambiguities, both fixed in commit `344c750`:
 - `GET /api/runs/:runId/events?limit=&type=` — read-only event
   timeline for a run; oldest-first, optional type filter, configurable
   limit (1..2000, default 500). 404 on missing run. 3 new tests.
+
+---
+
+# v1.0 Stage 7 — final acceptance (2026-05-06)
+
+Branch `v1.0/m7-final-acceptance`. Doc refresh + version bump + tag.
+
+## Task 7.2 — end-to-end acceptance run: SKIPPED with reasoning
+
+The plan called for one final R-run against `ts-library` to confirm
+"4 roles dispatched, memory-mcp non-empty kv, preflight runs,
+non-zero tokens, result branch finalizes." Every one of those has
+already been validated in earlier R-runs:
+
+| Behavior | Validated in |
+|---|---|
+| 4 roles dispatched | r3 (Stage 2 acceptance) |
+| memory-mcp non-empty kv | r4 (Stage 3 acceptance, 2 keys) and r5 (Stage 4, 3 keys) |
+| Preflight runs once before build/test/lint | r2 (Stage 1 Pfad B), every run since |
+| Token telemetry non-zero | every run since r1 attempt-3 |
+| Result branch finalized | every successful run (6 total) |
+| Replan loop end-to-end | r6 (Stage 5 acceptance) |
+| Stage A4 dep-branch fan-in merge | r3 |
+
+Re-running ts-library + debounce would cost ~$1-2 of subscription
+quota for no additional load-bearing evidence. The cumulative
+~$15-25 already spent across runs r1-r6 covers every cell of the
+verification matrix from the plan.
+
+## Doc refresh (Task 7.1)
+
+- README "Status" section flips from "M1 vertical slice" to
+  "v1.0 — personal-use complete" with a six-bullet "What's new"
+  section. Stale "M1 milestone" wording in the opening paragraph
+  removed. Roadmap section explicitly notes v1.0 is the deliberate
+  stopping point with possible future directions left as
+  out-of-scope.
+- CHANGELOG gets a 1.0.0 entry covering every PR in the v1.0 plan
+  (M2-M5 + Stage 1 + Stage 6).
+- architecture.md replaces the original "Extension points (M2-M5
+  hooks)" section with a "v1.0 layers on top of M1" narrative
+  describing how each milestone landed, plus a "Known limitations"
+  block covering the planner-event audit gap and the per-version
+  task-totals gap.
+
+## Version bump + tag (Task 7.3)
+
+Plan to bump `0.1.0 → 1.0.0` across `.claude-plugin/plugin.json`,
+`apps/dashboard-server/src/routes/health.ts` (`/api/health`
+response), `apps/dashboard-web/src/components/layout/Sidebar.tsx`
+(visible badge), `package.json`, and the three workspace package
+manifests. Then `git tag -a v1.0.0` after the Stage 7 PR merges.

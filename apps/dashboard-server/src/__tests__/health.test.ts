@@ -31,7 +31,7 @@ describe('health', () => {
     const body = res.json();
     expect(body.ok).toBe(true);
     expect(typeof body.time).toBe('string');
-    expect(body.version).toBe('0.1.0');
+    expect(body.version).toBe('1.0.0');
     expect(body.authProbe).toBeNull();
   });
 
