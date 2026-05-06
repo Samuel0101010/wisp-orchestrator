@@ -17,7 +17,7 @@ export function TemplatePicker({ selectedId, onSelect }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex max-h-48 flex-col gap-2 overflow-y-auto pr-1">
       <button
         type="button"
         onClick={() => onSelect(null)}
