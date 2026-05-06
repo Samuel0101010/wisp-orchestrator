@@ -283,3 +283,37 @@ export function useDailyRunCount() {
     refetchInterval: 60_000,
   });
 }
+
+// ----- templates -----
+
+export interface TeamTemplate {
+  id: string;
+  name: string;
+  description: string;
+  team: Team;
+  suggestedGoals: string[];
+}
+
+export function useTemplates() {
+  return useQuery<TeamTemplate[]>({
+    queryKey: ['team-templates'],
+    queryFn: async () => {
+      const res = await apiFetch<{ templates: TeamTemplate[] }>('/api/team-templates');
+      return res.templates;
+    },
+  });
+}
+
+export function useSaveAsTemplate() {
+  const qc = useQueryClient();
+  return useMutation<{ template: TeamTemplate; path: string }, Error, TeamTemplate>({
+    mutationFn: (template) =>
+      apiFetch<{ template: TeamTemplate; path: string }>('/api/team-templates', {
+        method: 'POST',
+        body: JSON.stringify(template),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['team-templates'] });
+    },
+  });
+}

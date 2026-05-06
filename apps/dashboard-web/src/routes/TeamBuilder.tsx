@@ -3,8 +3,26 @@ import { useNavigate, useParams } from 'react-router-dom';
 import type { AgentSpec, Team } from '@agent-harness/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
-import { useGeneratePlan, useProject, useSaveTeam, useTeam } from '@/api/queries';
+import {
+  useGeneratePlan,
+  useProject,
+  useSaveAsTemplate,
+  useSaveTeam,
+  useTeam,
+} from '@/api/queries';
 import { ApiError } from '@/api/client';
 import { DEFAULT_TEAM } from '@/data/defaultTeam';
 import {
@@ -78,8 +96,13 @@ export function TeamBuilder() {
   const teamQuery = useTeam(projectId);
   const saveTeam = useSaveTeam(projectId);
   const generatePlan = useGeneratePlan(projectId);
+  const saveAsTemplate = useSaveAsTemplate();
 
   const [draft, setDraft] = useState<DraftAgent[]>(() => teamToDraft(DEFAULT_TEAM));
+  const [tplOpen, setTplOpen] = useState(false);
+  const [tplId, setTplId] = useState('');
+  const [tplName, setTplName] = useState('');
+  const [tplDescription, setTplDescription] = useState('');
   const [hydrated, setHydrated] = useState(false);
 
   // When the team query resolves, hydrate the draft once.
@@ -138,6 +161,37 @@ export function TeamBuilder() {
     }
   };
 
+  const handleSaveAsTemplate = async (): Promise<void> => {
+    try {
+      await saveAsTemplate.mutateAsync({
+        id: tplId.trim(),
+        name: tplName.trim(),
+        description: tplDescription.trim(),
+        team: draftToTeam(draft),
+        suggestedGoals: ['Use this template to seed your team configuration.'],
+      });
+      toast({ title: 'Template saved', description: `id=${tplId.trim()}` });
+      setTplOpen(false);
+      setTplId('');
+      setTplName('');
+      setTplDescription('');
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? typeof err.body === 'object' && err.body && 'message' in err.body
+            ? String((err.body as { message: unknown }).message)
+            : err.message
+          : (err as Error).message;
+      toast({ title: 'Template save failed', description: msg, variant: 'destructive' });
+    }
+  };
+
+  const isTplValid =
+    /^[a-z][a-z0-9-]*$/.test(tplId.trim()) &&
+    tplId.trim().length >= 2 &&
+    tplName.trim().length >= 2 &&
+    tplDescription.trim().length >= 20;
+
   const projectName = projectQuery.data?.name ?? 'project';
 
   return (
@@ -182,6 +236,59 @@ export function TeamBuilder() {
             {generatePlan.isPending ? 'Generating…' : 'Generate Plan'}
           </Button>
         )}
+        <Dialog open={tplOpen} onOpenChange={setTplOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" disabled={!valid}>
+              Save as Template
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Save team as template</DialogTitle>
+              <DialogDescription>
+                Stores this team configuration to disk under your data dir. You can pick it from the
+                New Project dialog later.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="tpl-id">id (kebab-case, ≥2 chars)</Label>
+                <Input
+                  id="tpl-id"
+                  value={tplId}
+                  onChange={(e) => setTplId(e.target.value)}
+                  placeholder="my-team"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="tpl-name">Name (≥2 chars)</Label>
+                <Input
+                  id="tpl-name"
+                  value={tplName}
+                  onChange={(e) => setTplName(e.target.value)}
+                  placeholder="My Team"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="tpl-desc">Description (≥20 chars)</Label>
+                <Textarea
+                  id="tpl-desc"
+                  rows={3}
+                  value={tplDescription}
+                  onChange={(e) => setTplDescription(e.target.value)}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={handleSaveAsTemplate}
+                disabled={!isTplValid || saveAsTemplate.isPending}
+              >
+                {saveAsTemplate.isPending ? 'Saving…' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Button onClick={handleSave} disabled={!valid || saveTeam.isPending}>
           {saveTeam.isPending ? 'Saving…' : 'Save Team'}
         </Button>

@@ -580,3 +580,105 @@ convention so future team configurations don't repeat the mistake.
 | `.delete` not in defaults (footgun guard) | ✅ confirmed via dump |
 | Compliance test sees memory-mcp src | ✅ globs include `packages/memory-mcp/src` |
 | Naming convention `mcp__<server>__<tool>` | ✅ now documented + reflected in defaults |
+
+---
+
+# v1.0 Stage 4 — team templates (2026-05-05)
+
+Branch `v1.0/m4-templates`, commits `7c77c7e..367ae32`.
+
+## v1.0 ts-library template real-Claude run (M4 acceptance)
+
+**Goal:** the first `suggestedGoals` entry from the built-in `ts-library`
+template, picked verbatim: "Add a hello(name) function returning
+'Hello <name>!' to src/hello.ts plus a Vitest test covering happy
+path and empty-string edge case."
+
+Four-role team from `ts-library` template (architect=opus,
+core-dev=sonnet, test-dev=sonnet, qa=sonnet). Fresh repo `harness-r5`,
+port 4507, run id `0dc0678b-4390-4e3f-801c-8604c35d71a9`.
+
+**Outcome:** ✅ `status=completed, outcome=success`. Result branch
+`harness/0dc0678b-4390-4e3f-801c-8604c35d71a9/result` carries:
+`architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
+`src/hello.ts`, `src/hello.test.ts`. Every task done first-attempt.
+
+`src/hello.ts`:
+```ts
+export function hello(name: string): string {
+  return `Hello ${name}!`;
+}
+```
+
+`src/hello.test.ts`:
+```ts
+describe('hello', () => {
+  it('returns a greeting for a given name', () => {
+    expect(hello('World')).toBe('Hello World!');
+  });
+  it('returns "Hello !" for an empty string', () => {
+    expect(hello('')).toBe('Hello !');
+  });
+});
+```
+
+| Task | Role | Model | Tokens in | Tokens out | Turns | Duration |
+|---|---|---|---|---|---|---|
+| arch-1 | architect | opus | 38 294 | 3 687 | 15 | 104.6 s |
+| core-1 | core-dev | sonnet | 28 424 | 8 032 | 28 | 190.7 s |
+| test-1 | test-dev | sonnet | 8 767 | 3 131 | 18 | 91.4 s |
+| qa-1 | qa | sonnet | 17 589 | 6 040 | 26 | 209.6 s |
+| **total** | — | — | **93 074** | **20 890** | **87** | **596.2 s wall** |
+
+The mixed-model run is the first time we've seen opus + 3×sonnet
+together in the harness. Cost roughly an order of magnitude more than
+all-haiku runs but produced cleaner first-attempt verify passes
+across every gate.
+
+## Memory MCP usage from the template's system prompts
+
+The ts-library template's architect prompt mentions three keys:
+`arch.contract`, `arch.spec`, `arch.tests`. The memory DB after the
+run contains exactly those keys:
+
+```
+keys: 3
+  arch.contract (size=171)  export function hello(name: string): string — returns `Hello ${name}!`...
+  arch.spec     (size=280)  Small TypeScript library exposing a pure function...
+  arch.tests    (size=155)  Vitest cases in src/hello.test.ts: (1) happy path — expect(hello('World'))...
+```
+
+Direct evidence the template's role prompts steered the architect
+into the memory MCP correctly, and downstream roles read from it
+(otherwise the test cases wouldn't match arch.tests verbatim).
+
+## Diagnosis surfaced before success
+
+**First boot of r5 server failed at startup** with:
+```
+Error: ENOENT: no such file or directory, open
+'C:\...\dashboard-server\dist\templates\ts-library.json'
+```
+
+Root cause: Task 4.1's loader uses `readFileSync(import.meta.url + 'ts-library.json')`. The 4 template JSONs live in
+`src/templates/` but `tsc -b` only emits `.js`/`.d.ts` — non-TS
+files don't get copied to `dist/`. Vitest tests pass because they
+load from `src/` directly; the production server runs from `dist/`
+and crashes.
+
+**Foundation patch** (commit `367ae32`):
+`apps/dashboard-server/scripts/copy-templates.mjs` ferries every
+`*.json` in `src/templates/` to `dist/templates/`. The `build`
+script now runs `tsc -b && node scripts/copy-templates.mjs`. Server
+boots cleanly thereafter.
+
+## M4 capabilities validated
+
+| M4 capability | Status |
+|---|---|
+| Built-in templates load + validate at boot | ✅ four built-ins, kebab-case unique ids |
+| `GET /api/team-templates` merges built-ins + on-disk | ✅ 4 templates returned, sorted |
+| Template's team round-trips through PUT /team | ✅ 4 roles persisted as configured |
+| Template's `suggestedGoals[0]` works as a real-Claude goal | ✅ planner + walker produced exact match |
+| Memory MCP roles in template invoke `arch.*` keys correctly | ✅ 3 memory keys present after run |
+| New `copy-templates.mjs` build step | ✅ 4 JSON files in dist after build |
