@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { HarnessEvent, Plan, Team, TaskNode } from '@agent-harness/schemas';
 import {
   Walker,
@@ -176,6 +176,7 @@ function makePlan(nodes: TaskNode[]): Plan {
 
 interface Harness {
   walker: Walker;
+  deps: WalkerDeps;
   emitted: HarnessEvent[];
   spawns: Array<{ taskId: string; opts: RunClaudeOpts }>;
   worktree: ReturnType<typeof makeWorktreeFake>;
@@ -230,6 +231,7 @@ function makeHarness(args: {
 
   return {
     walker,
+    deps,
     emitted,
     spawns,
     worktree: wt,
@@ -1074,6 +1076,108 @@ describe('composeTaskPrompt — retry-error truncation', () => {
     const out = composeTaskPrompt(plan, plan.nodes[0]!, small);
     expect(out).toContain(small);
     expect(out).not.toContain('omitted');
+  });
+});
+
+describe('Walker — QA-driven replan (M5)', () => {
+  it('calls replanOnQAFailure when a qa-role task fails terminally', async () => {
+    const callbackCalls: Array<{ failedTaskId: string; qaError: string }> = [];
+    const replanFn = vi.fn(
+      async (args: { failedTaskId: string; qaError: string; failedPlan: Plan }) => {
+        callbackCalls.push({ failedTaskId: args.failedTaskId, qaError: args.qaError });
+        return null; // returning null falls through to terminal failure
+      },
+    );
+    const h = makeHarness({
+      defaultVerify: async () => ({
+        pass: false,
+        output: 'qa says: pi precision insufficient',
+        failures: [
+          {
+            kind: 'custom' as const,
+            cmd: 'verify',
+            exitCode: 1,
+            tail: 'pi precision insufficient',
+          },
+        ],
+      }),
+    });
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    const plan = makePlan([node('q', 'qa')]);
+    const outcome = await h.walker.start({
+      runId: 'r-replan',
+      plan,
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(outcome).toBe('failure');
+    expect(replanFn).toHaveBeenCalledTimes(1);
+    expect(callbackCalls[0]!.failedTaskId).toBe('q');
+    expect(callbackCalls[0]!.qaError).toContain('pi precision insufficient');
+  });
+
+  it('swaps in the new plan when replanOnQAFailure returns one', async () => {
+    let verifyCallNum = 0;
+    const h = makeHarness({
+      defaultVerify: async () => {
+        verifyCallNum += 1;
+        // First plan's qa-task fails (2 times to exhaust retries); second plan's qa-task passes.
+        return verifyCallNum <= 2
+          ? {
+              pass: false,
+              output: 'fail attempt ' + verifyCallNum,
+              failures: [{ kind: 'custom' as const, cmd: 'v', exitCode: 1, tail: 'x' }],
+            }
+          : { pass: true, output: 'ok', failures: [] };
+      },
+    });
+    const newPlan: Plan = makePlan([node('q2', 'qa')]);
+    const replanFn = vi.fn(async () => ({ newPlan, newPlanId: 'plan-2' }));
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    const plan = makePlan([node('q', 'qa')]);
+    const outcome = await h.walker.start({
+      runId: 'r-replan-ok',
+      plan,
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(outcome).toBe('success');
+    expect(replanFn).toHaveBeenCalledTimes(1);
+    const triggered = h.emitted.find((e) => e.type === 'qa.replan-triggered');
+    expect(triggered).toBeDefined();
+  });
+
+  it('caps at 1 replan per run; second qa fail emits qa.replan-exhausted', async () => {
+    const h = makeHarness({
+      defaultVerify: async () => ({
+        pass: false,
+        output: 'always fails',
+        failures: [{ kind: 'custom' as const, cmd: 'v', exitCode: 1, tail: 'x' }],
+      }),
+    });
+    const newPlan: Plan = makePlan([node('q2', 'qa')]);
+    const replanFn = vi.fn(async () => ({ newPlan, newPlanId: 'plan-2' }));
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    const plan = makePlan([node('q', 'qa')]);
+    await h.walker.start({ runId: 'r-cap', plan, repoPath: '/fake', budget: DEFAULT_BUDGET });
+    expect(replanFn).toHaveBeenCalledTimes(1);
+    const exhausted = h.emitted.find((e) => e.type === 'qa.replan-exhausted');
+    expect(exhausted).toBeDefined();
+  });
+
+  it('does not call replan callback for non-qa role failures', async () => {
+    const replanFn = vi.fn(async () => null);
+    const h = makeHarness({
+      defaultVerify: async () => ({
+        pass: false,
+        output: 'dev fail',
+        failures: [{ kind: 'custom' as const, cmd: 'v', exitCode: 1, tail: 'x' }],
+      }),
+    });
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    const plan = makePlan([node('d', 'developer')]);
+    await h.walker.start({ runId: 'r-non-qa', plan, repoPath: '/fake', budget: DEFAULT_BUDGET });
+    expect(replanFn).not.toHaveBeenCalled();
   });
 });
 

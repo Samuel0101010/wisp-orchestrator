@@ -106,6 +106,17 @@ export interface WalkerDeps {
    * explicitly calls resume() — matching ToS-conservative posture.
    */
   autoResumeRateLimit: boolean;
+  /**
+   * Optional QA-replan hook. Called when a `qa`-role task fails terminally.
+   * Returns a fresh Plan to swap in (under the same runId), or null to fall
+   * through to the normal failure path. Capped at 1 invocation per run by
+   * the walker.
+   */
+  replanOnQAFailure?: (args: {
+    failedPlan: Plan;
+    failedTaskId: string;
+    qaError: string;
+  }) => Promise<{ newPlan: Plan; newPlanId: string } | null>;
 }
 
 /**
@@ -218,6 +229,9 @@ export class Walker {
   private consecutiveFailures = 0;
   private static readonly CONSECUTIVE_FAILURE_THRESHOLD = 3;
 
+  private replanCount = 0;
+  private static readonly MAX_REPLANS_PER_RUN = 1;
+
   constructor(deps: WalkerDeps) {
     this.deps = deps;
   }
@@ -233,6 +247,7 @@ export class Walker {
     this.repoPath = args.repoPath;
     this.budget = args.budget;
     this.startedAt = this.deps.now();
+    this.replanCount = 0;
 
     // Build seed maps from initialState (E2 — resume after shutdown).
     const seed = args.initialState;
@@ -859,6 +874,88 @@ export class Walker {
         output: verifyResult.output,
       },
     });
+
+    // QA-driven replan (M5/5.3): only on qa-role terminal fails, capped at MAX_REPLANS_PER_RUN.
+    if (node.role === 'qa' && this.deps.replanOnQAFailure && this.runId && this.plan) {
+      const planForReplan = this.plan;
+      if (this.replanCount >= Walker.MAX_REPLANS_PER_RUN) {
+        this.deps.emit({
+          type: 'qa.replan-exhausted',
+          payload: {
+            runId: this.runId,
+            failedTaskId: node.id,
+            reason: 'max replans per run reached',
+          },
+        });
+      } else {
+        this.replanCount += 1;
+        let replanResult: { newPlan: Plan; newPlanId: string } | null = null;
+        try {
+          replanResult = await this.deps.replanOnQAFailure({
+            failedPlan: planForReplan,
+            failedTaskId: node.id,
+            qaError: verifyResult.output,
+          });
+        } catch (err) {
+          // Swallow — fall through to terminal task.failed.
+          replanResult = null;
+          const errMsg = err instanceof Error ? err.message : String(err);
+          this.deps.emit({
+            type: 'qa.replan-exhausted',
+            payload: {
+              runId: this.runId,
+              failedTaskId: node.id,
+              reason: `replan callback threw: ${errMsg}`,
+            },
+          });
+        }
+        if (replanResult) {
+          this.deps.emit({
+            type: 'qa.replan-triggered',
+            payload: {
+              runId: this.runId,
+              failedTaskId: node.id,
+              reason: verifyResult.output.slice(0, 200),
+            },
+          });
+          this.plan = replanResult.newPlan;
+          // Rebuild task runtimes for the new plan, preserving 'done' status for
+          // tasks whose ids carry over (rare but possible).
+          const oldRuntimes = new Map(this.tasks);
+          this.tasks = new Map();
+          for (const newNode of replanResult.newPlan.nodes) {
+            const old = oldRuntimes.get(newNode.id);
+            const carryDone = old?.status === 'done';
+            this.tasks.set(newNode.id, {
+              node: newNode,
+              status: carryDone ? 'done' : 'pending',
+              retries: 0,
+              attempt: 1,
+              worktreePath: carryDone ? old!.worktreePath : null,
+              branchName: carryDone ? old!.branchName : null,
+              sessionId: null,
+              tokensIn: carryDone ? old!.tokensIn : 0,
+              tokensOut: carryDone ? old!.tokensOut : 0,
+              turnsUsed: carryDone ? old!.turnsUsed : 0,
+              startedAt: null,
+              abort: null,
+              done: null,
+              rateLimited: false,
+              lastError: null,
+              lastReportedTokensIn: 0,
+              lastReportedTokensOut: 0,
+              lastReportedTurns: 0,
+            });
+          }
+          // Reset consecutive-failures since we're starting a new plan attempt.
+          this.consecutiveFailures = 0;
+          // Don't emit task.failed — the task is being replaced, not failed.
+          return;
+        }
+      }
+    }
+
+    // Original terminal-fail flow continues from here.
     t.status = 'failed';
     const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
     await this.deps.onTaskState(node.id, { status: 'failed', durationMs: elapsed });
