@@ -11,6 +11,7 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { and, eq } from 'drizzle-orm';
 import {
   checkpoints,
@@ -43,6 +44,13 @@ import {
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
+import { writeMemoryMcpConfig } from './mcp-config.js';
+
+function resolveMemoryMcpEntrypoint(): string {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  // From dist/orchestrator/runtime.js -> ../../../../ is the repo root.
+  return path.resolve(here, '..', '..', '..', '..', 'packages', 'memory-mcp', 'dist', 'server.js');
+}
 
 // Shape of the in-memory ws bus.
 export interface WsBus {
@@ -125,7 +133,21 @@ export class RunRuntime {
    * startRun() and resumeRun() (rebuild path) share the same wiring.
    */
   private makeWalkerDeps(runId: string, planId: string, maxParallel: number): WalkerDeps {
-    const pool = new SubprocessPool({ maxParallel, runner: this.runner });
+    const mcpConfigPath = env.HARNESS_MOCK_CLI
+      ? undefined
+      : (() => {
+          const dataDir = process.env.HARNESS_DATA_DIR ?? '.';
+          return writeMemoryMcpConfig({
+            runId,
+            dataDir,
+            memoryMcpEntrypoint: resolveMemoryMcpEntrypoint(),
+          }).path;
+        })();
+    const pool = new SubprocessPool({
+      maxParallel,
+      runner: this.runner,
+      defaultMcpConfigPath: mcpConfigPath,
+    });
     return {
       pool,
       worktree: { add: addWorktree, remove: removeWorktree },

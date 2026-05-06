@@ -18,6 +18,11 @@ export interface SubprocessPoolOpts {
   maxParallel: number;
   /** Test seam: swap the underlying runner. Default: real `runClaude`. */
   runner?: SubprocessRunner;
+  /**
+   * Default MCP config path injected into every run that doesn't override
+   * mcpConfigPath. Lets the runtime configure the memory-mcp once per run.
+   */
+  defaultMcpConfigPath?: string;
 }
 
 export class SubprocessPool {
@@ -26,6 +31,7 @@ export class SubprocessPool {
   private waiters: Array<() => void> = [];
   private readonly aborters = new Set<AbortController>();
   private readonly runner: SubprocessRunner;
+  private readonly defaultMcpConfigPath: string | undefined;
 
   constructor(opts: SubprocessPoolOpts) {
     if (!Number.isInteger(opts.maxParallel) || opts.maxParallel < 1) {
@@ -33,6 +39,7 @@ export class SubprocessPool {
     }
     this.maxParallel = opts.maxParallel;
     this.runner = opts.runner ?? runClaude;
+    this.defaultMcpConfigPath = opts.defaultMcpConfigPath;
   }
 
   get size(): number {
@@ -60,19 +67,24 @@ export class SubprocessPool {
 
   private async *runIter(opts: RunClaudeOpts): AsyncGenerator<HarnessEvent, void, void> {
     await this.acquire();
+    // Apply default mcpConfigPath when caller didn't set one.
+    const effectiveOpts: RunClaudeOpts =
+      opts.mcpConfigPath || !this.defaultMcpConfigPath
+        ? opts
+        : { ...opts, mcpConfigPath: this.defaultMcpConfigPath };
     const internal = new AbortController();
     this.aborters.add(internal);
     let externalCleanup: (() => void) | null = null;
-    if (opts.signal) {
+    if (effectiveOpts.signal) {
       const onExternalAbort = (): void => internal.abort();
-      if (opts.signal.aborted) internal.abort();
-      else opts.signal.addEventListener('abort', onExternalAbort, { once: true });
+      if (effectiveOpts.signal.aborted) internal.abort();
+      else effectiveOpts.signal.addEventListener('abort', onExternalAbort, { once: true });
       externalCleanup = (): void => {
-        opts.signal?.removeEventListener('abort', onExternalAbort);
+        effectiveOpts.signal?.removeEventListener('abort', onExternalAbort);
       };
     }
     try {
-      for await (const ev of this.runner({ ...opts, signal: internal.signal })) {
+      for await (const ev of this.runner({ ...effectiveOpts, signal: internal.signal })) {
         yield ev;
       }
     } finally {
