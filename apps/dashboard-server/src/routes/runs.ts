@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { desc, eq, gte } from 'drizzle-orm';
+import { and, desc, eq, gte } from 'drizzle-orm';
 import { z } from 'zod';
-import { checkpoints, plans, runs, tasks } from '@agent-harness/schemas';
+import { checkpoints, events as eventsTable, plans, runs, tasks } from '@agent-harness/schemas';
 import { db } from '../db/index.js';
 import { env } from '../env.js';
 import { wrap } from './wrap.js';
@@ -111,6 +111,40 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
           .orderBy(desc(checkpoints.ts))
           .get();
         return { run, tasks: taskRows, lastCheckpoint: lastCheckpoint ?? null };
+      }),
+    );
+
+    app.get(
+      '/api/runs/:runId/events',
+      wrap(async (req, reply) => {
+        const { runId } = z.object({ runId: z.string().min(1) }).parse(req.params);
+        const query = z
+          .object({
+            limit: z.coerce.number().int().min(1).max(2000).optional().default(500),
+            type: z.string().optional(),
+          })
+          .parse(req.query ?? {});
+
+        const run = await db.select().from(runs).where(eq(runs.id, runId)).get();
+        if (!run) {
+          reply.code(404);
+          return { error: 'run not found' };
+        }
+
+        const q = db
+          .select()
+          .from(eventsTable)
+          .where(
+            query.type
+              ? and(eq(eventsTable.runId, runId), eq(eventsTable.type, query.type))
+              : eq(eventsTable.runId, runId),
+          )
+          .orderBy(desc(eventsTable.ts))
+          .limit(query.limit);
+        const rows = await q.all();
+        // Reverse so oldest first (timeline order).
+        rows.reverse();
+        return { events: rows };
       }),
     );
 

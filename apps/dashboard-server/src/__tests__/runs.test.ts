@@ -5,7 +5,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
 import { eq } from 'drizzle-orm';
-import { plans, projects, runs as runsTable } from '@agent-harness/schemas';
+import { events as eventsTable, plans, projects, runs as runsTable } from '@agent-harness/schemas';
 import { healthRoutes } from '../routes/health.js';
 import { projectRoutes } from '../routes/projects.js';
 import { createRunsRouter } from '../routes/runs.js';
@@ -482,5 +482,91 @@ describe('run routes', () => {
       url: `/api/runs/${runId}/replay-checkpoint`,
     });
     expect(res.statusCode).toBe(404);
+  });
+
+  it('GET /api/runs/:runId/events returns 404 for unknown run', async () => {
+    const runtime = makeFakeRuntime();
+    app = await buildAppWithRuntime(runtime);
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/runs/00000000-0000-0000-0000-000000000000/events',
+    });
+    expect(res.statusCode).toBe(404);
+    expect(res.json().error).toBe('run not found');
+  });
+
+  it('GET /api/runs/:runId/events returns empty events array for a run with no events', async () => {
+    const runtime = makeFakeRuntime();
+    app = await buildAppWithRuntime(runtime);
+    const { planId } = await seedLockedPlan();
+    const start = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: { planId },
+    });
+    const { runId } = start.json();
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/runs/${runId}/events`,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toHaveProperty('events');
+    expect(Array.isArray(body.events)).toBe(true);
+    expect(body.events).toHaveLength(0);
+  });
+
+  it('GET /api/runs/:runId/events returns events oldest-first and supports ?type= filter', async () => {
+    const runtime = makeFakeRuntime();
+    app = await buildAppWithRuntime(runtime);
+    const { planId } = await seedLockedPlan();
+    const start = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: { planId },
+    });
+    const { runId } = start.json();
+
+    // Seed two events of different types.
+    const now = new Date();
+    await db
+      .insert(eventsTable)
+      .values({
+        id: randomUUID(),
+        runId,
+        type: 'task.started',
+        payload: { taskId: 't1' },
+        ts: new Date(now.getTime() - 1000),
+      })
+      .run();
+    await db
+      .insert(eventsTable)
+      .values({
+        id: randomUUID(),
+        runId,
+        type: 'task.failed',
+        payload: { taskId: 't1', reason: 'verify failed' },
+        ts: now,
+      })
+      .run();
+
+    // All events, oldest-first.
+    const allRes = await app.inject({ method: 'GET', url: `/api/runs/${runId}/events` });
+    expect(allRes.statusCode).toBe(200);
+    const allBody = allRes.json();
+    expect(allBody.events).toHaveLength(2);
+    expect(allBody.events[0].type).toBe('task.started');
+    expect(allBody.events[1].type).toBe('task.failed');
+
+    // Filtered to task.failed only.
+    const filteredRes = await app.inject({
+      method: 'GET',
+      url: `/api/runs/${runId}/events?type=task.failed`,
+    });
+    expect(filteredRes.statusCode).toBe(200);
+    const filteredBody = filteredRes.json();
+    expect(filteredBody.events).toHaveLength(1);
+    expect(filteredBody.events[0].type).toBe('task.failed');
   });
 });
