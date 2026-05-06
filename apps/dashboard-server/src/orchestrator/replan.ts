@@ -4,6 +4,7 @@ import {
   plans as plansTable,
   projects,
   teams,
+  teamSchema,
   type Plan as PlanShape,
   type Team,
 } from '@agent-harness/schemas';
@@ -68,7 +69,14 @@ export async function replanOnQAFailure(args: ReplanArgs): Promise<ReplanResult 
     .where(eq(teams.projectId, parentRow.projectId))
     .get();
   if (!teamRow) return null;
-  const team = teamRow.rolesJson as unknown as Team;
+  // Validate rather than cast: a malformed rolesJson (schema drift, manual DB
+  // edit) would otherwise blow up inside buildPlannerPrompt's roles.length /
+  // roles.map calls, and the throw would propagate out of the walker callback
+  // marking the whole run as failed with a cryptic stack instead of returning
+  // null cleanly here.
+  const teamParsed = teamSchema.safeParse(teamRow.rolesJson);
+  if (!teamParsed.success) return null;
+  const team: Team = teamParsed.data;
 
   // Compose the extended goal — preserve the original at the top, append QA's context.
   const originalGoal = projectRow.goal;

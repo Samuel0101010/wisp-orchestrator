@@ -13,9 +13,13 @@ export interface ToolEntry<TInput, TOutput> {
   handle: (store: MemoryStore, args: TInput) => TOutput;
 }
 
+// Per-value cap. memory_set is for short specs / handoff notes between roles,
+// not for shipping multi-MB blobs. Without a cap a runaway agent could exhaust
+// the MCP response-frame buffer and inflate the per-run SQLite file unboundedly.
+const VALUE_MAX_BYTES = 64 * 1024;
 const setSchema = z.object({
   key: z.string().min(1, 'key must not be empty'),
-  value: z.string(),
+  value: z.string().max(VALUE_MAX_BYTES, `value exceeds ${VALUE_MAX_BYTES}-byte limit`),
 });
 type SetInput = z.infer<typeof setSchema>;
 

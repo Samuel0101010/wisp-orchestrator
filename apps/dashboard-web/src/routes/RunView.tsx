@@ -752,6 +752,31 @@ export function RunView() {
     );
   }
 
+  if (runQuery.isError) {
+    const message =
+      runQuery.error instanceof Error ? runQuery.error.message : String(runQuery.error);
+    return (
+      <Card data-testid="run-error">
+        <CardHeader>
+          <CardTitle>Could not load run</CardTitle>
+          <CardDescription>
+            The dashboard server returned an error while fetching this run. The run may still be
+            running on the backend — try retrying.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">{message}</pre>
+          <div className="flex gap-2">
+            <Button onClick={() => void runQuery.refetch()}>Retry</Button>
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              ← Back
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!runQuery.data) {
     return (
       <Card data-testid="run-not-found">

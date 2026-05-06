@@ -112,6 +112,15 @@ const RUN_STATUS_MAP: Record<NonNullable<RunState['status']>, RunStatus> = {
 
 export class RunRuntime {
   readonly walkers: Map<string, ResidentRun> = new Map();
+  // Plan ids currently being launched into a run. Held only between the
+  // `plans.status === 'locked'` check and the `runs` insert so that two
+  // concurrent POST /api/runs for the same planId can't both pass the
+  // status read and produce two walkers writing to the same git worktree.
+  private readonly launchingPlans: Set<string> = new Set();
+  // Run ids currently in cold-path resume. Hot-path resumes (resident walker)
+  // are already idempotent inside Walker.resume(); the cold-path rebuilds a
+  // walker from DB state and must not race with itself.
+  private readonly resumingRuns: Set<string> = new Set();
   private readonly db: BetterSQLite3Database;
   private readonly ws: WsBus;
   private readonly snapshotsDir: string;
@@ -224,6 +233,13 @@ export class RunRuntime {
     | { ok: true; runId: string }
     | { ok: false; status: 404 | 409 | 400 | 503; error: string; details?: unknown }
   > {
+    if (this.launchingPlans.has(args.planId)) {
+      return {
+        ok: false,
+        status: 409,
+        error: 'run already starting for this plan',
+      };
+    }
     const planRow = await this.db.select().from(plans).where(eq(plans.id, args.planId)).get();
     if (!planRow) return { ok: false, status: 404, error: 'plan not found' };
     if (planRow.status !== 'locked') {
@@ -258,51 +274,63 @@ export class RunRuntime {
       }
     }
 
+    // Acquire the launch guard once all validation/early-return checks have
+    // passed. From here on every code path must release it before the method
+    // returns, including thrown errors.
+    this.launchingPlans.add(args.planId);
     const runId = randomUUID();
     const startedAt = new Date();
     const budgetMinutes = args.budgetMinutes ?? DEFAULT_BUDGET_MIN;
     const budgetTurns = args.budgetTurns ?? DEFAULT_BUDGET_TURNS;
     const maxParallel = args.maxParallel ?? DEFAULT_MAX_PARALLEL;
-
-    await this.db
-      .insert(runs)
-      .values({
-        id: runId,
-        planId: args.planId,
-        status: 'running',
-        startedAt,
-        budgetMinutes,
-        budgetTurns,
-        maxParallel,
-      })
-      .run();
-
-    // Seed tasks.
-    for (const node of plan.nodes) {
+    let walker: Walker;
+    let repoPath: string;
+    try {
       await this.db
-        .insert(tasks)
+        .insert(runs)
         .values({
-          id: node.id,
+          id: runId,
           planId: args.planId,
-          role: node.role as TaskRole,
-          title: node.id,
-          deps: node.deps,
-          status: 'pending',
+          status: 'running',
+          startedAt,
+          budgetMinutes,
+          budgetTurns,
+          maxParallel,
         })
-        .onConflictDoNothing()
         .run();
-    }
 
-    const walkerDeps = this.makeWalkerDeps(runId, args.planId, maxParallel);
-    const walker = this.buildWalker({ walkerDeps, runId });
-    this.registerResidentWalker(runId, walker);
+      // Seed tasks.
+      for (const node of plan.nodes) {
+        await this.db
+          .insert(tasks)
+          .values({
+            id: node.id,
+            planId: args.planId,
+            role: node.role as TaskRole,
+            title: node.id,
+            deps: node.deps,
+            status: 'pending',
+          })
+          .onConflictDoNothing()
+          .run();
+      }
+
+      const walkerDeps = this.makeWalkerDeps(runId, args.planId, maxParallel);
+      walker = this.buildWalker({ walkerDeps, runId });
+      this.registerResidentWalker(runId, walker);
+      repoPath = await this.resolveRepoPath(args.planId);
+    } finally {
+      // Release whether the launch succeeded or threw — a leaked entry would
+      // block all future startRun calls for this plan until server restart.
+      this.launchingPlans.delete(args.planId);
+    }
 
     // Fire-and-forget the walker. On any error or completion, clean up.
     void walker
       .start({
         runId,
         plan,
-        repoPath: await this.resolveRepoPath(args.planId),
+        repoPath,
         budget: { budgetMinutes, budgetTurns, maxParallel },
       })
       .catch((err: unknown) => {
@@ -364,7 +392,20 @@ export class RunRuntime {
     const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
     if (!run) return { ok: false, status: 404, error: 'run not found' };
 
-    // Hot-path: walker still in memory.
+    // The status check applies to BOTH paths: a resident walker may still exist
+    // briefly after the run reached 'completed'/'failed' (1-second grace timer
+    // before walkers.delete fires). Resuming a finished run would re-emit
+    // ghost events and the walker behavior is undefined.
+    if (run.status !== 'paused' && run.status !== 'running') {
+      return {
+        ok: false,
+        status: 409,
+        error: 'run not paused',
+        details: { currentStatus: run.status },
+      };
+    }
+
+    // Hot-path: walker still in memory and run actively paused.
     const resident = this.walkers.get(runId);
     if (resident) {
       await resident.walker.resume();
@@ -380,10 +421,16 @@ export class RunRuntime {
         details: { currentStatus: run.status },
       };
     }
+    if (this.resumingRuns.has(runId)) {
+      return { ok: false, status: 409, error: 'run already resuming' };
+    }
+    this.resumingRuns.add(runId);
 
-    // Load plan + project.
+    // Load plan + project. Any throw or early-return below MUST release the
+    // resumingRuns guard, otherwise this run is permanently stuck.
     const planRow = await this.db.select().from(plans).where(eq(plans.id, run.planId)).get();
     if (!planRow) {
+      this.resumingRuns.delete(runId);
       return { ok: false, status: 422, error: 'plan missing for resume' };
     }
     const projectRow = await this.db
@@ -392,12 +439,14 @@ export class RunRuntime {
       .where(eq(projects.id, planRow.projectId))
       .get();
     if (!projectRow) {
+      this.resumingRuns.delete(runId);
       return { ok: false, status: 422, error: 'project missing for resume' };
     }
     let plan: Plan;
     try {
       plan = parsePlan(planRow.dagJson);
     } catch (err) {
+      this.resumingRuns.delete(runId);
       return {
         ok: false,
         status: 422,
@@ -413,7 +462,13 @@ export class RunRuntime {
     // stream-json line) is restarted from scratch — its prior partial work in
     // the worktree is preserved on disk but no `--resume <sessionId>` is
     // passed. We log this case so the user sees it in the boot log.
-    const taskRows = await this.db.select().from(tasks).where(eq(tasks.planId, planRow.id)).all();
+    let taskRows: (typeof tasks.$inferSelect)[];
+    try {
+      taskRows = await this.db.select().from(tasks).where(eq(tasks.planId, planRow.id)).all();
+    } catch (err) {
+      this.resumingRuns.delete(runId);
+      throw err;
+    }
     const initialState: InitialWalkerState = {
       completedTaskIds: [],
       failedTaskIds: [],
@@ -444,9 +499,16 @@ export class RunRuntime {
       // Else: plain pending — fresh dispatch.
     }
 
-    const walkerDeps = this.makeWalkerDeps(runId, planRow.id, run.maxParallel);
-    const walker = this.buildWalker({ walkerDeps, runId });
-    this.registerResidentWalker(runId, walker);
+    let walker: Walker;
+    try {
+      const walkerDeps = this.makeWalkerDeps(runId, planRow.id, run.maxParallel);
+      walker = this.buildWalker({ walkerDeps, runId });
+      this.registerResidentWalker(runId, walker);
+    } catch (err) {
+      this.resumingRuns.delete(runId);
+      throw err;
+    }
+    this.resumingRuns.delete(runId);
 
     // Mark run running again before kicking off the walker.
     await this.db
@@ -568,8 +630,13 @@ export class RunRuntime {
           payload: event.payload as unknown,
         })
         .run();
-    } catch {
-      // best-effort
+    } catch (err) {
+      // Failures here mean the events table can't accept the row (constraint
+      // violation, disk full, schema drift). Surface them to the server log so
+      // a divergence between in-memory walker state and persisted events is
+      // visible during postmortem instead of looking like a healthy run.
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[runtime] persistEvent failed for run ${runId} (${event.type}): ${message}`);
     }
   }
 
@@ -591,8 +658,11 @@ export class RunRuntime {
         .set(update)
         .where(and(eq(tasks.planId, planId), eq(tasks.id, taskId)))
         .run();
-    } catch {
-      // ignore
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[runtime] persistTaskPatch failed for plan ${planId} task ${taskId}: ${message}`,
+      );
     }
   }
 
@@ -610,8 +680,12 @@ export class RunRuntime {
     if (Object.keys(update).length === 0) return;
     try {
       await this.db.update(runs).set(update).where(eq(runs.id, runId)).run();
-    } catch {
-      // ignore
+    } catch (err) {
+      // A swallowed failure here is the worst kind: the run row can be stuck
+      // at status='running' forever even after the walker terminates, which
+      // looks like an infinite hang in the UI. Log so it's diagnosable.
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[runtime] persistRunPatch failed for run ${runId}: ${message}`);
     }
   }
 

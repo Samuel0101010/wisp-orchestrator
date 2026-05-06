@@ -1052,7 +1052,13 @@ export class Walker {
       if (successors.has(n.id)) continue; // not a leaf
       const t = this.tasks.get(n.id);
       if (t?.status === 'done') {
-        leafBranches.push(`${this.branchPrefix()}/${n.id}`);
+        // Use the stored branchName, not branchPrefix() — after a replan,
+        // carried-over 'done' tasks have branches under the OLD prefix
+        // (`harness/<runId>/...`) while branchPrefix() now returns the v<N>
+        // prefix. Recomputing would silently drop those carried-over commits
+        // from the result merge.
+        const branch = t.branchName ?? `${this.branchPrefix()}/${n.id}`;
+        leafBranches.push(branch);
       }
     }
     if (leafBranches.length === 0) return;
@@ -1135,6 +1141,7 @@ export function composeTaskPrompt(plan: Plan, node: TaskNode, retryError: string
   parts.push(`# Task: ${node.id} (${node.role})\n${node.prompt}`);
   const sc = node.successCriteria;
   const scLines: string[] = [];
+  if (sc.preflight) scLines.push(`- preflight: \`${sc.preflight}\` (runs once before the rest)`);
   if (sc.build) scLines.push(`- build: \`${sc.build}\``);
   if (sc.test) scLines.push(`- test: \`${sc.test}\``);
   if (sc.lint) scLines.push(`- lint: \`${sc.lint}\``);

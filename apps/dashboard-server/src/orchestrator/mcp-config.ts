@@ -22,7 +22,14 @@ export interface WriteMemoryMcpConfigResult {
  *
  * Both paths are returned so callers can inspect the DB after a run.
  */
+const RUN_ID_RE = /^[a-zA-Z0-9_-]+$/;
+
 export function writeMemoryMcpConfig(args: WriteMemoryMcpConfigArgs): WriteMemoryMcpConfigResult {
+  // Defense in depth: runIds are randomUUID() in production. Reject anything
+  // that could escape cfgDir/memDir via path separators or '..'.
+  if (!RUN_ID_RE.test(args.runId)) {
+    throw new Error(`writeMemoryMcpConfig: invalid runId ${JSON.stringify(args.runId)}`);
+  }
   const cfgDir = path.join(args.dataDir, 'mcp-configs');
   mkdirSync(cfgDir, { recursive: true });
   const memDir = path.join(args.dataDir, 'memory');

@@ -283,7 +283,14 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
   };
 
   const canSave = !readOnly && dirty && valid;
-  const canLockAndRun = planRow.status === 'draft' && !dirty && valid;
+  // Both 'draft' and 'locked' permit a run start: draft → lock-then-run,
+  // locked → run-only (handleLockAndRun already conditionally skips the lock
+  // step for locked plans). Without 'locked' here, a partial failure where
+  // lock succeeded but startRun threw would strand the plan with no UI path
+  // back to start a run.
+  const canLockAndRun =
+    (planRow.status === 'draft' || planRow.status === 'locked') && !dirty && valid;
+  const lockAndRunLabel = planRow.status === 'locked' ? 'Run' : 'Lock & Run';
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
@@ -318,7 +325,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
             {patchPlan.isPending ? 'Saving…' : 'Save'}
           </Button>
           <Button
-            disabled={!canLockAndRun || lockPlan.isPending}
+            disabled={!canLockAndRun || lockPlan.isPending || startRun.isPending}
             onClick={() => {
               if (!hasAckedFirstRun()) {
                 setFirstRunOpen(true);
@@ -327,7 +334,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
               }
             }}
           >
-            {lockPlan.isPending ? 'Locking…' : 'Lock & Run'}
+            {lockPlan.isPending ? 'Locking…' : startRun.isPending ? 'Starting…' : lockAndRunLabel}
           </Button>
         </div>
       </div>
