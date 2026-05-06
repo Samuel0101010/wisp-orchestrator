@@ -49,10 +49,47 @@ export async function addWorktree(opts: AddWorktreeOpts): Promise<string> {
   const wtPath = computeWorktreePath(opts.repoPath, opts.branchName);
   await mkdir(dirname(wtPath), { recursive: true });
   const base = opts.baseBranch ?? 'HEAD';
-  await execa('git', ['worktree', 'add', '-b', opts.branchName, wtPath, base], {
-    cwd: opts.repoPath,
-  });
-  return wtPath;
+  try {
+    await execa('git', ['worktree', 'add', '-b', opts.branchName, wtPath, base], {
+      cwd: opts.repoPath,
+    });
+    return wtPath;
+  } catch (err) {
+    // M5/Stage 1 follow-up: the branch + worktree may already exist from a
+    // prior aborted attempt (typically: rate-limit interrupted a task before
+    // its first auto-commit). Task subprocesses never commit themselves —
+    // autoCommit fires from the walker AFTER a successful verify — so the
+    // existing branch points at the parent's tip with no work on it. Safe
+    // to clobber and retry.
+    const message = err instanceof Error ? err.message : String(err);
+    const looksLikeBranchConflict =
+      /already (exists|used)|missing but already registered|is already checked out/i.test(message);
+    if (!looksLikeBranchConflict) throw err;
+
+    // Best-effort cleanup: any of these may legitimately fail (e.g. the
+    // worktree dir was already gone, the branch was orphaned). Swallow
+    // errors and let the retry surface the real failure if any.
+    try {
+      await execa('git', ['worktree', 'remove', '--force', wtPath], { cwd: opts.repoPath });
+    } catch {
+      /* ignore */
+    }
+    try {
+      await execa('git', ['worktree', 'prune'], { cwd: opts.repoPath });
+    } catch {
+      /* ignore */
+    }
+    try {
+      await execa('git', ['branch', '-D', opts.branchName], { cwd: opts.repoPath });
+    } catch {
+      /* ignore */
+    }
+
+    await execa('git', ['worktree', 'add', '-b', opts.branchName, wtPath, base], {
+      cwd: opts.repoPath,
+    });
+    return wtPath;
+  }
 }
 
 export async function removeWorktree(opts: RemoveWorktreeOpts): Promise<void> {
