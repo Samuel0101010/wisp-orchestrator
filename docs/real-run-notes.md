@@ -472,3 +472,111 @@ time.
   personal-use this is fine; a future task could add a default
   `.gitignore` written by the architect's scaffold so result branches
   stay light.
+
+---
+
+# v1.0 Stage 3 — shared-memory MCP (2026-05-05)
+
+Branch `v1.0/m3-memory-mcp`, commits `c46f5da..07e384c`.
+
+## v1.0 memory roundtrip real-Claude run (M3 acceptance)
+
+**Goal:** "Architect designs a greeting module spec and stores it in
+memory under arch.spec. Developer reads memory.get(arch.spec) and
+implements src/greet.ts with the greet(name) function returning
+Hello <name>!, plus a Vitest test. QA verifies the implementation
+matches the spec by reading memory.get(arch.spec) and running pnpm
+test."
+
+Three-role haiku team — architect / developer / qa, each with
+`mcp__agent-harness-memory__memory_*` tools whitelisted. Fresh repo
+`harness-r4`, port 4506, run id `a43046ff-5c06-41b7-9049-c9eec66274e4`
+on plan `3179097f` (second attempt; first failed silently because the
+default team's allowedTools used the wrong tool-name format — fixed
+in commit `07e384c` below).
+
+**Outcome:** ✅ `status=completed, outcome=success`. Result branch
+`harness/a43046ff-5c06-41b7-9049-c9eec66274e4/result` carries:
+`architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
+`src/greet.ts`, `src/greet.test.ts`.
+
+`src/greet.ts`:
+```ts
+export function greet(name: string): string {
+  return `Hello ${name}!`;
+}
+```
+
+| Task | Role | Status | Tokens in | Tokens out | Turns | Duration |
+|---|---|---|---|---|---|---|
+| arch-spec | architect | done (1st) | 5 699 | 1 911 | 4 | 20.2 s |
+| dev-greet | developer | done (1st) | 9 538 | 4 005 | 16 | 46.8 s |
+| qa-verify | qa | done (1st) | 8 463 | 2 679 | 16 | 76.4 s |
+| **total** | — | — | **23 700** | **8 595** | **36** | **143.4 s wall** |
+
+## Memory DB contents (the real validation)
+
+`<HARNESS_DATA_DIR>/memory/<runId>.db` after the run:
+
+```
+keys: 2
+
+--- arch.spec (size=764, updated=2026-05-06T00:02:28.454Z) ---
+{"modulePath":"src/greet.ts","functionSignature":"export function greet(name: string): string","behavior":"Returns the literal string 'Hello <name>!' where <name> is replaced with the input parameter. No trimming or normalization.","examples":[{"input":"Alice","output":"Hello Alice!"},{"input":"Bob","output":"Hello Bob!"},{"input":"","output":"Hello !"},{"input":"José","output":"Hello José!"},{"input":"  ","output":"Hello   !"}],"edgeCases":[{"case":"Empty string","behavior":"Returns 'Hello !' — literal substitution"},...]}
+
+--- dev.notes (size=234, updated=2026-05-06T00:04:20.663Z) ---
+Created package.json, src/greet.ts with greet(name) returning `Hello ${name}!`, and src/greet.test.ts with 5 tests covering happy path and all edge cases (empty string, whitespace, unicode); added tsconfig.json for TypeScript support.
+```
+
+**The acid test:** the developer's `src/greet.test.ts` contains
+EXACTLY 5 tests — one per `examples` entry the architect put in
+memory. Direct evidence the developer read the spec from memory and
+turned each example into a test case. This is end-to-end proof that:
+
+1. The MCP config JSON is generated and accepted by claude
+2. The agent-harness-memory stdio server boots in the subprocess
+3. memory.set persists to the per-run SQLite DB
+4. memory.get retrieves across tasks (different worktrees, different
+   subprocesses) within the same run
+5. Multiple keys can coexist (arch.spec + dev.notes)
+
+## Diagnosis surfaced before success
+
+**First r4 run** (run `3033b9fa`, before fix): all three tasks
+completed successfully and verify gates passed, BUT the kv table was
+EMPTY after the run. No memory.set/get calls had reached the server
+even though the agents claimed in their text output to have used
+them.
+
+Root cause: claude exposes MCP tools as `mcp__<server>__<tool>` with
+dots in the tool name converted to underscores. So our `memory.set`
+tool registered in `tools.ts` becomes
+`mcp__agent-harness-memory__memory_set` from the agent's
+perspective. The default team allowedTools whitelisted `memory.set`
+verbatim, which silently matched nothing. Agents saw the tools in
+their toolbox listing but were blocked from calling them.
+
+A 30-second probe with `claude -p --mcp-config ... --allowedTools
+mcp__agent-harness-memory__memory_set` confirmed the convention:
+calling the fully-qualified name returns `{ok: true}` and the kv
+row appears.
+
+**Foundation patch** (commit `07e384c`): updated default team
+allowedTools in `apps/dashboard-web/src/data/defaultTeam.ts` across
+all three roles to the fully-qualified MCP tool names. Updated
+prompt sentences and `docs/memory-mcp.md` to document the naming
+convention so future team configurations don't repeat the mistake.
+
+## M3 capabilities validated
+
+| M3 capability | Status |
+|---|---|
+| `MemoryStore` SQLite WAL backend | ✅ DB file present, 2 rows after run |
+| `tools.ts` registry exposes 4 tools | ✅ MCP server lists 4 tools (probe + run) |
+| `server.ts` stdio MCP server | ✅ spawned per task by claude `--mcp-config` |
+| `writeMemoryMcpConfig` per-run JSON | ✅ correct structure on disk |
+| `--mcp-config + --strict-mcp-config` flag | ✅ subprocess pool injects via `defaultMcpConfigPath` |
+| Cross-task memory roundtrip | ✅ arch.spec written by architect, read by developer |
+| `.delete` not in defaults (footgun guard) | ✅ confirmed via dump |
+| Compliance test sees memory-mcp src | ✅ globs include `packages/memory-mcp/src` |
+| Naming convention `mcp__<server>__<tool>` | ✅ now documented + reflected in defaults |
