@@ -65,6 +65,70 @@ describe('worktree manager', () => {
       await rm(root, { recursive: true, force: true });
     }
   }, 30_000);
+
+  it('addWorktree recovers when the branch + worktree already exist from an aborted prior attempt', async () => {
+    // Reproduces the v1.0.2 r7 finding: after a rate-limit interruption, the
+    // walker re-dispatches a task whose branch + worktree dir still exist.
+    // The first attempt's `git worktree add -b` would fail with exit 255 +
+    // "already exists" before the fix. Now addWorktree detects the conflict,
+    // force-removes the dirty state, and retries.
+    if (!gitAvailable) return;
+    const root = await mkdtemp(join(tmpdir(), 'harness-wt-recover-'));
+    const repo = join(root, 'repo');
+    try {
+      await execa('git', ['init', '-b', 'main', repo]);
+      await execa('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+      await execa('git', ['-C', repo, 'config', 'user.name', 'Test']);
+      await writeFile(join(repo, 'README.md'), '# test\n');
+      await execa('git', ['-C', repo, 'add', '.']);
+      await execa('git', ['-C', repo, 'commit', '-m', 'init']);
+
+      // Simulate the prior aborted attempt: addWorktree creates the branch +
+      // worktree, but no further commits land (the subprocess was interrupted
+      // before autoCommit could fire).
+      const firstPath = await addWorktree({
+        repoPath: repo,
+        branchName: 'harness/run-x/test-1',
+      });
+      expect(existsSync(firstPath)).toBe(true);
+
+      // The walker now re-dispatches the same task. addWorktree must NOT
+      // throw — it must clean up the prior dirty state and re-create.
+      const secondPath = await addWorktree({
+        repoPath: repo,
+        branchName: 'harness/run-x/test-1',
+      });
+      expect(secondPath).toBe(firstPath);
+      expect(existsSync(secondPath)).toBe(true);
+
+      // Sanity: the recovered worktree is on the expected branch.
+      const list = await listWorktrees({ repoPath: repo });
+      const found = list.find((e) => e.path.replace(/\\/g, '/') === secondPath.replace(/\\/g, '/'));
+      expect(found?.branch).toBe('harness/run-x/test-1');
+
+      await removeWorktree({ repoPath: repo, worktreePath: secondPath, force: true });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('addWorktree rethrows non-conflict errors instead of recovering', async () => {
+    if (!gitAvailable) return;
+    const root = await mkdtemp(join(tmpdir(), 'harness-wt-rethrow-'));
+    const repo = join(root, 'repo');
+    try {
+      // Repo without an initial commit — `git worktree add -b ... HEAD` fails
+      // with a different error (no HEAD to base off). Our recovery branch must
+      // NOT fire on this; it should rethrow so the caller sees the real
+      // problem.
+      await execa('git', ['init', '-b', 'main', repo]);
+      await expect(
+        addWorktree({ repoPath: repo, branchName: 'harness/no-head/x' }),
+      ).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 30_000);
 });
 
 describe('mergeBranchesInWorktree', () => {
