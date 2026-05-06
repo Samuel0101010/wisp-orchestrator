@@ -47,10 +47,22 @@ value (useful for guarding against bloat).
 ## Defaults & permissions
 
 The default team in `apps/dashboard-web/src/data/defaultTeam.ts` allows all
-three roles to call `memory.set`, `memory.get`, and `memory.list`.
-`memory.delete` is **intentionally** absent from defaults — letting agents
-silently drop shared state by default is too footgun-y. Add it manually to a
-role's `allowedTools` if you want it.
+three roles to call:
+
+- `mcp__agent-harness-memory__memory_set`
+- `mcp__agent-harness-memory__memory_get`
+- `mcp__agent-harness-memory__memory_list`
+
+`mcp__agent-harness-memory__memory_delete` is **intentionally** absent from
+defaults — letting agents silently drop shared state by default is too
+footgun-y. Add it manually to a role's `allowedTools` if you want it.
+
+**Naming convention.** Claude exposes MCP tools as
+`mcp__<server-name>__<tool-name>`, replacing dots in the tool name with
+underscores. So our `memory.set` tool (registered in `tools.ts`) becomes
+`mcp__agent-harness-memory__memory_set` from the agent's perspective. The
+server name `agent-harness-memory` comes from `server.ts`'s
+`new Server({ name: 'agent-harness-memory', ... })`.
 
 ## Environment variables
 
