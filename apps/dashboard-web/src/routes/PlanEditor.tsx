@@ -34,6 +34,7 @@ import {
   useStartRun,
 } from '@/api/queries';
 import { PlanCanvas } from '@/components/plan/PlanCanvas';
+import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 
 const ROLES: Role[] = ['architect', 'developer', 'qa'];
 
@@ -292,6 +293,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           <Badge variant={statusBadgeVariant(planRow.status)} data-testid="plan-status">
             {planRow.status}
           </Badge>
+          <PlanVersionBadge planId={planRow.id} />
           {dirty && (
             <span className="text-xs text-muted-foreground" data-testid="dirty-indicator">
               unsaved changes
