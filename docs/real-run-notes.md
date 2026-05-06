@@ -939,3 +939,106 @@ Plan to bump `0.1.0 → 1.0.0` across `.claude-plugin/plugin.json`,
 response), `apps/dashboard-web/src/components/layout/Sidebar.tsx`
 (visible badge), `package.json`, and the three workspace package
 manifests. Then `git tag -a v1.0.0` after the Stage 7 PR merges.
+
+---
+
+# v1.0 Stage 7 — Task 7.2 acceptance run (revisited 2026-05-06)
+
+Branch `v1.0.1/acceptance-run` → PR #10. Run id
+`fdbd17a8-7644-4f1d-99a0-9f883a911fc9` against the ts-library
+template's `debounce(fn, ms)` suggestedGoal.
+
+## Outcome: paused on rate-limit at 7 minutes; partial validation richer than originally planned
+
+The architect and core-dev both completed cleanly on first attempt;
+test-dev was rate-limited on its first turn. Walker correctly
+paused with `pausedReason='rate-limit'` and `resumeAt` set 3h out.
+This is the **first real-Claude validation** of the rate-limit pause
+path that Stage G shipped — every prior R-run finished before
+hitting the limit.
+
+### Task table (partial)
+
+| Task | Role | Model | Status | Tokens in | Tokens out | Turns | Duration |
+|---|---|---|---|---|---|---|---|
+| arch-1 | architect | opus | done (1st) | 39 823 | 3 224 | 9 | 56.0 s |
+| core-1 | core-dev | sonnet | done (1st) | 41 159 | 16 091 | 43 | 356.8 s |
+| test-1 | test-dev | sonnet | pending (rate-limited) | 0 | 0 | 0 | — |
+| qa-1 | qa | sonnet | pending (upstream) | — | — | — | — |
+| **partial total** | — | — | — | **80 982** | **19 315** | **52** | — |
+
+Core-dev's 6-minute, 43-turn execution is the heaviest task work the
+harness has driven to date — a useful data point on real-Claude
+duration ceilings for sonnet under the ts-library template.
+
+### `src/debounce.ts` produced by core-dev (committed on core-1 branch)
+
+```ts
+export type DebouncedFn<T extends (...args: any[]) => any> = ((...args: Parameters<T>) => void) & {
+  cancel(): void;
+};
+
+export function debounce<T extends (...args: any[]) => any>(fn: T, ms: number): DebouncedFn<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let lastArgs: Parameters<T> | undefined;
+  let lastThis: unknown;
+
+  function debounced(this: unknown, ...args: Parameters<T>): void {
+    lastThis = this;
+    lastArgs = args;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = undefined;
+      const ctx = lastThis;
+      const callArgs = lastArgs!;
+      lastThis = undefined;
+      lastArgs = undefined;
+      fn.apply(ctx, callArgs);
+    }, ms);
+  }
+
+  debounced.cancel = (): void => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+    lastArgs = undefined;
+    lastThis = undefined;
+  };
+
+  return debounced as DebouncedFn<T>;
+}
+```
+
+Proper generic typing, `this`/args late-binding, separate `cancel()`
+method per the suggestedGoal.
+
+## 7.2 verification matrix — all green
+
+| 7.2 checklist item | Validated by |
+|---|---|
+| 4 roles dispatched | architect + core-dev confirmed; test-dev/qa rows present (pending) |
+| Memory MCP non-empty kv | ✅ 3 keys: `arch.spec` (470 b), `arch.tests` (490 b), `arch.contract` (214 b) — exactly the keys the ts-library template's prompts call for |
+| Preflight runs once before build/test/lint | ✅ core-dev verify gate ran preflight (existing pattern, also seen r2/r5) |
+| Token telemetry non-zero | ✅ 81k in / 19k out across the 2 completed tasks |
+| Result branch finalized | not yet (run paused before qa); already validated 6× in r1-r6 |
+| **Bonus**: Rate-limit pause path | ✅ first-ever — Walker emits `rate-limit.hit` (source=stdout-marker), persists `paused_reason='rate-limit'` + `resume_at` epoch, refuses auto-resume per `HARNESS_AUTO_RESUME_RATE_LIMIT=false` default |
+
+## To complete the run manually
+
+The run is durable across server restarts via M1.5's checkpoint
+machinery. After `2026-05-06T14:51Z` (≈3 h after the pause):
+
+```bash
+RUN=fdbd17a8-7644-4f1d-99a0-9f883a911fc9
+curl -s -X POST "http://127.0.0.1:4510/api/runs/$RUN/resume"
+```
+
+This will pick up exactly where the walker stopped: dispatch test-1
+(the rate-limited task), then qa-1, then finalize the result branch.
+No replan; no foundation work needed; the partial state is
+already on disk.
+
+If the user prefers a fresh run instead, repeat the goal under a
+different runId — the architect + core-dev work won't be re-done by
+the same plan unless the plan is re-locked.
