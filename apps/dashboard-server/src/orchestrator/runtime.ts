@@ -182,6 +182,13 @@ export class RunRuntime {
       mergeBranches: mergeBranchesInWorktree,
       interTaskPacingMs: env.HARNESS_INTER_TASK_PACING_MS,
       autoResumeRateLimit: env.HARNESS_AUTO_RESUME_RATE_LIMIT,
+      // M5 — parentPlanId is captured here as the original plan id from
+      // startRun/resumeRun. Walker's MAX_REPLANS_PER_RUN = 1, so the chain
+      // depth is at most root → child; both children of distinct runs
+      // pointing at the same root is the expected shape (verified in r6).
+      // If the cap is ever raised above 1, this closure will need to track
+      // the live "current plan id" for proper grandchild → child → root
+      // linkage instead of grandchild → root.
       replanOnQAFailure: env.HARNESS_MOCK_CLI
         ? undefined
         : async ({ failedPlan, failedTaskId, qaError }) => {
