@@ -106,6 +106,17 @@ export interface WalkerDeps {
    * explicitly calls resume() — matching ToS-conservative posture.
    */
   autoResumeRateLimit: boolean;
+  /**
+   * Optional QA-replan hook. Called when a `qa`-role task fails terminally.
+   * Returns a fresh Plan to swap in (under the same runId), or null to fall
+   * through to the normal failure path. Capped at 1 invocation per run by
+   * the walker.
+   */
+  replanOnQAFailure?: (args: {
+    failedPlan: Plan;
+    failedTaskId: string;
+    qaError: string;
+  }) => Promise<{ newPlan: Plan; newPlanId: string } | null>;
 }
 
 /**
@@ -218,6 +229,9 @@ export class Walker {
   private consecutiveFailures = 0;
   private static readonly CONSECUTIVE_FAILURE_THRESHOLD = 3;
 
+  private replanCount = 0;
+  private static readonly MAX_REPLANS_PER_RUN = 1;
+
   constructor(deps: WalkerDeps) {
     this.deps = deps;
   }
@@ -233,6 +247,7 @@ export class Walker {
     this.repoPath = args.repoPath;
     this.budget = args.budget;
     this.startedAt = this.deps.now();
+    this.replanCount = 0;
 
     // Build seed maps from initialState (E2 — resume after shutdown).
     const seed = args.initialState;
@@ -578,9 +593,21 @@ export class Walker {
     return n;
   }
 
+  /**
+   * Branch prefix for the current plan version. v1 (the original plan) has no
+   * prefix to preserve backward compatibility with existing tests + the result-
+   * branch finalize path. Replans get an explicit v2/v3/... prefix so their
+   * tasks don't collide with the predecessor plan's branches.
+   */
+  private branchPrefix(): string {
+    if (this.replanCount === 0) return `harness/${this.runId}`;
+    const version = this.replanCount + 1;
+    return `harness/${this.runId}/v${version}`;
+  }
+
   private computeParentBranch(node: TaskNode): string | undefined {
     if (node.deps.length === 0) return undefined;
-    return `harness/${this.runId}/${node.deps[0]}`;
+    return `${this.branchPrefix()}/${node.deps[0]}`;
   }
 
   private async runTask(t: TaskRuntime): Promise<void> {
@@ -590,7 +617,7 @@ export class Walker {
     const repoPath = this.repoPath;
     const node = t.node;
 
-    const branchName = `harness/${runId}/${node.id}`;
+    const branchName = `${this.branchPrefix()}/${node.id}`;
     t.branchName = branchName;
     t.rateLimited = false;
     const abort = new AbortController();
@@ -643,7 +670,7 @@ export class Walker {
     }
 
     if (createdWorktreeNow && node.deps.length > 1) {
-      const otherDepBranches = node.deps.slice(1).map((d) => `harness/${this.runId}/${d}`);
+      const otherDepBranches = node.deps.slice(1).map((d) => `${this.branchPrefix()}/${d}`);
       const mergeResult = await this.deps.mergeBranches(worktreePath, otherDepBranches);
       if (!mergeResult.ok) {
         t.status = 'failed';
@@ -859,6 +886,88 @@ export class Walker {
         output: verifyResult.output,
       },
     });
+
+    // QA-driven replan (M5/5.3): only on qa-role terminal fails, capped at MAX_REPLANS_PER_RUN.
+    if (node.role === 'qa' && this.deps.replanOnQAFailure && this.runId && this.plan) {
+      const planForReplan = this.plan;
+      if (this.replanCount >= Walker.MAX_REPLANS_PER_RUN) {
+        this.deps.emit({
+          type: 'qa.replan-exhausted',
+          payload: {
+            runId: this.runId,
+            failedTaskId: node.id,
+            reason: 'max replans per run reached',
+          },
+        });
+      } else {
+        this.replanCount += 1;
+        let replanResult: { newPlan: Plan; newPlanId: string } | null = null;
+        try {
+          replanResult = await this.deps.replanOnQAFailure({
+            failedPlan: planForReplan,
+            failedTaskId: node.id,
+            qaError: verifyResult.output,
+          });
+        } catch (err) {
+          // Swallow — fall through to terminal task.failed.
+          replanResult = null;
+          const errMsg = err instanceof Error ? err.message : String(err);
+          this.deps.emit({
+            type: 'qa.replan-exhausted',
+            payload: {
+              runId: this.runId,
+              failedTaskId: node.id,
+              reason: `replan callback threw: ${errMsg}`,
+            },
+          });
+        }
+        if (replanResult) {
+          this.deps.emit({
+            type: 'qa.replan-triggered',
+            payload: {
+              runId: this.runId,
+              failedTaskId: node.id,
+              reason: verifyResult.output.slice(0, 200),
+            },
+          });
+          this.plan = replanResult.newPlan;
+          // Rebuild task runtimes for the new plan, preserving 'done' status for
+          // tasks whose ids carry over (rare but possible).
+          const oldRuntimes = new Map(this.tasks);
+          this.tasks = new Map();
+          for (const newNode of replanResult.newPlan.nodes) {
+            const old = oldRuntimes.get(newNode.id);
+            const carryDone = old?.status === 'done';
+            this.tasks.set(newNode.id, {
+              node: newNode,
+              status: carryDone ? 'done' : 'pending',
+              retries: 0,
+              attempt: 1,
+              worktreePath: carryDone ? old!.worktreePath : null,
+              branchName: carryDone ? old!.branchName : null,
+              sessionId: null,
+              tokensIn: carryDone ? old!.tokensIn : 0,
+              tokensOut: carryDone ? old!.tokensOut : 0,
+              turnsUsed: carryDone ? old!.turnsUsed : 0,
+              startedAt: null,
+              abort: null,
+              done: null,
+              rateLimited: false,
+              lastError: null,
+              lastReportedTokensIn: 0,
+              lastReportedTokensOut: 0,
+              lastReportedTurns: 0,
+            });
+          }
+          // Reset consecutive-failures since we're starting a new plan attempt.
+          this.consecutiveFailures = 0;
+          // Don't emit task.failed — the task is being replaced, not failed.
+          return;
+        }
+      }
+    }
+
+    // Original terminal-fail flow continues from here.
     t.status = 'failed';
     const elapsed = this.deps.now() - (t.startedAt ?? this.deps.now());
     await this.deps.onTaskState(node.id, { status: 'failed', durationMs: elapsed });
@@ -943,7 +1052,7 @@ export class Walker {
       if (successors.has(n.id)) continue; // not a leaf
       const t = this.tasks.get(n.id);
       if (t?.status === 'done') {
-        leafBranches.push(`harness/${runId}/${n.id}`);
+        leafBranches.push(`${this.branchPrefix()}/${n.id}`);
       }
     }
     if (leafBranches.length === 0) return;

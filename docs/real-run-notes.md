@@ -682,3 +682,152 @@ boots cleanly thereafter.
 | Template's `suggestedGoals[0]` works as a real-Claude goal | ✅ planner + walker produced exact match |
 | Memory MCP roles in template invoke `arch.*` keys correctly | ✅ 3 memory keys present after run |
 | New `copy-templates.mjs` build step | ✅ 4 JSON files in dist after build |
+
+---
+
+# v1.0 Stage 5 — QA-driven replan (2026-05-06)
+
+Branch `v1.0/m5-qa-replan`, commits `84eb1a0..6d79d48`.
+
+## v1.0 QA-replan real-Claude run (M5 acceptance)
+
+**Goal (provoked):** "Implement circumference(r: number): number returning
+2 * pi * r in src/circumference.ts. Architect mandates the literal value
+3.14 for pi (a simple constant). Add a Vitest test that asserts
+circumference(1) is approximately 2 * Math.PI to 5 decimal places (so
+3.14 will FAIL the test)."
+
+Three-role haiku team designed to FORCE a replan: architect prompts dev
+to use literal `3.14`, QA verify gate uses `toBeCloseTo(2 * Math.PI, 5)`
+which fails at the 3rd decimal. Fresh repo `harness-r6`, port 4508,
+final successful run id `575f8b18-9fbf-473f-a691-d519d618389e` on plan
+`40fe7483` (which spawned child plan `f1ba0f58` via replan).
+
+**Outcome:** ✅ `status=completed, outcome=success`. Result branch
+carries `src/circumference.ts` using `Math.PI` (the replan's correct
+implementation, not the original `3.14`).
+
+```ts
+export function circumference(r: number): number {
+  return 2 * Math.PI * r;
+}
+```
+
+## Branch namespace witness
+
+The repo after the run shows clean v1 / v2 separation:
+
+```
+harness/575f8b18.../architect-spec      (v1 — failed plan's architect)
+harness/575f8b18.../developer-impl      (v1 — failed plan's dev)
+harness/575f8b18.../qa-verify           (v1 — failed plan's qa)
+harness/575f8b18.../v2/arch-spec        (v2 — replan's architect)
+harness/575f8b18.../v2/dev-impl         (v2 — replan's dev)
+harness/575f8b18.../v2/qa-verify        (v2 — replan's qa)
+harness/575f8b18.../result              (final — merge of v2 leaves)
+```
+
+The v2 prefix came from the foundation patch in commit `6d79d48` (see
+diagnosis below).
+
+## Plans table chain
+
+3 plans exist for the project: 1 root + 2 children (both pointing at
+the root, one per run attempt):
+
+```
+id=40fe7483  parent=null      status=locked  (root, run by both attempts)
+id=b67c06ea  parent=40fe7483  status=locked  (replan from failed attempt 1)
+id=f1ba0f58  parent=40fe7483  status=locked  (replan from successful attempt 2)
+```
+
+`GET /api/plans/f1ba0f58/chain` returns:
+```json
+{
+  "chain": [
+    { "id": "f1ba0f58…", "parentPlanId": "40fe7483…", "status": "locked", "createdAt": null },
+    { "id": "40fe7483…", "parentPlanId": null,        "status": "locked", "createdAt": null }
+  ]
+}
+```
+…which is what `PlanVersionBadge` reads to render "v2 (replanned)".
+
+## Event timeline (abridged)
+
+```
+run.started
+task.started        architect-spec   (v1)
+task.completed      architect-spec
+task.started        developer-impl   (v1)
+task.completed      developer-impl
+task.started        qa-verify        (v1)
+harness.verify-failed qa-verify (attempt 1, pi precision insufficient)
+task.started        qa-verify        (v1, retry)
+harness.verify-failed qa-verify (attempt 2, terminal)
+qa.replan-triggered failedTaskId=qa-verify reason="[test] pnpm test ... exit=1"
+task.started        arch-spec        (v2)
+harness.verify-failed arch-spec      (v2 retry)
+task.completed      arch-spec        (v2)
+task.started        dev-impl         (v2)
+task.completed      dev-impl         (v2)
+task.started        qa-verify        (v2)
+task.completed      qa-verify        (v2)
+run.completed       success
+```
+
+## Diagnosis surfaced before success
+
+**First r6 run** (`deb44f05`, before fix): qa-verify failed terminally
+as designed; `qa.replan-triggered` fired; the new plan was created and
+swapped into the walker. But its very first task failed:
+
+```
+task.failed task=qa-verify
+  err=worktree add failed: Command failed with exit code 255:
+      git worktree add -b harness/<runId>/architect-spec ...
+```
+
+Root cause: the walker's `branchPrefix` was hardcoded to
+`harness/<runId>` regardless of replan attempt. The new plan's
+`architect-spec` task tried to claim a branch name that the FAILED
+plan's `architect-spec` already owned.
+
+**Foundation patch** (commit `6d79d48`): walker now namespaces
+branches by replan attempt. v1 (the original plan) keeps the
+unprefixed `harness/<runId>/<taskId>` form to preserve all existing
+tests + the result-branch finalize logic. v2 (after first replan)
+becomes `harness/<runId>/v2/<taskId>`, v3 would be `v3/`, etc. The
+result branch (`harness/<runId>/result`) stays unprefixed since it's
+always the final merge target. The leaf-branch list used by finalize
+honors the current prefix so the result correctly merges the v2 work.
+
+## M5 capabilities validated
+
+| M5 capability | Status |
+|---|---|
+| `parent_plan_id` column accepts FK self-ref | ✅ 3 plans, 2 children link to root |
+| Drizzle migration 0003 applies | ✅ smoke + live |
+| `generatePlan` callable from runtime layer (not just route) | ✅ `replan.ts` invoked it directly |
+| Walker `replanOnQAFailure` callback fires on terminal qa fail | ✅ event emitted, plan swapped |
+| `qa.replan-triggered` event with reason | ✅ visible in event timeline |
+| 1-replan-per-run cap | ✅ enforced (the second attempt would emit `qa.replan-exhausted`) |
+| Server `replanOnQAFailure` helper composes goal + persists with parent | ✅ child plan b67c06ea / f1ba0f58 |
+| `GET /api/plans/:id/chain` returns ancestor chain newest-first | ✅ 2-entry response above |
+| `PlanVersionBadge` shows v<N> (replanned) for chain length > 1 | ✅ verified in unit tests; live UI renders correctly |
+| New: branch namespace v1/v2 prevents replan collision | ✅ git branch list confirms separation |
+
+## Open lesson (minor)
+
+The `tasks` SQLite table only carries one row per task id. When the
+v2 plan reuses a task id (e.g. `qa-verify`), the v2 success status
+overwrites the v1 failure status in the row. The events table has the
+full audit trail (both `harness.verify-failed` events + the
+`qa.replan-triggered` event are persisted), but task-level token
+totals for the v2 work are not recorded. Future enhancement (out of
+M5 scope): add a `(plan_id, task_id)` composite key to `tasks` so each
+plan version's task work is tracked independently. The events table
+remains authoritative.
+
+**Total cost rough estimate:** two attempts on r6 ≈ 50k tokens in,
+10k out, 50 turns total across 6 task subprocesses ≈ ~$1-2 in
+subscription quota.

@@ -317,3 +317,27 @@ export function useSaveAsTemplate() {
     },
   });
 }
+
+export interface PlanChainEntry {
+  id: string;
+  parentPlanId: string | null;
+  status: string;
+  createdAt: number | null;
+}
+
+export function usePlanVersionChain(planId: string | undefined) {
+  return useQuery<PlanChainEntry[]>({
+    queryKey: ['plan-chain', planId ?? null],
+    enabled: Boolean(planId),
+    queryFn: async () => {
+      if (!planId) return [];
+      try {
+        const res = await apiFetch<{ chain: PlanChainEntry[] }>(`/api/plans/${planId}/chain`);
+        return res.chain;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
+      }
+    },
+  });
+}

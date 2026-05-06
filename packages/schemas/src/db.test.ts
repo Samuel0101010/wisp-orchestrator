@@ -11,6 +11,7 @@ import {
   runPausedReasonValues,
   type Project,
   type NewProject,
+  type Plan,
   type Task,
   type Run,
   type HarnessEventRow,
@@ -66,5 +67,27 @@ describe('drizzle table definitions', () => {
     void _t;
     void _r;
     void _e;
+  });
+
+  it('Plan type allows parentPlanId (nullable)', () => {
+    const p: Plan = {
+      id: 'p1',
+      projectId: 'proj-1',
+      dagJson: { goal: 'g', team: { roles: [] }, nodes: [], edges: [] },
+      status: 'draft',
+      parentPlanId: null,
+    };
+    expect(p.parentPlanId).toBeNull();
+  });
+
+  it('Plan type accepts parentPlanId set to another plan id', () => {
+    const p: Plan = {
+      id: 'child',
+      projectId: 'proj-1',
+      dagJson: { goal: 'g', team: { roles: [] }, nodes: [], edges: [] },
+      status: 'draft',
+      parentPlanId: 'parent',
+    };
+    expect(p.parentPlanId).toBe('parent');
   });
 });

@@ -50,6 +50,9 @@ export const plans = sqliteTable('plans', {
     .references(() => projects.id, { onDelete: 'cascade' }),
   dagJson: text('dag_json', { mode: 'json' }).$type<unknown>().notNull(),
   status: text('status', { enum: planStatusValues }).notNull(),
+  // Nullable for root plans; set to the predecessor's id when this is a QA-replan child.
+  // FK lives in the SQL migration (self-referential Drizzle .references() has ordering issues).
+  parentPlanId: text('parent_plan_id'),
 });
 export type Plan = typeof plans.$inferSelect;
 export type NewPlan = typeof plans.$inferInsert;
