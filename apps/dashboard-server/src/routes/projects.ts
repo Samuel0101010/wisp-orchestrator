@@ -82,6 +82,9 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
           endedAt: runs.endedAt,
           pausedReason: runs.pausedReason,
           resumeAt: runs.resumeAt,
+          tokensInTotal: runs.tokensInTotal,
+          tokensOutTotal: runs.tokensOutTotal,
+          turnsTotal: runs.turnsTotal,
         })
         .from(runs)
         .orderBy(desc(runs.startedAt))
