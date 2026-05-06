@@ -13,13 +13,10 @@ Show what an Agent Harness run produced. Works on completed runs (success or fai
 
 ## Steps
 
-1. **Resolve the runId to its project + repoPath**:
-   ```bash
-   curl -s "http://127.0.0.1:${HARNESS_PORT:-4400}/api/runs/<runId>"
-   ```
-   The response includes the `run` object with `planId`. Then fetch the plan to get the projectId, then the project to get repoPath. (Or query the events table via /api/runs/<runId>/events if simpler.)
+1. **Resolve the runId to its repoPath**:
 
-   Easier: ask the user for the repoPath up front if you don't already know it, since they probably do.
+   - **If the user already supplied a repoPath** (or you know it from context), skip to step 2.
+   - **Otherwise** ask the user for the repoPath. The user almost always knows it; the API walk (run → plan → project → repoPath) is a 3-hop fallback to use only when they don't.
 
 2. **List branches matching the runId**:
    ```bash

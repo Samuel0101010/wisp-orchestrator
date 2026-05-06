@@ -31,13 +31,14 @@ Take the user from a freeform goal to a running harness execution.
 
 2. **Seed team from template** (only if template != none):
    ```bash
-   # Get the template
-   curl -s http://127.0.0.1:${HARNESS_PORT:-4400}/api/team-templates
-   # Find the chosen template by id, extract .team, PUT it:
+   # Fetch all templates and extract the chosen one's .team JSON inline.
+   TEAM=$(curl -s http://127.0.0.1:${HARNESS_PORT:-4400}/api/team-templates \
+     | jq -c --arg id <template-id> '.templates[] | select(.id==$id) | .team')
    curl -s -X PUT http://127.0.0.1:${HARNESS_PORT:-4400}/api/projects/<projectId>/team \
      -H 'content-type: application/json' \
-     --data-binary @<template-team-file.json>
+     -d "$TEAM"
    ```
+   If `jq` is not available, fetch the templates response into a Python or Node one-liner that prints just `.team` for the chosen id, then pipe that into the PUT body. Do NOT use `--data-binary @<file>` unless you've actually written the file first.
    If template == none: tell the user to open the dashboard and configure the team manually, then exit this skill (you cannot create a default team via API today — the dashboard handles defaults).
 
 3. **Generate plan**:
