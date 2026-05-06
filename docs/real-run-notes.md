@@ -1042,3 +1042,42 @@ already on disk.
 If the user prefers a fresh run instead, repeat the goal under a
 different runId — the architect + core-dev work won't be re-done by
 the same plan unless the plan is re-locked.
+
+---
+
+## Update 2026-05-06T15:00Z — r7 resume + fresh-attempt: TWO new findings
+
+After waiting through the pause window (resumeAt was 14:51 UTC, attempted at 14:58):
+
+### Finding 1 (foundation bug worth fixing): walker resume doesn't handle pre-existing branches from aborted attempts
+
+POST `/api/runs/fdbd17a8-7644-4f1d-99a0-9f883a911fc9/resume` accepted, walker reloaded run state and re-dispatched test-1. Failed within 23s with:
+
+```
+task.failed task=test-1
+  err=worktree add failed: Command failed with exit code 255:
+      git worktree add -b harness/<runId>/test-1 <wt-path> harness/<runId>/core-1
+```
+
+Root cause: when test-1 was first dispatched (before the rate-limit hit), the walker created branch `harness/<runId>/test-1` AND a worktree at the path. The rate-limit interrupted before any commit. On resume, walker re-tried `git worktree add -b` — the `-b` flag REQUIRES the branch be new, but it already existed. Walker's resume path needs to either:
+
+- **(a)** Detect and reuse the existing branch + worktree (cleanest)
+- **(b)** Add `--force` to the worktree-add (clobbers but works)
+- **(c)** Pre-clean any pre-existing branch matching the task's expected name before attempting add
+
+This is genuinely a v1.0.x foundation gap. M1.5's resume (Stage E2) covered the *server-restart* case but assumed clean task state; the *rate-limit-and-resume* case leaves dirty branch/worktree artifacts that resume can't recover from. Worth a small follow-up PR.
+
+### Finding 2 (Anthropic-side, not a harness bug): rate-limit resumeAt windows are per-task, not per-account
+
+After cleaning the stale branches manually (`git worktree prune` + `git branch -D harness/...`) and starting a fresh run on the same plan, run id `aee26adc-681f-47f5-81aa-034796e7cfd6` paused on its very first task (architect-1) within ~30s with a NEW rate-limit hit and `resumeAt=2026-05-06T19:59:55Z` — 5 more hours out.
+
+Interpretation: the original 5h window expired at 14:51 (per Anthropic's per-window quota), but the cumulative subscription usage across r1-r7 + r7-attempt-2 had us bumping a higher-tier rolling-budget limit. Anthropic's rate-limiting is multi-window — per-prompt (5h reset) + daily quota + maybe 24h rolling — and waiting through one window doesn't guarantee fresh quota on all dimensions.
+
+This is exactly the scenario `HARNESS_AUTO_RESUME_RATE_LIMIT=false` (default) is for: don't auto-retry; let the user decide. The harness behaved correctly — paused, persisted state, refused to spin.
+
+### What this means for v1.0 acceptance
+
+- v1.0 SHIP STATUS: unchanged. All 9 PRs (#3-#11) merged. Tag `v1.0.0` on `928b194`. Test count 309+ green.
+- Resume path validates structurally: walker reload + DB state preservation work. Failed at the worktree-add step, which is the foundation gap above.
+- Original r7 work (architect + core-dev's typed `debounce` + 3 memory keys) remains intact on `harness/fdbd17a8-7644-4f1d-99a0-9f883a911fc9/{arch-1,core-1}` branches in `C:\Users\dev\AppData\Local\Temp\harness-r7`. Inspectable any time.
+- Cumulative cost ~$0.30 across both resume attempts (architect + core-dev didn't re-run; only the first turn of architect-1 in attempt 2).
