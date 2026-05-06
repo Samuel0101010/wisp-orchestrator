@@ -226,19 +226,48 @@ See [`packages/schemas/src/db.ts`](../packages/schemas/src/db.ts) for the canoni
 
 Migrations live in `apps/dashboard-server/drizzle/` and run automatically at boot via `runMigrations()`.
 
-## Extension points (M2-M5 hooks)
+## v1.0 layers on top of M1
 
-The following seams exist explicitly to absorb future milestones without rewriting the M1 core:
+The same M1 core (Walker / SubprocessPool / Worktree / Verification) carries every later milestone unchanged. v1.0 added:
 
-- **`Walker.WalkerDeps`** — every side-effect funnels through this interface (pool, worktree, verify, emit, snapshot, setTimeout, now). M2's variable team adds new role types but reuses this seam unchanged.
-- **`AgentSpec` / `Team`** — currently a fixed object with `architect | developer | qa` slots. M2 will widen `teamSchema` to an array and add per-role override fields.
-- **`HarnessEvent` discriminated union** — new event types append cleanly. M3's shared-memory MCP will add `memory.read` / `memory.write` events; the dashboard's event-tail handles unknown types gracefully.
-- **`RunRuntime` planner spawn** — currently calls a single planner agent. M5's QA-replan loop wraps this in a higher-level controller that re-invokes the planner mid-run with QA context.
-- **Plan storage** — `plans.dagJson` is a free-form JSON column. M4's template marketplace inserts pre-baked DAGs without any schema migration.
+### M2 — variable team
+
+`Team` is now `{roles: AgentSpec[]}` (1..8, kebab-case unique role names, model enum opus/sonnet/haiku, systemPrompt 40-4000 chars). The walker resolves the agent for a given task via `team.roles.find(r => r.role === node.role)` and emits a graceful `task.failed` ("role 'X' not in team") if the lookup misses. Planner prompt enumerates the configured roles literally so the LLM can't drift to an unknown role. Drizzle migration `0002_variable_team.sql` rewrites legacy 3-slot rows in place.
+
+### M3 — shared-memory MCP
+
+A separate workspace package `@agent-harness/memory-mcp` ships a stdio MCP server exposing `memory.{set,get,list,delete}` backed by per-run SQLite WAL. The runtime's `writeMemoryMcpConfig` writes a per-run config JSON; `SubprocessPool.defaultMcpConfigPath` injects `--mcp-config + --strict-mcp-config` into every `claude -p` call. Each run has its own `<HARNESS_DATA_DIR>/memory/<runId>.db` — no cross-run sharing, no network. Tools are exposed to agents as `mcp__agent-harness-memory__memory_*` (claude converts `.` to `_` in MCP tool names).
+
+### M4 — team templates
+
+`apps/dashboard-server/src/templates/` carries four built-in templates (`ts-library`, `python-backend`, `refactor-squad`, `data-pipeline`). `GET /api/team-templates` merges them with on-disk user templates from `<HARNESS_DATA_DIR>/templates/<id>.json`. The web UI's `TemplatePicker` (in the New Project dialog) lets users pick + the goal pre-fills from the template's `suggestedGoals[0]`. `apps/dashboard-server/scripts/copy-templates.mjs` ferries the JSONs into `dist/` on build (tsc doesn't copy non-TS files).
+
+### M5 — QA-driven replan
+
+A new `parent_plan_id` column on `plans` (Drizzle migration 0003) links replanned plans back to the failed predecessor. When a `qa`-role task fails terminally, the walker invokes a `replanOnQAFailure` callback. The server's `replan.ts` helper composes an extended goal (original + truncated QA error context), calls `generatePlan` (now extracted to `orchestrator/planner-runner.ts` so it can be called outside the HTTP route), and persists the result with `parent_plan_id` set. The walker swaps in the new plan and continues under the same `runId`.
+
+Capped at `MAX_REPLANS_PER_RUN = 1` to prevent infinite loops. Branches namespaced by version: v1 keeps the unprefixed form (`harness/<runId>/<taskId>`), v2+ get `harness/<runId>/v2/<taskId>` to avoid `git worktree add -b` collisions on reused task ids.
+
+Two new events: `qa.replan-triggered` (success swap) and `qa.replan-exhausted` (cap hit). `GET /api/plans/:id/chain` walks the ancestor chain newest-first; the `PlanVersionBadge` web component renders "v2 (replanned)" for chains > 1.
+
+### Stage 1 — foundation hardening (post-M1.5)
+
+Five tightenings + one cross-platform fix that surfaced during real-Claude validation:
+
+- `harness.verify-failed` event with full payload (`failures[*].kind/cmd/exitCode/tail` + `output`) instead of opaque `exit code 1`.
+- `composeTaskPrompt` truncates retry-error context to first 30 + last 60 lines.
+- `successCriteria.preflight` runs once before build/test/lint.
+- `task.usage` parser reads modern `result`-frame.
+- `verification.ts` `defaultExec` injects `CI=true` + `npm_config_os` + `npm_config_arch` so `pnpm install` works against worktree-chained `node_modules` and stale global pnpm config.
+
+### Stage 6 — plugin skills
+
+Four `SKILL.md` files under `skills/`: `harness-new-run`, `-resume`, `-inspect`, `-diagnose`. Each is markdown + YAML frontmatter that Claude Code surfaces via a `/harness-*` slash command. The dashboard becomes optional for the most common workflows. `GET /api/runs/:runId/events?limit=&type=` was added to back the diagnose skill.
 
 ### Known limitations
 
-- **Planner-event audit gap.** Planner runs are ad-hoc — they have no parent `runs` row. Their `HarnessEvent` stream is broadcast on the WS channel `planner:<projectId>` for live UI feedback but is NOT persisted to the `events` table (the FK requires a `runId`). On failure, the structured error is in the HTTP 422/503 response and the server log; there is no DB-side audit trail. M5 may introduce a synthetic "planner run" row to close this gap.
+- **Planner-event audit gap.** Planner runs are ad-hoc — they have no parent `runs` row. Their `HarnessEvent` stream is broadcast on the WS channel `planner:<projectId>` for live UI feedback but is NOT persisted to the `events` table (the FK requires a `runId`). On failure, the structured error is in the HTTP 422/503 response and the server log; there is no DB-side audit trail.
+- **Replan task token totals not tracked per version.** When a v2 plan reuses a task id from v1, the `tasks` row's `tokens_in`/`tokens_out` columns are overwritten by the v2 task's totals. The `events` table preserves the full history. Future enhancement: composite `(plan_id, task_id)` key on `tasks`.
 
 ## Further reading
 

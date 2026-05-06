@@ -1,6 +1,112 @@
 # Changelog
 
-## 0.1.5 - M1.5 Foundation hardening (unreleased)
+## 1.0.0 — Personal-use complete
+
+The plan written 2026-05-05 finished as scoped: M1 vertical slice,
+M1.5 hardening, plus M2-M5 feature work, plus four `/harness-*`
+plugin skills. Six real-Claude validation runs documented under
+`docs/real-run-notes.md` (~$15-25 in subscription quota total).
+
+### Added — M2: variable team
+
+- `Team` is a `{roles: AgentSpec[]}` array (1..8 roles, kebab-case
+  unique names matching `^[a-z][a-z0-9-]*$`, model enum
+  `opus|sonnet|haiku`, systemPrompt 40-4000 chars).
+- Drizzle migration `0002_variable_team.sql` rewrites legacy
+  `{architect,developer,qa}` rows in place (idempotent).
+- Planner `DAG_SCHEMA_BLOCK` describes the new shape; planner prompt
+  enumerates configured role names verbatim with cardinality.
+- Walker resolves agent via `team.roles.find(r => r.role === ...)`;
+  emits `task.failed` with "role 'X' not in team" when the lookup
+  misses (checked before worktree allocation).
+- Server team route validates the new shape; 6 new endpoint tests.
+- Web `TeamBuilder` rewrite: `TeamRoleCard` + `TeamRoleAddButton`
+  components, model dropdown, per-role remove, inline duplicate
+  detection blocks Save.
+
+### Added — M3: shared-memory MCP
+
+- New workspace package `@agent-harness/memory-mcp`: stdio MCP
+  server exposing `memory.{set,get,list,delete}` backed by per-run
+  SQLite WAL.
+- Walker spawns the server per task via `claude -p --mcp-config
+  --strict-mcp-config`. `SubprocessPool.defaultMcpConfigPath`
+  injects the config path so the walker stays oblivious.
+- Per-run config + DB live under `<HARNESS_DATA_DIR>/{mcp-configs,
+  memory}/<runId>.{json,db}`.
+- Default team `allowedTools` include the fully-qualified
+  `mcp__agent-harness-memory__memory_set/get/list` (delete
+  intentionally excluded).
+- `docs/memory-mcp.md` — usage, security note, on-disk layout,
+  inspection guide.
+
+### Added — M4: team templates
+
+- Four built-in templates: `ts-library` (4 roles), `python-backend`
+  (4), `refactor-squad` (3), `data-pipeline` (4). Validated against
+  `templateSchema` at module load.
+- `GET /api/team-templates` returns built-ins + on-disk user
+  templates merged & sorted (on-disk wins on id collision).
+- `POST /api/team-templates` writes to
+  `<HARNESS_DATA_DIR>/templates/<id>.json`.
+- Web `TemplatePicker` in NewProject dialog (max-h-48, scrollable).
+  Goal pre-fills from template's first `suggestedGoal`. "Save as
+  Template" Dialog on TeamBuilder.
+- `apps/dashboard-server/scripts/copy-templates.mjs` ferries
+  template JSONs into `dist/` on build.
+
+### Added — M5: QA-driven replan
+
+- New `parent_plan_id` column on plans (Drizzle migration 0003).
+- Walker `replanOnQAFailure` callback. When a `qa`-role task fails
+  terminally, walker calls server's `replan.ts` helper which
+  composes an extended goal with the QA error context, runs
+  `generatePlan`, persists a child plan with `parent_plan_id`
+  pointing at the failed plan, and returns it for the walker to
+  swap in. Capped at 1 replan per run (`MAX_REPLANS_PER_RUN`).
+- Branches namespaced by `v<N>` after replan: v1 keeps the original
+  `harness/<runId>/<taskId>` form; v2+ get `harness/<runId>/vN/<taskId>`
+  to avoid `git worktree add -b` collisions on reused task ids.
+- Two new events: `qa.replan-triggered`, `qa.replan-exhausted`.
+- `GET /api/plans/:id/chain` walks `parent_plan_id` ancestors
+  newest-first.
+- Web `PlanVersionBadge` renders "v2 (replanned)" for chain >1, with
+  ancestor list in the title attribute. Mounted in PlanEditor +
+  RunView.
+- `generatePlan` extracted from `routes/plans.ts` into
+  `apps/dashboard-server/src/orchestrator/planner-runner.ts` so the
+  runtime can call it without going through HTTP.
+
+### Added — Stage 1: foundation hardening
+
+- New `harness.verify-failed` event with `{taskId, attempt,
+  failures: [{kind, cmd, exitCode, tail}], output}` payload —
+  replaces opaque `exit code 1` with full forensics.
+- `composeTaskPrompt` truncates retry-error context to first 30 +
+  last 60 lines with `[… N omitted …]` marker (was inflating retry
+  prompts to thousands of lines).
+- `successCriteria.preflight` runs once before build/test/lint and
+  short-circuits the rest on failure with `kind: 'preflight'`.
+- `task.usage` parser reads modern `{type:'result', usage:{...},
+  num_turns}` frame (token telemetry was always 0/0 before).
+- `verification.ts` `defaultExec` injects `CI=true` + `npm_config_os`
+  + `npm_config_arch` so pnpm install works correctly across
+  worktree-chained `node_modules` and stale global pnpm config.
+
+### Added — Stage 6: plugin skills
+
+- Four `SKILL.md` files under `skills/`: `harness-new-run`,
+  `harness-resume`, `harness-inspect`, `harness-diagnose`. The
+  dashboard is now optional for the most common workflows.
+- `GET /api/runs/:runId/events?limit=&type=` for the diagnose skill.
+- `.claude-plugin/plugin.json` bumped to register the `skills`
+  directory.
+
+### Changed
+
+- Plugin manifest version bumped to `1.0.0`.
+
+## 0.1.5 — M1.5 Foundation hardening (released as part of M1.5 PR)
 
 ### Fixed
 
