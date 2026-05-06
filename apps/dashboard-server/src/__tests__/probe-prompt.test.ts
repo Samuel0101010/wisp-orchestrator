@@ -1,5 +1,5 @@
 import './setup.js';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { HarnessEvent } from '@agent-harness/schemas';
 import type { RunClaudeOpts } from '@agent-harness/orchestrator';
