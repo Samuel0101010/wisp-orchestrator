@@ -102,6 +102,22 @@ export const harnessEventSchema = z.discriminatedUnion('type', [
       output: z.string(),
     }),
   }),
+  z.object({
+    type: z.literal('qa.replan-triggered'),
+    payload: z.object({
+      runId: z.string(),
+      failedTaskId: z.string(),
+      reason: z.string(),
+    }),
+  }),
+  z.object({
+    type: z.literal('qa.replan-exhausted'),
+    payload: z.object({
+      runId: z.string(),
+      failedTaskId: z.string(),
+      reason: z.string(),
+    }),
+  }),
 ]);
 
 export type HarnessEvent = z.infer<typeof harnessEventSchema>;

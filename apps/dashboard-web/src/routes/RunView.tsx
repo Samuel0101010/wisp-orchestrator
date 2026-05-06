@@ -29,6 +29,7 @@ import {
   type TaskCardModel,
   type TaskColumn,
 } from '@/store/run';
+import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 
 const COLUMN_ORDER: TaskColumn[] = ['pending', 'running', 'verifying', 'done', 'failed'];
 const COLUMN_LABELS: Record<TaskColumn, string> = {
@@ -647,6 +648,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
             {run.status}
             {run.outcome ? ` (${run.outcome})` : ''}
           </Badge>
+          <PlanVersionBadge planId={run.planId} />
           {wsStatus !== 'open' && (
             <Badge
               variant="outline"

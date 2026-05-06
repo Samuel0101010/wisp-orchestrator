@@ -34,6 +34,15 @@ beforeEach(() => {
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (init?.method && init.method !== 'GET') postCalls.push({ url, method: init.method });
+    // Badge chain query: return single-entry chain so badge renders nothing.
+    if (url.endsWith('/chain')) {
+      return new Response(
+        JSON.stringify({
+          chain: [{ id: 'plan-1', parentPlanId: null, status: 'running', createdAt: null }],
+        }),
+        { status: 200 },
+      );
+    }
     return fetchHandler(url, init);
   }) as typeof fetch;
   useRunStore.getState().reset(null);
