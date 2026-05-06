@@ -45,6 +45,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
 import { writeMemoryMcpConfig } from './mcp-config.js';
+import { replanOnQAFailure } from './replan.js';
 
 function resolveMemoryMcpEntrypoint(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -181,6 +182,18 @@ export class RunRuntime {
       mergeBranches: mergeBranchesInWorktree,
       interTaskPacingMs: env.HARNESS_INTER_TASK_PACING_MS,
       autoResumeRateLimit: env.HARNESS_AUTO_RESUME_RATE_LIMIT,
+      replanOnQAFailure: env.HARNESS_MOCK_CLI
+        ? undefined
+        : async ({ failedPlan, failedTaskId, qaError }) => {
+            const result = await replanOnQAFailure({
+              parentPlanId: planId,
+              failedPlan,
+              failedTaskId,
+              qaError,
+              runner: this.runner,
+            });
+            return result;
+          },
     };
   }
 
