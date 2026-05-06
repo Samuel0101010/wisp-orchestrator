@@ -315,10 +315,15 @@ export class RunRuntime {
           .run();
       }
 
+      // Resolve repo path BEFORE registering the resident walker. If
+      // resolveRepoPath throws (project row vanished mid-flight), we don't
+      // want a snapshot setInterval + walkers-map entry leaked behind
+      // because nothing else will clean them up — the void walker.start
+      // chain that owns the .finally cleanup never starts in that case.
+      repoPath = await this.resolveRepoPath(args.planId);
       const walkerDeps = this.makeWalkerDeps(runId, args.planId, maxParallel);
       walker = this.buildWalker({ walkerDeps, runId });
       this.registerResidentWalker(runId, walker);
-      repoPath = await this.resolveRepoPath(args.planId);
     } finally {
       // Release whether the launch succeeded or threw — a leaked entry would
       // block all future startRun calls for this plan until server restart.

@@ -68,7 +68,12 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
 });
 
 // Graceful shutdown — ensure the SQLite handle releases the file lock.
+// Multiple triggers (SIGINT/SIGTERM/stdin-close/stdin-end) can fire in
+// sequence on the same teardown; guard against double-close and double-exit.
+let shuttingDown = false;
 function shutdown(): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
   try {
     store.close();
   } catch {
