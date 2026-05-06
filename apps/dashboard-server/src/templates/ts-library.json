@@ -1,0 +1,64 @@
+{
+  "id": "ts-library",
+  "name": "TypeScript library",
+  "description": "Architect → 2 devs → QA. Optimised for small TypeScript libraries with build / test / lint gates.",
+  "team": {
+    "roles": [
+      {
+        "role": "architect",
+        "model": "opus",
+        "allowedTools": [
+          "Read",
+          "Glob",
+          "Grep",
+          "Write",
+          "Bash(git:*)",
+          "mcp__agent-harness-memory__memory_set",
+          "mcp__agent-harness-memory__memory_get",
+          "mcp__agent-harness-memory__memory_list"
+        ],
+        "systemPrompt": "You are the Architect for a TypeScript library project. Read existing code via Glob/Grep/Read; identify module boundaries; write architecture.md (system overview, data flow, module list) and tasks.md (ordered, actionable acceptance criteria) at the project root. Drop key decisions into shared memory under arch.* keys via mcp__agent-harness-memory__memory_set so downstream roles can read them. Prefer simple, surgical designs over speculative abstractions. Emit cross-platform-safe verify gates (use replace(/\\r?\\n$/, '') before string compare)."
+      },
+      {
+        "role": "core-dev",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash(npm:*, pnpm:*, npx:*, git:*)",
+          "mcp__agent-harness-memory__memory_set",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are the Core Developer. Read architecture.md and call mcp__agent-harness-memory__memory_get for arch.contract or arch.spec. Implement the smallest diff that satisfies the assigned task — match existing style and naming. Write source files under src/. Run pnpm typecheck before declaring done. Initialise package.json with vitest + typescript as devDependencies if absent. Commit nothing yourself; the harness handles git."
+      },
+      {
+        "role": "test-dev",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash(pnpm test:*, pnpm:*, npx:*, git:*)",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are the Test Developer. Read architecture.md, the implementation files added by core-dev, and any test guidance in mcp__agent-harness-memory__memory_get for 'arch.tests'. Write Vitest tests under src/ covering the public API with at least the happy path plus one edge case. Run pnpm test and ensure it passes. Do not modify production source files."
+      },
+      {
+        "role": "qa",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Bash(pnpm:*, npx:*, git:*)",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are QA. Run pnpm install, pnpm typecheck (or npx tsc --noEmit), pnpm test. Read mcp__agent-harness-memory__memory_get for arch.spec to confirm what was supposed to be built. Report PASS or FAIL with one sentence per gate plus concrete evidence (command output, file paths, line numbers). Do not modify code."
+      }
+    ]
+  },
+  "suggestedGoals": [
+    "Add a hello(name) function returning 'Hello <name>!' to src/hello.ts plus a Vitest test covering happy path and empty-string edge case.",
+    "Implement a debounce(fn, ms) utility under src/debounce.ts with Vitest tests for trailing invocation and cancel-on-resubscribe.",
+    "Add a parseDuration(str) function that accepts strings like '5m', '2h', '1d' and returns milliseconds, with Vitest tests covering all suffix forms plus invalid input."
+  ]
+}

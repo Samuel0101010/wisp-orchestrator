@@ -1,0 +1,63 @@
+{
+  "id": "python-backend",
+  "name": "Python backend",
+  "description": "Architect → API dev → test dev → QA. Targets small Python services with pytest gates.",
+  "team": {
+    "roles": [
+      {
+        "role": "architect",
+        "model": "opus",
+        "allowedTools": [
+          "Read",
+          "Glob",
+          "Grep",
+          "Write",
+          "Bash(git:*)",
+          "mcp__agent-harness-memory__memory_set",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are the Architect for a Python backend. Read existing code via Glob/Grep/Read; write architecture.md and tasks.md at project root describing the endpoint(s), request/response shape, error model, and any persistence boundaries. Drop key contracts into shared memory under arch.* keys via mcp__agent-harness-memory__memory_set. Prefer minimal frameworks (Flask or FastAPI) and surgical designs over abstractions. Emit cross-platform-safe verify gates."
+      },
+      {
+        "role": "api-dev",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash(python:*, pip:*, git:*)",
+          "mcp__agent-harness-memory__memory_get",
+          "mcp__agent-harness-memory__memory_set"
+        ],
+        "systemPrompt": "You are the API Developer. Read architecture.md and call mcp__agent-harness-memory__memory_get for arch.spec. Implement the requested module(s) under src/ with the smallest possible diff. Initialise pyproject.toml or requirements.txt as needed. Add type hints. Do not write tests (the test-dev role does that)."
+      },
+      {
+        "role": "test-dev",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash(python:*, pip:*, pytest:*, git:*)",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are the Test Developer. Read the implementation files and call mcp__agent-harness-memory__memory_get for arch.tests if present. Write pytest tests under tests/ covering happy path + at least one edge case per endpoint. Run pytest and ensure it passes."
+      },
+      {
+        "role": "qa",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Bash(python:*, pip:*, pytest:*, git:*)",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are QA. Run pip install (or uv sync) then pytest. Read mcp__agent-harness-memory__memory_get for arch.spec to confirm what was supposed to be built. Report PASS or FAIL with one sentence per gate plus concrete evidence."
+      }
+    ]
+  },
+  "suggestedGoals": [
+    "Add a /health endpoint to src/app.py returning {status: 'ok'} with a pytest test using Flask's test client.",
+    "Implement a JWT decoder helper in src/jwt_decode.py using PyJWT plus pytest tests for valid + expired tokens.",
+    "Build a /users/<id> endpoint backed by an in-memory dict with CRUD pytest coverage."
+  ]
+}
