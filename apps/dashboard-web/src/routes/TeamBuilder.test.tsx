@@ -213,6 +213,39 @@ describe('TeamBuilder', () => {
     expect(saveBtn).toBeDisabled();
   });
 
+  it('reorders roles via the move-up / move-down arrows', async () => {
+    fetchHandler = (url) => {
+      if (url.endsWith('/team')) return new Response('{}', { status: 404 });
+      return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
+    };
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    // Default order: architect (0), developer (1), qa (2). Move developer up.
+    fireEvent.click(screen.getByTestId('move-up-1'));
+    // Now first role-name input should hold 'developer'.
+    const first = screen.getByTestId('role-name-0') as HTMLInputElement;
+    expect(first.value).toBe('developer');
+    // Move first (developer) back down.
+    fireEvent.click(screen.getByTestId('move-down-0'));
+    expect((screen.getByTestId('role-name-0') as HTMLInputElement).value).toBe('architect');
+  });
+
+  it('disables Generate Plan when team is unsaved (dirty/missing)', async () => {
+    fetchHandler = (url) => {
+      if (url.endsWith('/team')) return new Response('{}', { status: 404 });
+      return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
+    };
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    const generate = screen.getByTestId('generate-plan');
+    expect(generate).toBeDisabled();
+    expect(generate.getAttribute('title') ?? '').toMatch(/save the team first/i);
+  });
+
   it('saves a 4-role team with custom role names', async () => {
     let putBody: unknown = null;
     fetchHandler = (url, init) => {

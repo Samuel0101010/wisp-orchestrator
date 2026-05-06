@@ -27,11 +27,17 @@ import { ApiError } from '@/api/client';
 import { DEFAULT_TEAM } from '@/data/defaultTeam';
 import {
   TeamRoleCard,
-  DraftAgent,
+  type DraftAgent,
   SYSTEM_PROMPT_MIN,
+  SYSTEM_PROMPT_MAX,
   isRoleNameValid,
 } from '@/components/TeamRoleCard';
 import { TeamRoleAddButton } from '@/components/TeamRoleAddButton';
+import { ApplyTemplateDialog } from '@/components/ApplyTemplateDialog';
+import { TeamJsonDialog } from '@/components/TeamJsonDialog';
+import { ComposedPromptPreviewDialog } from '@/components/ComposedPromptPreviewDialog';
+import { TestPromptDialog } from '@/components/TestPromptDialog';
+import { CostEstimatePanel } from '@/components/CostEstimatePanel';
 
 const MAX_ROLES = 8;
 
@@ -39,7 +45,7 @@ function specToDraft(spec: AgentSpec): DraftAgent {
   return {
     role: spec.role,
     model: spec.model,
-    allowedToolsText: spec.allowedTools.join(', '),
+    allowedTools: [...spec.allowedTools],
     systemPrompt: spec.systemPrompt,
   };
 }
@@ -48,10 +54,7 @@ function draftToSpec(d: DraftAgent): AgentSpec {
   return {
     role: d.role.trim(),
     model: d.model,
-    allowedTools: d.allowedToolsText
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean),
+    allowedTools: d.allowedTools,
     systemPrompt: d.systemPrompt,
   };
 }
@@ -85,6 +88,23 @@ function isDraftValid(draft: DraftAgent[]): boolean {
     if (seen.has(role)) return false;
     seen.add(role);
     if (d.systemPrompt.length < SYSTEM_PROMPT_MIN) return false;
+    if (d.systemPrompt.length > SYSTEM_PROMPT_MAX) return false;
+  }
+  return true;
+}
+
+function teamsEqual(a: DraftAgent[], b: Team): boolean {
+  if (a.length !== b.roles.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i]!;
+    const y = b.roles[i]!;
+    if (x.role !== y.role) return false;
+    if (x.model !== y.model) return false;
+    if (x.systemPrompt !== y.systemPrompt) return false;
+    if (x.allowedTools.length !== y.allowedTools.length) return false;
+    for (let j = 0; j < x.allowedTools.length; j++) {
+      if (x.allowedTools[j] !== y.allowedTools[j]) return false;
+    }
   }
   return true;
 }
@@ -104,6 +124,7 @@ export function TeamBuilder() {
   const [tplName, setTplName] = useState('');
   const [tplDescription, setTplDescription] = useState('');
   const [hydrated, setHydrated] = useState(false);
+  const [testPromptIndex, setTestPromptIndex] = useState<number | null>(null);
 
   // When the team query resolves, hydrate the draft once.
   useEffect(() => {
@@ -118,6 +139,10 @@ export function TeamBuilder() {
   const teamExists = Boolean(teamQuery.data);
   const dups = useMemo(() => findDuplicates(draft), [draft]);
   const valid = useMemo(() => isDraftValid(draft), [draft]);
+  const dirty = useMemo(
+    () => (teamQuery.data ? !teamsEqual(draft, teamQuery.data) : true),
+    [draft, teamQuery.data],
+  );
 
   if (!projectId) {
     return (
@@ -194,6 +219,34 @@ export function TeamBuilder() {
 
   const projectName = projectQuery.data?.name ?? 'project';
 
+  const moveRole = (from: number, to: number): void => {
+    if (to < 0 || to >= draft.length) return;
+    setDraft((arr) => {
+      const copy = [...arr];
+      const [picked] = copy.splice(from, 1);
+      if (picked) copy.splice(to, 0, picked);
+      return copy;
+    });
+  };
+
+  const applyTemplate = (team: Team): void => {
+    setDraft(teamToDraft(team));
+    toast({ title: 'Template applied', description: `${team.roles.length} role(s) loaded` });
+  };
+
+  const generateTitle =
+    !teamExists && !valid
+      ? 'Configure roles and save the team first'
+      : !teamExists
+        ? 'Save the team first to generate a plan'
+        : dirty
+          ? 'Unsaved changes — save first to generate a plan'
+          : '';
+
+  const canGenerate = teamExists && !dirty && valid;
+
+  const draftTeam = draftToTeam(draft);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -203,6 +256,7 @@ export function TeamBuilder() {
           <span className="font-medium text-foreground">{projectName}</span>.
         </p>
       </div>
+      <CostEstimatePanel team={draftTeam} projectId={projectId} />
       <div className="grid gap-4 lg:grid-cols-3">
         {draft.map((d, i) => (
           <TeamRoleCard
@@ -213,8 +267,13 @@ export function TeamBuilder() {
             onRemove={() =>
               setDraft((arr) => (arr.length > 1 ? arr.filter((_, j) => j !== i) : arr))
             }
+            onMoveUp={() => moveRole(i, i - 1)}
+            onMoveDown={() => moveRole(i, i + 1)}
             canRemove={draft.length > 1}
+            canMoveUp={i > 0}
+            canMoveDown={i < draft.length - 1}
             isDuplicate={d.role.trim() !== '' && dups.has(d.role.trim())}
+            onTestPrompt={() => setTestPromptIndex(i)}
           />
         ))}
       </div>
@@ -222,7 +281,7 @@ export function TeamBuilder() {
         onAdd={() =>
           setDraft((arr) =>
             arr.length < MAX_ROLES
-              ? [...arr, { role: '', model: 'sonnet', allowedToolsText: 'Read', systemPrompt: '' }]
+              ? [...arr, { role: '', model: 'sonnet', allowedTools: ['Read'], systemPrompt: '' }]
               : arr,
           )
         }
@@ -230,12 +289,10 @@ export function TeamBuilder() {
         count={draft.length}
         max={MAX_ROLES}
       />
-      <div className="flex justify-end gap-2">
-        {teamExists && (
-          <Button variant="outline" onClick={handleGenerate} disabled={generatePlan.isPending}>
-            {generatePlan.isPending ? 'Generating…' : 'Generate Plan'}
-          </Button>
-        )}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <ApplyTemplateDialog onApply={applyTemplate} hasContent={dirty} />
+        <ComposedPromptPreviewDialog team={draftTeam} defaultGoal={projectQuery.data?.goal} />
+        <TeamJsonDialog team={draftTeam} />
         <Dialog open={tplOpen} onOpenChange={setTplOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" disabled={!valid}>
@@ -292,7 +349,25 @@ export function TeamBuilder() {
         <Button onClick={handleSave} disabled={!valid || saveTeam.isPending}>
           {saveTeam.isPending ? 'Saving…' : 'Save Team'}
         </Button>
+        <Button
+          variant="default"
+          onClick={handleGenerate}
+          disabled={!canGenerate || generatePlan.isPending}
+          title={generateTitle || undefined}
+          data-testid="generate-plan"
+        >
+          {generatePlan.isPending ? 'Generating…' : 'Generate Plan'}
+        </Button>
       </div>
+      {testPromptIndex != null && draft[testPromptIndex] && (
+        <TestPromptDialog
+          open
+          onOpenChange={(v) => {
+            if (!v) setTestPromptIndex(null);
+          }}
+          draft={draft[testPromptIndex]!}
+        />
+      )}
     </div>
   );
 }

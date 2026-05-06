@@ -260,6 +260,9 @@ export interface ProjectRunRow {
   endedAt: string | Date | null;
   pausedReason: RunPausedReason | null;
   resumeAt: string | Date | null;
+  tokensInTotal?: number;
+  tokensOutTotal?: number;
+  turnsTotal?: number;
 }
 
 export function useProjectRuns(projectId: string | undefined) {
@@ -330,6 +333,33 @@ export interface PlanChainEntry {
   parentPlanId: string | null;
   status: string;
   createdAt: number | null;
+}
+
+// ----- prompt probe -----
+
+export interface ProbePromptInput {
+  systemPrompt: string;
+  sampleGoal: string;
+  model: 'opus' | 'sonnet' | 'haiku';
+  allowedTools: string[];
+}
+
+export interface ProbePromptResult {
+  response: string;
+  elapsedMs: number;
+  tokensIn: number;
+  tokensOut: number;
+  turns: number;
+}
+
+export function useProbePrompt() {
+  return useMutation<ProbePromptResult, Error, ProbePromptInput>({
+    mutationFn: (input) =>
+      apiFetch<ProbePromptResult>('/api/probe-prompt', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+  });
 }
 
 export function usePlanVersionChain(planId: string | undefined) {
