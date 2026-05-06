@@ -11,7 +11,7 @@ const DB_PATH = process.env.HARNESS_MEMORY_DB ?? './harness-memory.db';
 const store = new MemoryStore(DB_PATH);
 
 const server = new Server(
-  { name: 'agent-harness-memory', version: '0.1.0' },
+  { name: 'agent-harness-memory', version: '1.0.0' },
   { capabilities: { tools: {} } },
 );
 

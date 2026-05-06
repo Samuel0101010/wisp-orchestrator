@@ -5,7 +5,7 @@ export const healthRoutes: FastifyPluginAsync = async (app) => {
   app.get('/api/health', async () => ({
     ok: true,
     time: new Date().toISOString(),
-    version: '0.1.0',
+    version: '1.0.0',
     authProbe: authProbeStatus(),
   }));
 };

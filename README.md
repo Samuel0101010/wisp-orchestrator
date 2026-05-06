@@ -6,18 +6,20 @@ Visual team-builder, plan-as-artifact, and live execution graph for autonomous C
 
 The agent ecosystem today fragments across three categories that do not compose: chat UIs that run a single agent at a time; orchestrators that hide the plan as opaque internal state; and notebooks that demand babysitting. Nothing combines an editable team specification, a plan you can inspect and edit before it runs, and a live execution graph that survives across rate-limit windows and machine restarts.
 
-Agent Harness is a local-first orchestrator for Claude Code that delivers exactly that vertical slice. You describe a goal, configure a 3-role team (architect, developer, QA), generate a plan as a directed acyclic graph, optionally edit it, then lock and run. A `Walker` dispatches tasks via `claude -p` subprocesses pinned to per-task git worktrees, parses streamed events, and persists everything to SQLite. The browser dashboard renders the live state: a kanban board, a streaming text tail, a resource-budget meter, and a rate-limit countdown that survives server restarts.
-
-This repository is the M1 milestone — the smallest end-to-end slice that exercises every layer (plugin, orchestrator, dashboard, persistence). It deliberately omits a number of features queued for later milestones, including: a variable-size team builder beyond the fixed 3 roles, a shared-memory MCP for cross-agent context, a team-template marketplace, and a QA-driven replan loop. See the [Roadmap](#roadmap) for the staged buildout.
+Agent Harness is a local-first orchestrator for Claude Code that delivers exactly that vertical slice. You describe a goal, configure a team of 1–8 roles (architect, developers, QA, reviewers — whatever your workflow needs), optionally seed it from a built-in template, generate a plan as a directed acyclic graph, optionally edit it, then lock and run. A `Walker` dispatches tasks via `claude -p` subprocesses pinned to per-task git worktrees, parses streamed events, and persists everything to SQLite. Tasks share state via a per-run memory MCP. When QA fails terminally, the planner is invoked again with the QA error context and the run continues on a corrected plan. The browser dashboard renders the live state: a kanban board, a streaming text tail, a resource-budget meter, a rate-limit countdown that survives server restarts, and a plan-version badge for replanned runs.
 
 ## Status
 
-**M1 — vertical slice (E2E).** The code in this repo runs an end-to-end goal-to-PR loop with one team configuration. Subsequent milestones layer features on top of the same orchestrator core.
+**v1.0 — personal-use complete.** All M1–M5 milestones plus plugin Skills are merged. The harness can drive a full architect → dev → qa cycle against real Claude Max, with variable team sizes, shared memory across tasks, built-in templates, automatic QA-replan, and slash-command workflows that let you run the harness without leaving Claude Code.
 
-- M2 — variable team builder and per-role models.
-- M3 — shared-memory MCP for cross-agent context.
-- M4 — team-template marketplace.
-- M5 — QA-driven replan loop.
+### What's new in v1.0
+
+- **Variable team (M2).** Roles are a `{roles: AgentSpec[]}` array (1..8 roles, kebab-case unique names, model enum opus/sonnet/haiku). Planner, walker, and TeamBuilder UI are all role-list-driven.
+- **Shared-memory MCP (M3).** `@agent-harness/memory-mcp` is a stdio MCP server that exposes `memory.{set,get,list,delete}` to every task subprocess. The architect can drop notes; the developer reads them. Per-run SQLite isolation under `<HARNESS_DATA_DIR>/memory/<runId>.db`. See [docs/memory-mcp.md](docs/memory-mcp.md).
+- **Team templates (M4).** Four built-in templates (`ts-library`, `python-backend`, `refactor-squad`, `data-pipeline`) plus user-saved templates under `<HARNESS_DATA_DIR>/templates/`. Picker in the New Project dialog; "Save as Template" on TeamBuilder.
+- **QA-driven replan (M5).** When QA fails terminally, the walker calls a server helper that composes a new prompt with the QA error context, generates a fresh plan, and continues the run. Capped at 1 replan per run. Audit trail via `parent_plan_id`. Visible in the UI as a "v2 (replanned)" badge.
+- **Plugin Skills.** Four `/harness-*` slash commands so the dashboard is optional: `/harness-new-run` (goal → running execution), `/harness-resume` (paused runs), `/harness-inspect` (result branch + git log), `/harness-diagnose` (event timeline).
+- **Foundation hardening from M1.5/Stage 1.** `harness.verify-failed` events with full payload, retry-prompt size cap, `successCriteria.preflight` (one-time setup before build/test/lint), `task.usage` parser fixed for the modern result-frame, `CI=true` + `npm_config_os/arch` injected into verify subprocesses for cross-platform pnpm install.
 
 ## Requirements
 
@@ -179,10 +181,14 @@ The harness boots the dashboard with `HARNESS_SERVE_WEB=1` + `HARNESS_MOCK_CLI=1
 
 ## Roadmap
 
-- **M2 — variable team builder.** Lift the fixed 3-role team to an arbitrary number of roles with explicit dependency edges between specs. Per-role model overrides, custom tool grants.
-- **M3 — shared-memory MCP.** A small MCP server that sits between subprocesses and shares a structured memory layer (architecture decisions, file ownership, prior verdicts) across agents in the same run.
-- **M4 — team-template marketplace.** Distributable team templates (architect + N developers + QA + reviewer + ...) discoverable via the Claude Code plugin marketplace.
-- **M5 — QA replan loop.** When QA returns FAIL repeatedly, hand the verdicts back to the planner to surgically rewrite the affected slice of the DAG, instead of just retrying the developer node.
+v1.0 is **personal-use complete.** Open work past v1.0 is out of scope for this repo (the plan was always to ship the personal-use slice and stop).
+
+Possible future directions, deliberately not pursued in v1.0:
+
+- Anthropic-marketplace publication (kept private).
+- Multi-tenant deployment (SQLite + per-machine paths assume one user).
+- Direct-API mode beyond the existing `HARNESS_AUTH_MODE=api` stub.
+- `(plan_id, task_id)` composite key in the `tasks` table so each replan version's per-task token totals are recorded independently. Today the events table is the audit source for replanned runs.
 
 ## License
 
@@ -202,7 +208,9 @@ UNLICENSED — proprietary while the API stabilizes. The repository structure is
 ├── hooks/                 # PreCompact + SessionStart hook config
 ├── packages/
 │   ├── orchestrator/      # subprocess + pool + walker + worktree + verification
+│   ├── memory-mcp/        # M3 — stdio MCP server for shared per-run kv store
 │   └── schemas/           # Drizzle DB schema + Zod plan/event/team schemas
+├── skills/                # M6 — /harness-new-run, -resume, -inspect, -diagnose
 ├── scripts/               # dashboard launcher (PowerShell + bash)
 ├── tests/
 │   └── e2e/               # Playwright end-to-end harness
