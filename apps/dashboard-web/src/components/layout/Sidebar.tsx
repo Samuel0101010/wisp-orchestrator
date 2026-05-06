@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Plus, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,25 +23,38 @@ import {
   useGeneratedPlan,
   useProjectRuns,
   useProjects,
+  useTemplates,
 } from '@/api/queries';
-import { ApiError } from '@/api/client';
+import { ApiError, apiFetch } from '@/api/client';
+import { TemplatePicker } from '@/components/TemplatePicker';
 
 export function Sidebar() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [goal, setGoal] = useState('');
   const [repoPath, setRepoPath] = useState('');
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const params = useParams<{ projectId?: string }>();
   const navigate = useNavigate();
   const { data: projects = [], isLoading } = useProjects();
+  const { data: templates = [] } = useTemplates();
   const createProject = useCreateProject();
   const activePlan = useGeneratedPlan(params.projectId);
   const dailyCounts = useDailyRunCount();
+
+  useEffect(() => {
+    if (!templateId) return;
+    const template = templates.find((t) => t.id === templateId);
+    if (template && goal.trim() === '') {
+      setGoal(template.suggestedGoals[0] ?? '');
+    }
+  }, [templateId, templates, goal]);
 
   const reset = (): void => {
     setName('');
     setGoal('');
     setRepoPath('');
+    setTemplateId(null);
   };
 
   const valid = name.trim() && goal.trim() && repoPath.trim();
@@ -54,6 +67,20 @@ export function Sidebar() {
         goal: goal.trim(),
         repoPath: repoPath.trim(),
       });
+      if (templateId) {
+        const template = templates.find((t) => t.id === templateId);
+        if (template) {
+          try {
+            await apiFetch(`/api/projects/${project.id}/team`, {
+              method: 'PUT',
+              body: JSON.stringify(template.team),
+            });
+          } catch (err) {
+            // Non-fatal — the user lands on the team page where they can manually retry.
+            console.warn('template team save failed', err);
+          }
+        }
+      }
       toast({ title: 'Project created', description: project.name });
       setOpen(false);
       reset();
@@ -112,11 +139,20 @@ export function Sidebar() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
+                <Label>Template</Label>
+                <TemplatePicker selectedId={templateId} onSelect={setTemplateId} />
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <Label htmlFor="np-goal">Goal</Label>
                 <Textarea
                   id="np-goal"
                   rows={3}
-                  placeholder="Describe what you want the agents to accomplish."
+                  placeholder={
+                    templateId
+                      ? (templates.find((t) => t.id === templateId)?.suggestedGoals[0] ??
+                        'Describe what you want the agents to accomplish.')
+                      : 'Describe what you want the agents to accomplish.'
+                  }
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                 />

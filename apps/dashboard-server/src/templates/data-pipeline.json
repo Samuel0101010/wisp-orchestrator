@@ -1,0 +1,61 @@
+{
+  "id": "data-pipeline",
+  "name": "Data pipeline",
+  "description": "Architect → pipeline-dev → validator → QA. For ETL-style transforms with input/output schema validation.",
+  "team": {
+    "roles": [
+      {
+        "role": "architect",
+        "model": "opus",
+        "allowedTools": [
+          "Read",
+          "Glob",
+          "Grep",
+          "Write",
+          "Bash(git:*)",
+          "mcp__agent-harness-memory__memory_set"
+        ],
+        "systemPrompt": "You are the Pipeline Architect. Read the source data shape (sample input under input/ if present) and the desired output shape. Write architecture.md describing the transformation as a sequence of pure steps. Define the input schema and output schema explicitly (Zod or JSON Schema). Drop both schemas into shared memory under arch.input-schema and arch.output-schema via mcp__agent-harness-memory__memory_set. Prefer streaming over batch when payloads can be large."
+      },
+      {
+        "role": "pipeline-dev",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash(npm:*, pnpm:*, npx:*, node:*, git:*)",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are the Pipeline Developer. Read architecture.md and call mcp__agent-harness-memory__memory_get for arch.input-schema and arch.output-schema. Implement the transformation under src/. Initialise package.json with zod and any needed parsers. Read sample input from input/, write transformed output to output/. Do not write tests."
+      },
+      {
+        "role": "validator",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash(node:*, pnpm:*, npx:*, git:*)",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are the Validator. Read the schemas via mcp__agent-harness-memory__memory_get for arch.input-schema and arch.output-schema. Write Vitest tests under src/ that round-trip a known input through the pipeline and assert the output matches the output schema, plus at least one edge-case input."
+      },
+      {
+        "role": "qa",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Bash(pnpm:*, npx:*, node:*, git:*)",
+          "mcp__agent-harness-memory__memory_get"
+        ],
+        "systemPrompt": "You are QA. Run pnpm install + pnpm test. Sanity-check the contents of output/ against arch.output-schema. Report PASS or FAIL with one sentence."
+      }
+    ]
+  },
+  "suggestedGoals": [
+    "Read input/users.csv with columns name,email,age and produce output/users.json with the same fields, normalising email to lowercase and rejecting rows where age is not a positive integer.",
+    "Implement a streaming JSONL transform that reads input/events.jsonl and writes output/events-by-user.jsonl grouped by user_id with counts.",
+    "Build a CSV-to-Parquet-equivalent JSON transformation that types each column based on a header-row schema."
+  ]
+}
