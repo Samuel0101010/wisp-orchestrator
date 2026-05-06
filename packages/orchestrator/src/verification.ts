@@ -161,9 +161,13 @@ export async function runVerification(
 
   for (const { kind, cmd } of planned) {
     if (opts.signal?.aborted) {
+      // First aborted step records the cancellation; remaining steps are
+      // skipped entirely so the failure list and transcript stay honest
+      // (the user shouldn't see "build aborted, test aborted, lint aborted"
+      // when only one cancellation actually occurred).
       failures.push({ kind, cmd, exitCode: 130, tail: 'aborted' });
       transcript.push(`[${kind}] ${cmd}\nABORTED`);
-      continue;
+      break;
     }
     const t0 = Date.now();
     const res = await exec(cmd, { cwd, timeoutMs, signal: opts.signal });

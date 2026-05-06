@@ -38,9 +38,12 @@ export const teamTemplatesRoutes: FastifyPluginAsync = async (app) => {
           issues: parsed.error.issues,
         };
       }
-      const file = saveUserTemplate(parsed.data);
+      // Discard the absolute file path: it leaks the server's HARNESS_DATA_DIR
+      // to the client. The template id is enough to refer to it via the GET
+      // endpoint.
+      saveUserTemplate(parsed.data);
       reply.code(201);
-      return { template: parsed.data, path: file };
+      return { template: parsed.data };
     }),
   );
 };

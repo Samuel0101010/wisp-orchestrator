@@ -101,6 +101,10 @@ export function useSaveTeam(projectId: string | undefined) {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['team', projectId] });
+      // Saved team composition can change role assignments visible in the
+      // generated plan, so invalidate the plan cache too — otherwise the
+      // PlanEditor opens with stale role labels until staleTime expires.
+      void qc.invalidateQueries({ queryKey: ['plan', projectId] });
     },
   });
 }
