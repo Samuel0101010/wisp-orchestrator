@@ -1077,6 +1077,29 @@ describe('composeTaskPrompt — retry-error truncation', () => {
     expect(out).toContain(small);
     expect(out).not.toContain('omitted');
   });
+
+  it('lists preflight ahead of build/test/lint in the success-criteria block', () => {
+    const n: TaskNode = {
+      id: 't1',
+      role: 'developer',
+      prompt: 'do t1',
+      deps: [],
+      successCriteria: {
+        preflight: 'pnpm install',
+        build: 'pnpm build',
+        test: 'pnpm test',
+      },
+      maxTurns: 5,
+    };
+    const plan = makePlan([n]);
+    const out = composeTaskPrompt(plan, plan.nodes[0]!, null);
+    expect(out).toContain('- preflight: `pnpm install` (runs once before the rest)');
+    expect(out).toContain('- build: `pnpm build`');
+    expect(out).toContain('- test: `pnpm test`');
+    // Order matters — preflight appears before the others so the agent sees
+    // it as the first gate.
+    expect(out.indexOf('- preflight:')).toBeLessThan(out.indexOf('- build:'));
+  });
 });
 
 describe('Walker — QA-driven replan (M5)', () => {
