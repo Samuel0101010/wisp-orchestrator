@@ -41,5 +41,6 @@ Health-check the server: `curl -s http://127.0.0.1:${HARNESS_PORT:-4400}/api/hea
 
 ## Notes
 
-- "Resumable" includes runs paused for any reason: rate-limit, manual pause, abrupt-shutdown recovery, consecutive-failures.
+- The `?resumable=true` filter only surfaces runs that need an explicit resume action: shutdown-recovered runs (status='paused', pausedReason='shutdown') and abrupt-crash runs (status='running' with a stale heartbeat that the server rewrote on boot). Rate-limit pauses auto-resume when their `resumeAt` timer fires and only show up here AFTER a server restart that rewrites them to 'shutdown'.
+- A consecutive-failure pause and a manual /pause are NOT in this list during the same server lifetime — they live in `GET /api/runs?status=paused`. Use that endpoint when the user wants to resume one of those instead.
 - A rate-limit-paused run can be resumed BEFORE its `resumeAt` window if the user wants to test (it'll just hit the rate-limit again, but that's their call).

@@ -85,9 +85,11 @@ describe('POST /api/team-templates', () => {
       payload: tmpl,
     });
     expect(res.statusCode).toBe(201);
-    const body = res.json() as { template: { id: string }; path: string };
+    const body = res.json() as { template: { id: string } };
     expect(body.template.id).toBe('user-test-1');
-    expect(fs.existsSync(body.path)).toBe(true);
+    // The response intentionally omits the server-side absolute path; verify
+    // the file was written by checking the known on-disk location instead.
+    expect(fs.existsSync(path.join(templatesDir, 'user-test-1.json'))).toBe(true);
   });
 
   it('a saved user template appears in the GET list', async () => {

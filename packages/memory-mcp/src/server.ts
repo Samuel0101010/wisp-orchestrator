@@ -6,9 +6,22 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { MemoryStore } from './store.js';
 import { findTool, tools, type ToolName } from './tools.js';
 
-const DB_PATH = process.env.HARNESS_MEMORY_DB ?? './harness-memory.db';
+const DB_PATH = process.env.HARNESS_MEMORY_DB;
+if (!DB_PATH || DB_PATH.trim().length === 0) {
+  process.stderr.write(
+    'agent-harness-memory: HARNESS_MEMORY_DB is required (per-run SQLite path). Refusing to start with a default path because that would silently lose memory across runs.\n',
+  );
+  process.exit(1);
+}
 
-const store = new MemoryStore(DB_PATH);
+let store: MemoryStore;
+try {
+  store = new MemoryStore(DB_PATH);
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  process.stderr.write(`agent-harness-memory: failed to open SQLite at ${DB_PATH}: ${message}\n`);
+  process.exit(1);
+}
 
 const server = new Server(
   { name: 'agent-harness-memory', version: '1.0.0' },
@@ -65,5 +78,11 @@ function shutdown(): void {
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
+// On Windows SIGTERM is not reliably delivered to child processes; fall back
+// to detecting the parent closing our stdin pipe (the MCP transport). Without
+// this the server can outlive the parent claude subprocess, holding the WAL
+// file open and preventing checkpoint/truncation.
+process.stdin.on('close', shutdown);
+process.stdin.on('end', shutdown);
 
 await server.connect(new StdioServerTransport());
