@@ -16,10 +16,18 @@ export interface ToolEntry<TInput, TOutput> {
 // Per-value cap. memory_set is for short specs / handoff notes between roles,
 // not for shipping multi-MB blobs. Without a cap a runaway agent could exhaust
 // the MCP response-frame buffer and inflate the per-run SQLite file unboundedly.
+// Enforced as UTF-8 byte length (not character count) because that is what
+// determines on-disk size — a 64K-character CJK string would otherwise consume
+// ~192KB on disk despite passing a character-count check.
 const VALUE_MAX_BYTES = 64 * 1024;
 const setSchema = z.object({
   key: z.string().min(1, 'key must not be empty'),
-  value: z.string().max(VALUE_MAX_BYTES, `value exceeds ${VALUE_MAX_BYTES}-byte limit`),
+  value: z
+    .string()
+    .refine(
+      (v) => Buffer.byteLength(v, 'utf8') <= VALUE_MAX_BYTES,
+      `value exceeds ${VALUE_MAX_BYTES}-byte limit`,
+    ),
 });
 type SetInput = z.infer<typeof setSchema>;
 

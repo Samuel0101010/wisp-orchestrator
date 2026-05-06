@@ -394,10 +394,13 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
       <Dialog open={confirmLockRun} onOpenChange={setConfirmLockRun}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Lock plan and start run?</DialogTitle>
+            <DialogTitle>
+              {planRow.status === 'locked' ? 'Start run?' : 'Lock plan and start run?'}
+            </DialogTitle>
             <DialogDescription>
-              Locking makes the plan read-only and immediately starts a run. Tasks dispatch into git
-              worktrees and begin executing. You can pause or cancel from the run view.
+              {planRow.status === 'locked'
+                ? 'Starts a run from the locked plan immediately. Tasks dispatch into git worktrees and begin executing. You can pause or cancel from the run view.'
+                : 'Locking makes the plan read-only and immediately starts a run. Tasks dispatch into git worktrees and begin executing. You can pause or cancel from the run view.'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -410,7 +413,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
               }}
               disabled={lockPlan.isPending || startRun.isPending}
             >
-              {lockPlan.isPending || startRun.isPending ? 'Starting…' : 'Lock & Run'}
+              {lockPlan.isPending || startRun.isPending ? 'Starting…' : lockAndRunLabel}
             </Button>
           </DialogFooter>
         </DialogContent>
