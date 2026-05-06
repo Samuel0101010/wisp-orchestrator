@@ -831,3 +831,59 @@ remains authoritative.
 **Total cost rough estimate:** two attempts on r6 ≈ 50k tokens in,
 10k out, 50 turns total across 6 task subprocesses ≈ ~$1-2 in
 subscription quota.
+
+---
+
+# v1.0 Stage 6 — plugin skills (2026-05-06)
+
+Branch `v1.0/m6-plugin-skills`, commits `4d80d28..344c750`.
+
+## Stage 6 acceptance — automated checks (no R-run needed)
+
+Stage 6 is markdown authoring + a small backend endpoint, not LLM
+behavior — there's no real-Claude run cost worth burning. The
+acceptance is split into:
+
+1. **Plugin structure validation** — `plugin-validator` agent run
+   against the manifest and the four SKILL.md files. Verdict: PASS
+   with two body-level warnings (now fixed in commit `344c750`).
+2. **Endpoint smoke** — `GET /api/runs/:runId/events` queried against
+   the existing Stage-5 r6 data. Confirmed:
+   - Type filter works: `?type=qa.replan-triggered` returns exactly
+     the 1 replan event from run `575f8b18` with full payload
+     (failedTaskId, reason, etc.) preserved.
+   - Limit works: `?limit=200` returns all 35 events oldest-first.
+   - 404 on a nonexistent runId.
+
+3. **Manual user smoke** — install the updated plugin, then in a
+   Claude Code session type `/harness-new-run` and walk the prompts.
+   Then `/harness-diagnose <runId>` during the run, then
+   `/harness-inspect <runId>` after. Each skill's body documents the
+   exact API calls so the model can follow them deterministically.
+   The user runs this test when they next install the plugin —
+   no harness compute cost.
+
+## Plugin structure (per validator)
+
+| Field | Status |
+|---|---|
+| `.claude-plugin/plugin.json` schema | valid |
+| `skills` directory entry resolves | yes |
+| 4 SKILL.md files: harness-new-run, -resume, -inspect, -diagnose | all valid frontmatter + body |
+| `description` triggering strength | strong (Use when… + Trigger phrases per skill) |
+| Name conflicts with agents/commands/hooks | none |
+
+The two warnings the validator surfaced were body-level instruction
+ambiguities, both fixed in commit `344c750`:
+- `harness-new-run` had `--data-binary @<file>` without writing the
+  file first — replaced with an inline `jq` extraction from the
+  templates GET response.
+- `harness-inspect` had two non-mutually-exclusive resolution
+  branches without a guard — restated as an explicit `if user
+  supplied repoPath, skip; otherwise ask`.
+
+## API additions
+
+- `GET /api/runs/:runId/events?limit=&type=` — read-only event
+  timeline for a run; oldest-first, optional type filter, configurable
+  limit (1..2000, default 500). 404 on missing run. 3 new tests.
