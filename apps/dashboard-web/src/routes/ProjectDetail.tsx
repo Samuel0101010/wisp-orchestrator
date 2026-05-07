@@ -265,10 +265,7 @@ export function ProjectDetail() {
                       >
                         <td className="px-2 py-2 font-mono">{r.id.slice(0, 8)}</td>
                         <td className="px-2 py-2">
-                          <StatusDotBadge
-                            status={r.status}
-                            pulse={r.status === 'running'}
-                          />
+                          <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
                         </td>
                         <td className="px-2 py-2 text-muted-foreground">
                           {r.outcome ?? t('projectDetail.runs.running')}

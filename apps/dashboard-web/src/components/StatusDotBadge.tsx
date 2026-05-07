@@ -47,8 +47,10 @@ export function statusToTone(s: string | undefined | null): StatusTone {
   return 'neutral';
 }
 
-export interface StatusDotBadgeProps
-  extends Omit<React.HTMLAttributes<HTMLSpanElement>, 'children'> {
+export interface StatusDotBadgeProps extends Omit<
+  React.HTMLAttributes<HTMLSpanElement>,
+  'children'
+> {
   /** Raw status string — mapped to tone via {@link statusToTone}. Falls back to `tone` if unset. */
   status?: string | null;
   /** Explicit tone override. Wins over `status` when provided. */
@@ -88,10 +90,7 @@ export function StatusDotBadge({
       <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', t.dot)}>
         {pulse && (
           <span
-            className={cn(
-              'absolute inset-0 -m-0.5 animate-ping rounded-full opacity-60',
-              t.dot,
-            )}
+            className={cn('absolute inset-0 -m-0.5 animate-ping rounded-full opacity-60', t.dot)}
             aria-hidden
           />
         )}

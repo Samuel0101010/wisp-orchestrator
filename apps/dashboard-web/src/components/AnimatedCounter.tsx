@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type HTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
-export interface AnimatedCounterProps
-  extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
+export interface AnimatedCounterProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
   value: number;
   /** Animation duration in ms. Defaults to 1100ms. */
   durationMs?: number;

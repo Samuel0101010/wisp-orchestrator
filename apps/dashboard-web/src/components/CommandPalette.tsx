@@ -107,14 +107,8 @@ export function CommandPalette() {
                 close();
                 setTheme(theme === 'dark' ? 'light' : 'dark');
               }}
-              icon={
-                theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />
-              }
-              label={
-                theme === 'dark'
-                  ? t('topBar.themeLight')
-                  : t('topBar.themeDark')
-              }
+              icon={theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              label={theme === 'dark' ? t('topBar.themeLight') : t('topBar.themeDark')}
             />
           </Command.Group>
 

@@ -30,10 +30,7 @@ export function Home() {
   const globalRuns = useGlobalRuns(100);
 
   const liveRuns = useMemo(
-    () =>
-      (globalRuns.data ?? []).filter(
-        (r) => r.status === 'running' || r.status === 'paused',
-      ),
+    () => (globalRuns.data ?? []).filter((r) => r.status === 'running' || r.status === 'paused'),
     [globalRuns.data],
   );
   const recentRuns = useMemo(() => (globalRuns.data ?? []).slice(0, 25), [globalRuns.data]);
@@ -49,10 +46,7 @@ export function Home() {
           {t('home.title', 'Mission Control')}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {t(
-            'home.subtitle',
-            'Live overview of all agent runs across your projects.',
-          )}
+          {t('home.subtitle', 'Live overview of all agent runs across your projects.')}
         </p>
       </header>
 
@@ -119,9 +113,7 @@ export function Home() {
         </div>
         <div className="rounded-lg border bg-card p-5">
           <header className="mb-3">
-            <h2 className="text-sm font-semibold">
-              {t('home.charts.outcomes', 'Run outcomes')}
-            </h2>
+            <h2 className="text-sm font-semibold">{t('home.charts.outcomes', 'Run outcomes')}</h2>
             <p className="text-xs text-muted-foreground">
               {t('home.charts.outcomesDesc', 'last 7 days')}
             </p>

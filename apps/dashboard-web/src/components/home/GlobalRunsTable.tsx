@@ -107,7 +107,15 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
     }
   };
 
-  const SortHeader = ({ k, children, align }: { k: SortKey; children: React.ReactNode; align?: 'right' }) => (
+  const SortHeader = ({
+    k,
+    children,
+    align,
+  }: {
+    k: SortKey;
+    children: React.ReactNode;
+    align?: 'right';
+  }) => (
     <th
       scope="col"
       className={cn(
@@ -117,11 +125,11 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
       onClick={() => toggleSort(k)}
       aria-sort={sortKey === k ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
-      <span className={cn('inline-flex items-center gap-1', align === 'right' && 'flex-row-reverse')}>
+      <span
+        className={cn('inline-flex items-center gap-1', align === 'right' && 'flex-row-reverse')}
+      >
         {children}
-        <ArrowUpDown
-          className={cn('h-3 w-3', sortKey === k ? 'text-foreground' : 'opacity-40')}
-        />
+        <ArrowUpDown className={cn('h-3 w-3', sortKey === k ? 'text-foreground' : 'opacity-40')} />
       </span>
     </th>
   );
@@ -157,8 +165,12 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
                 Status
               </th>
               <SortHeader k="startedAt">Started</SortHeader>
-              <SortHeader k="duration" align="right">Duration</SortHeader>
-              <SortHeader k="tokens" align="right">Tokens</SortHeader>
+              <SortHeader k="duration" align="right">
+                Duration
+              </SortHeader>
+              <SortHeader k="tokens" align="right">
+                Tokens
+              </SortHeader>
               <th scope="col" className="w-10 px-3 py-2" />
             </tr>
           </thead>
@@ -171,10 +183,7 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
               >
                 <td className="px-3 py-2 font-mono text-xs">{r.id.slice(0, 8)}</td>
                 <td className="px-3 py-2">
-                  <Link
-                    to={`/projects/${r.projectId}`}
-                    className="text-foreground hover:underline"
-                  >
+                  <Link to={`/projects/${r.projectId}`} className="text-foreground hover:underline">
                     {r.projectName}
                   </Link>
                 </td>
