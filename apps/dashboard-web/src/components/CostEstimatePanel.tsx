@@ -47,9 +47,6 @@ export function CostEstimatePanel({ team, projectId }: Props) {
     avgTokens = Math.round(total / completed.length);
   }
 
-  const projected =
-    avgTokens != null ? Math.round((avgTokens * sumWeight) / Math.max(1, sumWeight)) : null;
-
   return (
     <Card>
       <CardHeader>
@@ -72,13 +69,13 @@ export function CostEstimatePanel({ team, projectId }: Props) {
             {team.roles.map((r) => `${r.role}=${MODEL_INFO[r.model].costWeight}`).join(', ')}
           </span>
         </div>
-        {projected != null ? (
+        {avgTokens != null ? (
           <div className="flex items-center justify-between border-t pt-2">
             <span className="text-muted-foreground">
               Avg tokens / successful run (last {completed.length})
             </span>
             <span className="font-medium" data-testid="cost-avg-tokens">
-              {avgTokens?.toLocaleString()} tokens
+              {avgTokens.toLocaleString()} tokens
             </span>
           </div>
         ) : (
