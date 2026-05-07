@@ -259,6 +259,51 @@
     "bestFor": "Funktioniert gut mit",
     "notRecommendedFor": "Nicht empfohlen für"
   },
+  "projectDetail": {
+    "subtitle": "Projekt-Übersicht, Team, Plan und Run-Historie.",
+    "summary": {
+      "goal": "Ziel",
+      "repoPath": "Repo-Pfad",
+      "team": "Team",
+      "noTeam": "Noch kein Team konfiguriert",
+      "rolesCount_one": "{{count}} Rolle",
+      "rolesCount_other": "{{count}} Rollen",
+      "plan": "Plan",
+      "planDraft": "Plan-Entwurf",
+      "planLocked": "Gesperrter Plan",
+      "noPlan": "Noch kein Plan generiert"
+    },
+    "actions": {
+      "openTeam": "Team-Builder öffnen",
+      "openPlan": "Plan-Editor öffnen",
+      "newRun": "Neuen Run starten",
+      "newRunDisabled": "Plan erst sperren",
+      "starting": "Starte…"
+    },
+    "runs": {
+      "title": "Run-Historie",
+      "empty": "Noch keine Runs — generiere einen Plan und sperre ihn, um den ersten zu starten.",
+      "totalRuns_one": "{{count}} Run",
+      "totalRuns_other": "{{count}} Runs",
+      "successfulRuns": "{{count}} erfolgreich",
+      "totalTokens": "{{tokens}} Tokens verbraucht",
+      "table": {
+        "id": "Run",
+        "status": "Status",
+        "outcome": "Ergebnis",
+        "started": "Gestartet",
+        "duration": "Dauer",
+        "tokens": "Tokens",
+        "actions": "Aktionen"
+      },
+      "openRun": "Öffnen",
+      "running": "läuft"
+    },
+    "toasts": {
+      "runStarted": "Run gestartet",
+      "runStartFailed": "Run konnte nicht gestartet werden"
+    }
+  },
   "applyTemplate": {
     "title": "Vorlage anwenden",
     "description": "Ersetzt das aktuelle Team-Draft durch die Vorlage.",
