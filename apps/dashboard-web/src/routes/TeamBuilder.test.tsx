@@ -213,6 +213,22 @@ describe('TeamBuilder', () => {
     expect(saveBtn).toBeDisabled();
   });
 
+  it('renders a drag handle per role for dnd-kit reordering', async () => {
+    fetchHandler = (url) => {
+      if (url.endsWith('/team')) return new Response('{}', { status: 404 });
+      return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
+    };
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    expect(screen.getByTestId('drag-handle-0')).toBeInTheDocument();
+    expect(screen.getByTestId('drag-handle-1')).toBeInTheDocument();
+    expect(screen.getByTestId('drag-handle-2')).toBeInTheDocument();
+    // Default team is 3 roles, so no handle-3 yet.
+    expect(screen.queryByTestId('drag-handle-3')).toBeNull();
+  });
+
   it('reorders roles via the move-up / move-down arrows', async () => {
     fetchHandler = (url) => {
       if (url.endsWith('/team')) return new Response('{}', { status: 404 });

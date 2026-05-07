@@ -1,3 +1,4 @@
+import { GripVertical } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,18 @@ export function isRoleNameValid(role: string): boolean {
   return role.length >= 2 && role.length <= 40 && ROLE_REGEX.test(role);
 }
 
+/**
+ * Drag handle props produced by `useSortable` from @dnd-kit. Threaded through
+ * so the SortableTeamRoleCard wrapper can wire only the grip button as the
+ * drag activator, leaving the rest of the card interactive.
+ */
+export interface DragHandleProps {
+  /** Forwarded ref from `useSortable.setActivatorNodeRef`. */
+  ref?: (node: HTMLElement | null) => void;
+  /** Spread of `useSortable.attributes` + `useSortable.listeners`. */
+  [key: string]: unknown;
+}
+
 interface TeamRoleCardProps {
   draft: DraftAgent;
   index: number;
@@ -44,6 +57,8 @@ interface TeamRoleCardProps {
   isDuplicate: boolean;
   /** When provided, renders a "Test prompt" button that opens the dialog. */
   onTestPrompt?: () => void;
+  /** When provided, renders the drag-handle grip wired to dnd-kit. */
+  dragHandleProps?: DragHandleProps;
 }
 
 export function TeamRoleCard({
@@ -58,6 +73,7 @@ export function TeamRoleCard({
   canMoveDown,
   isDuplicate,
   onTestPrompt,
+  dragHandleProps,
 }: TeamRoleCardProps) {
   const promptLen = draft.systemPrompt.length;
   const promptShort = promptLen < SYSTEM_PROMPT_MIN;
@@ -81,6 +97,18 @@ export function TeamRoleCard({
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="truncate">{displayTitle}</CardTitle>
           <div className="flex items-center gap-1">
+            {dragHandleProps && (
+              <button
+                type="button"
+                {...dragHandleProps}
+                className="inline-flex h-9 w-7 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title="Drag to reorder (or use arrows)"
+                aria-label="Drag handle"
+                data-testid={`drag-handle-${index}`}
+              >
+                <GripVertical className="h-4 w-4" />
+              </button>
+            )}
             <Badge variant="secondary" data-testid={`badge-${draft.role}`}>
               {draft.model}
             </Badge>
