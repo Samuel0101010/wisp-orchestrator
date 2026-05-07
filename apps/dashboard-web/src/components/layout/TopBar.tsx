@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Coins, Activity, Search } from 'lucide-react';
-import { Link, useMatch } from 'react-router-dom';
+import { useMatch } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { LanguageToggle } from '@/components/LanguageToggle';
