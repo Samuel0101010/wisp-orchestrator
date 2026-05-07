@@ -266,6 +266,20 @@
     "bestFor": "Funktioniert gut mit",
     "notRecommendedFor": "Nicht empfohlen für"
   },
+  "commandPalette": {
+    "placeholder": "Projekte, Runs, Aktionen suchen…",
+    "empty": "Keine Treffer.",
+    "actions": "Aktionen",
+    "projects": "Projekte",
+    "runs": "Letzte Runs",
+    "gotoMissionControl": "Zu Mission Control"
+  },
+  "breadcrumbs": {
+    "project": "Projekt",
+    "teamBuilder": "Team Builder",
+    "planEditor": "Plan-Editor",
+    "run": "Run"
+  },
   "home": {
     "title": "Mission Control",
     "subtitle": "Live-Übersicht aller Agenten-Runs über deine Projekte hinweg.",

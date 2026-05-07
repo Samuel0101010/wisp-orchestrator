@@ -55,7 +55,9 @@ describe('App', () => {
 
   it('renders TeamBuilder at /projects/:id/teams', () => {
     renderAt('/projects/abc/teams');
-    expect(screen.getByText('Team Builder')).toBeInTheDocument();
+    // "Team Builder" now appears in both breadcrumbs and page heading; assert
+    // at least one Team Builder is present rather than requiring uniqueness.
+    expect(screen.getAllByText('Team Builder').length).toBeGreaterThan(0);
   });
 
   it('renders PlanEditor at /projects/:id/plan', async () => {

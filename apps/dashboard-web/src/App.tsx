@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, Route, Routes } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
+import { CommandPalette } from '@/components/CommandPalette';
 import { Home } from '@/routes/Home';
 import { ProjectDetail } from '@/routes/ProjectDetail';
 import { TeamBuilder } from '@/routes/TeamBuilder';
@@ -21,6 +22,7 @@ function Shell() {
           </div>
         </main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

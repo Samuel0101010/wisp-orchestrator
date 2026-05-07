@@ -70,7 +70,7 @@ describe('TopBar', () => {
         </MemoryRouter>,
       ),
     );
-    expect(screen.getByTestId('topbar-home')).toHaveTextContent(/mission control/i);
+    expect(screen.getByTestId('breadcrumbs')).toHaveTextContent(/mission control/i);
   });
 
   it('mirrors resource bar info when on the RunView route with a hydrated run', () => {

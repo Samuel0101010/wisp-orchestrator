@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pause, Coins, Activity, LayoutGrid } from 'lucide-react';
+import { Pause, Coins, Activity, Search } from 'lucide-react';
 import { Link, useMatch } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
 import { AnimatedCounter } from '@/components/AnimatedCounter';
+import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { useDailyRunCount } from '@/api/queries';
 import { computeAggregates, useRunStore } from '@/store/run';
 
@@ -28,9 +30,28 @@ export function TopBar() {
   const onRunView = Boolean(match);
   const hasRun = onRunView && run;
 
-  // Right-hand cluster — same on all pages. Theme + Language + (future) ⌘K.
+  // Right-hand cluster — same on all pages. ⌘K trigger + Theme + Language.
   const rightCluster = (
     <div className="ml-auto flex items-center gap-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-8 gap-1.5 px-2 text-xs text-muted-foreground"
+        onClick={() => {
+          const evt = new KeyboardEvent('keydown', {
+            key: 'k',
+            metaKey: true,
+            bubbles: true,
+          });
+          window.dispatchEvent(evt);
+        }}
+        aria-label={t('topBar.openCommandPalette')}
+        data-testid="topbar-cmdk-trigger"
+      >
+        <Search className="h-3.5 w-3.5" />
+        <kbd className="hidden rounded border bg-muted px-1 py-0 text-[10px] sm:inline">⌘K</kbd>
+      </Button>
+      <Separator orientation="vertical" className="h-6" />
       <ThemeToggle />
       <Separator orientation="vertical" className="h-6" />
       <LanguageToggle />
@@ -44,14 +65,7 @@ export function TopBar() {
         className="topbar-blur sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-card/80 px-5"
         data-testid="topbar"
       >
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-sm font-medium hover:text-foreground"
-          data-testid="topbar-home"
-        >
-          <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-          <span>{t('topBar.missionControl')}</span>
-        </Link>
+        <Breadcrumbs />
         <Separator orientation="vertical" className="h-6" />
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
@@ -74,26 +88,12 @@ export function TopBar() {
       className="topbar-blur sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-card/80 px-5"
       data-testid="topbar-run-active"
     >
-      <Link
-        to="/"
-        className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <LayoutGrid className="h-4 w-4" />
-        <span className="hidden sm:inline">{t('topBar.missionControl')}</span>
-      </Link>
-      <span className="text-muted-foreground/50">/</span>
-      <Link
-        to={`/projects/${match?.params.projectId}/run/${match?.params.runId}`}
-        className="flex items-center gap-2 text-sm hover:underline"
-      >
-        <span className="text-xs text-muted-foreground">{t('topBar.run')}</span>
-        <StatusDotBadge
-          status={run.status}
-          pulse={run.status === 'running'}
-          data-testid="topbar-run-status"
-        />
-        <span className="font-mono text-xs">{run.id.slice(0, 8)}</span>
-      </Link>
+      <Breadcrumbs />
+      <StatusDotBadge
+        status={run.status}
+        pulse={run.status === 'running'}
+        data-testid="topbar-run-status"
+      />
       <Separator orientation="vertical" className="h-6" />
       <button type="button" disabled className="text-xs text-muted-foreground">
         <Pause className="mr-2 inline h-4 w-4" />
