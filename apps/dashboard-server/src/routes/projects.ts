@@ -12,6 +12,18 @@ const createProjectSchema = z.object({
   repoPath: z.string().min(1),
 });
 
+// Patch is partial — every field optional. At least one must be present so the
+// route can detect no-op requests and return 400 instead of pretending success.
+const patchProjectSchema = z
+  .object({
+    name: z.string().min(1).max(120).optional(),
+    goal: z.string().min(1).max(4000).optional(),
+    repoPath: z.string().min(1).optional(),
+  })
+  .refine((v) => v.name !== undefined || v.goal !== undefined || v.repoPath !== undefined, {
+    message: 'at least one of name, goal, repoPath must be provided',
+  });
+
 export const projectRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     '/api/projects',
@@ -48,6 +60,26 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         return { error: 'project not found' };
       }
       return row;
+    }),
+  );
+
+  app.patch(
+    '/api/projects/:id',
+    wrap(async (req, reply) => {
+      const params = z.object({ id: z.string() }).parse(req.params);
+      const patch = patchProjectSchema.parse(req.body);
+      const existing = await db.select().from(projects).where(eq(projects.id, params.id)).get();
+      if (!existing) {
+        reply.code(404);
+        return { error: 'project not found' };
+      }
+      const updates: Partial<typeof existing> = {};
+      if (patch.name !== undefined) updates.name = patch.name;
+      if (patch.goal !== undefined) updates.goal = patch.goal;
+      if (patch.repoPath !== undefined) updates.repoPath = patch.repoPath;
+      await db.update(projects).set(updates).where(eq(projects.id, params.id)).run();
+      const updated = await db.select().from(projects).where(eq(projects.id, params.id)).get();
+      return updated ?? existing;
     }),
   );
 

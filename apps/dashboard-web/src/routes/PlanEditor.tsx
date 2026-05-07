@@ -35,6 +35,7 @@ import {
 } from '@/api/queries';
 import { PlanCanvas } from '@/components/plan/PlanCanvas';
 import { PlanVersionBadge } from '@/components/PlanVersionBadge';
+import { BackToProject } from '@/components/BackToProject';
 
 const ROLES: Role[] = ['architect', 'developer', 'qa'];
 
@@ -294,6 +295,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
+      <BackToProject />
       <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold">{projectName}</h1>

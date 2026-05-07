@@ -16,6 +16,7 @@ import {
 import { toast } from '@/components/ui/use-toast';
 import { useRunEvents } from '@/api/ws';
 import { useTranslation } from 'react-i18next';
+import { BackToProject } from '@/components/BackToProject';
 import {
   useCancelRun,
   usePauseRun,
@@ -675,6 +676,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3" data-testid="run-view">
+      <BackToProject />
       <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
         <div className="flex items-center gap-3">
           {projectId && (

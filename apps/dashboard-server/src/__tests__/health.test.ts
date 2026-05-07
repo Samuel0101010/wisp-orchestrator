@@ -31,7 +31,11 @@ describe('health', () => {
     const body = res.json();
     expect(body.ok).toBe(true);
     expect(typeof body.time).toBe('string');
-    expect(body.version).toBe('1.0.0');
+    // version is read from the dashboard-server's package.json at module load.
+    // Asserting the shape (semver) keeps the test from breaking on every
+    // release bump while still proving the field is wired.
+    expect(typeof body.version).toBe('string');
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(body.authProbe).toBeNull();
   });
 
