@@ -159,8 +159,8 @@ describe('graceful shutdown', () => {
   });
 });
 
-describe('runtime emit filter — task.tool-use (M5)', () => {
-  it('does not persist or publish task.tool-use events', async () => {
+describe('runtime emit — task.tool-use (post-PR #22 parser fix)', () => {
+  it('persists and publishes task.tool-use events alongside other events', async () => {
     const published: Array<{ runId: string; type: string }> = [];
     const captured: { emit: WalkerDeps['emit'] | null } = { emit: null };
     const runtime = new RunRuntime({
@@ -211,9 +211,10 @@ describe('runtime emit filter — task.tool-use (M5)', () => {
     // Wait briefly for any async side-effects.
     await new Promise((r) => setImmediate(r));
 
-    // Published list must NOT contain task.tool-use.
-    expect(published.some((p) => p.type === 'task.tool-use')).toBe(false);
-    // But the normal task.started must be there.
+    // Tool-use events now carry signal (the orchestrator parser was fixed in
+    // PR #22 to read `assistant.message.content[type=tool_use]`), so the
+    // runtime persists + publishes them like every other event.
+    expect(published.some((p) => p.type === 'task.tool-use' && p.runId === runId)).toBe(true);
     expect(published.some((p) => p.type === 'task.started' && p.runId === runId)).toBe(true);
   });
 });

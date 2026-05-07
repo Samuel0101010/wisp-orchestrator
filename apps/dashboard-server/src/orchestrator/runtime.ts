@@ -163,11 +163,14 @@ export class RunRuntime {
       worktree: { add: addWorktree, remove: removeWorktree },
       verify: runVerification,
       emit: (ev) => {
-        // M5: skip persisting+broadcasting `task.tool-use`. Nobody consumes it
-        // today (M2 may build a tool timeline UI; the schema entry stays).
-        if (ev.type === 'task.tool-use') {
-          return;
-        }
+        // task.tool-use was filtered out under M5 because the parser at the
+        // time only matched legacy flat frames (which never fired on the
+        // modern CLI), so the events were always-empty noise. PR #22 fixed
+        // the parser to read `assistant.message.content[type=tool_use]` —
+        // tool-use events now carry real signal (Write, Edit, memory.set,
+        // ...), so persist + broadcast them like every other event. The
+        // /harness-diagnose skill and any future per-task timeline UI both
+        // consume them.
         this.persistEvent(runId, ev);
         try {
           this.ws.publishToRun(runId, ev);
