@@ -73,6 +73,28 @@ export function useCreateProject() {
   });
 }
 
+export interface UpdateProjectInput {
+  id: string;
+  name?: string;
+  goal?: string;
+  repoPath?: string;
+}
+
+export function useUpdateProject() {
+  const qc = useQueryClient();
+  return useMutation<Project, Error, UpdateProjectInput>({
+    mutationFn: ({ id, ...patch }) =>
+      apiFetch<Project>(`/api/projects/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: (project) => {
+      void qc.invalidateQueries({ queryKey: ['project', project.id] });
+      void qc.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+}
+
 export function useTeam(projectId: string | undefined) {
   return useQuery<Team | null>({
     queryKey: ['team', projectId ?? null],

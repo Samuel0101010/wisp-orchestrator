@@ -53,6 +53,7 @@ import { TeamJsonDialog } from '@/components/TeamJsonDialog';
 import { ComposedPromptPreviewDialog } from '@/components/ComposedPromptPreviewDialog';
 import { TestPromptDialog } from '@/components/TestPromptDialog';
 import { CostEstimatePanel } from '@/components/CostEstimatePanel';
+import { BackToProject } from '@/components/BackToProject';
 
 const MAX_ROLES = 8;
 
@@ -304,7 +305,8 @@ export function TeamBuilder() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
+      <div className="flex flex-col gap-2">
+        <BackToProject />
         <h1 className="text-2xl font-semibold">Team Builder</h1>
         <p className="text-sm text-muted-foreground">
           Configure the agents for{' '}

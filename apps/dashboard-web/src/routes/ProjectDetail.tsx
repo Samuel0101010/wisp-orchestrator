@@ -1,15 +1,27 @@
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
+  Check,
   ClipboardList,
   ExternalLink,
   FolderGit2,
+  Pencil,
   Play,
   Target,
   Users,
+  X,
 } from 'lucide-react';
-import { useGeneratedPlan, useProject, useProjectRuns, useStartRun, useTeam } from '@/api/queries';
+import {
+  useGeneratedPlan,
+  useProject,
+  useProjectRuns,
+  useStartRun,
+  useTeam,
+  useUpdateProject,
+} from '@/api/queries';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -120,17 +132,7 @@ export function ProjectDetail() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card data-testid="project-summary-goal">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <Target className="h-4 w-4 text-muted-foreground" />
-              {t('projectDetail.summary.goal')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm leading-relaxed">{p.goal}</p>
-          </CardContent>
-        </Card>
+        <GoalCard projectId={p.id} goal={p.goal} />
 
         <Card>
           <CardHeader className="pb-2">
@@ -307,5 +309,110 @@ export function ProjectDetail() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+interface GoalCardProps {
+  projectId: string;
+  goal: string;
+}
+
+function GoalCard({ projectId, goal }: GoalCardProps) {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(goal);
+  const updateProject = useUpdateProject();
+
+  const startEdit = (): void => {
+    setDraft(goal);
+    setEditing(true);
+  };
+
+  const cancelEdit = (): void => {
+    setDraft(goal);
+    setEditing(false);
+  };
+
+  const handleSave = async (): Promise<void> => {
+    const next = draft.trim();
+    if (!next || next === goal) {
+      setEditing(false);
+      return;
+    }
+    try {
+      await updateProject.mutateAsync({ id: projectId, goal: next });
+      toast({ title: t('projectDetail.toasts.goalUpdated') });
+      setEditing(false);
+    } catch (err) {
+      toast({
+        title: t('projectDetail.toasts.goalUpdateFailed'),
+        description: (err as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <Card data-testid="project-summary-goal">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <Target className="h-4 w-4 text-muted-foreground" />
+          {t('projectDetail.summary.goal')}
+        </CardTitle>
+        {!editing && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={startEdit}
+            data-testid="goal-edit-button"
+            className="h-7 px-2 text-xs"
+          >
+            <Pencil className="mr-1 h-3 w-3" />
+            {t('projectDetail.goalEdit.editButton')}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {editing ? (
+          <div className="flex flex-col gap-2">
+            <Textarea
+              rows={6}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={t('projectDetail.goalEdit.placeholder')}
+              data-testid="goal-edit-textarea"
+              autoFocus
+            />
+            <p className="text-[10px] text-muted-foreground">{t('projectDetail.goalEdit.hint')}</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void handleSave()}
+                disabled={updateProject.isPending || draft.trim() === '' || draft.trim() === goal}
+                data-testid="goal-save-button"
+              >
+                <Check className="mr-1 h-3 w-3" />
+                {updateProject.isPending ? t('buttons.saving') : t('buttons.save')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={cancelEdit}
+                disabled={updateProject.isPending}
+                data-testid="goal-cancel-button"
+              >
+                <X className="mr-1 h-3 w-3" />
+                {t('buttons.cancel')}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm leading-relaxed">{goal}</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }

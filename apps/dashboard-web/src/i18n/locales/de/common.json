@@ -40,7 +40,8 @@
     "newProject": "Neues Projekt",
     "noProjectsYet": "Noch keine Projekte",
     "recentRuns": "Letzte Runs",
-    "today": "{{count}} heute"
+    "today": "{{count}} heute",
+    "backToProject": "Zurück zum Projekt"
   },
   "topBar": {
     "activeRun": "Aktiver Run",
@@ -301,7 +302,14 @@
     },
     "toasts": {
       "runStarted": "Run gestartet",
-      "runStartFailed": "Run konnte nicht gestartet werden"
+      "runStartFailed": "Run konnte nicht gestartet werden",
+      "goalUpdated": "Ziel aktualisiert",
+      "goalUpdateFailed": "Ziel konnte nicht aktualisiert werden"
+    },
+    "goalEdit": {
+      "editButton": "Bearbeiten",
+      "placeholder": "Beschreibe, was die Agents erreichen sollen.",
+      "hint": "Generiere den Plan neu nach dem Speichern, damit kommende Runs das neue Ziel nutzen."
     }
   },
   "applyTemplate": {
