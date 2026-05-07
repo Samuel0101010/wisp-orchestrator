@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -45,6 +46,16 @@ export async function buildApp(): Promise<FastifyInstance> {
   // both UI + API + WS. Used by the F1 e2e harness mode.
   if (env.HARNESS_SERVE_WEB) {
     const webDist = resolveWebDistPath();
+    // Fail fast at boot if the dist directory is missing — otherwise
+    // @fastify/static accepts the registration silently and every browser
+    // request 500s on first asset lookup. The most common cause is forgetting
+    // `pnpm --filter @agent-harness/dashboard-web build` before starting.
+    if (!fs.existsSync(webDist)) {
+      throw new Error(
+        `HARNESS_SERVE_WEB=1 but dashboard-web dist directory not found at ${webDist}. ` +
+          `Build the web bundle first: pnpm --filter @agent-harness/dashboard-web build`,
+      );
+    }
     await app.register(staticPlugin, {
       root: webDist,
       prefix: '/',

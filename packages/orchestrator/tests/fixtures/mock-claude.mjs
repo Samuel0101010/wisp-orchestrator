@@ -17,6 +17,9 @@
  *                             (used by F1 for architect/developer/qa task slots).
  *   MOCK_MODE=usage-with-cache — emit a result frame with cache_creation tokens, exit 0
  *                             (used to test cache-token summing in the parser).
+ *   MOCK_MODE=session-id   — emit a leading frame containing session_id, then ok-style
+ *                             events. Verifies the subprocess parser captures session_id
+ *                             on first sight and emits task.session-id once.
  *
  * Reads stdin (drains it) so callers writing the prompt don't block.
  */
@@ -188,6 +191,27 @@ async function waitForStdin() {
           cache_creation_input_tokens: 0,
           cache_read_input_tokens: 0,
           output_tokens: 18,
+        },
+      });
+      emit({ type: 'completion' });
+      process.exit(0);
+      break;
+    case 'session-id':
+      // Real claude -p surfaces session_id in a leading frame; we also accept
+      // it on any later frame. Mock both: leading frame carries it, and so
+      // does the result frame, so the parser's emit-once logic gets exercised.
+      emit({ type: 'system', subtype: 'init', session_id: 'sess-abc-123' });
+      emit({ type: 'text-delta', text: 'hi' });
+      emit({
+        type: 'result',
+        subtype: 'success',
+        num_turns: 1,
+        session_id: 'sess-abc-123',
+        usage: {
+          input_tokens: 1,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 1,
         },
       });
       emit({ type: 'completion' });

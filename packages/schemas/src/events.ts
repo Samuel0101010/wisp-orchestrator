@@ -46,6 +46,15 @@ export const harnessEventSchema = z.discriminatedUnion('type', [
     }),
   }),
   z.object({
+    // Emitted once per task as soon as the subprocess surfaces a session id
+    // (typically in the CLI's leading `system`/`init` frame). Persisted to
+    // tasks.session_id so cold-resume after a server restart can re-launch
+    // the task with `claude -p --resume <sessionId>` and pick up the
+    // existing conversation context instead of starting from scratch.
+    type: z.literal('task.session-id'),
+    payload: z.object({ taskId: z.string(), sessionId: z.string().min(1) }),
+  }),
+  z.object({
     type: z.literal('run.started'),
     payload: z.object({ runId: z.string() }),
   }),
