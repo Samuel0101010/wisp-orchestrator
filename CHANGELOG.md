@@ -1,5 +1,69 @@
 # Changelog
 
+## 1.2.0 — Mission Control redesign
+
+Visual + structural overhaul. The dashboard adopts the Linear-cockpit
+design DNA (semantic state tokens, motion-token scale, sticky
+backdrop-blur topbar, `tabular-nums` everywhere) and the placeholder
+`/` welcome card is replaced with a real overview that surfaces every
+active run across all projects in one screen.
+
+### Added — foundation polish (#34, Phase 1)
+
+- Semantic CSS vars `--success / --warning / --info` (light + dark)
+  plus Vault motion tokens (`--ease-smooth/sharp/spring/power`,
+  75/150/200/300/500ms duration scale).
+- `<StatusDotBadge>` — Linear-style dot pill with tone mapping for
+  every status the harness emits (`running`, `success`, `failed`,
+  `pending`, `paused`). Pulse variant for live runs. Replaces three
+  hardcoded Tailwind tone-maps in Sidebar, ProjectDetail, RecentRuns.
+- `<AnimatedCounter>` — easeOutQuart count-up over 1100ms,
+  `prefers-reduced-motion`-aware, tabular-nums.
+- `<ThemeToggle>` finally exposes the dormant Zustand theme store as
+  a UI control. TopBar gains sticky positioning + backdrop-blur.
+- `App.tsx` wraps `<Outlet />` in `max-w-screen-2xl` so the layout
+  stops sprawling on 4K screens.
+- CSS-only `.border-beam` keyframe (`conic-gradient` + `@property
+  --beam-angle`) for active-run cards, with reduced-motion fallback.
+
+### Added — Mission Control home (#34, Phase 2)
+
+- New server endpoint `GET /api/runs?include=project` joins runs →
+  plans → projects (no N+1 lookups).
+- New server endpoint `GET /api/runs/summary?windowDays=7` — single
+  windowed scan producing `activeCount`, `totalRuns`, `totalTokens`,
+  `successRate`, `avgDurationMs`, `outcomeCounts`, plus pre-bucketed
+  `tokensByDay` / `runsByDay` arrays so the area chart never gaps.
+- Recharts via shadcn-style theme variables: `<TokenAreaChart>`
+  (area + linearGradient) and `<OutcomeDonut>` (pie with legend +
+  percent column).
+- `<KpiTile>` (4 tiles: Active runs, Tokens 7d, Success rate,
+  Avg duration). Animated counter + tone accent band.
+- `<LiveNowGrid>` — cards for runs in `running` or `paused` state
+  with the `.border-beam` exclusively on actively running ones.
+  Ticking duration timer (1s, no extra fetches).
+- `<GlobalRunsTable>` — client-sorted on Project / Started /
+  Duration / Tokens.
+- `Home.tsx` rewritten end-to-end. EN+DE i18n keys throughout.
+
+### Added — cockpit layer (#34, Phase 3)
+
+- `<CommandPalette>` (cmdk, `⌘K` / `Ctrl+K`) — fuzzy search across
+  projects, last 50 runs, quick actions (jump to Mission Control,
+  toggle theme). Mounted globally inside the Shell so any route
+  can summon it.
+- `<Breadcrumbs>` — URL-pattern-based, resolves project ids to
+  project names via React Query. Mission Control → Project →
+  (Team Builder | Plan Editor | Run id).
+- TopBar gains a `⌘K` trigger button between content and theme
+  toggle, with kbd hint showing the shortcut.
+
+### Test additions
+
+- 2 new server tests for the global runs and summary endpoints.
+- Adjusted `App.test`, `TopBar.test`, and the Playwright smoke spec
+  for the breadcrumb/H1 dual-occurrence of "Team Builder".
+
 ## 1.1.0 — i18n + project workflow polish
 
 40 commits past v1.0.0. The biggest user-visible additions: a

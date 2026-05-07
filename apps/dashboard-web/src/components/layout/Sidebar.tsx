@@ -111,7 +111,7 @@ export function Sidebar() {
         <div className="flex flex-col">
           <span className="text-sm font-semibold">{t('navigation.appName')}</span>
           <Badge variant="secondary" className="mt-1 w-fit text-[10px]">
-            v1.1.0
+            v1.2.0
           </Badge>
         </div>
       </div>
