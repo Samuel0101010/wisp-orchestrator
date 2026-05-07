@@ -96,9 +96,10 @@ describe('TemplatePicker', () => {
     expect(onSelect).toHaveBeenCalledWith(null);
   });
 
-  it('shows the role count badge for each template', async () => {
+  it('shows the role count badge for each template (i18n pluralised)', async () => {
     renderPicker();
     await waitFor(() => screen.getByTestId('template-pick-ts-library'));
-    expect(screen.getByTestId('template-pick-ts-library').textContent).toContain('1 roles');
+    // count=1 hits the `_one` plural (singular form) under react-i18next.
+    expect(screen.getByTestId('template-pick-ts-library').textContent).toContain('1 role');
   });
 });

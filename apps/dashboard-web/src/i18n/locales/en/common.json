@@ -239,6 +239,26 @@
     },
     "emptyResponse": "(empty response)"
   },
+  "templatePicker": {
+    "loading": "Loading templates…",
+    "loadFailed": "Could not load templates: {{message}}",
+    "noTemplate": "No template",
+    "noTemplateHint": "Start with the default 3-role team and write your own goal.",
+    "rolesCount_one": "{{count}} role",
+    "rolesCount_other": "{{count}} roles",
+    "complexity": {
+      "label": "Complexity",
+      "simple": "Simple",
+      "medium": "Medium",
+      "complex": "Complex"
+    },
+    "duration": "~{{minutes}} min",
+    "expand": "Show more",
+    "collapse": "Show less",
+    "useCases": "Best for",
+    "bestFor": "Works well with",
+    "notRecommendedFor": "Not recommended for"
+  },
   "applyTemplate": {
     "title": "Apply a template",
     "description": "Replaces the current draft team with the template.",

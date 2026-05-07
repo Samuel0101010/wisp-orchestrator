@@ -57,5 +57,22 @@
     "Read input/users.csv with columns name,email,age and produce output/users.json with the same fields, normalising email to lowercase and rejecting rows where age is not a positive integer.",
     "Implement a streaming JSONL transform that reads input/events.jsonl and writes output/events-by-user.jsonl grouped by user_id with counts.",
     "Build a CSV-to-Parquet-equivalent JSON transformation that types each column based on a header-row schema."
-  ]
+  ],
+  "useCases": [
+    "Filesystem-driven data transforms (CSV/JSON in, normalised JSON out)",
+    "Streaming pipelines with backpressure tests and edge-case coverage",
+    "Schema validation + lineage logging for ETL one-shots"
+  ],
+  "bestFor": [
+    "Repos with sample input fixtures the agent can read",
+    "Tasks where validation rules are expressible as code",
+    "Workflows benefiting from a dedicated validator role separate from the implementer"
+  ],
+  "notRecommendedFor": [
+    "Live-streaming infra (Kafka, NATS) — file-based assumptions break",
+    "Heavyweight Spark/dbt pipelines",
+    "Tasks requiring a real database connection"
+  ],
+  "complexity": "complex",
+  "expectedDurationMinutes": 40
 }
