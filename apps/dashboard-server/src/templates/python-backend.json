@@ -59,5 +59,22 @@
     "Add a /health endpoint to src/app.py returning {status: 'ok'} with a pytest test using Flask's test client.",
     "Implement a JWT decoder helper in src/jwt_decode.py using PyJWT plus pytest tests for valid + expired tokens.",
     "Build a /users/<id> endpoint backed by an in-memory dict with CRUD pytest coverage."
-  ]
+  ],
+  "useCases": [
+    "Flask / FastAPI services adding a focused endpoint or helper",
+    "Auth / token / parsing utilities with unit-test coverage",
+    "Internal CLI scripts with type-hints and pytest"
+  ],
+  "bestFor": [
+    "Repos with pytest already wired up",
+    "Pip-managed projects (works with pip + pyenv + venv setups)",
+    "Tasks where the public surface is a function or HTTP endpoint"
+  ],
+  "notRecommendedFor": [
+    "ML training / data-science workflows",
+    "Multi-service backends needing cross-repo orchestration",
+    "Pure Django ORM migrations (no migration awareness in QA gate)"
+  ],
+  "complexity": "medium",
+  "expectedDurationMinutes": 30
 }

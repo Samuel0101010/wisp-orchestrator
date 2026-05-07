@@ -27,6 +27,13 @@ export const templateSchema = z.object({
   description: z.string().min(20).max(400),
   team: teamSchema,
   suggestedGoals: z.array(z.string().min(10).max(400)).min(1).max(8),
+  // Rich descriptive metadata, optional for backward compatibility with
+  // user-saved templates that pre-date these fields.
+  useCases: z.array(z.string().min(5).max(200)).max(8).optional(),
+  bestFor: z.array(z.string().min(3).max(120)).max(6).optional(),
+  notRecommendedFor: z.array(z.string().min(3).max(120)).max(6).optional(),
+  complexity: z.enum(['simple', 'medium', 'complex']).optional(),
+  expectedDurationMinutes: z.number().int().min(1).max(360).optional(),
 });
 
 export type TeamTemplate = z.infer<typeof templateSchema>;

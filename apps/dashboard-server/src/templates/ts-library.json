@@ -60,5 +60,22 @@
     "Add a hello(name) function returning 'Hello <name>!' to src/hello.ts plus a Vitest test covering happy path and empty-string edge case.",
     "Implement a debounce(fn, ms) utility under src/debounce.ts with Vitest tests for trailing invocation and cancel-on-resubscribe.",
     "Add a parseDuration(str) function that accepts strings like '5m', '2h', '1d' and returns milliseconds, with Vitest tests covering all suffix forms plus invalid input."
-  ]
+  ],
+  "useCases": [
+    "Small TypeScript libraries (single-package, < 500 LOC of new code)",
+    "Adding a new utility function with tests to an existing repo",
+    "Stand-alone NPM packages with build / test / lint gates"
+  ],
+  "bestFor": [
+    "Repos that already have pnpm + Vitest configured",
+    "Self-contained features where the public API is a small set of exports",
+    "Tasks where a 4-stage pipeline (design → impl → tests → QA) fits naturally"
+  ],
+  "notRecommendedFor": [
+    "Multi-package monorepos with cross-package refactors",
+    "UI work that needs a browser-based verify gate",
+    "Pure documentation tasks (use refactor-squad instead)"
+  ],
+  "complexity": "medium",
+  "expectedDurationMinutes": 25
 }

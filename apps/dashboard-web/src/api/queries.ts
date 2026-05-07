@@ -302,6 +302,13 @@ export interface TeamTemplate {
   description: string;
   team: Team;
   suggestedGoals: string[];
+  // Optional rich metadata (added in v1.1.x — older user-saved templates may
+  // not have these fields).
+  useCases?: string[];
+  bestFor?: string[];
+  notRecommendedFor?: string[];
+  complexity?: 'simple' | 'medium' | 'complex';
+  expectedDurationMinutes?: number;
 }
 
 export function useTemplates() {
