@@ -1,24 +1,26 @@
 {
-  "PreCompact": [
-    {
-      "matcher": ".*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/pre-compact-archive.sh\""
-        }
-      ]
-    }
-  ],
-  "SessionStart": [
-    {
-      "matcher": ".*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/session-start-cleanup.sh\""
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/pre-compact-archive.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/session-start-cleanup.sh\""
+          }
+        ]
+      }
+    ]
+  }
 }
