@@ -1,7 +1,7 @@
 export { runClaude, ClaudeSubprocess } from './subprocess.js';
 export type { RunClaudeOpts } from './subprocess.js';
 
-export { SubprocessPool } from './pool.js';
+export { SubprocessPool, PoolTerminatedError } from './pool.js';
 export type { SubprocessPoolOpts, SubprocessRunner } from './pool.js';
 
 export { detectRateLimit } from './rate-limit.js';

@@ -61,7 +61,7 @@ export const tools = {
     handle: (store: MemoryStore, args: GetInput) => ({ value: store.get(args.key) }),
   } as ToolEntry<GetInput, { value: string | null }>,
   'memory.list': {
-    description: 'List all keys with their UTF-8 character-count sizes, sorted by key ascending.',
+    description: 'List all keys with their UTF-8 byte sizes, sorted by key ascending.',
     inputSchema: listSchema,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     handle: (store: MemoryStore, _args: ListInput) => ({ entries: store.list() }),

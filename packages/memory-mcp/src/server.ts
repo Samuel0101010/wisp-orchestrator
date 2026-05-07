@@ -89,5 +89,12 @@ process.on('SIGTERM', shutdown);
 // file open and preventing checkpoint/truncation.
 process.stdin.on('close', shutdown);
 process.stdin.on('end', shutdown);
+// Last-chance safety net: if the MCP SDK or a bug in a tool handler raises an
+// uncaught exception or unhandled rejection, Node.js >=15 terminates the
+// process by default — without ever calling our SIGINT/SIGTERM handlers,
+// leaving the WAL file open. Route those through shutdown() too so we always
+// close the SQLite handle cleanly.
+process.on('uncaughtException', shutdown);
+process.on('unhandledRejection', shutdown);
 
 await server.connect(new StdioServerTransport());
