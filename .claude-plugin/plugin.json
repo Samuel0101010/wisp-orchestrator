@@ -1,6 +1,6 @@
 {
   "name": "agent-harness",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.",
   "author": {
     "name": "Samuel Heftberger",
