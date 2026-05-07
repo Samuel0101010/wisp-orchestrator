@@ -46,15 +46,18 @@ function renderAt(path: string) {
 }
 
 describe('App', () => {
-  it('renders the sidebar at root', () => {
+  it('renders the sidebar and Mission Control at root', () => {
     renderAt('/');
     expect(screen.getByText('Agent Harness')).toBeInTheDocument();
-    expect(screen.getByText('Welcome')).toBeInTheDocument();
+    // The new Home page shows the Mission Control heading.
+    expect(screen.getByTestId('mission-control')).toBeInTheDocument();
   });
 
   it('renders TeamBuilder at /projects/:id/teams', () => {
     renderAt('/projects/abc/teams');
-    expect(screen.getByText('Team Builder')).toBeInTheDocument();
+    // "Team Builder" now appears in both breadcrumbs and page heading; assert
+    // at least one Team Builder is present rather than requiring uniqueness.
+    expect(screen.getAllByText('Team Builder').length).toBeGreaterThan(0);
   });
 
   it('renders PlanEditor at /projects/:id/plan', async () => {

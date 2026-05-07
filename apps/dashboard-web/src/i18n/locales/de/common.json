@@ -49,7 +49,13 @@
     "run": "Run",
     "time": "Zeit",
     "turns": "Turns",
-    "tokens": "Tokens"
+    "tokens": "Tokens",
+    "missionControl": "Mission Control",
+    "activeNow": "aktiv",
+    "today": "heute",
+    "themeLight": "Zu hellem Theme wechseln",
+    "themeDark": "Zu dunklem Theme wechseln",
+    "openCommandPalette": "Befehlspalette öffnen"
   },
   "newProject": {
     "title": "Neues Projekt",
@@ -259,6 +265,51 @@
     "useCases": "Geeignet für",
     "bestFor": "Funktioniert gut mit",
     "notRecommendedFor": "Nicht empfohlen für"
+  },
+  "commandPalette": {
+    "placeholder": "Projekte, Runs, Aktionen suchen…",
+    "empty": "Keine Treffer.",
+    "actions": "Aktionen",
+    "projects": "Projekte",
+    "runs": "Letzte Runs",
+    "gotoMissionControl": "Zu Mission Control"
+  },
+  "breadcrumbs": {
+    "project": "Projekt",
+    "teamBuilder": "Team Builder",
+    "planEditor": "Plan-Editor",
+    "run": "Run"
+  },
+  "home": {
+    "title": "Mission Control",
+    "subtitle": "Live-Übersicht aller Agenten-Runs über deine Projekte hinweg.",
+    "kpiSection": "Kennzahlen",
+    "kpis": {
+      "activeRuns": "Aktive Runs",
+      "activeCaption": "läuft oder pausiert",
+      "tokensWindow": "Tokens · 7 Tage",
+      "totalRunsCaption_one": "{{count}} Run im Zeitraum",
+      "totalRunsCaption_other": "{{count}} Runs im Zeitraum",
+      "successRate": "Erfolgsrate · 7 Tage",
+      "successCaption": "{{ok}}/{{total}} erfolgreich",
+      "avgDuration": "Ø Dauer · 7 Tage",
+      "avgCaption": "über abgeschlossene Runs"
+    },
+    "charts": {
+      "tokenThroughput": "Token-Durchsatz",
+      "tokenThroughputDesc": "letzte 7 Tage · alle Projekte",
+      "outcomes": "Run-Ergebnisse",
+      "outcomesDesc": "letzte 7 Tage"
+    },
+    "live": {
+      "title": "Jetzt live",
+      "active": "aktiv",
+      "empty": "Keine aktiven Runs — starte einen aus einem Projekt."
+    },
+    "recent": {
+      "title": "Letzte Runs",
+      "subtitle": "alle Projekte · sortierbar"
+    }
   },
   "projectDetail": {
     "subtitle": "Projekt-Übersicht, Team, Plan und Run-Historie.",
