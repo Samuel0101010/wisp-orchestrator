@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import '../i18n';
 
 // React Flow needs ResizeObserver, DOMRect, and a reasonable viewport size in
 // jsdom. We stub the bare minimum so components that mount React Flow don't
