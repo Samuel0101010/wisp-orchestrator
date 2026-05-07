@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Plus, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import { ApiError, apiFetch } from '@/api/client';
 import { TemplatePicker } from '@/components/TemplatePicker';
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [goal, setGoal] = useState('');
@@ -81,7 +83,7 @@ export function Sidebar() {
           }
         }
       }
-      toast({ title: 'Project created', description: project.name });
+      toast({ title: t('newProject.toasts.created'), description: project.name });
       setOpen(false);
       reset();
       navigate(`/projects/${project.id}/teams`);
@@ -92,7 +94,11 @@ export function Sidebar() {
             ? String((err.body as { message: unknown }).message)
             : err.message
           : (err as Error).message;
-      toast({ title: 'Create failed', description: msg, variant: 'destructive' });
+      toast({
+        title: t('newProject.toasts.createFailed'),
+        description: msg,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -100,7 +106,7 @@ export function Sidebar() {
     <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
       <div className="flex items-center justify-between p-4">
         <div className="flex flex-col">
-          <span className="text-sm font-semibold">Agent Harness</span>
+          <span className="text-sm font-semibold">{t('navigation.appName')}</span>
           <Badge variant="secondary" className="mt-1 w-fit text-[10px]">
             v1.0.0
           </Badge>
@@ -108,7 +114,9 @@ export function Sidebar() {
       </div>
       <Separator />
       <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">Projects</span>
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">
+          {t('navigation.projects')}
+        </span>
         <Dialog
           open={open}
           onOpenChange={(o) => {
@@ -117,51 +125,49 @@ export function Sidebar() {
           }}
         >
           <DialogTrigger asChild>
-            <Button size="icon" variant="ghost" aria-label="New project">
+            <Button size="icon" variant="ghost" aria-label={t('navigation.newProject')}>
               <Plus className="h-4 w-4" />
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>New Project</DialogTitle>
-              <DialogDescription>
-                Create a project to start configuring a team and plan.
-              </DialogDescription>
+              <DialogTitle>{t('newProject.title')}</DialogTitle>
+              <DialogDescription>{t('newProject.description')}</DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="np-name">Name</Label>
+                <Label htmlFor="np-name">{t('newProject.fields.name')}</Label>
                 <Input
                   id="np-name"
-                  placeholder="My project"
+                  placeholder={t('newProject.fields.namePlaceholder')}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Template</Label>
+                <Label>{t('newProject.fields.template')}</Label>
                 <TemplatePicker selectedId={templateId} onSelect={setTemplateId} />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="np-goal">Goal</Label>
+                <Label htmlFor="np-goal">{t('newProject.fields.goal')}</Label>
                 <Textarea
                   id="np-goal"
                   rows={3}
                   placeholder={
                     templateId
-                      ? (templates.find((t) => t.id === templateId)?.suggestedGoals[0] ??
-                        'Describe what you want the agents to accomplish.')
-                      : 'Describe what you want the agents to accomplish.'
+                      ? (templates.find((tpl) => tpl.id === templateId)?.suggestedGoals[0] ??
+                        t('newProject.fields.goalPlaceholder'))
+                      : t('newProject.fields.goalPlaceholder')
                   }
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="np-repo">Repo path</Label>
+                <Label htmlFor="np-repo">{t('newProject.fields.repoPath')}</Label>
                 <Input
                   id="np-repo"
-                  placeholder="/absolute/path/to/repo"
+                  placeholder={t('newProject.fields.repoPathPlaceholder')}
                   value={repoPath}
                   onChange={(e) => setRepoPath(e.target.value)}
                 />
@@ -169,16 +175,20 @@ export function Sidebar() {
             </div>
             <DialogFooter>
               <Button onClick={handleCreate} disabled={!valid || createProject.isPending}>
-                {createProject.isPending ? 'Creating…' : 'Create'}
+                {createProject.isPending ? t('buttons.creating') : t('buttons.create')}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
       <nav className="flex flex-1 flex-col gap-0.5 px-2 pb-4">
-        {isLoading && <span className="px-3 py-2 text-xs text-muted-foreground">Loading…</span>}
+        {isLoading && (
+          <span className="px-3 py-2 text-xs text-muted-foreground">{t('buttons.loading')}</span>
+        )}
         {!isLoading && projects.length === 0 && (
-          <span className="px-3 py-2 text-xs text-muted-foreground">No projects yet</span>
+          <span className="px-3 py-2 text-xs text-muted-foreground">
+            {t('navigation.noProjectsYet')}
+          </span>
         )}
         {projects.map((p) => {
           const active = params.projectId === p.id;
@@ -212,7 +222,7 @@ export function Sidebar() {
                       className={status ? 'ml-1 text-[9px]' : 'ml-auto text-[9px]'}
                       data-testid={`sidebar-daily-count-${p.id}`}
                     >
-                      {count} today
+                      {t('navigation.today', { count })}
                     </Badge>
                   );
                 })()}
@@ -227,12 +237,15 @@ export function Sidebar() {
 }
 
 function RecentRuns({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const runs = useProjectRuns(projectId);
   if (!runs.data || runs.data.length === 0) return null;
   const top = runs.data.slice(0, 3);
   return (
     <div className="ml-7 mr-2 flex flex-col gap-0.5 py-1" data-testid={`recent-runs-${projectId}`}>
-      <span className="px-2 py-1 text-[10px] uppercase text-muted-foreground">Recent runs</span>
+      <span className="px-2 py-1 text-[10px] uppercase text-muted-foreground">
+        {t('navigation.recentRuns')}
+      </span>
       {top.map((r) => (
         <Link
           key={r.id}

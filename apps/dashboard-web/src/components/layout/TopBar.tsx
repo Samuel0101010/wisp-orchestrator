@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pause, Coins } from 'lucide-react';
 import { Link, useMatch } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { LanguageToggle } from '@/components/LanguageToggle';
 import { computeAggregates, useRunStore } from '@/store/run';
 
 function formatCompactNumber(n: number): string {
@@ -13,6 +15,7 @@ function formatCompactNumber(n: number): string {
 }
 
 export function TopBar() {
+  const { t } = useTranslation();
   const match = useMatch('/projects/:projectId/run/:runId');
   const run = useRunStore((s) => s.run);
   // Subscribe to the small number of scalars we need; compute aggregates from them
@@ -28,18 +31,20 @@ export function TopBar() {
     return (
       <header className="flex h-14 items-center gap-4 border-b bg-card px-4">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Active run</span>
-          <Badge variant="outline">no run</Badge>
+          <span className="text-xs text-muted-foreground">{t('topBar.activeRun')}</span>
+          <Badge variant="outline">{t('topBar.noRun')}</Badge>
         </div>
         <Separator orientation="vertical" className="h-6" />
         <button type="button" disabled className="text-xs text-muted-foreground">
           <Pause className="mr-2 inline h-4 w-4" />
-          Pause Run
+          {t('buttons.pauseRun')}
         </button>
         <div className="ml-auto flex items-center gap-2 text-sm">
           <Coins className="h-4 w-4 text-muted-foreground" />
           <span className="tabular-nums">0</span>
-          <span className="text-xs text-muted-foreground">tokens</span>
+          <span className="text-xs text-muted-foreground">{t('topBar.tokens')}</span>
+          <Separator orientation="vertical" className="h-6" />
+          <LanguageToggle />
         </div>
       </header>
     );
@@ -54,7 +59,7 @@ export function TopBar() {
         to={`/projects/${match?.params.projectId}/run/${match?.params.runId}`}
         className="flex items-center gap-2 text-sm hover:underline"
       >
-        <span className="text-xs text-muted-foreground">Run</span>
+        <span className="text-xs text-muted-foreground">{t('topBar.run')}</span>
         <Badge variant="outline" data-testid="topbar-run-status">
           {run.status}
         </Badge>
@@ -63,7 +68,7 @@ export function TopBar() {
       <Separator orientation="vertical" className="h-6" />
       <div className="flex flex-1 items-center gap-4 text-xs">
         <div className="flex flex-1 items-center gap-2">
-          <span className="w-12 text-muted-foreground">Time</span>
+          <span className="w-12 text-muted-foreground">{t('topBar.time')}</span>
           <div className="relative h-1.5 max-w-40 flex-1 overflow-hidden rounded-full bg-secondary">
             <div
               className="h-full bg-primary transition-all"
@@ -73,7 +78,7 @@ export function TopBar() {
           </div>
         </div>
         <div className="flex flex-1 items-center gap-2">
-          <span className="w-12 text-muted-foreground">Turns</span>
+          <span className="w-12 text-muted-foreground">{t('topBar.turns')}</span>
           <div className="relative h-1.5 max-w-40 flex-1 overflow-hidden rounded-full bg-secondary">
             <div
               className="h-full bg-primary transition-all"
@@ -88,7 +93,9 @@ export function TopBar() {
         <span className="tabular-nums" data-testid="topbar-tokens">
           {formatCompactNumber(aggregates.tokensInTotal + aggregates.tokensOutTotal)}
         </span>
-        <span className="text-xs text-muted-foreground">tokens</span>
+        <span className="text-xs text-muted-foreground">{t('topBar.tokens')}</span>
+        <Separator orientation="vertical" className="h-6" />
+        <LanguageToggle />
       </div>
     </header>
   );

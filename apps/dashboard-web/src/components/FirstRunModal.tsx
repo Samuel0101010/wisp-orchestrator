@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ export interface FirstRunModalProps {
 }
 
 export function FirstRunModal({ open, onAck }: FirstRunModalProps) {
+  const { t } = useTranslation();
   const handleAck = (): void => {
     try {
       localStorage.setItem(ACK_KEY, '1');
@@ -33,21 +35,13 @@ export function FirstRunModal({ open, onAck }: FirstRunModalProps) {
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Agent Harness uses your Claude subscription</DialogTitle>
-          <DialogDescription>
-            This run dispatches the official <code>claude</code> CLI as subprocesses inheriting your
-            existing subscription credentials. It does not extract or store your tokens, and it
-            never calls Anthropic&apos;s API endpoints directly. Anthropic&apos;s Terms of Service
-            apply to your usage. Subscription tiers are intended for personal use; for
-            commercial-grade automation, use the API tier (paid per token) instead.
-          </DialogDescription>
+          <DialogTitle>{t('firstRunModal.title')}</DialogTitle>
+          <DialogDescription>{t('firstRunModal.description')}</DialogDescription>
         </DialogHeader>
-        <p className="text-xs text-muted-foreground">
-          You will see this once. Acknowledgment is stored in browser localStorage.
-        </p>
+        <p className="text-xs text-muted-foreground">{t('firstRunModal.footnote')}</p>
         <DialogFooter>
           <Button onClick={handleAck} data-testid="first-run-ack">
-            I understand, continue
+            {t('firstRunModal.acknowledge')}
           </Button>
         </DialogFooter>
       </DialogContent>
