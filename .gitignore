@@ -43,3 +43,6 @@ Thumbs.db
 # Editors
 .idea/
 .vscode/
+
+# Claude Code session-local state (NOT the plugin manifest at .claude-plugin/)
+.claude/

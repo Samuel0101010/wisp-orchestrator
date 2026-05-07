@@ -52,17 +52,38 @@ if ($chosenPort -eq 0) {
     exit 1
 }
 
-# Locate the dashboard server entry.
+# Locate the dashboard server entry. Auto-bootstrap on first launch.
 $serverEntry = Join-Path $pluginRoot 'apps/dashboard-server/dist/server.js'
 if (-not (Test-Path -LiteralPath $serverEntry)) {
-    Write-Host "Dashboard server not built. Run ``pnpm install && pnpm build`` first." -ForegroundColor Yellow
-    exit 1
+    Write-Host "First launch: building Agent Harness (~1-2 minutes)..." -ForegroundColor Cyan
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if ($null -eq $pnpm) {
+        Write-Error "pnpm not found on PATH. Install it first: npm install -g pnpm"
+        exit 1
+    }
+    Push-Location $pluginRoot
+    try {
+        Write-Host "  pnpm install..." -ForegroundColor Cyan
+        & pnpm install --frozen-lockfile
+        if ($LASTEXITCODE -ne 0) { Write-Error "pnpm install failed."; exit 1 }
+        Write-Host "  pnpm build..." -ForegroundColor Cyan
+        & pnpm build
+        if ($LASTEXITCODE -ne 0) { Write-Error "pnpm build failed."; exit 1 }
+    } finally {
+        Pop-Location
+    }
+    if (-not (Test-Path -LiteralPath $serverEntry)) {
+        Write-Error "Bootstrap finished but $serverEntry still missing."
+        exit 1
+    }
+    Write-Host "  Built. Starting dashboard..." -ForegroundColor Green
 }
 
 # Spawn node detached, capture PID.
 $envBlock = @{
-    HARNESS_PORT     = "$chosenPort"
-    HARNESS_DATA_DIR = "$dataDir"
+    HARNESS_PORT      = "$chosenPort"
+    HARNESS_DATA_DIR  = "$dataDir"
+    HARNESS_SERVE_WEB = '1'
 }
 foreach ($k in $envBlock.Keys) {
     Set-Item -Path "Env:$k" -Value $envBlock[$k]
