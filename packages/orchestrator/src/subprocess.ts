@@ -109,27 +109,50 @@ function tryParseJson(line: string): ParsedLine | null {
   }
 }
 
-function mapCliEvent(parsed: ParsedLine, taskId: string): HarnessEvent | null {
+function mapCliEvent(parsed: ParsedLine, taskId: string): HarnessEvent[] {
   const t = parsed.type;
-  if (typeof t !== 'string') return null;
+  if (typeof t !== 'string') return [];
 
   switch (t) {
     case 'text-delta': {
+      // Legacy shape (also produced by the mock fixture).
       const text = typeof parsed.text === 'string' ? parsed.text : '';
-      return { type: 'task.text-delta', payload: { taskId, text } };
+      return [{ type: 'task.text-delta', payload: { taskId, text } }];
     }
     case 'tool-use': {
+      // Legacy shape (also produced by the mock fixture).
       const tool = typeof parsed.tool === 'string' ? parsed.tool : 'unknown';
-      return {
-        type: 'task.tool-use',
-        payload: { taskId, tool, input: parsed.input },
-      };
+      return [{ type: 'task.tool-use', payload: { taskId, tool, input: parsed.input } }];
+    }
+    case 'assistant': {
+      // Modern `claude -p --output-format stream-json` shape: a single
+      // `assistant` frame wraps a `message.content[]` array whose items are
+      // `{type:'text', text}` or `{type:'tool_use', name, input}` (and
+      // sometimes `{type:'thinking'}` which we skip). One frame yields N
+      // events. Without this case the dashboard's text-delta + tool-use
+      // streams stay empty during real runs even though the agents
+      // obviously produced both.
+      const message = parsed.message as Record<string, unknown> | undefined;
+      const content = Array.isArray(message?.content) ? (message.content as unknown[]) : [];
+      const out: HarnessEvent[] = [];
+      for (const item of content) {
+        if (!item || typeof item !== 'object') continue;
+        const it = item as Record<string, unknown>;
+        if (it.type === 'text') {
+          const text = typeof it.text === 'string' ? it.text : '';
+          if (text) out.push({ type: 'task.text-delta', payload: { taskId, text } });
+        } else if (it.type === 'tool_use') {
+          const tool = typeof it.name === 'string' ? it.name : 'unknown';
+          out.push({ type: 'task.tool-use', payload: { taskId, tool, input: it.input } });
+        }
+      }
+      return out;
     }
     case 'result': {
       const usage = (parsed as Record<string, unknown>).usage as
         | Record<string, unknown>
         | undefined;
-      if (!usage) return null;
+      if (!usage) return [];
       const inputTokens = Number((usage as Record<string, number | undefined>).input_tokens ?? 0);
       const cacheCreate = Number(
         (usage as Record<string, number | undefined>).cache_creation_input_tokens ?? 0,
@@ -139,21 +162,23 @@ function mapCliEvent(parsed: ParsedLine, taskId: string): HarnessEvent | null {
       const tokensIn =
         (Number.isFinite(inputTokens) ? inputTokens : 0) +
         (Number.isFinite(cacheCreate) ? cacheCreate : 0);
-      return {
-        type: 'task.usage',
-        payload: {
-          taskId,
-          tokensIn: Math.max(0, Math.trunc(tokensIn)),
-          tokensOut: Math.max(0, Math.trunc(Number.isFinite(outputTokens) ? outputTokens : 0)),
-          turns: Math.max(0, Math.trunc(Number.isFinite(numTurns) ? numTurns : 0)),
+      return [
+        {
+          type: 'task.usage',
+          payload: {
+            taskId,
+            tokensIn: Math.max(0, Math.trunc(tokensIn)),
+            tokensOut: Math.max(0, Math.trunc(Number.isFinite(outputTokens) ? outputTokens : 0)),
+            turns: Math.max(0, Math.trunc(Number.isFinite(numTurns) ? numTurns : 0)),
+          },
         },
-      };
+      ];
     }
     case 'completion':
       // Internal CLI marker; consumer cares about exit-code-driven completed event.
-      return null;
+      return [];
     default:
-      return null;
+      return [];
   }
 }
 
@@ -306,8 +331,7 @@ export class ClaudeSubprocess {
             });
           }
         }
-        const ev = mapCliEvent(parsed, opts.taskId);
-        if (ev) push(ev);
+        for (const ev of mapCliEvent(parsed, opts.taskId)) push(ev);
       }
     });
 
@@ -332,8 +356,7 @@ export class ClaudeSubprocess {
       if (stdoutBuf.length > 0) {
         const parsed = tryParseJson(stdoutBuf);
         if (parsed) {
-          const ev = mapCliEvent(parsed, opts.taskId);
-          if (ev) push(ev);
+          for (const ev of mapCliEvent(parsed, opts.taskId)) push(ev);
         }
         stdoutBuf = '';
       }
