@@ -1,5 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable';
 import type { AgentSpec, Team } from '@agent-harness/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,12 +41,12 @@ import {
 import { ApiError } from '@/api/client';
 import { DEFAULT_TEAM } from '@/data/defaultTeam';
 import {
-  TeamRoleCard,
   type DraftAgent,
   SYSTEM_PROMPT_MIN,
   SYSTEM_PROMPT_MAX,
   isRoleNameValid,
 } from '@/components/TeamRoleCard';
+import { SortableTeamRoleCard } from '@/components/SortableTeamRoleCard';
 import { TeamRoleAddButton } from '@/components/TeamRoleAddButton';
 import { ApplyTemplateDialog } from '@/components/ApplyTemplateDialog';
 import { TeamJsonDialog } from '@/components/TeamJsonDialog';
@@ -93,6 +108,16 @@ function isDraftValid(draft: DraftAgent[]): boolean {
   return true;
 }
 
+// Per-row stable identifier. crypto.randomUUID is widely available in modern
+// browsers; fall back to a Math.random-based suffix so non-UUID environments
+// (older test runtimes) still get unique strings.
+function generateRowId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `row-${Math.random().toString(36).slice(2, 11)}-${Date.now().toString(36)}`;
+}
+
 function teamsEqual(a: DraftAgent[], b: Team): boolean {
   if (a.length !== b.roles.length) return false;
   for (let i = 0; i < a.length; i++) {
@@ -119,6 +144,11 @@ export function TeamBuilder() {
   const saveAsTemplate = useSaveAsTemplate();
 
   const [draft, setDraft] = useState<DraftAgent[]>(() => teamToDraft(DEFAULT_TEAM));
+  // Stable sortable IDs, one per draft entry. dnd-kit needs IDs that survive
+  // reorders without depending on the role-name string (which can be empty
+  // mid-typing). We update this array in lockstep with draft on every
+  // add/remove/move/template-apply/hydrate.
+  const [ids, setIds] = useState<string[]>(() => draft.map(() => generateRowId()));
   const [tplOpen, setTplOpen] = useState(false);
   const [tplId, setTplId] = useState('');
   const [tplName, setTplName] = useState('');
@@ -126,12 +156,24 @@ export function TeamBuilder() {
   const [hydrated, setHydrated] = useState(false);
   const [testPromptIndex, setTestPromptIndex] = useState<number | null>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      // Require 5px of movement before starting a drag — without this, every
+      // click on an interactive element inside the card (input focus, button
+      // press) gets interpreted as a drag attempt.
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
   // When the team query resolves, hydrate the draft once.
   useEffect(() => {
     if (hydrated) return;
     if (teamQuery.isFetching) return;
     if (teamQuery.data) {
-      setDraft(teamToDraft(teamQuery.data));
+      const next = teamToDraft(teamQuery.data);
+      setDraft(next);
+      setIds(next.map(() => generateRowId()));
     }
     setHydrated(true);
   }, [teamQuery.data, teamQuery.isFetching, hydrated]);
@@ -221,16 +263,24 @@ export function TeamBuilder() {
 
   const moveRole = (from: number, to: number): void => {
     if (to < 0 || to >= draft.length) return;
-    setDraft((arr) => {
-      const copy = [...arr];
-      const [picked] = copy.splice(from, 1);
-      if (picked) copy.splice(to, 0, picked);
-      return copy;
-    });
+    setDraft((arr) => arrayMove(arr, from, to));
+    setIds((arr) => arrayMove(arr, from, to));
+  };
+
+  const handleDragEnd = (event: DragEndEvent): void => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    setDraft((arr) => arrayMove(arr, oldIndex, newIndex));
+    setIds((arr) => arrayMove(arr, oldIndex, newIndex));
   };
 
   const applyTemplate = (team: Team): void => {
-    setDraft(teamToDraft(team));
+    const next = teamToDraft(team);
+    setDraft(next);
+    setIds(next.map(() => generateRowId()));
     toast({ title: 'Template applied', description: `${team.roles.length} role(s) loaded` });
   };
 
@@ -257,34 +307,42 @@ export function TeamBuilder() {
         </p>
       </div>
       <CostEstimatePanel team={draftTeam} projectId={projectId} />
-      <div className="grid gap-4 lg:grid-cols-3">
-        {draft.map((d, i) => (
-          <TeamRoleCard
-            key={i}
-            draft={d}
-            index={i}
-            onChange={(next) => setDraft((arr) => arr.map((a, j) => (j === i ? next : a)))}
-            onRemove={() =>
-              setDraft((arr) => (arr.length > 1 ? arr.filter((_, j) => j !== i) : arr))
-            }
-            onMoveUp={() => moveRole(i, i - 1)}
-            onMoveDown={() => moveRole(i, i + 1)}
-            canRemove={draft.length > 1}
-            canMoveUp={i > 0}
-            canMoveDown={i < draft.length - 1}
-            isDuplicate={d.role.trim() !== '' && dups.has(d.role.trim())}
-            onTestPrompt={() => setTestPromptIndex(i)}
-          />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={ids} strategy={rectSortingStrategy}>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {draft.map((d, i) => (
+              <SortableTeamRoleCard
+                key={ids[i] ?? i}
+                id={ids[i] ?? `fallback-${i}`}
+                draft={d}
+                index={i}
+                onChange={(next) => setDraft((arr) => arr.map((a, j) => (j === i ? next : a)))}
+                onRemove={() => {
+                  if (draft.length <= 1) return;
+                  setDraft((arr) => arr.filter((_, j) => j !== i));
+                  setIds((arr) => arr.filter((_, j) => j !== i));
+                }}
+                onMoveUp={() => moveRole(i, i - 1)}
+                onMoveDown={() => moveRole(i, i + 1)}
+                canRemove={draft.length > 1}
+                canMoveUp={i > 0}
+                canMoveDown={i < draft.length - 1}
+                isDuplicate={d.role.trim() !== '' && dups.has(d.role.trim())}
+                onTestPrompt={() => setTestPromptIndex(i)}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
       <TeamRoleAddButton
-        onAdd={() =>
-          setDraft((arr) =>
-            arr.length < MAX_ROLES
-              ? [...arr, { role: '', model: 'sonnet', allowedTools: ['Read'], systemPrompt: '' }]
-              : arr,
-          )
-        }
+        onAdd={() => {
+          if (draft.length >= MAX_ROLES) return;
+          setDraft((arr) => [
+            ...arr,
+            { role: '', model: 'sonnet', allowedTools: ['Read'], systemPrompt: '' },
+          ]);
+          setIds((arr) => [...arr, generateRowId()]);
+        }}
         disabled={draft.length >= MAX_ROLES}
         count={draft.length}
         max={MAX_ROLES}
