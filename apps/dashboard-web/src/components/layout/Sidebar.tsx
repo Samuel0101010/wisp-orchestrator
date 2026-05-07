@@ -196,7 +196,7 @@ export function Sidebar() {
           return (
             <div key={p.id} className="flex flex-col">
               <Link
-                to={`/projects/${p.id}/teams`}
+                to={`/projects/${p.id}`}
                 className={
                   'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
                   (active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
