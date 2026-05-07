@@ -15,11 +15,13 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
 import { useRunEvents } from '@/api/ws';
+import { useTranslation } from 'react-i18next';
 import {
   useCancelRun,
   usePauseRun,
   useResumeRun,
   useRun,
+  useStartRun,
   type RunSnapshotResponse,
 } from '@/api/queries';
 import {
@@ -308,6 +310,8 @@ function LiveTailSheet({ task, onClose }: LiveTailSheetProps) {
 
 interface RunHeaderActionsProps {
   runId: string;
+  planId: string;
+  projectId: string;
   status: string;
   pausedReason: string | null;
   resumeAt: number | null;
@@ -317,16 +321,40 @@ interface RunHeaderActionsProps {
 
 function RunHeaderActions({
   runId,
+  planId,
+  projectId,
   status,
   pausedReason,
   resumeAt,
   nowMs,
   onAfterAction,
 }: RunHeaderActionsProps) {
+  const { t } = useTranslation();
   const pause = usePauseRun(runId);
   const resume = useResumeRun(runId);
   const cancel = useCancelRun(runId);
+  const startRun = useStartRun();
+  const navigate = useNavigate();
   const [confirmCancel, setConfirmCancel] = useState(false);
+
+  const isTerminal = status === 'completed' || status === 'failed' || status === 'cancelled';
+
+  const handleRunAgain = async (): Promise<void> => {
+    try {
+      const result = await startRun.mutateAsync({ planId });
+      toast({
+        title: t('projectDetail.toasts.runStarted'),
+        description: result.runId.slice(0, 8),
+      });
+      navigate(`/projects/${projectId}/run/${result.runId}`);
+    } catch (err) {
+      toast({
+        title: t('projectDetail.toasts.runStartFailed'),
+        description: (err as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const resumeBlocked = pausedReason === 'rate-limit' && resumeAt != null && resumeAt > nowMs;
 
@@ -375,6 +403,20 @@ function RunHeaderActions({
 
   return (
     <div className="flex items-center gap-2">
+      {isTerminal && (
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => void handleRunAgain()}
+          disabled={startRun.isPending}
+          data-testid="run-again-button"
+        >
+          <Play className="mr-2 h-4 w-4" />
+          {startRun.isPending
+            ? t('projectDetail.actions.starting')
+            : t('projectDetail.actions.newRun')}
+        </Button>
+      )}
       {status === 'running' && (
         <Button
           size="sm"
@@ -662,6 +704,8 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
         </div>
         <RunHeaderActions
           runId={run.id}
+          planId={run.planId}
+          projectId={projectId ?? ''}
           status={run.status}
           pausedReason={run.pausedReason}
           resumeAt={run.resumeAt}

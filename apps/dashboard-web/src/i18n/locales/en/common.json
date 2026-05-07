@@ -259,6 +259,51 @@
     "bestFor": "Works well with",
     "notRecommendedFor": "Not recommended for"
   },
+  "projectDetail": {
+    "subtitle": "Project overview, team, plan, and run history.",
+    "summary": {
+      "goal": "Goal",
+      "repoPath": "Repo path",
+      "team": "Team",
+      "noTeam": "No team configured yet",
+      "rolesCount_one": "{{count}} role",
+      "rolesCount_other": "{{count}} roles",
+      "plan": "Plan",
+      "planDraft": "Draft plan",
+      "planLocked": "Locked plan",
+      "noPlan": "No plan generated yet"
+    },
+    "actions": {
+      "openTeam": "Open Team Builder",
+      "openPlan": "Open Plan Editor",
+      "newRun": "Start new run",
+      "newRunDisabled": "Lock a plan first",
+      "starting": "Starting…"
+    },
+    "runs": {
+      "title": "Run history",
+      "empty": "No runs yet — generate a plan and lock it to start the first one.",
+      "totalRuns_one": "{{count}} run",
+      "totalRuns_other": "{{count}} runs",
+      "successfulRuns": "{{count}} successful",
+      "totalTokens": "{{tokens}} tokens used",
+      "table": {
+        "id": "Run",
+        "status": "Status",
+        "outcome": "Outcome",
+        "started": "Started",
+        "duration": "Duration",
+        "tokens": "Tokens",
+        "actions": "Actions"
+      },
+      "openRun": "Open",
+      "running": "running"
+    },
+    "toasts": {
+      "runStarted": "Run started",
+      "runStartFailed": "Could not start run"
+    }
+  },
   "applyTemplate": {
     "title": "Apply a template",
     "description": "Replaces the current draft team with the template.",

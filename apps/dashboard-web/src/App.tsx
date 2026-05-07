@@ -3,6 +3,7 @@ import { Outlet, Route, Routes } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { Home } from '@/routes/Home';
+import { ProjectDetail } from '@/routes/ProjectDetail';
 import { TeamBuilder } from '@/routes/TeamBuilder';
 import { PlanEditor } from '@/routes/PlanEditor';
 import { RunView } from '@/routes/RunView';
@@ -35,6 +36,7 @@ export function App() {
     <Routes>
       <Route element={<Shell />}>
         <Route index element={<Home />} />
+        <Route path="/projects/:projectId" element={<ProjectDetail />} />
         <Route path="/projects/:projectId/teams" element={<TeamBuilder />} />
         <Route path="/projects/:projectId/plan" element={<PlanEditor />} />
         <Route path="/projects/:projectId/run/:runId" element={<RunView />} />
