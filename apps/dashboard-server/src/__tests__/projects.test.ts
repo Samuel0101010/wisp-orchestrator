@@ -69,4 +69,43 @@ describe('projects routes', () => {
     const body = res.json();
     expect(body.error).toBe('validation_error');
   });
+
+  it('PATCH /api/projects/:id updates the goal field and returns the updated row', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/projects',
+      payload: { name: 'p-patch', goal: 'old goal', repoPath: '/tmp/p-patch' },
+    });
+    const { id } = created.json();
+
+    const patch = await app.inject({
+      method: 'PATCH',
+      url: `/api/projects/${id}`,
+      payload: { goal: 'new goal that has been updated' },
+    });
+    expect(patch.statusCode).toBe(200);
+    const body = patch.json();
+    expect(body.id).toBe(id);
+    expect(body.goal).toBe('new goal that has been updated');
+    expect(body.name).toBe('p-patch');
+    expect(body.repoPath).toBe('/tmp/p-patch');
+  });
+
+  it('PATCH /api/projects/:id 400 when no fields are provided', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/projects/00000000-0000-0000-0000-000000000000',
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('PATCH /api/projects/:id 404 on unknown project', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/projects/00000000-0000-0000-0000-000000000000',
+      payload: { goal: 'whatever' },
+    });
+    expect(res.statusCode).toBe(404);
+  });
 });
