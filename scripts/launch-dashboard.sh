@@ -50,16 +50,35 @@ if [ -z "${chosen_port:-}" ]; then
   exit 1
 fi
 
-# Locate dashboard server entry.
+# Locate dashboard server entry. Auto-bootstrap on first launch.
 server_entry="${plugin_root}/apps/dashboard-server/dist/server.js"
 if [ ! -f "$server_entry" ]; then
-  echo "Dashboard server not built. Run \`pnpm install && pnpm build\` first." >&2
-  exit 1
+  echo "First launch: building Agent Harness (~1-2 minutes)..."
+  if ! command -v pnpm >/dev/null 2>&1; then
+    echo "pnpm not found on PATH. Install it first: npm install -g pnpm" >&2
+    exit 1
+  fi
+  cd "$plugin_root"
+  echo "  pnpm install..."
+  if ! pnpm install --frozen-lockfile; then
+    echo "pnpm install failed." >&2
+    exit 1
+  fi
+  echo "  pnpm build..."
+  if ! pnpm build; then
+    echo "pnpm build failed." >&2
+    exit 1
+  fi
+  if [ ! -f "$server_entry" ]; then
+    echo "Bootstrap finished but $server_entry still missing." >&2
+    exit 1
+  fi
+  echo "  Built. Starting dashboard..."
 fi
 
 # Spawn node detached.
 log_file="${data_dir}/server.log"
-HARNESS_PORT="$chosen_port" HARNESS_DATA_DIR="$data_dir" \
+HARNESS_PORT="$chosen_port" HARNESS_DATA_DIR="$data_dir" HARNESS_SERVE_WEB=1 \
   nohup node "$server_entry" >"$log_file" 2>&1 &
 server_pid=$!
 disown "$server_pid" 2>/dev/null || true
