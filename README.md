@@ -58,12 +58,14 @@ There are two supported paths.
 ### As a Claude Code plugin (preferred)
 
 ```sh
-claude plugin marketplace add "C:\Users\samue\Agent Harness"
-claude plugin install agent-harness@local
+claude plugin marketplace add Samuel0101010/agent-harness
+claude plugin install agent-harness@agent-harness-local
 claude /harness-dashboard
 ```
 
-The `/harness-dashboard` command runs the launcher script for your platform (`scripts/launch-dashboard.ps1` on Windows, `scripts/launch-dashboard.sh` on POSIX), picks a free port in `4400-4500`, writes connection state to `${CLAUDE_PLUGIN_DATA}/state.json`, and opens the dashboard in your default browser.
+(For local development, replace the first line with `claude plugin marketplace add /absolute/path/to/agent-harness`.)
+
+The `/harness-dashboard` command runs the launcher script for your platform (`scripts/launch-dashboard.ps1` on Windows, `scripts/launch-dashboard.sh` on POSIX). On the **first** invocation after a fresh install, the launcher auto-runs `pnpm install && pnpm build` (~1-2 minutes — pnpm must be on PATH). On subsequent invocations it boots straight to the server. Either way it picks a free port in `4400-4500`, writes connection state to `${CLAUDE_PLUGIN_DATA}/state.json`, and opens the dashboard in your default browser.
 
 ### From source (developer mode)
 
