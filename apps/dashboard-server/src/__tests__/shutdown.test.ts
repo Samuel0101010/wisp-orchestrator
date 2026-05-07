@@ -214,9 +214,7 @@ describe('runtime emit — task.tool-use (post-PR #22 parser fix)', () => {
     // Tool-use events now carry signal (the orchestrator parser was fixed in
     // PR #22 to read `assistant.message.content[type=tool_use]`), so the
     // runtime persists + publishes them like every other event.
-    expect(
-      published.some((p) => p.type === 'task.tool-use' && p.runId === runId),
-    ).toBe(true);
+    expect(published.some((p) => p.type === 'task.tool-use' && p.runId === runId)).toBe(true);
     expect(published.some((p) => p.type === 'task.started' && p.runId === runId)).toBe(true);
   });
 });
