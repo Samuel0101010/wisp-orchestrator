@@ -1,5 +1,122 @@
 # Changelog
 
+## 1.1.0 — i18n + project workflow polish
+
+40 commits past v1.0.0. The biggest user-visible additions: a
+language toggle (EN default ↔ DE), a dedicated project-detail
+overview view, a `Run-again` button on terminal-status runs, and
+much richer team-template descriptions. Plus four critical fixes
+discovered while exercising the GitHub plugin-install path
+end-to-end.
+
+### Added — i18n foundation (#29)
+
+- `react-i18next` + `i18next` + `i18next-browser-languagedetector`
+  wired into `apps/dashboard-web`.
+- `LanguageToggle` in TopBar — flag + native name dropdown,
+  persists to `localStorage['agent-harness-lang']`, navigator-lang
+  detection on first load.
+- `apps/dashboard-web/src/i18n/locales/{en,de}/common.json` cover
+  ~150 strings on the entry-path components: TopBar, Sidebar +
+  NewProject dialog, FirstRunModal, plus the new ProjectDetail
+  view and richer TemplatePicker.
+
+### Added — richer team templates (#30)
+
+- `templateSchema` extended with optional `useCases`, `bestFor`,
+  `notRecommendedFor`, `complexity` (`simple` / `medium` /
+  `complex`), `expectedDurationMinutes`. All four built-ins
+  populated.
+- `TemplatePicker.tsx` rewritten: complexity badge (color-coded),
+  duration badge, expand-to-see-detail panel with three labelled
+  bullet sections.
+
+### Added — project-detail view + Run-again (#31)
+
+- New `/projects/:projectId` route renders a project overview:
+  Goal / Repo path / Team summary cards, Plan-status card with
+  three actions (Open Team, Open Plan, Start new run gated on
+  locked plan), Run history table with status / outcome /
+  duration / tokens / aggregates.
+- Sidebar project link now lands on the detail view (was: jumped
+  straight into TeamBuilder).
+- `RunView` shows a `Run again` button when the run reaches a
+  terminal status (`completed | failed | cancelled`), POSTing
+  `/api/runs` with the same `planId`.
+
+### Fixed — plugin install path (#26, #27, #28)
+
+The GitHub plugin-install path had three blockers caught only by
+running `claude plugin install` end-to-end against the live CLI
+(2.1.131). Each was a one-line schema mismatch; subsequent installs
+all succeed.
+
+- `marketplace.json` source must be `"./"` (was `"."`).
+- `plugin.json` must NOT declare `agents/commands/skills/hooks`
+  paths — Claude Code auto-discovers them by directory convention.
+- `hooks.json` must wrap events in a top-level `"hooks"` record.
+
+### Fixed — bootstrap + serve-web (#21)
+
+- `scripts/launch-dashboard.{ps1,sh}` auto-bootstrap on first
+  invocation (`pnpm install --frozen-lockfile && pnpm build`)
+  when `apps/dashboard-server/dist/server.js` is missing. Solves
+  the previous "Dashboard server not built" dead-end every fresh
+  `claude plugin install` user hit.
+- Both launchers now set `HARNESS_SERVE_WEB=1` so `/` serves the
+  SPA instead of returning 404.
+- README install path uses the GitHub source
+  (`Samuel0101010/agent-harness`) and the correct marketplace
+  name (`agent-harness-local`).
+
+### Fixed — modern stream-json + tool-use events (#22, #23)
+
+- `subprocess.ts:mapCliEvent` extended with an `assistant`-frame
+  case that walks `message.content[]` and emits `task.text-delta`
+  per `text` item and `task.tool-use` per `tool_use` item.
+  `thinking` items skipped (private chain-of-thought stays out of
+  the dashboard). Without this, the live tail and per-task
+  tool-use stream were silently empty during real-Claude runs.
+- `runtime.ts` `task.tool-use` filter removed — events now persist
+  + broadcast like every other event type. Live verified against
+  `mcp__agent-harness-memory__memory_set` and `Write` calls.
+
+### Fixed — PowerShell launcher logging (#22)
+
+- `launch-dashboard.ps1` redirects stdout / stderr to
+  `server.log` / `server.err.log` in `dataDir`, mirroring the
+  POSIX launcher's nohup redirect.
+
+### Changed — license
+
+- All eight `package.json` files + `plugin.json` now declare
+  `Apache-2.0` (was `UNLICENSED`). Repository ships `LICENSE`
+  (canonical Apache-2.0 text). Repo remains private; the license
+  declaration takes effect whenever it (or the plugin via
+  marketplace) is made public.
+
+### Docs — final truth pass (#25)
+
+Eight stale claims fixed across `README.md`,
+`docs/architecture.md`, `docs/memory-mcp.md`,
+`docs/development.md` (M1 framing, route list, table count,
+budget defaults, env-var coverage). New `docs/templates.md` and
+`docs/replan.md` filled the two original-plan deliverables that
+were never written. New `docs/solutions/` entries: replan
+branch-prefix carried-over deps (Round 5 CRITICAL),
+`claude-cli` session-id capture, better-sqlite3 busy_timeout
+(under-write contention).
+
+### Audits
+
+Five rounds of post-v1.0 hardening landed earlier in this cycle
+(#14–#20): replan branch-parent for carried-over `done` deps,
+session-id capture, MCP `busy_timeout=5000` pragma, recovery
+hardening (transaction wrap), pool drain on terminate, kill
+race-conditions on Windows, byte-correct `octet_length` for memory
+sizes, planner.md role-agnostic rewrite, plus 23 PR-#16/#17
+verification corrections.
+
 ## 1.0.0 — Personal-use complete
 
 The plan written 2026-05-05 finished as scoped: M1 vertical slice,
