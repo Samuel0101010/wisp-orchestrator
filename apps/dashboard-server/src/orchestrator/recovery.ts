@@ -88,6 +88,20 @@ export async function findResumableRuns(db: BetterSQLite3Database): Promise<Resu
       : [];
   const projectById = new Map(projectRows.map((p) => [p.id, p]));
 
+  // Batch-load tasks for ALL plans up front to avoid an N+1 query inside the
+  // result loop. With many resumable runs this used to issue one round-trip
+  // per run, stalling the boot path proportionally.
+  const allTaskRows =
+    planIds.length > 0
+      ? await db.select().from(tasks).where(inArray(tasks.planId, planIds)).all()
+      : [];
+  const tasksByPlanId = new Map<string, typeof allTaskRows>();
+  for (const t of allTaskRows) {
+    const arr = tasksByPlanId.get(t.planId) ?? [];
+    arr.push(t);
+    tasksByPlanId.set(t.planId, arr);
+  }
+
   const result: ResumableRun[] = [];
   for (const r of runRows) {
     const plan = planById.get(r.planId);
@@ -95,7 +109,7 @@ export async function findResumableRuns(db: BetterSQLite3Database): Promise<Resu
     const project = projectById.get(plan.projectId);
     if (!project) continue;
 
-    const taskRows = await db.select().from(tasks).where(eq(tasks.planId, plan.id)).all();
+    const taskRows = tasksByPlanId.get(plan.id) ?? [];
     const counts: ResumableRunTaskCounts = {
       pending: 0,
       running: 0,
@@ -165,54 +179,60 @@ export async function findResumableRuns(db: BetterSQLite3Database): Promise<Resu
  * Returns the number of run rows rewritten.
  */
 export async function fixUpAbruptCrashes(db: BetterSQLite3Database): Promise<number> {
-  let count = 0;
+  // Wrap the read-then-update sequence in a transaction. The harness is
+  // single-tenant by design, but a developer running `pnpm dev` while a
+  // separate test suite touches the same DB (without HARNESS_DATA_DIR
+  // isolation) would otherwise see a window where the `tasks.status='running'`
+  // update could clobber a row that another process just legitimately
+  // promoted. Transaction is cheap; the fixup is idempotent so no behavior
+  // change for the common case.
+  return db.transaction(() => {
+    let count = 0;
 
-  // (1) Abrupt-crash orphans: status='running'.
-  const orphans = await db.select().from(runs).where(eq(runs.status, 'running')).all();
-  for (const r of orphans) {
-    await db
-      .update(runs)
-      .set({ status: 'paused', pausedReason: 'shutdown', resumeAt: null })
-      .where(eq(runs.id, r.id))
-      .run();
-    await db
-      .update(tasks)
-      .set({ status: 'pending' })
-      .where(and(eq(tasks.planId, r.planId), eq(tasks.status, 'running')))
-      .run();
-    console.log(
-      JSON.stringify({
-        event: 'recovery-fixup',
-        kind: 'abrupt-crash',
-        runId: r.id,
-      }),
-    );
-    count += 1;
-  }
+    // (1) Abrupt-crash orphans: status='running'.
+    const orphans = db.select().from(runs).where(eq(runs.status, 'running')).all();
+    for (const r of orphans) {
+      db.update(runs)
+        .set({ status: 'paused', pausedReason: 'shutdown', resumeAt: null })
+        .where(eq(runs.id, r.id))
+        .run();
+      db.update(tasks)
+        .set({ status: 'pending' })
+        .where(and(eq(tasks.planId, r.planId), eq(tasks.status, 'running')))
+        .run();
+      console.log(
+        JSON.stringify({
+          event: 'recovery-fixup',
+          kind: 'abrupt-crash',
+          runId: r.id,
+        }),
+      );
+      count += 1;
+    }
 
-  // (2) Rate-limit pauses: rewrite to 'shutdown' so user explicitly resumes.
-  const rateLimited = await db
-    .select()
-    .from(runs)
-    .where(and(eq(runs.status, 'paused'), eq(runs.pausedReason, 'rate-limit')))
-    .all();
-  for (const r of rateLimited) {
-    await db
-      .update(runs)
-      .set({ pausedReason: 'shutdown' })
-      // resumeAt left intact for forensic visibility.
-      .where(eq(runs.id, r.id))
-      .run();
-    console.log(
-      JSON.stringify({
-        event: 'recovery-fixup',
-        kind: 'rate-limit-rewrite',
-        runId: r.id,
-        priorResumeAt: r.resumeAt instanceof Date ? r.resumeAt.toISOString() : null,
-      }),
-    );
-    count += 1;
-  }
+    // (2) Rate-limit pauses: rewrite to 'shutdown' so user explicitly resumes.
+    const rateLimited = db
+      .select()
+      .from(runs)
+      .where(and(eq(runs.status, 'paused'), eq(runs.pausedReason, 'rate-limit')))
+      .all();
+    for (const r of rateLimited) {
+      db.update(runs)
+        .set({ pausedReason: 'shutdown' })
+        // resumeAt left intact for forensic visibility.
+        .where(eq(runs.id, r.id))
+        .run();
+      console.log(
+        JSON.stringify({
+          event: 'recovery-fixup',
+          kind: 'rate-limit-rewrite',
+          runId: r.id,
+          priorResumeAt: r.resumeAt instanceof Date ? r.resumeAt.toISOString() : null,
+        }),
+      );
+      count += 1;
+    }
 
-  return count;
+    return count;
+  });
 }

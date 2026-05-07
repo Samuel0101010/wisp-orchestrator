@@ -15,6 +15,32 @@ async function collect(iter: AsyncIterable<HarnessEvent>): Promise<HarnessEvent[
 }
 
 describe('runClaude (mock)', () => {
+  it('captures session_id from a leading frame and emits task.session-id exactly once', async () => {
+    const events = await collect(
+      runClaude({
+        cwd: tmpdir(),
+        prompt: 'hi',
+        allowedTools: [],
+        maxTurns: 1,
+        taskId: 't-sess',
+        __mockBin: MOCK_BIN,
+        __mockEnv: { MOCK_MODE: 'session-id' },
+      }),
+    );
+    const sessionEvents = events.filter((e) => e.type === 'task.session-id');
+    expect(sessionEvents).toHaveLength(1);
+    if (sessionEvents[0]?.type === 'task.session-id') {
+      expect(sessionEvents[0].payload.taskId).toBe('t-sess');
+      expect(sessionEvents[0].payload.sessionId).toBe('sess-abc-123');
+    }
+    // The session-id event must come BEFORE task.completed so the walker can
+    // persist it before any cold-resume reasoning kicks in.
+    const sessionIdx = events.findIndex((e) => e.type === 'task.session-id');
+    const completedIdx = events.findIndex((e) => e.type === 'task.completed');
+    expect(sessionIdx).toBeGreaterThanOrEqual(0);
+    expect(completedIdx).toBeGreaterThan(sessionIdx);
+  });
+
   it('emits text-delta, tool-use, usage, then task.completed on clean exit', async () => {
     const events = await collect(
       runClaude({

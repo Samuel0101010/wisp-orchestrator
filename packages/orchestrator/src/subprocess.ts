@@ -276,6 +276,13 @@ export class ClaudeSubprocess {
 
     // NDJSON line buffering for stdout.
     let stdoutBuf = '';
+    // Track sessionId emit-once. The real `claude -p --output-format
+    // stream-json` surfaces the session id in a leading frame (typically
+    // `system`/`init` or as a `session_id` field on later frames). Without
+    // capturing it, tasks.session_id stays NULL and cold-resume after a
+    // server restart can't pass `--resume <id>`, silently restarting from
+    // scratch. We watch every parsed frame and emit once on first sight.
+    let sessionIdEmitted = false;
     child.stdout.setEncoding('utf8');
     child.stdout.on('data', (chunk: string) => {
       handleText(chunk, false);
@@ -288,6 +295,16 @@ export class ClaudeSubprocess {
         if (!parsed) {
           // Non-JSON line: skip silently. Real implementation would log debug.
           continue;
+        }
+        if (!sessionIdEmitted) {
+          const sid = (parsed as Record<string, unknown>).session_id;
+          if (typeof sid === 'string' && sid.length > 0) {
+            sessionIdEmitted = true;
+            push({
+              type: 'task.session-id',
+              payload: { taskId: opts.taskId, sessionId: sid },
+            });
+          }
         }
         const ev = mapCliEvent(parsed, opts.taskId);
         if (ev) push(ev);

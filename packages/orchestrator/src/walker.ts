@@ -605,9 +605,26 @@ export class Walker {
     return `harness/${this.runId}/v${version}`;
   }
 
+  /**
+   * Resolve the actual git branch name for a dependency. Carried-over `done`
+   * tasks after a replan have branches under the OLD prefix (e.g.
+   * `harness/<runId>/B` from the original plan), while new tasks live under
+   * the v<N> prefix. Recomputing from `branchPrefix()` here would synthesise
+   * non-existent refs like `harness/<runId>/v2/B` and any new task that
+   * depends on a carried-over done task would fail at `git worktree add`
+   * with "fatal: invalid reference". Use the runtime's stored branchName
+   * for done deps; fall back to the current prefix for everything else.
+   */
+  private branchForDep(depId: string): string {
+    const dep = this.tasks.get(depId);
+    if (dep?.status === 'done' && dep.branchName) return dep.branchName;
+    return `${this.branchPrefix()}/${depId}`;
+  }
+
   private computeParentBranch(node: TaskNode): string | undefined {
-    if (node.deps.length === 0) return undefined;
-    return `${this.branchPrefix()}/${node.deps[0]}`;
+    const firstDep = node.deps[0];
+    if (firstDep === undefined) return undefined;
+    return this.branchForDep(firstDep);
   }
 
   private async runTask(t: TaskRuntime): Promise<void> {
@@ -670,7 +687,10 @@ export class Walker {
     }
 
     if (createdWorktreeNow && node.deps.length > 1) {
-      const otherDepBranches = node.deps.slice(1).map((d) => `${this.branchPrefix()}/${d}`);
+      // Same carry-over correction as computeParentBranch: a new task whose
+      // 2nd+ dep is a carried-over done task needs to merge the dep's old
+      // branch (under the original prefix), not a non-existent v<N> branch.
+      const otherDepBranches = node.deps.slice(1).map((d) => this.branchForDep(d));
       const mergeResult = await this.deps.mergeBranches(worktreePath, otherDepBranches);
       if (!mergeResult.ok) {
         t.status = 'failed';
@@ -737,6 +757,16 @@ export class Walker {
             turnsUsed: t.turnsUsed,
           });
           await this.checkBudget();
+        } else if (ev.type === 'task.session-id') {
+          // Capture the CLI's session id once per task and persist it so
+          // cold-resume after a server restart can pass `--resume <id>` and
+          // pick up the agent's existing conversation context. Without this
+          // the cold-resume path always re-launches from scratch — see the
+          // session-id watcher in subprocess.ts.
+          if (!t.sessionId) {
+            t.sessionId = ev.payload.sessionId;
+            await this.deps.onTaskState(node.id, { sessionId: ev.payload.sessionId });
+          }
         } else if (ev.type === 'rate-limit.hit') {
           t.rateLimited = true;
           // Fire pause AFTER we drain remaining events; pause aborts other tasks.
