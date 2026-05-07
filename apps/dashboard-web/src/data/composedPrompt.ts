@@ -24,6 +24,22 @@ export interface PreviewTaskNode {
   successCriteria: PreviewSuccessCriteria;
 }
 
+// Mirror of packages/orchestrator/src/walker.ts:truncateRetryError. Keep the
+// same head/tail line counts so the preview displays exactly what the agent
+// receives in retry context (otherwise users debugging a long retry would
+// see more text in the preview than the agent ever sees).
+const RETRY_ERROR_HEAD_LINES = 30;
+const RETRY_ERROR_TAIL_LINES = 60;
+
+function truncateRetryError(s: string): string {
+  const lines = s.split(/\r?\n/);
+  if (lines.length <= RETRY_ERROR_HEAD_LINES + RETRY_ERROR_TAIL_LINES + 2) return s;
+  const head = lines.slice(0, RETRY_ERROR_HEAD_LINES).join('\n');
+  const tail = lines.slice(-RETRY_ERROR_TAIL_LINES).join('\n');
+  const omitted = lines.length - RETRY_ERROR_HEAD_LINES - RETRY_ERROR_TAIL_LINES;
+  return `${head}\n[… ${omitted} lines omitted …]\n${tail}`;
+}
+
 export function composeTaskPromptPreview(
   goal: string,
   node: PreviewTaskNode,
@@ -44,7 +60,7 @@ export function composeTaskPromptPreview(
   }
   if (retryError) {
     parts.push(
-      `# Retry context\nPrevious attempt failed: ${retryError}\nPlease address and re-implement.`,
+      `# Retry context\nPrevious attempt failed: ${truncateRetryError(retryError)}\nPlease address and re-implement.`,
     );
   }
   return parts.join('\n\n');

@@ -1,9 +1,10 @@
 import './setup.js';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { HarnessEvent } from '@agent-harness/schemas';
 import type { RunClaudeOpts } from '@agent-harness/orchestrator';
 import { probePromptRoutes } from '../routes/probe-prompt.js';
+import { setLastAuthProbe } from '../auth-status.js';
 
 /**
  * Async generator factory mocking the runClaude contract: emits a few
@@ -67,6 +68,10 @@ describe('POST /api/probe-prompt', () => {
     if (app) await app.close();
   });
 
+  afterEach(() => {
+    setLastAuthProbe(null);
+  });
+
   it('returns response, tokens, and elapsed on the happy path', async () => {
     app = await buildTestApp({ text: 'Hello, world!', tokensIn: 42, tokensOut: 17, turns: 1 });
     const res = await app.inject({
@@ -119,6 +124,30 @@ describe('POST /api/probe-prompt', () => {
       },
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  it('returns 503 when subscription auth probe last failed', async () => {
+    if (process.env.HARNESS_MOCK_CLI === '1') {
+      // Auth gate is bypassed in mock-cli mode; mirrors the runs-route
+      // auth-block test's skip behavior.
+      return;
+    }
+    setLastAuthProbe({ ok: false, error: 'expired', hint: 'run claude login' });
+    app = await buildTestApp({ text: 'should never run' });
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/probe-prompt',
+      payload: {
+        systemPrompt: 'You are a helper.',
+        sampleGoal: 'Say hi.',
+        model: 'haiku',
+        allowedTools: [],
+      },
+    });
+    expect(res.statusCode).toBe(503);
+    const body = res.json() as { error: string; hint: string };
+    expect(body.error).toBe('auth-failed');
+    expect(body.hint).toBe('run claude login');
   });
 
   it('reports a probe failure as 502 with partial response and tokens', async () => {
