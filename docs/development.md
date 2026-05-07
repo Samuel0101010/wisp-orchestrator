@@ -74,21 +74,15 @@ All run from repo root unless noted.
 
 Per-package: `pnpm --filter @agent-harness/<name> <script>`.
 
-## Adding a new agent role (M2 forward-look)
+## Adding a new agent role
 
-M1 hardcodes three roles: `architect`, `developer`, `qa`. M2 will lift this. The conceptual extension path:
+M2 shipped variable team support: `Team` is `{roles: AgentSpec[]}` with 1..8 unique role names matching `^[a-z][a-z0-9-]*$`. Adding a new role at runtime is now an in-app action — no schema or code change needed:
 
-1. Widen the Zod role enum in [`packages/schemas/src/plan.ts`](../packages/schemas/src/plan.ts):
-   ```ts
-   export const roleEnum = z.enum(['architect', 'developer', 'qa', 'reviewer']);
-   ```
-2. Update `teamSchema` from a fixed-slot object to either an array of `AgentSpec` or a record keyed by role.
-3. Update the Drizzle `tasks.role` enum in [`packages/schemas/src/db.ts`](../packages/schemas/src/db.ts) and write a migration (`pnpm --filter @agent-harness/dashboard-server db:generate`).
-4. Author a new `agents/<role>.md` spec following the pattern in [`agents/qa.md`](../agents/qa.md).
-5. Update the TeamBuilder UI ([`apps/dashboard-web/src/routes/TeamBuilder.tsx`](../apps/dashboard-web/src/routes/TeamBuilder.tsx)) to surface the new role card.
-6. The Walker requires no changes — it routes purely on `node.role` strings.
+1. Open the TeamBuilder (or hit `PUT /api/projects/:id/team`).
+2. Add a role card; pick `model` (opus/sonnet/haiku), `allowedTools`, write a `systemPrompt` (40–4000 chars).
+3. Save. The next plan generation will use the new role; the planner prompt enumerates configured role names verbatim.
 
-Don't ship this as part of an unrelated change; it's an M2 milestone deliverable.
+For a hard-coded **default** role (one that ships in `apps/dashboard-web/src/data/defaultTeam.ts` and built-in templates), edit those files directly. The Walker requires no changes — it resolves agents via `team.roles.find(r => r.role === node.role)`.
 
 ## Testing orchestrator changes
 
