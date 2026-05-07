@@ -56,7 +56,8 @@ test.describe('Phase F1 smoke', () => {
     const projectId = url.match(/\/projects\/([^/]+)\/teams$/)?.[1];
     if (!projectId) throw new Error(`could not extract projectId from URL: ${url}`);
 
-    await expect(page.getByText('Team Builder', { exact: true })).toBeVisible();
+    // "Team Builder" appears in both breadcrumbs and page heading; pin to the H1.
+    await expect(page.getByRole('heading', { name: 'Team Builder', level: 1 })).toBeVisible();
     // Three role cards visible — we use the model badges as a stable signal.
     await expect(page.getByTestId('badge-architect')).toBeVisible();
     await expect(page.getByTestId('badge-developer')).toBeVisible();
