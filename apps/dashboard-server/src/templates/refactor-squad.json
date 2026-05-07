@@ -48,5 +48,22 @@
     "Extract the foo() function from src/big.ts into a new module src/foo.ts while keeping the public re-export so all existing tests pass.",
     "Replace the inline date-parsing logic in src/utils.ts with calls to the date-fns parseISO function, preserving the existing behavior on the edge cases covered by tests.",
     "Convert src/legacy.js to TypeScript (rename to src/legacy.ts, add types) without changing any function signature."
-  ]
+  ],
+  "useCases": [
+    "Behaviour-preserving code transformations (extract module, rename, retype)",
+    "Migrating a small file from JS to TS with all tests still green",
+    "Inline-replace a utility function with a library equivalent (date-fns, lodash)"
+  ],
+  "bestFor": [
+    "Repos with a strong existing test suite that must stay green",
+    "Surgical changes scoped to one or two files",
+    "Two-role workflow: experienced refactorer + strict QA"
+  ],
+  "notRecommendedFor": [
+    "New-feature work (no design phase, architect role is light)",
+    "Repos without a working test suite (the gate has nothing to enforce)",
+    "Cross-cutting refactors touching > 5 files"
+  ],
+  "complexity": "simple",
+  "expectedDurationMinutes": 15
 }

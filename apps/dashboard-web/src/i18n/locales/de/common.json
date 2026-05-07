@@ -239,6 +239,26 @@
     },
     "emptyResponse": "(leere Antwort)"
   },
+  "templatePicker": {
+    "loading": "Vorlagen laden…",
+    "loadFailed": "Vorlagen konnten nicht geladen werden: {{message}}",
+    "noTemplate": "Keine Vorlage",
+    "noTemplateHint": "Starte mit dem 3-Rollen-Standard-Team und formuliere dein eigenes Ziel.",
+    "rolesCount_one": "{{count}} Rolle",
+    "rolesCount_other": "{{count}} Rollen",
+    "complexity": {
+      "label": "Komplexität",
+      "simple": "Einfach",
+      "medium": "Mittel",
+      "complex": "Komplex"
+    },
+    "duration": "~{{minutes}} Min",
+    "expand": "Mehr anzeigen",
+    "collapse": "Weniger anzeigen",
+    "useCases": "Geeignet für",
+    "bestFor": "Funktioniert gut mit",
+    "notRecommendedFor": "Nicht empfohlen für"
+  },
   "applyTemplate": {
     "title": "Vorlage anwenden",
     "description": "Ersetzt das aktuelle Team-Draft durch die Vorlage.",
