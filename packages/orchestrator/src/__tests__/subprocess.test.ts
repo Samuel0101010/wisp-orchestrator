@@ -41,6 +41,44 @@ describe('runClaude (mock)', () => {
     expect(completedIdx).toBeGreaterThan(sessionIdx);
   });
 
+  it('parses assistant-frame content[] into per-item text-delta + tool-use events', async () => {
+    // Modern `claude -p --output-format stream-json` wraps text and tool calls
+    // inside a single `assistant` frame whose `message.content` is an array of
+    // `{type:'text'|'tool_use', ...}` items. Without this case, the dashboard
+    // text-delta + tool-use streams stay empty during real runs.
+    const events = await collect(
+      runClaude({
+        cwd: tmpdir(),
+        prompt: 'go',
+        allowedTools: ['Read'],
+        maxTurns: 1,
+        taskId: 't-asst',
+        __mockBin: MOCK_BIN,
+        __mockEnv: { MOCK_MODE: 'assistant-frame' },
+      }),
+    );
+
+    const textDeltas = events.filter((e) => e.type === 'task.text-delta');
+    const toolUses = events.filter((e) => e.type === 'task.tool-use');
+    // Two text items + one tool_use across two assistant frames; the leading
+    // `thinking`-only frame must produce no events (private reasoning).
+    expect(textDeltas).toHaveLength(2);
+    expect(toolUses).toHaveLength(1);
+    if (textDeltas[0]?.type === 'task.text-delta')
+      expect(textDeltas[0].payload.text).toBe('thinking out loud ');
+    if (textDeltas[1]?.type === 'task.text-delta')
+      expect(textDeltas[1].payload.text).toBe('and a follow-up');
+    if (toolUses[0]?.type === 'task.tool-use') {
+      expect(toolUses[0].payload.tool).toBe('Read');
+      expect(toolUses[0].payload.input).toEqual({ path: '/tmp/x' });
+    }
+    // Ordering inside the frame is preserved: text → tool_use → text.
+    const order = events
+      .filter((e) => e.type === 'task.text-delta' || e.type === 'task.tool-use')
+      .map((e) => e.type);
+    expect(order).toEqual(['task.text-delta', 'task.tool-use', 'task.text-delta']);
+  });
+
   it('emits text-delta, tool-use, usage, then task.completed on clean exit', async () => {
     const events = await collect(
       runClaude({

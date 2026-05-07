@@ -89,25 +89,37 @@ foreach ($k in $envBlock.Keys) {
     Set-Item -Path "Env:$k" -Value $envBlock[$k]
 }
 
+# Redirect stdio to per-stream log files in dataDir. Mirrors the bash
+# launcher (nohup ... >server.log 2>&1) so a Windows install also has a
+# discoverable log when something goes wrong. PowerShell's Start-Process
+# can't merge stdout+stderr to one file, so we emit two.
+$logOut = Join-Path $dataDir 'server.log'
+$logErr = Join-Path $dataDir 'server.err.log'
+
 # -NoNewWindow keeps the child in the parent console group so its lifecycle
 # tracks the launching shell; it conflicts with -WindowStyle, so we drop the
 # latter (the dashboard process has no GUI surface anyway).
 $proc = Start-Process -FilePath 'node' `
     -ArgumentList @("`"$serverEntry`"") `
     -NoNewWindow `
-    -PassThru
+    -PassThru `
+    -RedirectStandardOutput $logOut `
+    -RedirectStandardError $logErr
 
 # Persist state for the dashboard command and future re-launches.
 $state = [ordered]@{
     port      = $chosenPort
     pid       = $proc.Id
     startedAt = (Get-Date).ToString('o')
+    logOut    = $logOut
+    logErr    = $logErr
 }
 $statePath = Join-Path $dataDir 'state.json'
 $state | ConvertTo-Json | Set-Content -LiteralPath $statePath -Encoding utf8
 
 $url = "http://127.0.0.1:$chosenPort"
 Write-Host "Dashboard: $url"
+Write-Host "Logs: $logOut (stderr: $logErr)"
 
 # Open default browser.
 Start-Process $url | Out-Null

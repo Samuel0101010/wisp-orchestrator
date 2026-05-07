@@ -20,6 +20,11 @@
  *   MOCK_MODE=session-id   — emit a leading frame containing session_id, then ok-style
  *                             events. Verifies the subprocess parser captures session_id
  *                             on first sight and emits task.session-id once.
+ *   MOCK_MODE=assistant-frame — emit the modern `claude -p --output-format stream-json`
+ *                             shape: `{type:'assistant', message:{content:[...]}}` where
+ *                             content holds text + tool_use items. Verifies the parser
+ *                             surfaces task.text-delta + task.tool-use from the wrapping
+ *                             assistant frame (not just legacy flat frames).
  *
  * Reads stdin (drains it) so callers writing the prompt don't block.
  */
@@ -212,6 +217,49 @@ async function waitForStdin() {
           cache_creation_input_tokens: 0,
           cache_read_input_tokens: 0,
           output_tokens: 1,
+        },
+      });
+      emit({ type: 'completion' });
+      process.exit(0);
+      break;
+    case 'assistant-frame':
+      emit({ type: 'system', subtype: 'init', session_id: 'sess-asst-1' });
+      // First assistant frame: only `thinking` content. The real CLI emits
+      // these for extended-thinking responses; the parser must skip them so
+      // private chain-of-thought never reaches the dashboard.
+      emit({
+        type: 'assistant',
+        session_id: 'sess-asst-1',
+        message: {
+          id: 'msg_thinking',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'thinking', thinking: 'private reasoning', signature: 'sig' }],
+        },
+      });
+      emit({
+        type: 'assistant',
+        session_id: 'sess-asst-1',
+        message: {
+          id: 'msg_1',
+          type: 'message',
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'thinking out loud ' },
+            { type: 'tool_use', id: 'tu_1', name: 'Read', input: { path: '/tmp/x' } },
+            { type: 'text', text: 'and a follow-up' },
+          ],
+        },
+      });
+      emit({
+        type: 'result',
+        subtype: 'success',
+        num_turns: 1,
+        usage: {
+          input_tokens: 5,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 3,
         },
       });
       emit({ type: 'completion' });
