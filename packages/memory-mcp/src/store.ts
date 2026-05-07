@@ -44,8 +44,13 @@ export class MemoryStore {
   }
 
   list(): MemoryListEntry[] {
+    // Use octet_length (UTF-8 byte length), not length() (character count).
+    // The set tool's per-value cap is enforced in BYTES via Buffer.byteLength,
+    // so the size we report here must also be in bytes — otherwise a CJK
+    // value that occupies 64 KiB on disk would list as ~21K characters and
+    // mislead any consumer estimating storage budget.
     return this.db
-      .prepare(`SELECT key, length(value) AS size FROM kv ORDER BY key ASC`)
+      .prepare(`SELECT key, octet_length(value) AS size FROM kv ORDER BY key ASC`)
       .all() as MemoryListEntry[];
   }
 
