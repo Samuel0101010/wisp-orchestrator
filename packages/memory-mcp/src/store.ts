@@ -18,6 +18,15 @@ export class MemoryStore {
   constructor(path: string) {
     this.db = new Database(path);
     this.db.pragma('journal_mode = WAL');
+    // Per-run memory.db is opened by N parallel task subprocesses (each one
+    // spawns its own memory-mcp server pointing at the same file) under the
+    // pool's maxParallel concurrency. WAL serializes writes, but better-
+    // sqlite3's default busy_timeout is 0 — the second writer's `INSERT ON
+    // CONFLICT` would throw `SQLITE_BUSY` immediately on lock contention,
+    // surfacing as a tool error to the agent. Five seconds of retry covers
+    // any reasonable serialized-write window without making genuinely
+    // deadlocked operations hang forever.
+    this.db.pragma('busy_timeout = 5000');
     this.db.exec(
       `CREATE TABLE IF NOT EXISTS kv (
          key TEXT PRIMARY KEY,
