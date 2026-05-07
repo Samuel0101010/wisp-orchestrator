@@ -1,9 +1,21 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 import { TopBar } from './TopBar';
 import { useRunStore } from '@/store/run';
 import type { Run, Task } from '@agent-harness/schemas';
+
+vi.mock('@/api/client', () => ({
+  apiFetch: vi.fn(async () => ({ totalLast24h: 0, byProject: {} })),
+  ApiError: class ApiError extends Error {},
+}));
+
+function withProviders(ui: ReactNode) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
+}
 
 function buildRun(): Run {
   return {
@@ -50,13 +62,15 @@ afterEach(() => {
 });
 
 describe('TopBar', () => {
-  it('renders the no-run stub when no run view is mounted', () => {
+  it('renders the mission control crumb when no run view is mounted', () => {
     render(
-      <MemoryRouter initialEntries={['/']}>
-        <TopBar />
-      </MemoryRouter>,
+      withProviders(
+        <MemoryRouter initialEntries={['/']}>
+          <TopBar />
+        </MemoryRouter>,
+      ),
     );
-    expect(screen.getByText('no run')).toBeInTheDocument();
+    expect(screen.getByTestId('topbar-home')).toHaveTextContent(/mission control/i);
   });
 
   it('mirrors resource bar info when on the RunView route with a hydrated run', () => {
@@ -64,9 +78,11 @@ describe('TopBar', () => {
       useRunStore.getState().hydrate({ run: buildRun(), tasks: [buildTask()] });
     });
     render(
-      <MemoryRouter initialEntries={['/projects/p1/run/run-1']}>
-        <TopBar />
-      </MemoryRouter>,
+      withProviders(
+        <MemoryRouter initialEntries={['/projects/p1/run/run-1']}>
+          <TopBar />
+        </MemoryRouter>,
+      ),
     );
     expect(screen.getByTestId('topbar-run-active')).toBeInTheDocument();
     expect(screen.getByTestId('topbar-run-status')).toHaveTextContent('running');

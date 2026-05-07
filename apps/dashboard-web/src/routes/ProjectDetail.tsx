@@ -26,6 +26,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { StatusDotBadge } from '@/components/StatusDotBadge';
 import { ApiError } from '@/api/client';
 import { toast } from '@/components/ui/use-toast';
 
@@ -57,15 +58,6 @@ function formatTokens(n: number | undefined): string {
   if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
-
-const STATUS_TONE: Record<string, string> = {
-  completed: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400',
-  running: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
-  paused: 'bg-amber-500/15 text-amber-700 dark:text-amber-400',
-  failed: 'bg-rose-500/15 text-rose-700 dark:text-rose-400',
-  cancelled: 'bg-zinc-500/15 text-zinc-700 dark:text-zinc-400',
-  pending: 'bg-zinc-500/15 text-zinc-700 dark:text-zinc-400',
-};
 
 export function ProjectDetail() {
   const { t } = useTranslation();
@@ -273,12 +265,10 @@ export function ProjectDetail() {
                       >
                         <td className="px-2 py-2 font-mono">{r.id.slice(0, 8)}</td>
                         <td className="px-2 py-2">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${STATUS_TONE[r.status] ?? ''}`}
-                          >
-                            {r.status}
-                          </Badge>
+                          <StatusDotBadge
+                            status={r.status}
+                            pulse={r.status === 'running'}
+                          />
                         </td>
                         <td className="px-2 py-2 text-muted-foreground">
                           {r.outcome ?? t('projectDetail.runs.running')}

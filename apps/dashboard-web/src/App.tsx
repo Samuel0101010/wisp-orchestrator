@@ -15,8 +15,10 @@ function Shell() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+        <main className="flex-1 overflow-auto">
+          <div className="mx-auto w-full max-w-screen-2xl p-6">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
