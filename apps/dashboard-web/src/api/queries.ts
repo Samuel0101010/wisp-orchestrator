@@ -391,6 +391,81 @@ export function useProbePrompt() {
   });
 }
 
+// ----- Mission Control (global) -----
+
+export interface GlobalRunRow {
+  id: string;
+  planId: string;
+  status: RunStatus;
+  outcome: RunOutcome | null;
+  startedAt: string | Date | null;
+  endedAt: string | Date | null;
+  budgetMinutes: number;
+  budgetTurns: number;
+  tokensInTotal: number;
+  tokensOutTotal: number;
+  turnsTotal: number;
+  pausedReason: RunPausedReason | null;
+  resumeAt: string | Date | null;
+  projectId: string;
+  projectName: string;
+}
+
+export function useGlobalRuns(limit = 100) {
+  return useQuery<GlobalRunRow[]>({
+    queryKey: ['global-runs', limit],
+    refetchInterval: 10_000,
+    queryFn: async () => {
+      try {
+        const res = await apiFetch<{ runs: GlobalRunRow[] }>(
+          `/api/runs?include=project&limit=${limit}`,
+        );
+        return res.runs ?? [];
+      } catch {
+        return [];
+      }
+    },
+  });
+}
+
+export interface RunsSummary {
+  windowDays: number;
+  activeCount: number;
+  totalRuns: number;
+  totalTokens: number;
+  successRate: number;
+  avgDurationMs: number;
+  outcomeCounts: { success?: number; failure?: number; cancelled?: number; unknown?: number };
+  tokensByDay: Array<{ day: string; tokens: number }>;
+  runsByDay: Array<{ day: string; runs: number }>;
+}
+
+const emptySummary: RunsSummary = {
+  windowDays: 7,
+  activeCount: 0,
+  totalRuns: 0,
+  totalTokens: 0,
+  successRate: 0,
+  avgDurationMs: 0,
+  outcomeCounts: {},
+  tokensByDay: [],
+  runsByDay: [],
+};
+
+export function useRunsSummary(windowDays = 7) {
+  return useQuery<RunsSummary>({
+    queryKey: ['runs-summary', windowDays],
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      try {
+        return await apiFetch<RunsSummary>(`/api/runs/summary?windowDays=${windowDays}`);
+      } catch {
+        return { ...emptySummary, windowDays };
+      }
+    },
+  });
+}
+
 export function usePlanVersionChain(planId: string | undefined) {
   return useQuery<PlanChainEntry[]>({
     queryKey: ['plan-chain', planId ?? null],

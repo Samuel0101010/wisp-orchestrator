@@ -266,6 +266,37 @@
     "bestFor": "Works well with",
     "notRecommendedFor": "Not recommended for"
   },
+  "home": {
+    "title": "Mission Control",
+    "subtitle": "Live overview of all agent runs across your projects.",
+    "kpiSection": "Key metrics",
+    "kpis": {
+      "activeRuns": "Active runs",
+      "activeCaption": "currently running or paused",
+      "tokensWindow": "Tokens · 7 days",
+      "totalRunsCaption_one": "{{count}} run in window",
+      "totalRunsCaption_other": "{{count}} runs in window",
+      "successRate": "Success rate · 7 days",
+      "successCaption": "{{ok}}/{{total}} successful",
+      "avgDuration": "Avg duration · 7 days",
+      "avgCaption": "across completed runs"
+    },
+    "charts": {
+      "tokenThroughput": "Token throughput",
+      "tokenThroughputDesc": "last 7 days · all projects",
+      "outcomes": "Run outcomes",
+      "outcomesDesc": "last 7 days"
+    },
+    "live": {
+      "title": "Live now",
+      "active": "active",
+      "empty": "No active runs — kick one off from a project."
+    },
+    "recent": {
+      "title": "Recent runs",
+      "subtitle": "all projects · sortable"
+    }
+  },
   "projectDetail": {
     "subtitle": "Project overview, team, plan, and run history.",
     "summary": {

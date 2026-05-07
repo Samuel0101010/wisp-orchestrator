@@ -46,10 +46,11 @@ function renderAt(path: string) {
 }
 
 describe('App', () => {
-  it('renders the sidebar at root', () => {
+  it('renders the sidebar and Mission Control at root', () => {
     renderAt('/');
     expect(screen.getByText('Agent Harness')).toBeInTheDocument();
-    expect(screen.getByText('Welcome')).toBeInTheDocument();
+    // The new Home page shows the Mission Control heading.
+    expect(screen.getByTestId('mission-control')).toBeInTheDocument();
   });
 
   it('renders TeamBuilder at /projects/:id/teams', () => {

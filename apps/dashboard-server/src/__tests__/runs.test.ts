@@ -361,6 +361,92 @@ describe('run routes', () => {
     expect(body.runs.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('GET /api/runs?include=project joins project name + id onto each run', async () => {
+    const runtime = makeFakeRuntime();
+    app = await buildAppWithRuntime(runtime);
+    const { planId } = await seedLockedPlan();
+    await app.inject({ method: 'POST', url: '/api/runs', payload: { planId } });
+
+    const res = await app.inject({ method: 'GET', url: '/api/runs?include=project&limit=10' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(Array.isArray(body.runs)).toBe(true);
+    expect(body.runs.length).toBeGreaterThanOrEqual(1);
+    const row = body.runs[0];
+    expect(row).toHaveProperty('projectId');
+    expect(row).toHaveProperty('projectName');
+    expect(typeof row.projectName).toBe('string');
+  });
+
+  it('GET /api/runs/summary aggregates token totals + outcome counts in window', async () => {
+    const runtime = makeFakeRuntime();
+    app = await buildAppWithRuntime(runtime);
+    const { planId } = await seedLockedPlan();
+
+    // Seed two runs: one completed-success, one running, one completed-failure.
+    const okId = randomUUID();
+    await db
+      .insert(runsTable)
+      .values({
+        id: okId,
+        planId,
+        status: 'completed',
+        outcome: 'success',
+        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        endedAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        budgetMinutes: 60,
+        budgetTurns: 100,
+        maxParallel: 2,
+        tokensInTotal: 1000,
+        tokensOutTotal: 500,
+      })
+      .run();
+    const runningId = randomUUID();
+    await db
+      .insert(runsTable)
+      .values({
+        id: runningId,
+        planId,
+        status: 'running',
+        startedAt: new Date(Date.now() - 5 * 60 * 1000),
+        budgetMinutes: 60,
+        budgetTurns: 100,
+        maxParallel: 2,
+        tokensInTotal: 200,
+        tokensOutTotal: 50,
+      })
+      .run();
+    const failId = randomUUID();
+    await db
+      .insert(runsTable)
+      .values({
+        id: failId,
+        planId,
+        status: 'failed',
+        outcome: 'failure',
+        startedAt: new Date(Date.now() - 30 * 60 * 1000),
+        endedAt: new Date(Date.now() - 25 * 60 * 1000),
+        budgetMinutes: 60,
+        budgetTurns: 100,
+        maxParallel: 2,
+        tokensInTotal: 300,
+        tokensOutTotal: 100,
+      })
+      .run();
+
+    const res = await app.inject({ method: 'GET', url: '/api/runs/summary?windowDays=7' });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.windowDays).toBe(7);
+    expect(body.activeCount).toBeGreaterThanOrEqual(1);
+    expect(body.totalTokens).toBeGreaterThanOrEqual(2150);
+    expect(body.outcomeCounts.success).toBeGreaterThanOrEqual(1);
+    expect(body.outcomeCounts.failure).toBeGreaterThanOrEqual(1);
+    expect(Array.isArray(body.tokensByDay)).toBe(true);
+    expect(body.tokensByDay).toHaveLength(7);
+    expect(body.successRate).toBeGreaterThan(0);
+  });
+
   it('GET /api/runs?resumable=true returns only resumable runs', async () => {
     const runtime = makeFakeRuntime();
     app = await buildAppWithRuntime(runtime);
