@@ -7,7 +7,7 @@
     "email": "215513082+Samuel0101010@users.noreply.github.com"
   },
   "homepage": "https://github.com/Samuel0101010/agent-harness",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "keywords": ["agents", "orchestration", "kanban", "dag", "subscription"],
   "agents": "./agents",
   "commands": "./commands",
