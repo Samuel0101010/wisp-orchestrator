@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Plus, FolderOpen } from 'lucide-react';
+import { Plus, FolderOpen, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { StatusDotBadge } from '@/components/StatusDotBadge';
 import {
   Dialog,
   DialogContent,
@@ -102,6 +103,8 @@ export function Sidebar() {
     }
   };
 
+  const isHomeActive = !params.projectId;
+
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
       <div className="flex items-center justify-between p-4">
@@ -113,7 +116,20 @@ export function Sidebar() {
         </div>
       </div>
       <Separator />
-      <div className="flex items-center justify-between px-4 py-3">
+      <nav className="px-2 pt-3" aria-label="primary">
+        <Link
+          to="/"
+          className={
+            'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isHomeActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-mission-control"
+        >
+          <LayoutGrid className="h-4 w-4" />
+          <span>{t('topBar.missionControl')}</span>
+        </Link>
+      </nav>
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <span className="text-xs uppercase tracking-wide text-muted-foreground">
           {t('navigation.projects')}
         </span>
@@ -181,7 +197,7 @@ export function Sidebar() {
           </DialogContent>
         </Dialog>
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 px-2 pb-4">
+      <nav className="flex flex-1 flex-col gap-0.5 px-2 pb-4" aria-label="projects">
         {isLoading && (
           <span className="px-3 py-2 text-xs text-muted-foreground">{t('buttons.loading')}</span>
         )}
@@ -205,13 +221,9 @@ export function Sidebar() {
                 <FolderOpen className="h-4 w-4" />
                 <span className="truncate">{p.name}</span>
                 {status && (
-                  <Badge
-                    variant="outline"
-                    className="ml-auto text-[9px] uppercase"
-                    data-testid={`sidebar-plan-status-${p.id}`}
-                  >
-                    {status}
-                  </Badge>
+                  <span className="ml-auto" data-testid={`sidebar-plan-status-${p.id}`}>
+                    <StatusDotBadge status={status} />
+                  </span>
                 )}
                 {(() => {
                   const count = dailyCounts.data?.byProject[p.id] ?? 0;
@@ -254,9 +266,9 @@ function RecentRuns({ projectId }: { projectId: string }) {
           data-testid={`recent-run-${r.id}`}
         >
           <span className="font-mono">{r.id.slice(0, 8)}</span>
-          <Badge variant="outline" className="ml-auto text-[9px] uppercase">
-            {r.status}
-          </Badge>
+          <span className="ml-auto">
+            <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
+          </span>
         </Link>
       ))}
     </div>

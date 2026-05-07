@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, Route, Routes } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
+import { CommandPalette } from '@/components/CommandPalette';
 import { Home } from '@/routes/Home';
 import { ProjectDetail } from '@/routes/ProjectDetail';
 import { TeamBuilder } from '@/routes/TeamBuilder';
@@ -15,10 +16,13 @@ function Shell() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
+        <main className="flex-1 overflow-auto">
+          <div className="mx-auto w-full max-w-screen-2xl p-6">
+            <Outlet />
+          </div>
         </main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

@@ -49,7 +49,13 @@
     "run": "Run",
     "time": "Time",
     "turns": "Turns",
-    "tokens": "tokens"
+    "tokens": "tokens",
+    "missionControl": "Mission Control",
+    "activeNow": "active",
+    "today": "today",
+    "themeLight": "Switch to light theme",
+    "themeDark": "Switch to dark theme",
+    "openCommandPalette": "Open command palette"
   },
   "newProject": {
     "title": "New Project",
@@ -259,6 +265,51 @@
     "useCases": "Best for",
     "bestFor": "Works well with",
     "notRecommendedFor": "Not recommended for"
+  },
+  "commandPalette": {
+    "placeholder": "Search projects, runs, actions…",
+    "empty": "No matches.",
+    "actions": "Actions",
+    "projects": "Projects",
+    "runs": "Recent runs",
+    "gotoMissionControl": "Go to Mission Control"
+  },
+  "breadcrumbs": {
+    "project": "Project",
+    "teamBuilder": "Team Builder",
+    "planEditor": "Plan Editor",
+    "run": "Run"
+  },
+  "home": {
+    "title": "Mission Control",
+    "subtitle": "Live overview of all agent runs across your projects.",
+    "kpiSection": "Key metrics",
+    "kpis": {
+      "activeRuns": "Active runs",
+      "activeCaption": "currently running or paused",
+      "tokensWindow": "Tokens · 7 days",
+      "totalRunsCaption_one": "{{count}} run in window",
+      "totalRunsCaption_other": "{{count}} runs in window",
+      "successRate": "Success rate · 7 days",
+      "successCaption": "{{ok}}/{{total}} successful",
+      "avgDuration": "Avg duration · 7 days",
+      "avgCaption": "across completed runs"
+    },
+    "charts": {
+      "tokenThroughput": "Token throughput",
+      "tokenThroughputDesc": "last 7 days · all projects",
+      "outcomes": "Run outcomes",
+      "outcomesDesc": "last 7 days"
+    },
+    "live": {
+      "title": "Live now",
+      "active": "active",
+      "empty": "No active runs — kick one off from a project."
+    },
+    "recent": {
+      "title": "Recent runs",
+      "subtitle": "all projects · sortable"
+    }
   },
   "projectDetail": {
     "subtitle": "Project overview, team, plan, and run history.",
