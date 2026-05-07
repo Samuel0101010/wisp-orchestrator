@@ -1,0 +1,255 @@
+{
+  "language": {
+    "label": "Sprache",
+    "english": "English",
+    "german": "Deutsch"
+  },
+  "buttons": {
+    "save": "Speichern",
+    "saving": "Speichern…",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "create": "Erstellen",
+    "creating": "Erstelle…",
+    "remove": "Entfernen",
+    "retry": "Erneut versuchen",
+    "back": "Zurück",
+    "loading": "Lädt…",
+    "lockAndRun": "Sperren & Starten",
+    "lockAndRunDisabled": "Plan ist gesperrt",
+    "starting": "Starte…",
+    "regenerate": "Neu generieren",
+    "regenerating": "Generiere neu…",
+    "generatePlan": "Plan generieren",
+    "generating": "Generiere…",
+    "saveTeam": "Team speichern",
+    "saveAsTemplate": "Als Vorlage speichern",
+    "applyTemplate": "Anwenden",
+    "apply": "{{name}} anwenden",
+    "pauseRun": "Run pausieren",
+    "resume": "Fortsetzen",
+    "resumeNow": "Jetzt fortsetzen",
+    "cancelRun": "Run abbrechen",
+    "keepRunning": "Weiterlaufen lassen",
+    "runProbe": "Probe starten",
+    "running": "Läuft…"
+  },
+  "navigation": {
+    "appName": "Agent Harness",
+    "projects": "Projekte",
+    "newProject": "Neues Projekt",
+    "noProjectsYet": "Noch keine Projekte",
+    "recentRuns": "Letzte Runs",
+    "today": "{{count}} heute"
+  },
+  "topBar": {
+    "activeRun": "Aktiver Run",
+    "noRun": "kein Run",
+    "run": "Run",
+    "time": "Zeit",
+    "turns": "Turns",
+    "tokens": "Tokens"
+  },
+  "newProject": {
+    "title": "Neues Projekt",
+    "description": "Erstelle ein Projekt, um Team und Plan zu konfigurieren.",
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Mein Projekt",
+      "template": "Vorlage",
+      "templateNone": "Team manuell konfigurieren",
+      "goal": "Ziel",
+      "goalPlaceholder": "Was sollen die Agents erreichen? Beschreibe konkret das Ergebnis, den Verifikations-Befehl und etwaige Constraints.",
+      "goalPlaceholderTemplate": "Beschreibe was du bauen willst. Die Vorgaben aus der Vorlage {{template}} helfen dir.",
+      "repoPath": "Repo-Pfad",
+      "repoPathPlaceholder": "/absoluter/pfad/zum/repo"
+    },
+    "toasts": {
+      "created": "Projekt erstellt",
+      "createFailed": "Erstellen fehlgeschlagen"
+    }
+  },
+  "teamBuilder": {
+    "title": "Team-Builder",
+    "selectProject": "Wähle ein Projekt, um sein Team zu konfigurieren.",
+    "subtitle": "Konfiguriere die Agents für {{name}}.",
+    "saveAsTemplateDialog": {
+      "title": "Team als Vorlage speichern",
+      "description": "Speichere die aktuelle Team-Konfiguration als wiederverwendbare Vorlage für den Neues-Projekt-Dialog.",
+      "id": "ID (kebab-case, ≥2 Zeichen)",
+      "idPlaceholder": "mein-team",
+      "name": "Name (≥2 Zeichen)",
+      "namePlaceholder": "Mein Team",
+      "descriptionLabel": "Beschreibung (≥20 Zeichen)",
+      "descriptionPlaceholder": "Wofür ist dieses Team gut…"
+    },
+    "generateTitle": {
+      "noTeam": "Speichere zuerst das Team",
+      "noProject": "Wähle zuerst ein Projekt",
+      "noGoal": "Setze zuerst ein Ziel im Projekt",
+      "ready": "Plan aus dem gespeicherten Team und Ziel generieren"
+    },
+    "toasts": {
+      "saved": "Team gespeichert",
+      "saveFailed": "Speichern fehlgeschlagen",
+      "planGenFailed": "Plan-Generierung fehlgeschlagen",
+      "templateSaved": "Vorlage gespeichert",
+      "templateSaveFailed": "Vorlage speichern fehlgeschlagen",
+      "templateApplied": "Vorlage angewendet",
+      "rolesLoaded": "{{count}} Rolle(n) geladen"
+    }
+  },
+  "teamRoleCard": {
+    "newRole": "(neue Rolle)",
+    "describe": "Konfiguriere den {{name}}-Agent.",
+    "drag": "Ziehen zum Sortieren (oder Pfeiltasten)",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "fields": {
+      "role": "Rollenname",
+      "rolePlaceholder": "kebab-case-name",
+      "roleInvalid": "kebab-case Bezeichner (a-z, 0-9, -)",
+      "roleDuplicate": "Doppelter Rollenname",
+      "model": "Modell",
+      "tools": "Erlaubte Tools",
+      "toolsHint": "Schränke ein, was dieser Agent aufrufen darf. Leer lassen für Claude Code Defaults.",
+      "systemPrompt": "System-Prompt"
+    },
+    "promptCount": {
+      "tooShort": "{{count}} Zeichen — zu kurz (min 40)",
+      "ok": "{{count}} Zeichen",
+      "warn": "{{count}} Zeichen — nahe am Limit (max 4000)",
+      "over": "{{count}} Zeichen — über dem 4000-Zeichen-Limit"
+    },
+    "testPrompt": "Diesen Prompt testen…"
+  },
+  "planEditor": {
+    "title": "Plan-Editor",
+    "selectProject": "Wähle ein Projekt, um seinen Plan zu sehen.",
+    "loadFailed": "Plan konnte nicht geladen werden.",
+    "noPlanYet": "Noch kein Plan",
+    "noPlanHint": "Generiere einen Plan aus dem Team und dem Ziel dieses Projekts.",
+    "validationErrors": "Plan hat Validierungsfehler",
+    "unsavedChanges": "Ungespeicherte Änderungen",
+    "node": {
+      "id": "ID",
+      "role": "Rolle",
+      "prompt": "Prompt",
+      "maxTurns": "Max. Turns",
+      "deps": "Abhängigkeiten",
+      "noDeps": "Keine anderen Knoten zum Abhängen.",
+      "successCriteria": "Erfolgs-Kriterien",
+      "editTitle": "Knoten bearbeiten: {{id}}",
+      "noNodeSelected": "Kein Knoten ausgewählt",
+      "selectHint": "Wähle einen Knoten zum Bearbeiten.",
+      "instruction1": "Klicke einen Knoten im Graph, um ihn hier zu bearbeiten.",
+      "instruction2": "Ziehe Knoten, um das Layout anzupassen."
+    },
+    "lockDialog": {
+      "title": "Diesen Plan sperren & starten?",
+      "titleHasUnsaved": "Ungespeicherte Änderungen speichern und Sperren & Starten?",
+      "description": "Sperren verhindert weitere Bearbeitungen und startet sofort einen Run mit dem aktuellen Plan. Architect-, Developer- und QA-Agents werden gegen dein Repo gestartet. Du kannst aus der Run-Ansicht pausieren oder abbrechen."
+    },
+    "regenDialog": {
+      "title": "Plan neu generieren?",
+      "description": "Dies ersetzt den aktuellen Entwurf durch einen frisch generierten Plan aus Team und Ziel."
+    },
+    "toasts": {
+      "saved": "Plan gespeichert",
+      "saveFailed": "Speichern fehlgeschlagen",
+      "locked": "Plan gesperrt",
+      "runStarted": "Run gestartet",
+      "runStartedDesc": "Run {{id}}",
+      "lockFailed": "Sperren & Starten fehlgeschlagen",
+      "regenerated": "Plan neu generiert",
+      "regenFailed": "Neu generieren fehlgeschlagen"
+    }
+  },
+  "runView": {
+    "title": "Run-Ansicht",
+    "noRunId": "Keine Run-ID angegeben.",
+    "loadFailed": "Run konnte nicht geladen werden",
+    "loadFailedDesc": "Der Server hat einen Fehler zurückgegeben oder die Run-ID ist ungültig.",
+    "notFound": "Run nicht gefunden",
+    "notFoundDesc": "Dieser Run existiert nicht oder wurde gelöscht.",
+    "backToPlan": "← Plan",
+    "kanban": {
+      "pending": "Wartend",
+      "running": "Läuft",
+      "verifying": "Verifiziere",
+      "done": "Fertig",
+      "failed": "Fehlgeschlagen",
+      "empty": "leer"
+    },
+    "task": {
+      "tokens": "Tokens",
+      "turns": "Turns",
+      "duration": "Dauer",
+      "failed": "Fehlgeschlagen",
+      "forensics": "Forensik: {{path}}",
+      "liveTail": "Live-Stream",
+      "liveTailFor": "Live-Stream — {{title}}",
+      "tailHint": "Letzte {{count}} Text-Deltas (max 200 pro Task).",
+      "pinScroll": "Scroll oben pinnen",
+      "noOutput": "Noch keine Ausgabe."
+    },
+    "controls": {
+      "probingResume": "Prüfe Fortsetzung…",
+      "quotaExhausted": "Quota erschöpft — automatische Fortsetzung in {{countdown}}",
+      "pausedByUser": "Run vom Benutzer pausiert."
+    },
+    "cancelDialog": {
+      "title": "Run abbrechen?",
+      "description": "Der Run wird als abgebrochen markiert. Laufende Subprozesse erhalten SIGTERM. Branches und das Event-Log bleiben für die Forensik erhalten."
+    },
+    "toasts": {
+      "paused": "Run pausiert",
+      "pauseFailed": "Pausieren fehlgeschlagen",
+      "resumed": "Run fortgesetzt",
+      "resumeFailed": "Fortsetzen fehlgeschlagen",
+      "cancelled": "Run abgebrochen",
+      "cancelFailed": "Abbrechen fehlgeschlagen",
+      "budgetWarning": "{{percent}}% des {{kind}}-Budgets",
+      "budgetWarningDesc": "Nähert sich dem konfigurierten Budget für diesen Run.",
+      "budgetExceeded": "{{kind}}-Budget überschritten",
+      "budgetExceededDesc": "Der Run wird abgebrochen.",
+      "rateLimitHit": "Rate-Limit getroffen"
+    }
+  },
+  "firstRunModal": {
+    "title": "Agent Harness nutzt dein Claude-Abo",
+    "description": "Dieses Tool startet claude -p Subprozesse, die deine ~/.claude/-Credentials erben. Lange Runs verbrauchen dein Abo-Kontingent. Beachte die Anthropic-AGB — intensive Headless-Workflows sind deine Verantwortung.",
+    "footnote": "Du siehst dies einmal. Bestätigung wird im Browser-localStorage gespeichert.",
+    "acknowledge": "Verstanden, weiter"
+  },
+  "testPrompt": {
+    "title": "Prompt testen — {{role}}",
+    "description": "Schickt den System-Prompt + ein Sample-Ziel an claude -p mit --max-turns 2. Abo-Kontingent fällt an.",
+    "sampleGoal": "Sample-Ziel",
+    "modelLabel": "Modell: {{model}}",
+    "toolsLabel": "Tools: {{count}}",
+    "running": "Probe läuft…",
+    "failed": "Probe fehlgeschlagen",
+    "loginHint": "Hinweis: führe zuerst `claude login` auf dem Server-Host aus.",
+    "metrics": {
+      "in": "in:",
+      "out": "out:",
+      "turns": "Turns:",
+      "elapsed": "Dauer:"
+    },
+    "emptyResponse": "(leere Antwort)"
+  },
+  "applyTemplate": {
+    "title": "Vorlage anwenden",
+    "description": "Ersetzt das aktuelle Team-Draft durch die Vorlage.",
+    "willOverwrite": " Dein aktuelles Draft wird überschrieben."
+  },
+  "costPanel": {
+    "title": "Kosten- / Quota-Schätzung",
+    "description": "Abo-Quota-Schätzung basierend auf Team-Gewicht und den letzten Runs in diesem Projekt.",
+    "teamWeight": "Team-Gewicht (haiku=1, sonnet=4, opus=20)",
+    "roles": "Rollen",
+    "avgTokens": "Ø Tokens / erfolgreichem Run (letzte {{count}})",
+    "noData": "Noch keine abgeschlossenen Runs — starte das Team einmal, um diese Schätzung zu füllen."
+  }
+}

@@ -1,0 +1,255 @@
+{
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "german": "Deutsch"
+  },
+  "buttons": {
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "create": "Create",
+    "creating": "Creating…",
+    "remove": "Remove",
+    "retry": "Retry",
+    "back": "Back",
+    "loading": "Loading…",
+    "lockAndRun": "Lock & Run",
+    "lockAndRunDisabled": "Plan is locked",
+    "starting": "Starting…",
+    "regenerate": "Re-generate",
+    "regenerating": "Regenerating…",
+    "generatePlan": "Generate Plan",
+    "generating": "Generating…",
+    "saveTeam": "Save Team",
+    "saveAsTemplate": "Save as Template",
+    "applyTemplate": "Apply",
+    "apply": "Apply {{name}}",
+    "pauseRun": "Pause Run",
+    "resume": "Resume",
+    "resumeNow": "Resume now",
+    "cancelRun": "Cancel run",
+    "keepRunning": "Keep running",
+    "runProbe": "Run probe",
+    "running": "Running…"
+  },
+  "navigation": {
+    "appName": "Agent Harness",
+    "projects": "Projects",
+    "newProject": "New project",
+    "noProjectsYet": "No projects yet",
+    "recentRuns": "Recent runs",
+    "today": "{{count}} today"
+  },
+  "topBar": {
+    "activeRun": "Active run",
+    "noRun": "no run",
+    "run": "Run",
+    "time": "Time",
+    "turns": "Turns",
+    "tokens": "tokens"
+  },
+  "newProject": {
+    "title": "New Project",
+    "description": "Create a project to start configuring a team and plan.",
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "My project",
+      "template": "Template",
+      "templateNone": "Configure team manually",
+      "goal": "Goal",
+      "goalPlaceholder": "What should the agents accomplish? Be specific about the deliverable, the verification command, and any constraints.",
+      "goalPlaceholderTemplate": "Describe what you want to build. The {{template}} template's suggested goals will guide you.",
+      "repoPath": "Repo path",
+      "repoPathPlaceholder": "/absolute/path/to/repo"
+    },
+    "toasts": {
+      "created": "Project created",
+      "createFailed": "Create failed"
+    }
+  },
+  "teamBuilder": {
+    "title": "Team Builder",
+    "selectProject": "Select a project to configure its team.",
+    "subtitle": "Configure the agents for {{name}}.",
+    "saveAsTemplateDialog": {
+      "title": "Save team as template",
+      "description": "Persist the current team config as a reusable template available in the New Project dialog.",
+      "id": "id (kebab-case, ≥2 chars)",
+      "idPlaceholder": "my-team",
+      "name": "Name (≥2 chars)",
+      "namePlaceholder": "My Team",
+      "descriptionLabel": "Description (≥20 chars)",
+      "descriptionPlaceholder": "What this team is good for…"
+    },
+    "generateTitle": {
+      "noTeam": "Save the team first",
+      "noProject": "Select a project first",
+      "noGoal": "Set a goal on the project first",
+      "ready": "Generate a plan from the saved team and goal"
+    },
+    "toasts": {
+      "saved": "Team saved",
+      "saveFailed": "Save failed",
+      "planGenFailed": "Plan generation failed",
+      "templateSaved": "Template saved",
+      "templateSaveFailed": "Template save failed",
+      "templateApplied": "Template applied",
+      "rolesLoaded": "{{count}} role(s) loaded"
+    }
+  },
+  "teamRoleCard": {
+    "newRole": "(new role)",
+    "describe": "Configure the {{name}} agent.",
+    "drag": "Drag to reorder (or use arrows)",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "fields": {
+      "role": "Role name",
+      "rolePlaceholder": "kebab-case-name",
+      "roleInvalid": "kebab-case identifier (a-z, 0-9, -)",
+      "roleDuplicate": "duplicate role name",
+      "model": "Model",
+      "tools": "Allowed tools",
+      "toolsHint": "Restrict what this agent can call. Leave empty to grant Claude Code defaults.",
+      "systemPrompt": "System prompt"
+    },
+    "promptCount": {
+      "tooShort": "{{count}} chars — too short (min 40)",
+      "ok": "{{count}} chars",
+      "warn": "{{count}} chars — close to limit (max 4000)",
+      "over": "{{count}} chars — over the 4000 char max"
+    },
+    "testPrompt": "Test this prompt…"
+  },
+  "planEditor": {
+    "title": "Plan Editor",
+    "selectProject": "Select a project to view its plan.",
+    "loadFailed": "Failed to load plan.",
+    "noPlanYet": "No plan yet",
+    "noPlanHint": "Generate a plan from this project's team and goal.",
+    "validationErrors": "Plan has validation errors",
+    "unsavedChanges": "unsaved changes",
+    "node": {
+      "id": "ID",
+      "role": "Role",
+      "prompt": "Prompt",
+      "maxTurns": "Max turns",
+      "deps": "Deps",
+      "noDeps": "No other nodes to depend on.",
+      "successCriteria": "Success criteria",
+      "editTitle": "Edit node: {{id}}",
+      "noNodeSelected": "No node selected",
+      "selectHint": "Select a node to edit.",
+      "instruction1": "Click a node in the graph to edit it here.",
+      "instruction2": "Drag nodes to rearrange the layout."
+    },
+    "lockDialog": {
+      "title": "Lock & Run this plan?",
+      "titleHasUnsaved": "Save unsaved changes and Lock & Run?",
+      "description": "Locking prevents further edits and immediately starts a run with the current plan. The architect, developer, and QA agents will spawn against your repo. You can pause or cancel from the run view."
+    },
+    "regenDialog": {
+      "title": "Regenerate plan?",
+      "description": "This replaces the current draft with a freshly generated plan from the team and goal."
+    },
+    "toasts": {
+      "saved": "Plan saved",
+      "saveFailed": "Save failed",
+      "locked": "Plan locked",
+      "runStarted": "Run started",
+      "runStartedDesc": "Run {{id}}",
+      "lockFailed": "Lock & Run failed",
+      "regenerated": "Plan regenerated",
+      "regenFailed": "Regenerate failed"
+    }
+  },
+  "runView": {
+    "title": "Run View",
+    "noRunId": "No run id supplied.",
+    "loadFailed": "Could not load run",
+    "loadFailedDesc": "The server returned an error or the run id is invalid.",
+    "notFound": "Run not found",
+    "notFoundDesc": "This run does not exist or has been deleted.",
+    "backToPlan": "← Plan",
+    "kanban": {
+      "pending": "Pending",
+      "running": "Running",
+      "verifying": "Verifying",
+      "done": "Done",
+      "failed": "Failed",
+      "empty": "empty"
+    },
+    "task": {
+      "tokens": "Tokens",
+      "turns": "Turns",
+      "duration": "Duration",
+      "failed": "Failed",
+      "forensics": "Forensics: {{path}}",
+      "liveTail": "Live tail",
+      "liveTailFor": "Live tail — {{title}}",
+      "tailHint": "Last {{count}} text deltas (cap 200 per task).",
+      "pinScroll": "Pin scroll to top",
+      "noOutput": "No output yet."
+    },
+    "controls": {
+      "probingResume": "Probing for resume…",
+      "quotaExhausted": "Quota exhausted — automatic resume in {{countdown}}",
+      "pausedByUser": "Run paused by user."
+    },
+    "cancelDialog": {
+      "title": "Cancel run?",
+      "description": "The run will be marked cancelled. In-flight subprocesses receive SIGTERM. Branches and the events log are preserved for forensics."
+    },
+    "toasts": {
+      "paused": "Run paused",
+      "pauseFailed": "Pause failed",
+      "resumed": "Run resumed",
+      "resumeFailed": "Resume failed",
+      "cancelled": "Run cancelled",
+      "cancelFailed": "Cancel failed",
+      "budgetWarning": "{{percent}}% of {{kind}} budget",
+      "budgetWarningDesc": "Approaching the configured budget for this run.",
+      "budgetExceeded": "{{kind}} budget exceeded",
+      "budgetExceededDesc": "The run is being cancelled.",
+      "rateLimitHit": "Rate limit hit"
+    }
+  },
+  "firstRunModal": {
+    "title": "Agent Harness uses your Claude subscription",
+    "description": "This tool spawns claude -p subprocesses inheriting your ~/.claude/ credentials. Long-running runs consume your subscription quota. Review the Anthropic ToS — running intensive headless workflows is your responsibility.",
+    "footnote": "You will see this once. Acknowledgment is stored in browser localStorage.",
+    "acknowledge": "I understand, continue"
+  },
+  "testPrompt": {
+    "title": "Test prompt — {{role}}",
+    "description": "Sends the system prompt + a sample goal to claude -p with --max-turns 2. Subscription quota applies.",
+    "sampleGoal": "Sample goal",
+    "modelLabel": "Model: {{model}}",
+    "toolsLabel": "Tools: {{count}}",
+    "running": "Running probe…",
+    "failed": "Probe failed",
+    "loginHint": "Hint: run `claude login` on the server host first.",
+    "metrics": {
+      "in": "in:",
+      "out": "out:",
+      "turns": "turns:",
+      "elapsed": "elapsed:"
+    },
+    "emptyResponse": "(empty response)"
+  },
+  "applyTemplate": {
+    "title": "Apply a template",
+    "description": "Replaces the current draft team with the template.",
+    "willOverwrite": " Your current draft will be overwritten."
+  },
+  "costPanel": {
+    "title": "Cost / quota estimate",
+    "description": "Subscription-quota estimate based on the team weight and the recent runs in this project.",
+    "teamWeight": "Team weight (haiku=1, sonnet=4, opus=20)",
+    "roles": "Roles",
+    "avgTokens": "Avg tokens / successful run (last {{count}})",
+    "noData": "No completed runs yet — run the team once to populate this estimate."
+  }
+}
