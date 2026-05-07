@@ -154,7 +154,12 @@ export function TeamBuilder() {
   const [tplName, setTplName] = useState('');
   const [tplDescription, setTplDescription] = useState('');
   const [hydrated, setHydrated] = useState(false);
-  const [testPromptIndex, setTestPromptIndex] = useState<number | null>(null);
+  // Tied to the row's stable id (not its positional index), so the dialog
+  // continues to show the original role's content even if the user reorders
+  // the team — via drag, arrow click, or template-apply — while the dialog
+  // is open. If the row is removed entirely, indexOf returns -1 and we
+  // close the dialog by rendering null.
+  const [testPromptId, setTestPromptId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -328,7 +333,7 @@ export function TeamBuilder() {
                 canMoveUp={i > 0}
                 canMoveDown={i < draft.length - 1}
                 isDuplicate={d.role.trim() !== '' && dups.has(d.role.trim())}
-                onTestPrompt={() => setTestPromptIndex(i)}
+                onTestPrompt={() => setTestPromptId(ids[i] ?? null)}
               />
             ))}
           </div>
@@ -417,15 +422,20 @@ export function TeamBuilder() {
           {generatePlan.isPending ? 'Generating…' : 'Generate Plan'}
         </Button>
       </div>
-      {testPromptIndex != null && draft[testPromptIndex] && (
-        <TestPromptDialog
-          open
-          onOpenChange={(v) => {
-            if (!v) setTestPromptIndex(null);
-          }}
-          draft={draft[testPromptIndex]!}
-        />
-      )}
+      {(() => {
+        if (testPromptId == null) return null;
+        const idx = ids.indexOf(testPromptId);
+        if (idx < 0 || !draft[idx]) return null;
+        return (
+          <TestPromptDialog
+            open
+            onOpenChange={(v) => {
+              if (!v) setTestPromptId(null);
+            }}
+            draft={draft[idx]}
+          />
+        );
+      })()}
     </div>
   );
 }
