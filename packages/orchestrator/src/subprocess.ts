@@ -204,9 +204,19 @@ export class ClaudeSubprocess {
     // Pipe the prompt via stdin and close.
     child.stdin.end(opts.prompt);
 
-    // Wire abort signal to terminate the process.
+    // Wire abort signal to terminate the process. The kill is wrapped in
+    // try/catch because on Windows the `exitCode === null` guard is not
+    // reliable: exitCode is set asynchronously when the 'exit' event fires,
+    // so a SIGTERM-then-abort sequence can race with the OS reaping the
+    // process and produce EPERM. We swallow because the only contract is
+    // "make a best-effort attempt to terminate".
     const onAbort = (): void => {
-      if (child.exitCode === null) child.kill('SIGTERM');
+      if (child.exitCode !== null) return;
+      try {
+        child.kill('SIGTERM');
+      } catch {
+        // Already exited / handle invalid — nothing to do.
+      }
     };
     if (opts.signal) {
       if (opts.signal.aborted) onAbort();
@@ -250,7 +260,16 @@ export class ClaudeSubprocess {
             },
           });
           // Abort the subprocess; the walker will react to the event.
-          if (child.exitCode === null) child.kill('SIGTERM');
+          // try/catch matches the onAbort handler above — on Windows the
+          // exitCode guard is not race-free, so a kill against an already-
+          // reaped process can throw EPERM. Best-effort.
+          if (child.exitCode === null) {
+            try {
+              child.kill('SIGTERM');
+            } catch {
+              // ignore
+            }
+          }
         }
       }
     };

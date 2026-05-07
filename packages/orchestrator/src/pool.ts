@@ -25,6 +25,13 @@ export interface SubprocessPoolOpts {
   defaultMcpConfigPath?: string;
 }
 
+export class PoolTerminatedError extends Error {
+  constructor() {
+    super('subprocess pool terminated');
+    this.name = 'PoolTerminatedError';
+  }
+}
+
 export class SubprocessPool {
   readonly maxParallel: number;
   private active = 0;
@@ -32,6 +39,11 @@ export class SubprocessPool {
   private readonly aborters = new Set<AbortController>();
   private readonly runner: SubprocessRunner;
   private readonly defaultMcpConfigPath: string | undefined;
+  // Terminal flag — once set, no new subprocesses may spawn. Both fast-path
+  // and slow-path acquire() check it. terminateAll() also drains any
+  // queued waiters so they unblock and re-check the flag instead of
+  // sitting on a slot that release() would otherwise hand to them.
+  private terminated = false;
 
   constructor(opts: SubprocessPoolOpts) {
     if (!Number.isInteger(opts.maxParallel) || opts.maxParallel < 1) {
@@ -51,11 +63,26 @@ export class SubprocessPool {
   }
 
   /**
-   * Aborts every subprocess currently in-flight via an internal AbortController.
+   * Aborts every subprocess currently in-flight via an internal AbortController
+   * AND prevents any further spawns. Tasks queued in `waiters` (blocked on a
+   * slot) are unblocked so they observe the terminated flag and exit acquire()
+   * with a PoolTerminatedError instead of silently slipping through after a
+   * release() from a finishing in-flight task.
+   *
    * Callers that pass their own `signal` keep that wired-in too — both can
-   * trigger abort.
+   * trigger abort. Subsequent run() calls fail fast at acquire().
    */
   terminateAll(): void {
+    this.terminated = true;
+    // Wake every waiter so they re-enter acquire() and observe the flag.
+    const drainees = this.waiters.splice(0);
+    for (const resolve of drainees) {
+      try {
+        resolve();
+      } catch {
+        // ignore
+      }
+    }
     for (const a of this.aborters) {
       try {
         a.abort();
@@ -66,7 +93,12 @@ export class SubprocessPool {
   }
 
   private async *runIter(opts: RunClaudeOpts): AsyncGenerator<HarnessEvent, void, void> {
-    await this.acquire();
+    try {
+      await this.acquire();
+    } catch (err) {
+      if (err instanceof PoolTerminatedError) return;
+      throw err;
+    }
     // Apply default mcpConfigPath when caller didn't set one.
     const effectiveOpts: RunClaudeOpts =
       opts.mcpConfigPath || !this.defaultMcpConfigPath
@@ -95,6 +127,7 @@ export class SubprocessPool {
   }
 
   private async acquire(): Promise<void> {
+    if (this.terminated) throw new PoolTerminatedError();
     if (this.active < this.maxParallel) {
       this.active++;
       return;
@@ -102,6 +135,9 @@ export class SubprocessPool {
     await new Promise<void>((resolve) => {
       this.waiters.push(resolve);
     });
+    // After waking, re-check the flag — a concurrent terminateAll() may
+    // have woken us specifically to bail out, not to take a slot.
+    if (this.terminated) throw new PoolTerminatedError();
     this.active++;
   }
 

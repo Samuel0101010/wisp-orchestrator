@@ -62,6 +62,26 @@ describe('MemoryStore', () => {
     });
   });
 
+  it('list reports UTF-8 byte sizes, not character counts', async () => {
+    await withTmpDb(async (path) => {
+      const s = new MemoryStore(path);
+      try {
+        // ASCII: 5 chars, 5 bytes UTF-8.
+        s.set('ascii', 'hello');
+        // Three Japanese characters that take 3 bytes each in UTF-8 (9 bytes,
+        // 3 chars). If list() used SQLite length() instead of octet_length(),
+        // the reported size would be 3 — misleading for storage budgeting
+        // since the per-value cap in tools.ts is enforced in BYTES.
+        s.set('cjk', '日本語');
+        const items = s.list();
+        expect(items.find((i) => i.key === 'ascii')?.size).toBe(5);
+        expect(items.find((i) => i.key === 'cjk')?.size).toBe(9);
+      } finally {
+        s.close();
+      }
+    });
+  });
+
   it('list returns empty array on a fresh DB', async () => {
     await withTmpDb(async (path) => {
       const s = new MemoryStore(path);
