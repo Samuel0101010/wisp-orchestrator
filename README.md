@@ -16,8 +16,8 @@ Agent Harness is a local-first orchestrator for Claude Code that delivers exactl
 
 - **Variable team (M2).** Roles are a `{roles: AgentSpec[]}` array (1..8 roles, kebab-case unique names, model enum opus/sonnet/haiku). Planner, walker, and TeamBuilder UI are all role-list-driven.
 - **Shared-memory MCP (M3).** `@agent-harness/memory-mcp` is a stdio MCP server that exposes `memory.{set,get,list,delete}` to every task subprocess. The architect can drop notes; the developer reads them. Per-run SQLite isolation under `<HARNESS_DATA_DIR>/memory/<runId>.db`. See [docs/memory-mcp.md](docs/memory-mcp.md).
-- **Team templates (M4).** Four built-in templates (`ts-library`, `python-backend`, `refactor-squad`, `data-pipeline`) plus user-saved templates under `<HARNESS_DATA_DIR>/templates/`. Picker in the New Project dialog; "Save as Template" on TeamBuilder.
-- **QA-driven replan (M5).** When QA fails terminally, the walker calls a server helper that composes a new prompt with the QA error context, generates a fresh plan, and continues the run. Capped at 1 replan per run. Audit trail via `parent_plan_id`. Visible in the UI as a "v2 (replanned)" badge.
+- **Team templates (M4).** Four built-in templates (`ts-library`, `python-backend`, `refactor-squad`, `data-pipeline`) plus user-saved templates under `<HARNESS_DATA_DIR>/templates/`. Picker in the New Project dialog; "Save as Template" on TeamBuilder. See [docs/templates.md](docs/templates.md).
+- **QA-driven replan (M5).** When QA fails terminally, the walker calls a server helper that composes a new prompt with the QA error context, generates a fresh plan, and continues the run. Capped at 1 replan per run. Audit trail via `parent_plan_id`. Visible in the UI as a "v2 (replanned)" badge. See [docs/replan.md](docs/replan.md).
 - **Plugin Skills.** Four `/harness-*` slash commands so the dashboard is optional: `/harness-new-run` (goal → running execution), `/harness-resume` (paused runs), `/harness-inspect` (result branch + git log), `/harness-diagnose` (event timeline).
 - **Foundation hardening from M1.5/Stage 1.** `harness.verify-failed` events with full payload, retry-prompt size cap, `successCriteria.preflight` (one-time setup before build/test/lint), `task.usage` parser fixed for the modern result-frame, `CI=true` + `npm_config_os/arch` injected into verify subprocesses for cross-platform pnpm install.
 
@@ -125,15 +125,18 @@ A single Fastify + WebSocket process owns SQLite, dispatches `claude -p` subproc
 
 The dashboard server reads its configuration from environment variables (parsed in [`apps/dashboard-server/src/env.ts`](apps/dashboard-server/src/env.ts)):
 
-| Var                   | Default                                                   | Purpose                                                                       |
-| --------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `HARNESS_PORT`        | `4400`                                                    | TCP port for HTTP + WS server                                                 |
-| `HARNESS_HOST`        | `127.0.0.1`                                               | Bind address                                                                  |
-| `HARNESS_DATA_DIR`    | `os.tmpdir()/agent-harness` (dev); required in production | Holds SQLite DB, snapshots, worktrees                                         |
-| `HARNESS_LOG_LEVEL`   | `info`                                                    | pino log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent`) |
-| `HARNESS_CORS_ORIGIN` | `http://localhost:5173`                                   | Vite dev origin allowed by `@fastify/cors`                                    |
-| `HARNESS_MOCK_CLI`    | `false`                                                   | Use mock fixtures instead of real `claude` (for tests)                        |
-| `HARNESS_SERVE_WEB`   | `false`                                                   | Static-serve `apps/dashboard-web/dist/` from `/` (single-port UI + API + WS)  |
+| Var                              | Default                                                   | Purpose                                                                                                                |
+| -------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `HARNESS_PORT`                   | `4400`                                                    | TCP port for HTTP + WS server                                                                                          |
+| `HARNESS_HOST`                   | `127.0.0.1`                                               | Bind address                                                                                                           |
+| `HARNESS_DATA_DIR`               | `os.tmpdir()/agent-harness` (dev); required in production | Holds SQLite DB, snapshots, worktrees                                                                                  |
+| `HARNESS_LOG_LEVEL`              | `info`                                                    | pino log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent`)                                          |
+| `HARNESS_CORS_ORIGIN`            | `http://localhost:5173`                                   | Vite dev origin allowed by `@fastify/cors`                                                                             |
+| `HARNESS_MOCK_CLI`               | `false`                                                   | Use mock fixtures instead of real `claude` (for tests)                                                                 |
+| `HARNESS_SERVE_WEB`              | `false`                                                   | Static-serve `apps/dashboard-web/dist/` from `/` (single-port UI + API + WS)                                           |
+| `HARNESS_INTER_TASK_PACING_MS`   | `5000`                                                    | Wallclock pause between consecutive task dispatches (subscription-friendly)                                            |
+| `HARNESS_AUTO_RESUME_RATE_LIMIT` | `false`                                                   | When true, the walker auto-resumes a rate-limit pause at `resumeAt`. Off keeps the run paused for the user to inspect. |
+| `HARNESS_AUTH_MODE`              | `subscription`                                            | `subscription` (default) or `api`. Toggles the auth-probe path; subprocesses always inherit `~/.claude/` credentials.  |
 
 Notes:
 
@@ -194,7 +197,7 @@ Possible future directions, deliberately not pursued in v1.0:
 
 ## License
 
-UNLICENSED — proprietary while the API stabilizes. The repository structure is open-source-ready; the license will be revisited at M3.
+Apache-2.0 — see [LICENSE](LICENSE). Repository is private at the moment; the license declaration takes effect whenever the repo (or the plugin via marketplace) becomes public.
 
 ## Repo layout
 

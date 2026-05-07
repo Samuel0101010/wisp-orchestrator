@@ -1,24 +1,24 @@
 # Architecture
 
-This document describes the M1 vertical slice. It assumes you have read the [README](../README.md) and skimmed the agent reference in [agents.md](agents.md).
+This document covers the v1.0 system. The first half describes the M1 vertical slice (the foundation that survives unchanged); the [v1.0 layers on top of M1](#v10-layers-on-top-of-m1) section at the bottom covers the M2–M5 + plugin-skill additions. Read alongside the [README](../README.md) and the agent reference in [agents.md](agents.md).
 
 ## Goals & non-goals
 
 ### Goals
 
-- A single local-first orchestrator that runs a 3-role agent team end-to-end against a user-supplied goal.
+- A single local-first orchestrator that runs a variable-size agent team end-to-end against a user-supplied goal.
 - Plan as a first-class artifact: editable in the UI, versioned in SQLite, validated server-side before any subprocess spawns.
 - Long-horizon execution: runs that span hours and survive rate-limit windows and abrupt server restarts.
 - A live dashboard with sub-second update latency over WebSocket.
 - Subscription-only auth (Claude Max). The orchestrator never silently falls back to API billing.
 
-### Non-goals (M1)
+### Non-goals (still v1.0)
 
-- Variable team size, variable role types — fixed to architect/developer/QA. Lifted in M2.
-- Cross-agent shared memory beyond what the filesystem (`architecture.md`, `tasks.md`, plain commits) provides. Lifted in M3.
-- Marketplace-distributed team templates. Lifted in M4.
-- QA-driven replan; M1 retries the developer node once and otherwise marks the branch failed. Lifted in M5.
 - Multi-tenant deployment, hosted SaaS, or auth beyond local-loopback.
+- Anthropic-marketplace publication (private plugin only).
+- Direct-API mode beyond the existing `HARNESS_AUTH_MODE=api` stub.
+
+The original M1 non-goals (variable team, shared memory, templates, QA replan) all shipped in M2–M5. See [v1.0 layers on top of M1](#v10-layers-on-top-of-m1).
 
 ## Components
 
@@ -34,8 +34,9 @@ This document describes the M1 vertical slice. It assumes you have read the [REA
 +------------------------------+
 |     dashboard-server         |   Fastify 5 + @fastify/cors + @fastify/websocket
 |  routes/                     |   pino logger
-|    health, projects,         |
-|    plans, runs               |
+|    health, projects, plans,  |
+|    runs, team-templates,     |
+|    plan-chain, probe-prompt  |
 |  ws.ts: per-run channels     |
 |  orchestrator/               |
 |    runtime.ts (RunRuntime)   |
@@ -63,7 +64,7 @@ This document describes the M1 vertical slice. It assumes you have read the [REA
 
 | Path                        | Responsibility                                                                                                       |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `packages/schemas`          | Drizzle DB schema (9 tables) + Zod schemas for `Plan`, `HarnessEvent`, `AgentSpec`, `Team`. Pure types, no I/O.      |
+| `packages/schemas`          | Drizzle DB schema (8 tables) + Zod schemas for `Plan`, `HarnessEvent`, `AgentSpec`, `Team`. Pure types, no I/O.      |
 | `packages/orchestrator`     | `runClaude` subprocess runner, `SubprocessPool`, `Walker`, worktree helpers, rate-limit detector, `runVerification`. |
 | `apps/dashboard-server`     | Fastify routes, WS, Drizzle wiring, `RunRuntime` (DB + WS adapter for the Walker), recovery, planner-spawn glue.     |
 | `apps/dashboard-web`        | React dashboard.                                                                                                     |
@@ -154,9 +155,9 @@ Three caps gate every run, configured per-run with sensible defaults from `RunRu
 
 | Budget         | Default | Hard cap?              | Notes                                                                          |
 | -------------- | ------- | ---------------------- | ------------------------------------------------------------------------------ |
-| `budgetMinutes`| 360     | Yes                    | Wallclock from `runs.startedAt`. Triggers `outcome='budget_exceeded'`.         |
+| `budgetMinutes`| 120     | Yes                    | Wallclock from `runs.startedAt`. Triggers `outcome='budget_exceeded'`.         |
 | `budgetTurns`  | 500     | Yes                    | Sum of per-task `turnsUsed`. Same outcome as time exhaustion.                  |
-| `maxParallel`  | 3       | Yes                    | Concurrency cap on `SubprocessPool`. Walker honors this when dispatching.      |
+| `maxParallel`  | 2       | Yes                    | Concurrency cap on `SubprocessPool`. Walker honors this when dispatching. Subscription-friendly default. |
 | Tokens         | n/a     | No (informational only)| Surfaced as `tokensInTotal` / `tokensOutTotal` for cost transparency, never gated. |
 
 The Walker emits `resource.warning` at 80% and `resource.exceeded` at 100% of each gated budget; the dashboard's TopBar reflects both.
