@@ -11,6 +11,7 @@ import { backfillAgents } from './db/agents-backfill.js';
 import { seedAgents } from './db/agents-seed.js';
 import { fixUpAbruptCrashes } from './orchestrator/recovery.js';
 import { getDefaultRuntime } from './routes/runs.js';
+import { workerDaemon } from './routes/index.js';
 
 const SHUTDOWN_TIMEOUT_MS = 30_000;
 
@@ -60,7 +61,11 @@ export async function bootstrap(): Promise<FastifyInstance> {
   }
   await fixUpAbruptCrashes(db);
   await runBootAuthProbe();
-  return buildApp();
+  const app = await buildApp();
+  if (process.env.NODE_ENV !== 'test') {
+    workerDaemon.start();
+  }
+  return app;
 }
 
 async function runBootAuthProbe(): Promise<void> {
