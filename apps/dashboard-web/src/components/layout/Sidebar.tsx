@@ -11,6 +11,7 @@ import {
   Activity,
   Sparkles,
   GitBranch,
+  Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -121,6 +122,7 @@ export function Sidebar() {
   const isWorkersActive = location.pathname.startsWith('/workers');
   const isInsightsActive = location.pathname.startsWith('/insights');
   const isGoapActive = location.pathname.startsWith('/goap');
+  const isPromptBundlesActive = location.pathname.startsWith('/prompt-bundles');
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
@@ -210,6 +212,17 @@ export function Sidebar() {
         >
           <GitBranch className="h-4 w-4" />
           <span>GOAP Planner</span>
+        </Link>
+        <Link
+          to="/prompt-bundles"
+          className={
+            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isPromptBundlesActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-prompt-bundles"
+        >
+          <Database className="h-4 w-4" />
+          <span>Prompt Bundles</span>
         </Link>
       </nav>
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
