@@ -422,14 +422,10 @@ export class RunRuntime {
     }
 
     // Cold-path: rebuild walker from DB state (E2).
-    if (run.status !== 'paused') {
-      return {
-        ok: false,
-        status: 409,
-        error: 'run not paused',
-        details: { currentStatus: run.status },
-      };
-    }
+    // Accept both 'paused' and 'running': the autopilot tick atomically flips
+    // paused → running via tryCheckoutRun BEFORE calling resumeRun, so by the
+    // time we get here the row is already 'running'. The top-level status
+    // gate above already rejected anything other than paused/running.
     if (this.resumingRuns.has(runId)) {
       return { ok: false, status: 409, error: 'run already resuming' };
     }
