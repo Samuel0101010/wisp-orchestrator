@@ -19,6 +19,10 @@ import { autoDoc } from '../workers/handlers/auto-doc.js';
 import { inventoryRefresh } from '../workers/handlers/inventory-refresh.js';
 import { consolidateMemory } from '../workers/handlers/consolidate-memory.js';
 import { promptBundleEvict } from '../workers/handlers/prompt-bundle-evict.js';
+import {
+  runSummaryFallback,
+  setRunSummaryFallbackRegistry,
+} from '../workers/handlers/run-summary-fallback.js';
 import { createWorkersRouter } from './workers.js';
 import { tickAutopilot } from '../autopilot/runner.js';
 import { routerRoutes } from './router.js';
@@ -66,6 +70,12 @@ workerRegistry.register({
   enabled: true,
   handler: promptBundleEvict,
 });
+workerRegistry.register({
+  name: 'run-summary-fallback',
+  cronSpec: '*/15 * * * *',
+  enabled: true,
+  handler: runSummaryFallback,
+});
 
 export const workerDaemon = new WorkerDaemon(workerRegistry);
 
@@ -77,6 +87,7 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   const skillRegistry = new SkillRegistry(skillsRoot);
   skillRegistry.init();
   setRuntimeSkillRegistry(skillRegistry);
+  setRunSummaryFallbackRegistry(skillRegistry);
 
   await app.register(healthRoutes);
   await app.register(projectRoutes);
