@@ -171,3 +171,74 @@ test`,
     expect(calls).toBe(1);
   });
 });
+
+import { getLatestSummaryForProject } from '../run-summary/retrieve.js';
+
+describe('getLatestSummaryForProject', () => {
+  it('returns the newest summary for a project', async () => {
+    const projectId = randomUUID();
+    await db
+      .insert(projects)
+      .values({ id: projectId, name: 'p', goal: 'g', repoPath: '/tmp/r', createdAt: new Date() })
+      .run();
+    const planId = randomUUID();
+    await db
+      .insert(plans)
+      .values({ id: planId, projectId, dagJson: { tasks: [], edges: [] }, status: 'locked' })
+      .run();
+    const runIdOld = randomUUID();
+    const runIdNew = randomUUID();
+    await db
+      .insert(runs)
+      .values([
+        {
+          id: runIdOld,
+          planId,
+          status: 'completed',
+          outcome: 'success',
+          budgetMinutes: 60,
+          budgetTurns: 100,
+          maxParallel: 1,
+          tokensInTotal: 0,
+          tokensOutTotal: 0,
+          turnsTotal: 0,
+        },
+        {
+          id: runIdNew,
+          planId,
+          status: 'completed',
+          outcome: 'success',
+          budgetMinutes: 60,
+          budgetTurns: 100,
+          maxParallel: 1,
+          tokensInTotal: 0,
+          tokensOutTotal: 0,
+          turnsTotal: 0,
+        },
+      ])
+      .run();
+    await db
+      .insert(runSummaries)
+      .values([
+        {
+          runId: runIdOld,
+          projectId,
+          summaryMd: 'old',
+          mode: null,
+          tokensTotal: 0,
+          createdAt: new Date(Date.now() - 60_000),
+        },
+        {
+          runId: runIdNew,
+          projectId,
+          summaryMd: 'new',
+          mode: null,
+          tokensTotal: 0,
+          createdAt: new Date(),
+        },
+      ])
+      .run();
+    const latest = getLatestSummaryForProject(projectId);
+    expect(latest?.summaryMd).toBe('new');
+  });
+});
