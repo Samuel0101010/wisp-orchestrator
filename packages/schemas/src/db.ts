@@ -145,6 +145,10 @@ export const runs = sqliteTable('runs', {
   turnsTotal: integer('turns_total').notNull().default(0),
   pausedReason: text('paused_reason', { enum: runPausedReasonValues }),
   resumeAt: integer('resume_at', { mode: 'timestamp_ms' }),
+  autopilotMode: integer('autopilot_mode', { mode: 'boolean' }).notNull().default(false),
+  autopilotBudgetMinutes: integer('autopilot_budget_minutes'),
+  autopilotBudgetTokens: integer('autopilot_budget_tokens'),
+  autopilotStartedAt: integer('autopilot_started_at', { mode: 'timestamp_ms' }),
 });
 export type Run = typeof runs.$inferSelect;
 export type NewRun = typeof runs.$inferInsert;
