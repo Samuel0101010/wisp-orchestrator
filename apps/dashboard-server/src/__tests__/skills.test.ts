@@ -71,3 +71,29 @@ describe('invokeSkill', () => {
     expect(result.failed).toBe('skill_not_found');
   });
 });
+
+import { buildManagerSystemPrompt } from '../routes/chat.js';
+
+describe('buildManagerSystemPrompt', () => {
+  it('returns base unchanged when registry is undefined', () => {
+    expect(buildManagerSystemPrompt('base', undefined)).toBe('base');
+  });
+
+  it('returns base unchanged when registry is empty', () => {
+    const reg = new SkillRegistry(mkdtempSync(join(tmpdir(), 'skills-')));
+    reg.init();
+    expect(buildManagerSystemPrompt('base', reg)).toBe('base');
+  });
+
+  it('appends ## Available skills block with skill names when registry is non-empty', () => {
+    const root = mkdtempSync(join(tmpdir(), 'skills-'));
+    fixtureSkill(root, 'summarise', 'Summarise body');
+    const reg = new SkillRegistry(root);
+    reg.init();
+    const result = buildManagerSystemPrompt('You are the manager.', reg);
+    expect(result).toContain('You are the manager.');
+    expect(result).toContain('## Available skills');
+    expect(result).toContain('- summarise: Test skill summarise');
+    expect(result).toContain('invoke_skill');
+  });
+});
