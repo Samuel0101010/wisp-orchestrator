@@ -687,6 +687,21 @@ export class RunRuntime {
     if (patch.tokensInTotal !== undefined) update.tokensInTotal = patch.tokensInTotal;
     if (patch.tokensOutTotal !== undefined) update.tokensOutTotal = patch.tokensOutTotal;
     if (patch.turnsTotal !== undefined) update.turnsTotal = patch.turnsTotal;
+    if (patch.errorReason !== undefined) update.errorReason = patch.errorReason;
+    // When a run terminates because the agent hit max-turns, schedule a retry
+    // at an exponential backoff with ±25% jitter. The retry-max-turns worker
+    // picks up these rows on its 2-minute cron tick.
+    if (patch.errorReason === 'max_turns') {
+      const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
+      const retryCount = run?.retryCount ?? 0;
+      const RETRY_BACKOFF_MIN = [2, 10, 30, 120];
+      if (retryCount < RETRY_BACKOFF_MIN.length) {
+        const baseMin = RETRY_BACKOFF_MIN[retryCount]!;
+        const jitter = 1 + (Math.random() - 0.5) * 0.5; // ±0.25
+        const delayMs = Math.round(baseMin * 60_000 * jitter);
+        update.nextRetryAt = new Date(Date.now() + delayMs);
+      }
+    }
     if (Object.keys(update).length === 0) return;
     try {
       await this.db.update(runs).set(update).where(eq(runs.id, runId)).run();
