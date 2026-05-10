@@ -719,7 +719,7 @@ export interface ChatActionRow {
   id: string;
   threadId: string;
   messageId: string | null;
-  kind: 'consult' | 'add_member' | 'create_project' | 'start_run';
+  kind: 'consult' | 'add_member' | 'create_project' | 'start_run' | 'invoke_skill';
   payloadJson: unknown;
   resultJson: unknown;
   status: 'pending' | 'ok' | 'failed';
@@ -779,5 +779,30 @@ export function usePlanVersionChain(planId: string | undefined) {
         throw err;
       }
     },
+  });
+}
+
+// ---------- Skills ----------
+
+export interface SkillSummary {
+  name: string;
+  description: string;
+  model: 'opus' | 'sonnet' | 'haiku';
+  allowedTools: string[];
+  argumentHint?: string;
+}
+
+export function useSkills() {
+  return useQuery<SkillSummary[]>({
+    queryKey: ['skills'],
+    queryFn: () => apiFetch<SkillSummary[]>('/api/skills'),
+  });
+}
+
+export function useReloadSkills() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => apiFetch('/api/skills/reload', { method: 'POST' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['skills'] }),
   });
 }

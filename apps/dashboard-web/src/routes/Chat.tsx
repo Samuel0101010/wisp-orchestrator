@@ -749,6 +749,27 @@ function ActionCard({ action }: { action: ChatActionRow }) {
       );
     }
   }
+  if (action.kind === 'invoke_skill' && status === 'ok') {
+    const r = action.resultJson as {
+      skillName?: string;
+      tokensIn?: number;
+      tokensOut?: number;
+      durationMs?: number;
+    } | null;
+    const payload = action.payloadJson as { name?: string } | null;
+    const tokens = (r?.tokensIn ?? 0) + (r?.tokensOut ?? 0);
+    return (
+      <div className={`rounded-lg border ${palette} p-3 text-xs`}>
+        <span className="mr-2 inline-flex items-center gap-1 text-muted-foreground">
+          🔧 invoked skill
+        </span>
+        <span className="font-mono font-semibold">{r?.skillName ?? payload?.name ?? 'unknown'}</span>
+        <span className="ml-2 text-muted-foreground">
+          ({tokens} tokens, {r?.durationMs ?? 0}ms)
+        </span>
+      </div>
+    );
+  }
   if (status === 'failed') {
     const r = action.resultJson as { error?: string } | null;
     return (
