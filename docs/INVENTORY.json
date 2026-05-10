@@ -1,12 +1,15 @@
 {
-  "generatedAt": "2026-05-10T15:24:00.350Z",
+  "generatedAt": "2026-05-10T15:52:32.502Z",
   "routes": [
     "agents",
     "chat-directives",
     "chat-engine",
     "chat",
+    "goap",
     "health",
+    "hooks",
     "index",
+    "insights",
     "plan-chain",
     "plans",
     "probe-prompt",
