@@ -26,3 +26,11 @@ CREATE TABLE `run_summaries` (
 );
 --> statement-breakpoint
 CREATE INDEX `run_summaries_project_idx` ON `run_summaries` (`project_id`,`created_at`);
+--> statement-breakpoint
+ALTER TABLE `runs` ADD COLUMN `error_reason` text;
+--> statement-breakpoint
+ALTER TABLE `runs` ADD COLUMN `retry_count` integer NOT NULL DEFAULT 0;
+--> statement-breakpoint
+ALTER TABLE `runs` ADD COLUMN `next_retry_at` integer;
+--> statement-breakpoint
+CREATE INDEX `runs_error_reason_idx` ON `runs` (`error_reason`,`next_retry_at`);

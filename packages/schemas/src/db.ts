@@ -150,6 +150,9 @@ export const runs = sqliteTable('runs', {
   autopilotBudgetMinutes: integer('autopilot_budget_minutes'),
   autopilotBudgetTokens: integer('autopilot_budget_tokens'),
   autopilotStartedAt: integer('autopilot_started_at', { mode: 'timestamp_ms' }),
+  errorReason: text('error_reason'),
+  retryCount: integer('retry_count').notNull().default(0),
+  nextRetryAt: integer('next_retry_at', { mode: 'timestamp_ms' }),
 });
 export type Run = typeof runs.$inferSelect;
 export type NewRun = typeof runs.$inferInsert;
