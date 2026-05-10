@@ -457,6 +457,23 @@ export const promptBundles = sqliteTable('prompt_bundles', {
 export type PromptBundle = typeof promptBundles.$inferSelect;
 export type NewPromptBundle = typeof promptBundles.$inferInsert;
 
+// ----- run summaries (paperclip-port: cross-run continuation context) -----
+
+export const runSummaries = sqliteTable('run_summaries', {
+  runId: text('run_id')
+    .primaryKey()
+    .references(() => runs.id, { onDelete: 'cascade' }),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  summaryMd: text('summary_md').notNull(),
+  mode: text('mode'),
+  tokensTotal: integer('tokens_total').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+});
+export type RunSummary = typeof runSummaries.$inferSelect;
+export type NewRunSummary = typeof runSummaries.$inferInsert;
+
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {
   id: text('id').primaryKey(),
