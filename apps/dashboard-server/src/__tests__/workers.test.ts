@@ -6,8 +6,13 @@ describe('WorkerRegistry', () => {
     const reg = new WorkerRegistry();
     let counter = 0;
     reg.register({
-      name: 'inc', cronSpec: '* * * * *', enabled: true,
-      handler: async () => { counter++; return { counter }; },
+      name: 'inc',
+      cronSpec: '* * * * *',
+      enabled: true,
+      handler: async () => {
+        counter++;
+        return { counter };
+      },
     });
     const run = await reg.runNow('inc');
     expect(run.status).toBe('ok');
@@ -18,8 +23,12 @@ describe('WorkerRegistry', () => {
   it('records failed status when handler throws', async () => {
     const reg = new WorkerRegistry();
     reg.register({
-      name: 'boom', cronSpec: '* * * * *', enabled: true,
-      handler: async () => { throw new Error('oops'); },
+      name: 'boom',
+      cronSpec: '* * * * *',
+      enabled: true,
+      handler: async () => {
+        throw new Error('oops');
+      },
     });
     const run = await reg.runNow('boom');
     expect(run.status).toBe('failed');

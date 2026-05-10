@@ -4,13 +4,25 @@ import { useGlobalRuns, useRunsSummary } from '@/api/queries';
 import type { GlobalRunRow } from '@/api/queries';
 import { VariantSwitcher } from './Switcher';
 
-const LINE_COLORS = ['#c0392b', '#0e7c66', '#caa12a', '#2c3a8a', '#a8593b', '#5c4d8a', '#3d6b3d', '#7a3a4f'];
+const LINE_COLORS = [
+  '#c0392b',
+  '#0e7c66',
+  '#caa12a',
+  '#2c3a8a',
+  '#a8593b',
+  '#5c4d8a',
+  '#3d6b3d',
+  '#7a3a4f',
+];
 
-function classify(r: GlobalRunRow): 'running' | 'paused' | 'success' | 'failure' | 'cancelled' | 'pending' {
+function classify(
+  r: GlobalRunRow,
+): 'running' | 'paused' | 'success' | 'failure' | 'cancelled' | 'pending' {
   if (r.status === 'running') return 'running';
   if (r.status === 'paused') return 'paused';
   if (r.status === 'cancelled') return 'cancelled';
-  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded') return 'failure';
+  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded')
+    return 'failure';
   if (r.status === 'completed') return 'success';
   return 'pending';
 }
@@ -116,7 +128,14 @@ export function MissionControlV5Transit() {
           </h1>
         </div>
         <div className="flex flex-col items-end gap-1 text-[11px] uppercase tracking-[0.22em] text-stone-700">
-          <span>Edition · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })}</span>
+          <span>
+            Edition ·{' '}
+            {new Date().toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: '2-digit',
+            })}
+          </span>
           <span className="font-mono text-[10px]">network · {lines.length} lines</span>
         </div>
       </header>
@@ -130,7 +149,14 @@ export function MissionControlV5Transit() {
           aria-label="Transit-map of agent runs over time"
         >
           {/* time axis */}
-          <line x1={left} x2={totalW - right} y1={top - 36} y2={top - 36} stroke="#1a1410" strokeWidth={1} />
+          <line
+            x1={left}
+            x2={totalW - right}
+            y1={top - 36}
+            y2={top - 36}
+            stroke="#1a1410"
+            strokeWidth={1}
+          />
           {Array.from({ length: 8 }).map((_, i) => {
             const x = left + (i / 7) * (totalW - left - right);
             const days = 7 - i;
@@ -159,7 +185,14 @@ export function MissionControlV5Transit() {
             return (
               <g key={line.project}>
                 {/* terminus disc — left */}
-                <circle cx={xStart - 28} cy={y} r={14} fill="#fbf3df" stroke={line.color} strokeWidth={3} />
+                <circle
+                  cx={xStart - 28}
+                  cy={y}
+                  r={14}
+                  fill="#fbf3df"
+                  stroke={line.color}
+                  strokeWidth={3}
+                />
                 <text
                   x={xStart - 28}
                   y={y + 4}
@@ -193,7 +226,14 @@ export function MissionControlV5Transit() {
                 />
 
                 {/* line label (project name) */}
-                <text x={xStart - 50} y={y + 4} textAnchor="end" fontSize={14} className="label-line" fill="#1a1410">
+                <text
+                  x={xStart - 50}
+                  y={y + 4}
+                  textAnchor="end"
+                  fontSize={14}
+                  className="label-line"
+                  fill="#1a1410"
+                >
                   {line.project}
                 </text>
 
@@ -213,11 +253,33 @@ export function MissionControlV5Transit() {
                   const isSel = selectedId === r.id;
                   const isLive = cls === 'running' || cls === 'paused';
                   return (
-                    <g key={r.id} onClick={() => setSelectedId(r.id)} onMouseEnter={() => setSelectedId(r.id)}>
+                    <g
+                      key={r.id}
+                      onClick={() => setSelectedId(r.id)}
+                      onMouseEnter={() => setSelectedId(r.id)}
+                    >
                       {isLive && (
-                        <circle cx={x} cy={y} r={14} fill="none" stroke={line.color} strokeOpacity={0.35} strokeWidth={1}>
-                          <animate attributeName="r" values="9;15;9" dur="2.4s" repeatCount="indefinite" />
-                          <animate attributeName="stroke-opacity" values="0.45;0;0.45" dur="2.4s" repeatCount="indefinite" />
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={14}
+                          fill="none"
+                          stroke={line.color}
+                          strokeOpacity={0.35}
+                          strokeWidth={1}
+                        >
+                          <animate
+                            attributeName="r"
+                            values="9;15;9"
+                            dur="2.4s"
+                            repeatCount="indefinite"
+                          />
+                          <animate
+                            attributeName="stroke-opacity"
+                            values="0.45;0;0.45"
+                            dur="2.4s"
+                            repeatCount="indefinite"
+                          />
                         </circle>
                       )}
                       <circle
@@ -231,8 +293,22 @@ export function MissionControlV5Transit() {
                       />
                       {cls === 'failure' && (
                         <>
-                          <line x1={x - 4} y1={y - 4} x2={x + 4} y2={y + 4} stroke="#fbf3df" strokeWidth={2} />
-                          <line x1={x - 4} y1={y + 4} x2={x + 4} y2={y - 4} stroke="#fbf3df" strokeWidth={2} />
+                          <line
+                            x1={x - 4}
+                            y1={y - 4}
+                            x2={x + 4}
+                            y2={y + 4}
+                            stroke="#fbf3df"
+                            strokeWidth={2}
+                          />
+                          <line
+                            x1={x - 4}
+                            y1={y + 4}
+                            x2={x + 4}
+                            y2={y - 4}
+                            stroke="#fbf3df"
+                            strokeWidth={2}
+                          />
                         </>
                       )}
                       {(isSel || isLive) && (
@@ -295,7 +371,9 @@ export function MissionControlV5Transit() {
 
         <div className="border-2 border-stone-900 bg-[#fbf3df] px-5 py-4">
           <div className="flex items-baseline justify-between border-b border-stone-900/30 pb-2">
-            <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-stone-900">Station detail</h2>
+            <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-stone-900">
+              Station detail
+            </h2>
             <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-stone-700">
               {selected ? shortId(selected.id) : '——————'}
             </span>
@@ -314,7 +392,12 @@ export function MissionControlV5Transit() {
               <Row k="tokens.in" v={fmtTok(selected.tokensInTotal)} />
               <Row k="tokens.out" v={fmtTok(selected.tokensOutTotal)} />
               <Row k="turns" v={String(selected.turnsTotal)} />
-              <Row k="started" v={selected.startedAt ? new Date(selected.startedAt as string).toLocaleString() : '—'} />
+              <Row
+                k="started"
+                v={
+                  selected.startedAt ? new Date(selected.startedAt as string).toLocaleString() : '—'
+                }
+              />
               <Link
                 to={`/projects/${selected.projectId}/run/${selected.id}`}
                 className="mt-3 inline-flex w-full items-center justify-between border-2 border-stone-900 bg-stone-900 px-3 py-2 text-[11px] uppercase tracking-[0.25em] text-[#fbf3df] hover:bg-stone-800"
@@ -338,7 +421,9 @@ function Cell({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex flex-col">
       <dt className="font-mono text-[10px] uppercase tracking-[0.22em] text-stone-700">{k}</dt>
-      <dd className="text-3xl font-black tabular-nums leading-none tracking-tight text-stone-900">{v}</dd>
+      <dd className="text-3xl font-black tabular-nums leading-none tracking-tight text-stone-900">
+        {v}
+      </dd>
     </div>
   );
 }
@@ -370,14 +455,23 @@ function Legend({
   return (
     <g transform={`translate(${cx}, 16)`}>
       <circle cx={0} cy={0} r={6} fill={fill} stroke={stroke} strokeWidth={2}>
-        {pulse && <animate attributeName="opacity" values="1;0.4;1" dur="1.6s" repeatCount="indefinite" />}
+        {pulse && (
+          <animate attributeName="opacity" values="1;0.4;1" dur="1.6s" repeatCount="indefinite" />
+        )}
       </circle>
       {cancel && (
         <>
           <line x1={-4} y1={0} x2={4} y2={0} stroke={stroke} strokeWidth={1.5} />
         </>
       )}
-      <text x={14} y={4} fontSize={10} fill="#1a1410" letterSpacing="0.12em" style={{ textTransform: 'uppercase' }}>
+      <text
+        x={14}
+        y={4}
+        fontSize={10}
+        fill="#1a1410"
+        letterSpacing="0.12em"
+        style={{ textTransform: 'uppercase' }}
+      >
         {label}
       </text>
     </g>

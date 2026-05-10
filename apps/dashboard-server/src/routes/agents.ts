@@ -16,11 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import {
-  agents,
-  createAgentInputSchema,
-  updateAgentInputSchema,
-} from '@agent-harness/schemas';
+import { agents, createAgentInputSchema, updateAgentInputSchema } from '@agent-harness/schemas';
 import { db, sqlite } from '../db/index.js';
 import { wrap } from './wrap.js';
 
@@ -30,9 +26,7 @@ interface RolesJson {
 
 function isReferenced(agentId: string): boolean {
   const rows = sqlite
-    .prepare<unknown[], { rolesJson: string | object }>(
-      `SELECT roles_json AS rolesJson FROM teams`,
-    )
+    .prepare<unknown[], { rolesJson: string | object }>(`SELECT roles_json AS rolesJson FROM teams`)
     .all();
   for (const r of rows) {
     let json: RolesJson;
@@ -121,7 +115,8 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       if (parsed.data.systemPrompt !== undefined) updates.systemPrompt = parsed.data.systemPrompt;
       if (parsed.data.allowedTools !== undefined) updates.allowedTools = parsed.data.allowedTools;
       if (parsed.data.color !== undefined) updates.color = parsed.data.color ?? null;
-      if (parsed.data.description !== undefined) updates.description = parsed.data.description ?? null;
+      if (parsed.data.description !== undefined)
+        updates.description = parsed.data.description ?? null;
       if (parsed.data.avatarUrl !== undefined) updates.avatarUrl = parsed.data.avatarUrl ?? null;
       await db.update(agents).set(updates).where(eq(agents.id, id)).run();
       const updated = await db.select().from(agents).where(eq(agents.id, id)).get();
@@ -133,7 +128,8 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
     '/api/agents/:id',
     wrap(async (req, reply) => {
       const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
-      const query = z.object({ force: z.union([z.literal('1'), z.literal('true')]).optional() })
+      const query = z
+        .object({ force: z.union([z.literal('1'), z.literal('true')]).optional() })
         .parse(req.query);
       const existing = await db.select().from(agents).where(eq(agents.id, id)).get();
       if (!existing) {
@@ -144,7 +140,8 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         reply.code(409);
         return {
           error: 'agent_referenced',
-          message: 'Agent is used in a team. Pass ?force=1 to delete anyway (team roles will keep their inline config).',
+          message:
+            'Agent is used in a team. Pass ?force=1 to delete anyway (team roles will keep their inline config).',
         };
       }
       // If forced, scrub agentId from any team rolesJson that references it,
@@ -152,16 +149,19 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       // delete the team — the role just becomes "unlinked".
       if (query.force) {
         const rows = sqlite
-          .prepare<unknown[], { id: string; rolesJson: string | object }>(
-            'SELECT id, roles_json AS rolesJson FROM teams',
-          )
+          .prepare<
+            unknown[],
+            { id: string; rolesJson: string | object }
+          >('SELECT id, roles_json AS rolesJson FROM teams')
           .all();
         const updateStmt = sqlite.prepare('UPDATE teams SET roles_json = ? WHERE id = ?');
         const tx = sqlite.transaction(() => {
           for (const r of rows) {
             let json: RolesJson;
             try {
-              json = (typeof r.rolesJson === 'string' ? JSON.parse(r.rolesJson) : r.rolesJson) as RolesJson;
+              json = (
+                typeof r.rolesJson === 'string' ? JSON.parse(r.rolesJson) : r.rolesJson
+              ) as RolesJson;
             } catch {
               continue;
             }
@@ -201,17 +201,23 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         return { error: 'agent_not_found' };
       }
       const rows = sqlite
-        .prepare<unknown[], { teamId: string; projectId: string; projectName: string; rolesJson: string | object }>(
+        .prepare<
+          unknown[],
+          { teamId: string; projectId: string; projectName: string; rolesJson: string | object }
+        >(
           `SELECT t.id AS teamId, t.project_id AS projectId, p.name AS projectName, t.roles_json AS rolesJson
            FROM teams t
            JOIN projects p ON p.id = t.project_id`,
         )
         .all();
-      const usage: Array<{ teamId: string; projectId: string; projectName: string; role: string }> = [];
+      const usage: Array<{ teamId: string; projectId: string; projectName: string; role: string }> =
+        [];
       for (const r of rows) {
         let json: RolesJson;
         try {
-          json = (typeof r.rolesJson === 'string' ? JSON.parse(r.rolesJson) : r.rolesJson) as RolesJson;
+          json = (
+            typeof r.rolesJson === 'string' ? JSON.parse(r.rolesJson) : r.rolesJson
+          ) as RolesJson;
         } catch {
           continue;
         }

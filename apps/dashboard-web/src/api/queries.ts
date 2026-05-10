@@ -283,7 +283,12 @@ export const useCancelRun = makeRunActionMutation('cancel');
 export function useToggleAutopilot() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { runId: string; enabled: boolean; budgetMinutes?: number; budgetTokens?: number }) =>
+    mutationFn: (input: {
+      runId: string;
+      enabled: boolean;
+      budgetMinutes?: number;
+      budgetTokens?: number;
+    }) =>
       apiFetch(`/api/runs/${input.runId}/autopilot`, {
         method: 'POST',
         body: JSON.stringify({
@@ -555,10 +560,7 @@ export function useDeleteAgent() {
   const qc = useQueryClient();
   return useMutation<void, Error, { id: string; force?: boolean }>({
     mutationFn: async ({ id, force }) => {
-      await apiFetch<unknown>(
-        `/api/agents/${id}${force ? '?force=1' : ''}`,
-        { method: 'DELETE' },
-      );
+      await apiFetch<unknown>(`/api/agents/${id}${force ? '?force=1' : ''}`, { method: 'DELETE' });
     },
     onSuccess: (_, { id }) => {
       void qc.invalidateQueries({ queryKey: ['agents'] });
@@ -688,9 +690,7 @@ export function useThreadParticipants(threadId: string | undefined) {
     queryFn: async () => {
       if (!threadId) return [];
       try {
-        return await apiFetch<ThreadParticipantSummary[]>(
-          `/api/threads/${threadId}/participants`,
-        );
+        return await apiFetch<ThreadParticipantSummary[]>(`/api/threads/${threadId}/participants`);
       } catch {
         return [];
       }
@@ -721,10 +721,9 @@ export function useRemoveParticipant() {
   const qc = useQueryClient();
   return useMutation<void, Error, { threadId: string; agentId: string }>({
     mutationFn: async ({ threadId, agentId }) => {
-      await apiFetch<unknown>(
-        `/api/threads/${threadId}/participants/${agentId}`,
-        { method: 'DELETE' },
-      );
+      await apiFetch<unknown>(`/api/threads/${threadId}/participants/${agentId}`, {
+        method: 'DELETE',
+      });
     },
     onSuccess: (_, { threadId }) => {
       void qc.invalidateQueries({ queryKey: ['thread-participants', threadId] });
@@ -774,8 +773,7 @@ export function useCompressThread() {
     Error,
     { threadId: string }
   >({
-    mutationFn: ({ threadId }) =>
-      apiFetch(`/api/threads/${threadId}/compress`, { method: 'POST' }),
+    mutationFn: ({ threadId }) => apiFetch(`/api/threads/${threadId}/compress`, { method: 'POST' }),
     onSuccess: (_, { threadId }) => {
       void qc.invalidateQueries({ queryKey: ['thread-messages', threadId] });
       void qc.invalidateQueries({ queryKey: ['thread', threadId] });
@@ -802,7 +800,10 @@ export interface WorkerRunRow {
 }
 
 export function useWorkers() {
-  return useQuery<WorkerSummary[]>({ queryKey: ['workers'], queryFn: () => apiFetch('/api/workers') });
+  return useQuery<WorkerSummary[]>({
+    queryKey: ['workers'],
+    queryFn: () => apiFetch('/api/workers'),
+  });
 }
 
 export function useWorkerRuns(name: string | undefined) {

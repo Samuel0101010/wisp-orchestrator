@@ -18,22 +18,27 @@ const OUT_DIR = resolve(__dirname, '../apps/dashboard-web/public/avatars');
 const force = process.argv.includes('--force');
 
 const SEED_NAMES = [
-  'marcus',  // Manager
-  'lena',    // Frontend
-  'diego',   // Backend
-  'aiko',    // Mobile
-  'sven',    // DevOps
-  'priya',   // QA
-  'maya',    // Designer
-  'elena',   // ML / AI
-  'javier',  // Security
-  'noah',    // Tech Writer / Docs
+  'marcus', // Manager
+  'lena', // Frontend
+  'diego', // Backend
+  'aiko', // Mobile
+  'sven', // DevOps
+  'priya', // QA
+  'maya', // Designer
+  'elena', // ML / AI
+  'javier', // Security
+  'noah', // Tech Writer / Docs
 ];
 
 const GENERIC_COUNT = 20;
 
 async function exists(p) {
-  try { await stat(p); return true; } catch { return false; }
+  try {
+    await stat(p);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function fetchAvatar(targetPath) {
@@ -47,7 +52,7 @@ async function fetchAvatar(targetPath) {
     headers: {
       // Some servers require a real-looking UA.
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) avatar-fetch/1.0',
-      'Accept': 'image/jpeg,image/*',
+      Accept: 'image/jpeg,image/*',
     },
   });
   if (!res.ok) {
@@ -61,12 +66,14 @@ async function fetchAvatar(targetPath) {
   return { skipped: false, path: targetPath, bytes: buf.length };
 }
 
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+async function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 async function main() {
   console.log(`avatars → ${OUT_DIR}`);
   const targets = [
-    ...SEED_NAMES.map(n => ({ name: `seed-${n}.jpg` })),
+    ...SEED_NAMES.map((n) => ({ name: `seed-${n}.jpg` })),
     ...Array.from({ length: GENERIC_COUNT }, (_, i) => ({
       name: `generic-${String(i + 1).padStart(2, '0')}.jpg`,
     })),

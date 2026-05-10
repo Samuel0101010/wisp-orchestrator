@@ -17,11 +17,14 @@ function fmtTok(n: number) {
   return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
-function classify(r: GlobalRunRow): 'running' | 'paused' | 'success' | 'failure' | 'cancelled' | 'pending' {
+function classify(
+  r: GlobalRunRow,
+): 'running' | 'paused' | 'success' | 'failure' | 'cancelled' | 'pending' {
   if (r.status === 'running') return 'running';
   if (r.status === 'paused') return 'paused';
   if (r.status === 'cancelled') return 'cancelled';
-  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded') return 'failure';
+  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded')
+    return 'failure';
   if (r.status === 'completed') return 'success';
   return 'pending';
 }
@@ -46,8 +49,7 @@ function VuMeter({ ratio, color }: { ratio: number; color: string }) {
     <div className="flex h-3 items-center gap-[2px] rounded-[2px] border border-black/60 bg-black/70 p-[2px]">
       {Array.from({ length: segs }).map((_, i) => {
         const isLit = i < lit;
-        const tone =
-          i < segs * 0.6 ? color : i < segs * 0.85 ? AMBER : RED;
+        const tone = i < segs * 0.6 ? color : i < segs * 0.85 ? AMBER : RED;
         return (
           <div
             key={i}
@@ -66,7 +68,15 @@ function VuMeter({ ratio, color }: { ratio: number; color: string }) {
   );
 }
 
-function LedDisplay({ value, label, mono = true }: { value: string; label: string; mono?: boolean }) {
+function LedDisplay({
+  value,
+  label,
+  mono = true,
+}: {
+  value: string;
+  label: string;
+  mono?: boolean;
+}) {
   return (
     <div className="flex flex-col items-center gap-[3px]">
       <div className="text-[7px] uppercase tracking-[0.28em] text-stone-400">{label}</div>
@@ -222,7 +232,10 @@ function MasterSection({
       }}
     >
       <div className="flex items-baseline justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-300" style={{ color: AMBER }}>
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-300"
+          style={{ color: AMBER }}
+        >
           MASTER
         </span>
         <span className="text-[9px] uppercase tracking-[0.25em] text-stone-400">7d window</span>
@@ -235,7 +248,14 @@ function MasterSection({
 
       <div className="flex items-center justify-center py-2">
         <svg width={120} height={120} viewBox="0 0 120 120">
-          <circle cx={60} cy={60} r={38} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={6} />
+          <circle
+            cx={60}
+            cy={60}
+            r={38}
+            fill="none"
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth={6}
+          />
           <circle
             cx={60}
             cy={60}
@@ -303,10 +323,14 @@ export function MissionControlV8Console() {
     });
     return Array.from(map.entries())
       .map(([project, rs]) => {
-        const liveCount = rs.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length;
+        const liveCount = rs.filter(
+          (r) => classify(r) === 'running' || classify(r) === 'paused',
+        ).length;
         const failCount = rs.filter((r) => classify(r) === 'failure').length;
         const success = rs.filter((r) => classify(r) === 'success').length;
-        const closed = rs.filter((r) => ['success', 'failure', 'cancelled'].includes(classify(r))).length;
+        const closed = rs.filter((r) =>
+          ['success', 'failure', 'cancelled'].includes(classify(r)),
+        ).length;
         const tokens = rs.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0);
         const turns = rs.reduce((s, r) => s + r.turnsTotal, 0);
         const topRun =
@@ -333,8 +357,7 @@ export function MissionControlV8Console() {
       data-mc-variant="console"
       className="-m-6 min-h-[calc(100vh-3.5rem)] [color-scheme:dark]"
       style={{
-        background:
-          'radial-gradient(ellipse at top, #2a2c30 0%, #161719 55%, #0c0d0e 100%)',
+        background: 'radial-gradient(ellipse at top, #2a2c30 0%, #161719 55%, #0c0d0e 100%)',
         color: '#cfcfd1',
       }}
     >
@@ -382,13 +405,16 @@ export function MissionControlV8Console() {
         </div>
       </header>
 
-      <main className="mx-6 mb-6 mt-3 flex overflow-x-auto rounded-[3px] border-l border-r border-b" style={{
-        borderLeftColor: 'rgba(255,255,255,0.05)',
-        borderRightColor: 'rgba(0,0,0,0.7)',
-        borderBottomColor: 'rgba(0,0,0,0.7)',
-        background: '#16171a',
-        boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.6)',
-      }}>
+      <main
+        className="mx-6 mb-6 mt-3 flex overflow-x-auto rounded-[3px] border-l border-r border-b"
+        style={{
+          borderLeftColor: 'rgba(255,255,255,0.05)',
+          borderRightColor: 'rgba(0,0,0,0.7)',
+          borderBottomColor: 'rgba(0,0,0,0.7)',
+          background: '#16171a',
+          boxShadow: 'inset 0 -2px 0 rgba(0,0,0,0.6)',
+        }}
+      >
         {channels.length === 0 ? (
           <div className="flex flex-1 items-center justify-center px-6 py-16 text-stone-500">
             <span className="font-mono text-[11px] uppercase tracking-[0.25em]">

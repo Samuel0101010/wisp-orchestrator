@@ -38,7 +38,7 @@ async function fetchOne(slot, idx) {
   const res = await fetch(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) avatar-fetch/1.0',
-      'Accept': 'image/jpeg,image/*',
+      Accept: 'image/jpeg,image/*',
     },
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -49,7 +49,9 @@ async function fetchOne(slot, idx) {
   return { path, bytes: buf.length };
 }
 
-async function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+async function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 await mkdir(OUT_DIR, { recursive: true });
 console.log(`candidates → ${OUT_DIR}`);
@@ -59,7 +61,9 @@ for (const { slot, count } of targets) {
     try {
       const r = await fetchOne(slot, i);
       total++;
-      console.log(`  [ok] ${slot}-${String(i).padStart(2, '0')}.jpg (${(r.bytes / 1024).toFixed(0)} KB)`);
+      console.log(
+        `  [ok] ${slot}-${String(i).padStart(2, '0')}.jpg (${(r.bytes / 1024).toFixed(0)} KB)`,
+      );
     } catch (err) {
       console.error(`  [fail] ${slot}-${i}: ${err instanceof Error ? err.message : String(err)}`);
     }

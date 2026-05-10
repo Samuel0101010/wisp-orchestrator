@@ -37,12 +37,22 @@ function makeSkillRegistry(name: string, description: string, output: string): S
 function makeFixedRunner(text: string) {
   return async function* (opts: RunClaudeOpts): AsyncGenerator<HarnessEvent> {
     yield { type: 'task.text-delta', payload: { taskId: opts.taskId, text } };
-    yield { type: 'task.usage', payload: { taskId: opts.taskId, tokensIn: 3, tokensOut: 5, turns: 1 } };
-    yield { type: 'task.completed', payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 } };
+    yield {
+      type: 'task.usage',
+      payload: { taskId: opts.taskId, tokensIn: 3, tokensOut: 5, turns: 1 },
+    };
+    yield {
+      type: 'task.completed',
+      payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+    };
   };
 }
 
-function makeThreadAndManagerMessage(): { threadId: string; managerMessageId: string; managerId: string } {
+function makeThreadAndManagerMessage(): {
+  threadId: string;
+  managerMessageId: string;
+  managerId: string;
+} {
   const threadId = crypto.randomUUID();
   const managerMessageId = crypto.randomUUID();
 
@@ -54,7 +64,9 @@ function makeThreadAndManagerMessage(): { threadId: string; managerMessageId: st
 
   // Insert a minimal thread + manager message for FK constraints
   sqlite
-    .prepare(`INSERT INTO agent_threads (id, agent_id, title, created_at, updated_at) VALUES (?, ?, NULL, ?, ?)`)
+    .prepare(
+      `INSERT INTO agent_threads (id, agent_id, title, created_at, updated_at) VALUES (?, ?, NULL, ?, ?)`,
+    )
     .run(threadId, manager.id, Date.now(), Date.now());
   sqlite
     .prepare(

@@ -19,17 +19,20 @@ export async function storeTrajectory(input: StoreTrajectoryInput): Promise<stri
   const corpus = all.map((r) => tokenize(r.prompt));
   const docTokens = tokenize(input.prompt);
   const terms = computeTfidf(docTokens, [...corpus, docTokens]);
-  await db.insert(trajectories).values({
-    id,
-    projectId: input.projectId,
-    prompt: input.prompt,
-    planJson: JSON.stringify(input.planJson),
-    outcome: input.outcome,
-    termsJson: JSON.stringify(terms),
-    lessons: input.lessons ?? null,
-    tokensTotal: input.tokensTotal ?? 0,
-    createdAt: new Date(),
-  }).run();
+  await db
+    .insert(trajectories)
+    .values({
+      id,
+      projectId: input.projectId,
+      prompt: input.prompt,
+      planJson: JSON.stringify(input.planJson),
+      outcome: input.outcome,
+      termsJson: JSON.stringify(terms),
+      lessons: input.lessons ?? null,
+      tokensTotal: input.tokensTotal ?? 0,
+      createdAt: new Date(),
+    })
+    .run();
   return id;
 }
 
@@ -59,16 +62,27 @@ export async function retrieveSimilar(
   return rows
     .map((r) => {
       let terms: SparseVec = {};
-      try { terms = JSON.parse(r.termsJson as unknown as string) as SparseVec; } catch { /* skip */ }
+      try {
+        terms = JSON.parse(r.termsJson as unknown as string) as SparseVec;
+      } catch {
+        /* skip */
+      }
       return {
         id: r.id,
         projectId: r.projectId,
         prompt: r.prompt,
-        planJson: (() => { try { return JSON.parse(r.planJson as unknown as string); } catch { return null; } })(),
+        planJson: (() => {
+          try {
+            return JSON.parse(r.planJson as unknown as string);
+          } catch {
+            return null;
+          }
+        })(),
         outcome: r.outcome,
         lessons: r.lessons,
         score: cosineSim(queryVec, terms),
-        createdAt: r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt as unknown as string),
+        createdAt:
+          r.createdAt instanceof Date ? r.createdAt : new Date(r.createdAt as unknown as string),
       };
     })
     .filter((t) => t.score > 0)

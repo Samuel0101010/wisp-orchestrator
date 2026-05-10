@@ -41,17 +41,30 @@ export function InsightsRoute() {
         {trajQ.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : trajQ.data?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No trajectories yet. Complete a run to record one.</p>
+          <p className="text-sm text-muted-foreground">
+            No trajectories yet. Complete a run to record one.
+          </p>
         ) : (
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-muted-foreground">
-              <tr><th>When</th><th>Outcome</th><th>Prompt</th><th>Tokens</th></tr>
+              <tr>
+                <th>When</th>
+                <th>Outcome</th>
+                <th>Prompt</th>
+                <th>Tokens</th>
+              </tr>
             </thead>
             <tbody>
               {trajQ.data?.map((t) => (
                 <tr key={t.id} className="border-t border-border">
                   <td className="py-1 pr-3">{new Date(t.createdAt).toLocaleString()}</td>
-                  <td className="py-1 pr-3"><span className={t.outcome === 'success' ? 'text-emerald-500' : 'text-destructive'}>{t.outcome}</span></td>
+                  <td className="py-1 pr-3">
+                    <span
+                      className={t.outcome === 'success' ? 'text-emerald-500' : 'text-destructive'}
+                    >
+                      {t.outcome}
+                    </span>
+                  </td>
                   <td className="py-1 pr-3 truncate max-w-md">{t.prompt}</td>
                   <td className="py-1 pr-3 font-mono">{t.tokensTotal}</td>
                 </tr>
@@ -70,7 +83,14 @@ export function InsightsRoute() {
         ) : (
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-muted-foreground">
-              <tr><th>Role</th><th>Model</th><th>α</th><th>β</th><th>Mean</th><th>Samples</th></tr>
+              <tr>
+                <th>Role</th>
+                <th>Model</th>
+                <th>α</th>
+                <th>β</th>
+                <th>Mean</th>
+                <th>Samples</th>
+              </tr>
             </thead>
             <tbody>
               {priorsQ.data?.map((p) => (

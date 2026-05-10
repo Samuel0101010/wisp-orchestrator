@@ -383,15 +383,19 @@ export type ModelRouterRole = (typeof modelRouterRoleValues)[number];
 export const modelRouterModelValues = ['opus', 'sonnet', 'haiku'] as const;
 export type ModelRouterModel = (typeof modelRouterModelValues)[number];
 
-export const modelRouterPriors = sqliteTable('model_router_priors', {
-  role: text('role').notNull(),
-  model: text('model').notNull(),
-  alpha: real('alpha').notNull().default(1),
-  beta: real('beta').notNull().default(1),
-  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
-}, (t) => ({
-  pk: primaryKey({ columns: [t.role, t.model] }),
-}));
+export const modelRouterPriors = sqliteTable(
+  'model_router_priors',
+  {
+    role: text('role').notNull(),
+    model: text('model').notNull(),
+    alpha: real('alpha').notNull().default(1),
+    beta: real('beta').notNull().default(1),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.role, t.model] }),
+  }),
+);
 export type ModelRouterPrior = typeof modelRouterPriors.$inferSelect;
 
 export const modelRouterSampleOutcomeValues = ['success', 'failure'] as const;

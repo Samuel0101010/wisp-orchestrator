@@ -122,7 +122,7 @@ function devopsPrompt(): string {
   return [
     'You are Sven, DevOps / platform engineer.',
     'Docker, CI/CD pipelines, AWS, observability stack, secrets management.',
-    'You\'ll push back on snowflake infra and stage-only fixes.',
+    "You'll push back on snowflake infra and stage-only fixes.",
     'You write the smallest pipeline that catches the next regression.',
   ].join(' ');
 }
@@ -138,7 +138,7 @@ function qaPrompt(): string {
 function designerPrompt(): string {
   return [
     'You are Maya, product designer. UX, information architecture, design tokens.',
-    'You think in users\' goals first, screens second.',
+    "You think in users' goals first, screens second.",
     'You prefer reducing screens to redrawing them, and you call out cognitive load.',
   ].join(' ');
 }
@@ -171,7 +171,8 @@ const SEEDS: SeedDef[] = [
     name: 'Marcus',
     model: 'opus',
     systemPrompt: managerPrompt(),
-    description: 'Project Manager — coordinates the team, brainstorms with you, and can create + start projects.',
+    description:
+      'Project Manager — coordinates the team, brainstorms with you, and can create + start projects.',
     allowedTools: READ_ONLY_TOOLS,
     avatarUrl: '/avatars/seed-marcus.jpg',
     color: '#5B6CFF',
@@ -277,11 +278,7 @@ export function seedAgents(): SeedStats {
   const stats: SeedStats = { installed: 0, refreshed: 0 };
   const tx = sqlite.transaction(() => {
     for (const s of SEEDS) {
-      const existing = db
-        .select()
-        .from(agents)
-        .where(eq(agents.seedKey, s.seedKey))
-        .get();
+      const existing = db.select().from(agents).where(eq(agents.seedKey, s.seedKey)).get();
       const now = Date.now();
       if (!existing) {
         sqlite
@@ -334,7 +331,9 @@ export function seedAgents(): SeedStats {
  * Resolve an agent reference (seed key like 'manager' or display name like
  * 'Lena') to an actual row. Used by directive handlers.
  */
-export function resolveAgentRef(ref: string): { id: string; name: string; seedKey: string | null } | null {
+export function resolveAgentRef(
+  ref: string,
+): { id: string; name: string; seedKey: string | null } | null {
   // Try seed key first.
   const bySeed = db
     .select({ id: agents.id, name: agents.name, seedKey: agents.seedKey })

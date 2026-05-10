@@ -26,9 +26,15 @@ import { AvatarPicker } from '@/components/AvatarPicker';
 
 const MODELS = ['opus', 'sonnet', 'haiku'] as const;
 const DEFAULT_TOOLS = [
-  'Read', 'Edit', 'Write', 'MultiEdit',
-  'Bash', 'Grep', 'Glob',
-  'WebFetch', 'WebSearch',
+  'Read',
+  'Edit',
+  'Write',
+  'MultiEdit',
+  'Bash',
+  'Grep',
+  'Glob',
+  'WebFetch',
+  'WebSearch',
   'TodoWrite',
 ];
 
@@ -55,8 +61,8 @@ export function AgentsRoute() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Agents</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            The built-in dev team is always here for chat. Add your own agents
-            for one-off specialties or project-specific personas.
+            The built-in dev team is always here for chat. Add your own agents for one-off
+            specialties or project-specific personas.
           </p>
         </div>
         <button
@@ -84,12 +90,7 @@ export function AgentsRoute() {
           />
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {seedAgents.map((a) => (
-              <AgentCard
-                key={a.id}
-                agent={a}
-                onEdit={() => setEditingId(a.id)}
-                isSeed
-              />
+              <AgentCard key={a.id} agent={a} onEdit={() => setEditingId(a.id)} isSeed />
             ))}
           </div>
         </section>
@@ -120,28 +121,15 @@ export function AgentsRoute() {
         ) : (
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {userAgents.map((a) => (
-              <AgentCard
-                key={a.id}
-                agent={a}
-                onEdit={() => setEditingId(a.id)}
-              />
+              <AgentCard key={a.id} agent={a} onEdit={() => setEditingId(a.id)} />
             ))}
           </div>
         )}
       </section>
 
-      {creating && (
-        <AgentDialog
-          mode="create"
-          onClose={() => setCreating(false)}
-        />
-      )}
+      {creating && <AgentDialog mode="create" onClose={() => setCreating(false)} />}
       {editingId && (
-        <AgentDialog
-          mode="edit"
-          agentId={editingId}
-          onClose={() => setEditingId(null)}
-        />
+        <AgentDialog mode="edit" agentId={editingId} onClose={() => setEditingId(null)} />
       )}
     </div>
   );
@@ -209,9 +197,7 @@ function AgentCard({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Users className="h-3 w-3" />
-          {refCount > 0
-            ? `on ${refCount} team${refCount === 1 ? '' : 's'}`
-            : 'unused'}
+          {refCount > 0 ? `on ${refCount} team${refCount === 1 ? '' : 's'}` : 'unused'}
         </span>
         <span className="font-mono">{agent.allowedTools.length} tools</span>
         <span className="ml-auto font-mono">
@@ -295,7 +281,9 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
   const [name, setName] = useState(existing?.name ?? '');
   const [model, setModel] = useState<'opus' | 'sonnet' | 'haiku'>(existing?.model ?? 'sonnet');
   const [systemPrompt, setSystemPrompt] = useState(existing?.systemPrompt ?? '');
-  const [tools, setTools] = useState<string[]>(existing?.allowedTools ?? ['Read', 'Edit', 'Bash', 'Grep']);
+  const [tools, setTools] = useState<string[]>(
+    existing?.allowedTools ?? ['Read', 'Edit', 'Bash', 'Grep'],
+  );
   const [description, setDescription] = useState(existing?.description ?? '');
   const [color, setColor] = useState(existing?.color ?? '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(existing?.avatarUrl ?? null);
@@ -368,10 +356,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onClick={onClose}>
       <div
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg border bg-card shadow-lg"
         onClick={(e) => e.stopPropagation()}
@@ -395,14 +380,22 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
               className="group relative shrink-0"
               title="Choose profile picture"
             >
-              <Avatar name={name || 'New agent'} avatarUrl={avatarUrl} color={color || null} size={64} />
+              <Avatar
+                name={name || 'New agent'}
+                avatarUrl={avatarUrl}
+                color={color || null}
+                size={64}
+              />
               <div className="absolute inset-0 grid place-items-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
                 <ImageIcon className="h-5 w-5 text-white" />
               </div>
             </button>
             <div className="grid flex-1 grid-cols-2 gap-3">
               <div>
-                <label htmlFor="agent-name" className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                <label
+                  htmlFor="agent-name"
+                  className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                >
                   Name
                 </label>
                 <input
@@ -434,7 +427,10 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
           </div>
 
           <div>
-            <label htmlFor="agent-prompt" className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <label
+              htmlFor="agent-prompt"
+              className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+            >
               System prompt
             </label>
             <textarea
@@ -474,7 +470,10 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="agent-desc" className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor="agent-desc"
+                className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+              >
                 Description (optional)
               </label>
               <input
@@ -487,7 +486,10 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
               />
             </div>
             <div>
-              <label htmlFor="agent-color" className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <label
+                htmlFor="agent-color"
+                className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+              >
                 Accent color (optional)
               </label>
               <input

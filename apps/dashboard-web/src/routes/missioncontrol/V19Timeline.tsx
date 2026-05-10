@@ -140,7 +140,7 @@ export function MissionControlV19Timeline() {
   }, [globalRuns.data, windowStart, now, windowMs, buckets]);
 
   const selected = selectedRunId
-    ? (globalRuns.data ?? []).find((r) => r.id === selectedRunId) ?? null
+    ? ((globalRuns.data ?? []).find((r) => r.id === selectedRunId) ?? null)
     : null;
 
   function pctOf(t: number): number {
@@ -180,10 +180,15 @@ export function MissionControlV19Timeline() {
       <header className="grid grid-cols-[1fr_auto] items-end gap-6 border-b border-white/5 px-6 pb-3">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
-            timeline · time-axis primary · {anomalies.length > 0 ? `${anomalies.length} anomal${anomalies.length === 1 ? 'y' : 'ies'} flagged` : 'system nominal'}
+            timeline · time-axis primary ·{' '}
+            {anomalies.length > 0
+              ? `${anomalies.length} anomal${anomalies.length === 1 ? 'y' : 'ies'} flagged`
+              : 'system nominal'}
           </div>
           <div className="mt-1 flex items-center gap-3">
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-100">All projects, in time</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
+              All projects, in time
+            </h1>
             <div className="flex rounded-full border border-white/10 p-0.5 font-mono text-[10px] uppercase tracking-[0.18em]">
               {[6, 24, 72, 168].map((h) => (
                 <button
@@ -220,14 +225,20 @@ export function MissionControlV19Timeline() {
           {/* time axis */}
           <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0a0a0d] px-6 py-2">
             <div className="grid grid-cols-[180px_1fr] items-center gap-4">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">project</div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+                project
+              </div>
               <div className="relative h-5">
                 {Array.from({ length: 8 }).map((_, i) => {
                   const left = (i / 7) * 100;
                   const offsetMs = windowMs - (i / 7) * windowMs;
                   const offsetH = offsetMs / 3_600_000;
                   const label =
-                    i === 7 ? 'now' : offsetH < 24 ? `${Math.round(offsetH)}h` : `${(offsetH / 24).toFixed(0)}d`;
+                    i === 7
+                      ? 'now'
+                      : offsetH < 24
+                        ? `${Math.round(offsetH)}h`
+                        : `${(offsetH / 24).toFixed(0)}d`;
                   return (
                     <div
                       key={i}
@@ -257,7 +268,10 @@ export function MissionControlV19Timeline() {
                     className="grid grid-cols-[180px_1fr] items-center gap-4 border-b border-white/5 py-2 last:border-b-0"
                   >
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="block h-2 w-2 flex-none rounded-full" style={{ background: `hsl(${hue} 60% 55%)` }} />
+                      <span
+                        className="block h-2 w-2 flex-none rounded-full"
+                        style={{ background: `hsl(${hue} 60% 55%)` }}
+                      />
                       <span className="truncate text-[13px] font-medium text-zinc-100">{name}</span>
                       <span className="font-mono text-[10px] tabular-nums text-zinc-500">
                         {bars.length}
@@ -297,7 +311,11 @@ export function MissionControlV19Timeline() {
                               width: `${width}%`,
                               minWidth: 4,
                               background: fill,
-                              outline: b.isAnomaly ? '2px solid #fb7185' : selectedRunId === b.run.id ? '2px solid #fafafa' : 'none',
+                              outline: b.isAnomaly
+                                ? '2px solid #fb7185'
+                                : selectedRunId === b.run.id
+                                  ? '2px solid #fafafa'
+                                  : 'none',
                               outlineOffset: 1,
                             }}
                             title={`${b.run.id.slice(0, 8)} · ${fmtDur(b.durationSec)}${b.anomalyReason ? ` · ${b.anomalyReason}` : ''}`}
@@ -322,7 +340,11 @@ export function MissionControlV19Timeline() {
                   {fmtTok(tokenChart.reduce((s, x) => s + x, 0))}
                 </span>
               </div>
-              <svg viewBox={`0 0 ${buckets * 10} 60`} className="block h-[60px] w-full" preserveAspectRatio="none">
+              <svg
+                viewBox={`0 0 ${buckets * 10} 60`}
+                className="block h-[60px] w-full"
+                preserveAspectRatio="none"
+              >
                 <defs>
                   <linearGradient id="cost-grad" x1="0" y1="1" x2="0" y2="0">
                     <stop offset="0%" stopColor="#a78bfa" stopOpacity="0" />
@@ -331,14 +353,22 @@ export function MissionControlV19Timeline() {
                 </defs>
                 {(() => {
                   const max = Math.max(...tokenChart, 1);
-                  const pts = tokenChart.map((v, i) => `${i * 10},${60 - (v / max) * 56}`).join(' ');
+                  const pts = tokenChart
+                    .map((v, i) => `${i * 10},${60 - (v / max) * 56}`)
+                    .join(' ');
                   return (
                     <>
                       <polygon
                         points={`0,60 ${pts} ${(buckets - 1) * 10},60`}
                         fill="url(#cost-grad)"
                       />
-                      <polyline points={pts} fill="none" stroke="#a78bfa" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+                      <polyline
+                        points={pts}
+                        fill="none"
+                        stroke="#a78bfa"
+                        strokeWidth={1}
+                        vectorEffect="non-scaling-stroke"
+                      />
                     </>
                   );
                 })()}
@@ -351,7 +381,9 @@ export function MissionControlV19Timeline() {
         <aside className="flex min-h-0 flex-col bg-[#08080b]">
           <header className="border-b border-white/5 px-4 py-3">
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">selected</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                selected
+              </span>
               {selected && (
                 <button
                   onClick={() => setSelectedRunId(null)}
@@ -362,7 +394,9 @@ export function MissionControlV19Timeline() {
               )}
             </div>
             <div className="mt-1 truncate text-[12px] text-zinc-300">
-              {selected ? `run ${selected.id.slice(0, 8)}` : `${anomalies.length} anomal${anomalies.length === 1 ? 'y' : 'ies'}`}
+              {selected
+                ? `run ${selected.id.slice(0, 8)}`
+                : `${anomalies.length} anomal${anomalies.length === 1 ? 'y' : 'ies'}`}
             </div>
           </header>
 
@@ -396,7 +430,8 @@ export function MissionControlV19Timeline() {
                       <div className="mt-1.5 text-[12px] text-zinc-300">
                         Among {stats.n} completed runs of this project, this run is{' '}
                         <span className="font-mono tabular-nums" style={{ color: tone }}>
-                          {z >= 0 ? '+' : ''}{z.toFixed(1)}σ
+                          {z >= 0 ? '+' : ''}
+                          {z.toFixed(1)}σ
                         </span>{' '}
                         from the mean ({fmtDur(stats.mean)}).
                       </div>
@@ -417,10 +452,16 @@ export function MissionControlV19Timeline() {
                         className="block w-full rounded-md border border-rose-400/30 bg-rose-400/5 p-2.5 text-left hover:bg-rose-400/10"
                       >
                         <div className="flex items-baseline justify-between">
-                          <span className="text-[12px] font-medium text-zinc-100">{b.run.projectName}</span>
-                          <span className="font-mono text-[10px] text-zinc-500">{b.run.id.slice(0, 6)}</span>
+                          <span className="text-[12px] font-medium text-zinc-100">
+                            {b.run.projectName}
+                          </span>
+                          <span className="font-mono text-[10px] text-zinc-500">
+                            {b.run.id.slice(0, 6)}
+                          </span>
                         </div>
-                        <div className="mt-1 font-mono text-[11px] text-rose-300">{b.anomalyReason}</div>
+                        <div className="mt-1 font-mono text-[11px] text-rose-300">
+                          {b.anomalyReason}
+                        </div>
                       </button>
                     </li>
                   ))}
@@ -437,13 +478,19 @@ export function MissionControlV19Timeline() {
             <div className="rounded-lg border border-white/10 bg-white/3 p-2.5 focus-within:border-purple-400/40">
               <div className="mb-1.5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
                 <span>{selected ? `re: run ${selected.id.slice(0, 6)}` : 'ask the team'}</span>
-                <span className="rounded-full bg-amber-400/15 px-1.5 py-px text-amber-300">soon</span>
+                <span className="rounded-full bg-amber-400/15 px-1.5 py-px text-amber-300">
+                  soon
+                </span>
               </div>
               <textarea
                 value={composer}
                 onChange={(e) => setComposer(e.target.value)}
                 rows={3}
-                placeholder={selected ? 'why is this run an outlier?' : 'why was the busy period yesterday at 14:30?'}
+                placeholder={
+                  selected
+                    ? 'why is this run an outlier?'
+                    : 'why was the busy period yesterday at 14:30?'
+                }
                 className="w-full resize-none border-0 bg-transparent text-[12px] text-zinc-100 outline-none placeholder:text-zinc-600"
               />
             </div>
@@ -452,7 +499,8 @@ export function MissionControlV19Timeline() {
       </div>
 
       <footer className="border-t border-white/5 px-6 py-2 font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
-        v19 · timeline · 6h · 24h · 3d · 7d windows · z-score &gt; 2σ flags anomalies · click to inspect
+        v19 · timeline · 6h · 24h · 3d · 7d windows · z-score &gt; 2σ flags anomalies · click to
+        inspect
       </footer>
     </div>
   );

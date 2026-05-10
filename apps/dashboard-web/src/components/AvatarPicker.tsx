@@ -23,10 +23,7 @@ export interface AvatarPickerProps {
 export function AvatarPicker({ open, selected, name, onSelect, onClose }: AvatarPickerProps) {
   if (!open) return null;
   return (
-    <div
-      className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4" onClick={onClose}>
       <div
         className="flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-xl border bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}

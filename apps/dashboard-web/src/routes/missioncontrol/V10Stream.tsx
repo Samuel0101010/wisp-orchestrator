@@ -24,7 +24,12 @@ function fmtTok(n: number) {
 
 function rel(d: string | Date | number | null | undefined) {
   if (!d && d !== 0) return '—';
-  const t = typeof d === 'number' ? d : typeof d === 'string' ? new Date(d).getTime() : (d as Date).getTime();
+  const t =
+    typeof d === 'number'
+      ? d
+      : typeof d === 'string'
+        ? new Date(d).getTime()
+        : (d as Date).getTime();
   const dt = Date.now() - t;
   if (dt < 60_000) return `${Math.floor(dt / 1000)}s`;
   if (dt < 3_600_000) return `${Math.floor(dt / 60_000)}m`;
@@ -56,7 +61,9 @@ export function MissionControlV10Stream() {
 
   const projectHueMap = useMemo(() => {
     const m = new Map<string, number>();
-    (projects.data ?? []).forEach((p, i) => m.set(p.id, PROJECT_HUES[i % PROJECT_HUES.length] ?? 200));
+    (projects.data ?? []).forEach((p, i) =>
+      m.set(p.id, PROJECT_HUES[i % PROJECT_HUES.length] ?? 200),
+    );
     return m;
   }, [projects.data]);
 
@@ -147,9 +154,9 @@ export function MissionControlV10Stream() {
             Everything the agents are doing right now
           </h1>
           <div className="mt-1 max-w-prose text-[13px] text-stone-700">
-            One chronological feed across {projects.data?.length ?? 0} projects. Each entry is an event:
-            a run launched, paused, or closed. Reply to any entry to address the agent that did it
-            (chat coming soon).
+            One chronological feed across {projects.data?.length ?? 0} projects. Each entry is an
+            event: a run launched, paused, or closed. Reply to any entry to address the agent that
+            did it (chat coming soon).
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-6 text-right">
@@ -160,8 +167,12 @@ export function MissionControlV10Stream() {
             { k: 'Success', v: `${Math.round((summary.data?.successRate ?? 0) * 100)}%` },
           ].map((k) => (
             <div key={k.k} className="flex flex-col items-end leading-none">
-              <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-stone-500">{k.k}</span>
-              <span className="mt-1 text-base font-semibold tabular-nums text-stone-900">{k.v}</span>
+              <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-stone-500">
+                {k.k}
+              </span>
+              <span className="mt-1 text-base font-semibold tabular-nums text-stone-900">
+                {k.v}
+              </span>
             </div>
           ))}
         </div>
@@ -182,13 +193,22 @@ export function MissionControlV10Stream() {
               all · {entries.length}
             </Chip>
             <span className="text-stone-400">·</span>
-            <Chip active={statusFilter === 'live'} onClick={() => setStatusFilter(statusFilter === 'live' ? null : 'live')}>
+            <Chip
+              active={statusFilter === 'live'}
+              onClick={() => setStatusFilter(statusFilter === 'live' ? null : 'live')}
+            >
               live
             </Chip>
-            <Chip active={statusFilter === 'ok'} onClick={() => setStatusFilter(statusFilter === 'ok' ? null : 'ok')}>
+            <Chip
+              active={statusFilter === 'ok'}
+              onClick={() => setStatusFilter(statusFilter === 'ok' ? null : 'ok')}
+            >
               ok
             </Chip>
-            <Chip active={statusFilter === 'fail'} onClick={() => setStatusFilter(statusFilter === 'fail' ? null : 'fail')}>
+            <Chip
+              active={statusFilter === 'fail'}
+              onClick={() => setStatusFilter(statusFilter === 'fail' ? null : 'fail')}
+            >
               fail
             </Chip>
             <span className="text-stone-400">·</span>
@@ -225,10 +245,7 @@ export function MissionControlV10Stream() {
                     className={`group relative grid grid-cols-[24px_1fr_auto] gap-x-4 border-b hair py-3 transition-colors hover:bg-white/60 ${isFirst ? 'border-t' : ''}`}
                   >
                     {/* color rail */}
-                    <span
-                      className="relative flex justify-center"
-                      aria-hidden
-                    >
+                    <span className="relative flex justify-center" aria-hidden>
                       <span
                         className="absolute top-0 bottom-0 w-px"
                         style={{ background: `hsl(${e.hue} 50% 60% / 0.45)` }}
@@ -304,7 +321,9 @@ export function MissionControlV10Stream() {
               ) : (
                 (projects.data ?? []).map((p) => {
                   const rs = byProject.get(p.id) ?? [];
-                  const live = rs.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length;
+                  const live = rs.filter(
+                    (r) => classify(r) === 'running' || classify(r) === 'paused',
+                  ).length;
                   const tok = rs.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0);
                   const hue = projectHueMap.get(p.id) ?? 200;
                   return (
@@ -323,7 +342,10 @@ export function MissionControlV10Stream() {
                       {live > 0 && (
                         <span
                           className="rounded-full px-1.5 py-px font-mono text-[9px] tabular-nums"
-                          style={{ background: `hsl(${hue} 60% 50% / 0.18)`, color: `hsl(${hue} 50% 30%)` }}
+                          style={{
+                            background: `hsl(${hue} 60% 50% / 0.18)`,
+                            color: `hsl(${hue} 50% 30%)`,
+                          }}
                         >
                           {live}
                         </span>
@@ -369,11 +391,7 @@ function Chip({
   children: React.ReactNode;
   hue?: number;
 }) {
-  const bg = active
-    ? hue !== undefined
-      ? `hsl(${hue} 60% 50%)`
-      : '#1c1917'
-    : 'transparent';
+  const bg = active ? (hue !== undefined ? `hsl(${hue} 60% 50%)` : '#1c1917') : 'transparent';
   const fg = active
     ? hue !== undefined
       ? '#fbf9f5'

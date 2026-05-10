@@ -32,7 +32,11 @@ function rel(t: number) {
 }
 
 function clock(t: number) {
-  return new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return new Date(t).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
 }
 
 interface Event {
@@ -49,7 +53,9 @@ export function MissionControlV15Stream2() {
 
   const projectHue = useMemo(() => {
     const m = new Map<string, number>();
-    (projects.data ?? []).forEach((p, i) => m.set(p.id, PROJECT_HUES[i % PROJECT_HUES.length] ?? 200));
+    (projects.data ?? []).forEach((p, i) =>
+      m.set(p.id, PROJECT_HUES[i % PROJECT_HUES.length] ?? 200),
+    );
     return m;
   }, [projects.data]);
 
@@ -60,7 +66,11 @@ export function MissionControlV15Stream2() {
       const stored = parseInt(localStorage.getItem(LS_LAST_VISIT) || '0', 10);
       if (stored > 0) lastVisitRef.current = stored;
       const onUnload = () => {
-        try { localStorage.setItem(LS_LAST_VISIT, String(Date.now())); } catch { /* storage unavailable */ }
+        try {
+          localStorage.setItem(LS_LAST_VISIT, String(Date.now()));
+        } catch {
+          /* storage unavailable */
+        }
       };
       window.addEventListener('beforeunload', onUnload);
       const writeNow = setInterval(onUnload, 30_000);
@@ -69,7 +79,9 @@ export function MissionControlV15Stream2() {
         window.removeEventListener('beforeunload', onUnload);
         onUnload();
       };
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const events: Event[] = useMemo(() => {
@@ -185,11 +197,16 @@ export function MissionControlV15Stream2() {
                 <li className="sticky top-0 z-10 flex items-center gap-3 border-b border-cyan-400/30 bg-cyan-400/5 px-6 py-2 backdrop-blur">
                   <span className="block h-2 w-2 rounded-full bg-cyan-400 pulse" />
                   <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-cyan-300">
-                    new since {clock(lastVisitRef.current)} · {sinceLast.length} event{sinceLast.length === 1 ? '' : 's'}
+                    new since {clock(lastVisitRef.current)} · {sinceLast.length} event
+                    {sinceLast.length === 1 ? '' : 's'}
                   </span>
                   <button
                     onClick={() => {
-                      try { localStorage.setItem(LS_LAST_VISIT, String(Date.now())); } catch { /* storage unavailable */ }
+                      try {
+                        localStorage.setItem(LS_LAST_VISIT, String(Date.now()));
+                      } catch {
+                        /* storage unavailable */
+                      }
                       lastVisitRef.current = Date.now();
                     }}
                     className="ml-auto rounded-full border border-cyan-400/30 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-200 hover:bg-cyan-400/10"
@@ -217,7 +234,9 @@ export function MissionControlV15Stream2() {
         <aside className="flex min-h-0 flex-col bg-[#08090b]">
           <div className="border-b border-white/5 px-4 py-3">
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">agents</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                agents
+              </span>
               <span className="rounded-full bg-amber-400/15 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.18em] text-amber-300">
                 wip
               </span>
@@ -240,7 +259,10 @@ export function MissionControlV15Stream2() {
             </div>
             <ul className="mt-2 flex flex-col gap-2">
               {sinceLast.slice(0, 4).map((e) => (
-                <li key={`thr-${e.run.id}-${e.kind}-${e.ts}`} className="rounded-md bg-white/5 p-2.5">
+                <li
+                  key={`thr-${e.run.id}-${e.kind}-${e.ts}`}
+                  className="rounded-md bg-white/5 p-2.5"
+                >
                   <div className="flex items-baseline justify-between">
                     <span className="text-[12px] font-medium text-zinc-200">
                       re: run {e.run.id.slice(0, 6)}
@@ -273,8 +295,15 @@ export function MissionControlV15Stream2() {
               />
               <div className="mt-1 flex items-center justify-between">
                 <div className="flex items-center gap-1">
-                  <button className="rounded p-1 text-zinc-500 hover:text-zinc-200" title="attach context">📎</button>
-                  <span className="font-mono text-[10px] text-zinc-500">+ context: cross-project</span>
+                  <button
+                    className="rounded p-1 text-zinc-500 hover:text-zinc-200"
+                    title="attach context"
+                  >
+                    📎
+                  </button>
+                  <span className="font-mono text-[10px] text-zinc-500">
+                    + context: cross-project
+                  </span>
                 </div>
                 <button
                   className="rounded-full bg-cyan-500 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-950 disabled:bg-zinc-700 disabled:text-zinc-500"
@@ -318,11 +347,20 @@ function EventRow({ e, fresh }: { e: Event; fresh?: boolean }) {
           ? 'paused'
           : 'closed cleanly';
   const tone =
-    e.kind === 'failed' ? '#fb7185' : e.kind === 'paused' ? '#fbbf24' : e.kind === 'closed' ? '#86efac' : '#67e8f9';
+    e.kind === 'failed'
+      ? '#fb7185'
+      : e.kind === 'paused'
+        ? '#fbbf24'
+        : e.kind === 'closed'
+          ? '#86efac'
+          : '#67e8f9';
   return (
     <li className="row group grid grid-cols-[20px_1fr_auto] items-baseline gap-x-4 border-b border-white/5 px-6 py-2.5">
       <span className="relative flex justify-center" aria-hidden>
-        <span className="absolute -top-2.5 bottom-0 w-px" style={{ background: `hsl(${e.hue} 50% 50% / 0.4)` }} />
+        <span
+          className="absolute -top-2.5 bottom-0 w-px"
+          style={{ background: `hsl(${e.hue} 50% 50% / 0.4)` }}
+        />
         <span
           className="relative top-1.5 block h-2 w-2 rounded-full"
           style={{ background: `hsl(${e.hue} 60% 50%)` }}
@@ -354,15 +392,16 @@ function EventRow({ e, fresh }: { e: Event; fresh?: boolean }) {
           <span>tok·in {fmtTok(e.run.tokensInTotal)}</span>
           <span>tok·out {fmtTok(e.run.tokensOutTotal)}</span>
           <span>turns {e.run.turnsTotal}</span>
-          {e.run.pausedReason && <span className="rounded-full bg-amber-400/15 px-1.5 py-px text-amber-300">{e.run.pausedReason}</span>}
+          {e.run.pausedReason && (
+            <span className="rounded-full bg-amber-400/15 px-1.5 py-px text-amber-300">
+              {e.run.pausedReason}
+            </span>
+          )}
         </div>
       </div>
       <div className="flex flex-col items-end gap-1.5">
         <span className="font-mono text-[11px] tabular-nums text-zinc-500">{rel(e.ts)}</span>
-        <span
-          className="font-mono text-[9px] uppercase tracking-[0.18em]"
-          style={{ color: tone }}
-        >
+        <span className="font-mono text-[9px] uppercase tracking-[0.18em]" style={{ color: tone }}>
           {e.kind}
         </span>
         <button

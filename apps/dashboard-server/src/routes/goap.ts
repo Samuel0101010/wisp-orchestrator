@@ -17,17 +17,26 @@ const planRequestSchema = z.object({
 });
 
 export const goapRoutes: FastifyPluginAsync = async (app) => {
-  app.post('/api/goap/plan', wrap(async (req, reply) => {
-    const parsed = planRequestSchema.safeParse(req.body);
-    if (!parsed.success) {
-      reply.code(400);
-      return { error: 'invalid_body', issues: parsed.error.issues };
-    }
-    const plan = planGoap(parsed.data as unknown as { initial: Record<string, boolean>; goal: Record<string, boolean>; actions: Action[] });
-    if (plan === null) {
-      return { plan: null, totalCost: null };
-    }
-    const totalCost = plan.reduce((s, a) => s + a.cost, 0);
-    return { plan, totalCost };
-  }));
+  app.post(
+    '/api/goap/plan',
+    wrap(async (req, reply) => {
+      const parsed = planRequestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        reply.code(400);
+        return { error: 'invalid_body', issues: parsed.error.issues };
+      }
+      const plan = planGoap(
+        parsed.data as unknown as {
+          initial: Record<string, boolean>;
+          goal: Record<string, boolean>;
+          actions: Action[];
+        },
+      );
+      if (plan === null) {
+        return { plan: null, totalCost: null };
+      }
+      const totalCost = plan.reduce((s, a) => s + a.cost, 0);
+      return { plan, totalCost };
+    }),
+  );
 };

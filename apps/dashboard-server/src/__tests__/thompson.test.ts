@@ -18,7 +18,8 @@ describe('Beta sampler', () => {
   });
 
   it('mean ≈ α/(α+β) over 5000 samples (within 5%)', () => {
-    const a = 4, b = 6;
+    const a = 4,
+      b = 6;
     let sum = 0;
     for (let i = 0; i < 5000; i++) sum += sampleBeta(a, b);
     const mean = sum / 5000;

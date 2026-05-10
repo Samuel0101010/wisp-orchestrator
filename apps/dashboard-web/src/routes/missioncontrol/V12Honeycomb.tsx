@@ -56,7 +56,12 @@ function spiralCoords(n: number): Array<{ q: number; r: number }> {
     let q = -ring;
     let r = ring;
     const dirs: Array<[number, number]> = [
-      [1, -1], [1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1],
+      [1, -1],
+      [1, 0],
+      [0, 1],
+      [-1, 1],
+      [-1, 0],
+      [0, -1],
     ];
     for (const [dq, dr] of dirs) {
       for (let k = 0; k < ring; k++) {
@@ -80,7 +85,9 @@ function hexPath(cx: number, cy: number, size: number) {
   const pts: string[] = [];
   for (let i = 0; i < 6; i++) {
     const angle = (Math.PI / 3) * i + Math.PI / 6;
-    pts.push(`${(cx + size * Math.cos(angle)).toFixed(1)},${(cy + size * Math.sin(angle)).toFixed(1)}`);
+    pts.push(
+      `${(cx + size * Math.cos(angle)).toFixed(1)},${(cy + size * Math.sin(angle)).toFixed(1)}`,
+    );
   }
   return pts.join(' ');
 }
@@ -144,7 +151,9 @@ export function MissionControlV12Honeycomb() {
         successRate: p.closed > 0 ? Math.round((p.success / p.closed) * 100) : 0,
         failure: p.fail,
         topRun:
-          p.rs.find((r) => classify(r) === 'running' || classify(r) === 'paused') ?? p.rs[0] ?? null,
+          p.rs.find((r) => classify(r) === 'running' || classify(r) === 'paused') ??
+          p.rs[0] ??
+          null,
       };
     });
   }, [projects.data, globalRuns.data]);
@@ -203,8 +212,8 @@ export function MissionControlV12Honeycomb() {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Honeycomb of projects</h1>
           <div className="mt-1 max-w-prose text-[13px] text-stone-700">
-            Each cell is a project. Tile size scales with token volume; fill rises with success rate;
-            the cyan ring is per-project live activity.
+            Each cell is a project. Tile size scales with token volume; fill rises with success
+            rate; the cyan ring is per-project live activity.
           </div>
         </div>
         <div className="flex items-end gap-6">
@@ -254,7 +263,8 @@ export function MissionControlV12Honeycomb() {
               {hexes.map((h) => {
                 const isSel = selectedId === h.id;
                 const fillRatio = h.successRate / 100;
-                const fillId = h.failure > h.totalRuns / 3 && h.totalRuns > 0 ? 'hex-fill-warm' : 'hex-fill';
+                const fillId =
+                  h.failure > h.totalRuns / 3 && h.totalRuns > 0 ? 'hex-fill-warm' : 'hex-fill';
                 return (
                   <g
                     key={h.id}
@@ -347,11 +357,17 @@ export function MissionControlV12Honeycomb() {
                 live
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="block h-2.5 w-2.5 rounded-full" style={{ background: 'linear-gradient(to top, #312e81, #6366f1)' }} />
+                <span
+                  className="block h-2.5 w-2.5 rounded-full"
+                  style={{ background: 'linear-gradient(to top, #312e81, #6366f1)' }}
+                />
                 fill = success rate
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="block h-2.5 w-2.5 rounded-full" style={{ background: 'linear-gradient(to top, #9a3412, #f97316)' }} />
+                <span
+                  className="block h-2.5 w-2.5 rounded-full"
+                  style={{ background: 'linear-gradient(to top, #9a3412, #f97316)' }}
+                />
                 warm = failure-heavy
               </span>
               <span>size ∝ tokens</span>
@@ -379,10 +395,18 @@ export function MissionControlV12Honeycomb() {
               <p className="mt-3 line-clamp-3 text-[13px] text-stone-700">{selected.goal}</p>
               <dl className="mt-4 grid grid-cols-2 gap-y-2.5 text-[13px]">
                 <Row k="runs · total" v={String(selected.totalRuns)} />
-                <Row k="live now" v={String(selected.liveCount)} tone={selected.liveCount > 0 ? '#0e7490' : undefined} />
+                <Row
+                  k="live now"
+                  v={String(selected.liveCount)}
+                  tone={selected.liveCount > 0 ? '#0e7490' : undefined}
+                />
                 <Row k="tokens" v={fmtTok(selected.totalTok)} />
                 <Row k="success rate" v={`${selected.successRate}%`} />
-                <Row k="failures" v={String(selected.failure)} tone={selected.failure > 0 ? '#b91c1c' : undefined} />
+                <Row
+                  k="failures"
+                  v={String(selected.failure)}
+                  tone={selected.failure > 0 ? '#b91c1c' : undefined}
+                />
                 {selected.topRun && (
                   <Row
                     k={selected.liveCount > 0 ? 'top live run' : 'most recent'}
@@ -425,9 +449,14 @@ export function MissionControlV12Honeycomb() {
             <ul className="mt-2 flex flex-col gap-1.5">
               {hexes.slice(0, 6).map((h) => (
                 <li key={h.id} className="flex items-center gap-2 text-[12px]">
-                  <span className="block h-2 w-2 flex-none rounded-full" style={{ background: h.liveCount > 0 ? '#06b6d4' : '#cbd5e1' }} />
+                  <span
+                    className="block h-2 w-2 flex-none rounded-full"
+                    style={{ background: h.liveCount > 0 ? '#06b6d4' : '#cbd5e1' }}
+                  />
                   <span className="flex-1 truncate">{h.name}</span>
-                  <span className="font-mono tabular-nums text-stone-500">{fmtTok(h.totalTok)}</span>
+                  <span className="font-mono tabular-nums text-stone-500">
+                    {fmtTok(h.totalTok)}
+                  </span>
                 </li>
               ))}
             </ul>

@@ -4,11 +4,25 @@ import { usePlanGoap, type GoapAction } from '@/api/queries';
 const EXAMPLE = {
   initial: '{}',
   goal: '{"hasReport": true}',
-  actions: JSON.stringify([
-    { name: 'gather-info', cost: 1, preconditions: {}, effects: { hasInfo: true } },
-    { name: 'analyze', cost: 2, preconditions: { hasInfo: true }, effects: { hasAnalysis: true } },
-    { name: 'write-report', cost: 3, preconditions: { hasAnalysis: true }, effects: { hasReport: true } },
-  ], null, 2),
+  actions: JSON.stringify(
+    [
+      { name: 'gather-info', cost: 1, preconditions: {}, effects: { hasInfo: true } },
+      {
+        name: 'analyze',
+        cost: 2,
+        preconditions: { hasInfo: true },
+        effects: { hasAnalysis: true },
+      },
+      {
+        name: 'write-report',
+        cost: 3,
+        preconditions: { hasAnalysis: true },
+        effects: { hasReport: true },
+      },
+    ],
+    null,
+    2,
+  ),
 };
 
 export function GoapRoute() {
@@ -37,7 +51,8 @@ export function GoapRoute() {
       <header>
         <h1 className="text-2xl font-semibold">GOAP Planner</h1>
         <p className="text-sm text-muted-foreground">
-          Goal-oriented action planning over boolean world state. Provide initial state, goal, and an action library; get back the cheapest plan.
+          Goal-oriented action planning over boolean world state. Provide initial state, goal, and
+          an action library; get back the cheapest plan.
         </p>
       </header>
 
@@ -67,7 +82,11 @@ export function GoapRoute() {
           {planM.isPending ? 'Planning…' : 'Plan'}
         </button>
         <button
-          onClick={() => { setInitial(EXAMPLE.initial); setGoal(EXAMPLE.goal); setActions(EXAMPLE.actions); }}
+          onClick={() => {
+            setInitial(EXAMPLE.initial);
+            setGoal(EXAMPLE.goal);
+            setActions(EXAMPLE.actions);
+          }}
           className="rounded border border-border px-4 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           Load example

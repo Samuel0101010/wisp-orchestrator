@@ -61,7 +61,9 @@ export function VariantSwitcher({
                 [
                   'flex items-center gap-2 px-3 py-1 font-mono text-[11px] tracking-tight',
                   i > 0 ? 'border-l border-current/20' : '',
-                  isActive ? 'opacity-100 underline underline-offset-[6px]' : 'opacity-50 hover:opacity-90',
+                  isActive
+                    ? 'opacity-100 underline underline-offset-[6px]'
+                    : 'opacity-50 hover:opacity-90',
                 ].join(' ')
               }
             >

@@ -15,16 +15,18 @@ function fmtTok(n: number) {
 
 function statusWord(s: string): string {
   return (
-    {
-      running: 'In flight',
-      paused: 'Paused',
-      succeeded: 'Closed · ok',
-      failed: 'Closed · failure',
-      cancelled: 'Cancelled',
-      pending: 'Awaiting',
-      queued: 'Queued',
-    } as Record<string, string>
-  )[s] ?? s;
+    (
+      {
+        running: 'In flight',
+        paused: 'Paused',
+        succeeded: 'Closed · ok',
+        failed: 'Closed · failure',
+        cancelled: 'Cancelled',
+        pending: 'Awaiting',
+        queued: 'Queued',
+      } as Record<string, string>
+    )[s] ?? s
+  );
 }
 
 function ThroughputBars({ data }: { data: Array<{ day: string; tokens: number }> }) {
@@ -39,7 +41,11 @@ function ThroughputBars({ data }: { data: Array<{ day: string; tokens: number }>
         const day = new Date(d.day).toLocaleDateString('en-US', { weekday: 'short' });
         return (
           <div key={d.day} className="flex h-full flex-col items-stretch justify-end gap-1">
-            <div className="bg-stone-900" style={{ height: h }} aria-label={`${d.day}: ${d.tokens}`} />
+            <div
+              className="bg-stone-900"
+              style={{ height: h }}
+              aria-label={`${d.day}: ${d.tokens}`}
+            />
             <div className="text-center font-mono text-[9px] uppercase tracking-[0.2em] text-stone-600">
               {day}
             </div>
@@ -107,7 +113,9 @@ export function MissionControlV2Broadsheet() {
           <span>{dateline}</span>
           <span>Edition · Mission Control</span>
         </div>
-        <h1 className="masthead mt-2 text-[clamp(3.5rem,10vw,9rem)] leading-[0.85]">The Harness Ledger</h1>
+        <h1 className="masthead mt-2 text-[clamp(3.5rem,10vw,9rem)] leading-[0.85]">
+          The Harness Ledger
+        </h1>
         <div className="mt-2 flex items-baseline justify-between border-t-4 border-stone-900 pt-2 text-[11px] tracking-[0.2em] text-stone-700 smallcaps">
           <span>“All that the agents do, in plain sight.”</span>
           <span className="font-mono">v1.2 · agent-harness</span>
@@ -123,8 +131,10 @@ export function MissionControlV2Broadsheet() {
             {summary.data?.activeCount ? (
               <>
                 {summary.data.activeCount}{' '}
-                {summary.data.activeCount === 1 ? 'agent run is in flight' : 'agent runs are in flight'}; the
-                rest of the docket awaits.
+                {summary.data.activeCount === 1
+                  ? 'agent run is in flight'
+                  : 'agent runs are in flight'}
+                ; the rest of the docket awaits.
               </>
             ) : (
               <>The runway is clear; no agent runs are in flight at press time.</>
@@ -132,11 +142,11 @@ export function MissionControlV2Broadsheet() {
           </h2>
           <hr className="hair my-4" />
           <p className="body-serif text-[15px] leading-[1.55] text-stone-800">
-            Over the trailing seven days the harness has dispatched{' '}
-            <strong>{fmtNum(total)}</strong> runs across its assigned projects, consuming{' '}
-            <strong>{fmtTok(summary.data?.totalTokens ?? 0)}</strong> tokens of model attention. Of those{' '}
-            that reached an outcome, <strong>{successPct}%</strong> closed in the manner intended; the
-            remainder are itemized below.
+            Over the trailing seven days the harness has dispatched <strong>{fmtNum(total)}</strong>{' '}
+            runs across its assigned projects, consuming{' '}
+            <strong>{fmtTok(summary.data?.totalTokens ?? 0)}</strong> tokens of model attention. Of
+            those that reached an outcome, <strong>{successPct}%</strong> closed in the manner
+            intended; the remainder are itemized below.
           </p>
 
           <hr className="hair my-4" />
@@ -158,8 +168,10 @@ export function MissionControlV2Broadsheet() {
                     </div>
                     <div className="mt-0.5 text-[12px] text-stone-700">
                       Run <span className="font-mono">{r.id.slice(0, 10)}</span> ·{' '}
-                      <span className="font-mono">{fmtTok(r.tokensInTotal + r.tokensOutTotal)}</span> tokens
-                      committed across {r.turnsTotal} turn{r.turnsTotal === 1 ? '' : 's'}.
+                      <span className="font-mono">
+                        {fmtTok(r.tokensInTotal + r.tokensOutTotal)}
+                      </span>{' '}
+                      tokens committed across {r.turnsTotal} turn{r.turnsTotal === 1 ? '' : 's'}.
                     </div>
                   </Link>
                 </li>
@@ -170,19 +182,24 @@ export function MissionControlV2Broadsheet() {
 
         <article className="lg:col-span-4 lg:border-x lg:border-stone-900/30 lg:px-8">
           <div className="smallcaps text-[11px] text-stone-700">Telemetry · seven days</div>
-          <h3 className="body-serif mt-1 text-2xl font-bold leading-tight">Token throughput, by day</h3>
+          <h3 className="body-serif mt-1 text-2xl font-bold leading-tight">
+            Token throughput, by day
+          </h3>
           <hr className="hair my-3" />
           <ThroughputBars data={summary.data?.tokensByDay ?? []} />
           <p className="body-serif mt-4 text-[13px] leading-[1.55] text-stone-800">
-            A bar chart spelt out in print: each column is one day's combined input-plus-output token
-            spend. Tall bars mark heavier dispatch days; flat bars mark days the editor took off.
+            A bar chart spelt out in print: each column is one day's combined input-plus-output
+            token spend. Tall bars mark heavier dispatch days; flat bars mark days the editor took
+            off.
           </p>
           <hr className="hair my-4" />
           <dl className="body-serif grid grid-cols-2 gap-y-2 text-[13px]">
             <dt className="text-stone-700">Total runs</dt>
             <dd className="text-right font-bold tabular-nums">{fmtNum(total)}</dd>
             <dt className="text-stone-700">Tokens, total</dt>
-            <dd className="text-right font-bold tabular-nums">{fmtTok(summary.data?.totalTokens ?? 0)}</dd>
+            <dd className="text-right font-bold tabular-nums">
+              {fmtTok(summary.data?.totalTokens ?? 0)}
+            </dd>
             <dt className="text-stone-700">Average duration</dt>
             <dd className="text-right font-bold tabular-nums">
               {Math.round((summary.data?.avgDurationMs ?? 0) / 60_000)}m
@@ -220,8 +237,11 @@ export function MissionControlV2Broadsheet() {
                       <span className="font-bold">{r.projectName}</span>
                     </div>
                     <div className="ml-7 text-[11px] text-stone-700">
-                      <span className="font-mono">{r.id.slice(0, 8)}</span> · {statusWord(r.status)} ·{' '}
-                      <span className="font-mono">{fmtTok(r.tokensInTotal + r.tokensOutTotal)}</span>
+                      <span className="font-mono">{r.id.slice(0, 8)}</span> · {statusWord(r.status)}{' '}
+                      ·{' '}
+                      <span className="font-mono">
+                        {fmtTok(r.tokensInTotal + r.tokensOutTotal)}
+                      </span>
                     </div>
                   </Link>
                 </li>

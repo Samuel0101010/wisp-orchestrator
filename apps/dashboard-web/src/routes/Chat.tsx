@@ -169,8 +169,8 @@ export function ChatRoute() {
         <Sparkles className="h-7 w-7 text-info" />
         <div className="text-base font-semibold">Team chat is not seeded yet.</div>
         <p className="max-w-md text-sm text-muted-foreground">
-          The built-in dev team (Marcus + 9 specialists) is installed automatically
-          on first server boot. Restart the dashboard server, then return here.
+          The built-in dev team (Marcus + 9 specialists) is installed automatically on first server
+          boot. Restart the dashboard server, then return here.
         </p>
         <Link to="/agents" className="text-sm underline">
           Open Agents settings
@@ -268,9 +268,7 @@ export function ChatRoute() {
                     : 'Summarise this conversation into one message'
                 }
               >
-                {compress.isPending ? (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                ) : null}
+                {compress.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
                 Compress
               </Button>
             </div>
@@ -278,9 +276,7 @@ export function ChatRoute() {
         </header>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          {!selectedThreadId && (
-            <EmptyTranscript onStart={startNewThread} />
-          )}
+          {!selectedThreadId && <EmptyTranscript onStart={startNewThread} />}
           {selectedThreadId && messageList.length === 0 && !sendMessage.isPending && (
             <ConversationStarter manager={manager} />
           )}
@@ -381,8 +377,8 @@ export function ChatRoute() {
           })}
         </div>
         <div className="border-t p-3 text-[11px] text-muted-foreground">
-          Marcus stays in every conversation. Add specialists to bring them into
-          the chat — or @mention them inline.
+          Marcus stays in every conversation. Add specialists to bring them into the chat — or
+          @mention them inline.
         </div>
       </aside>
 
@@ -390,9 +386,7 @@ export function ChatRoute() {
         <AddMemberDialog
           team={seedTeam}
           existing={participants.map((p) => p.agentId)}
-          customAgents={
-            agents.data?.filter((a) => a.kind !== 'seed') ?? []
-          }
+          customAgents={agents.data?.filter((a) => a.kind !== 'seed') ?? []}
           onPick={async (agentId) => {
             try {
               await addParticipant.mutateAsync({
@@ -435,12 +429,8 @@ function ThreadRow({
       onClick={onClick}
     >
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">
-          {thread.title ?? 'Untitled chat'}
-        </div>
-        <div className="text-[10px] text-muted-foreground">
-          {fmtRel(thread.updatedAt)} ago
-        </div>
+        <div className="truncate text-sm font-medium">{thread.title ?? 'Untitled chat'}</div>
+        <div className="text-[10px] text-muted-foreground">{fmtRel(thread.updatedAt)} ago</div>
       </div>
       {hover && (
         <button
@@ -481,9 +471,7 @@ function ParticipantRow({
       />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{participant.name}</div>
-        <div className="truncate text-[11px] text-muted-foreground">
-          {agent?.description ?? ''}
-        </div>
+        <div className="truncate text-[11px] text-muted-foreground">{agent?.description ?? ''}</div>
       </div>
       {participant.role === 'manager' && (
         <span className="rounded-full bg-info/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-info">
@@ -515,9 +503,8 @@ function EmptyTranscript({ onStart }: { onStart: () => void }) {
       <Sparkles className="h-10 w-10 text-info" />
       <div className="text-lg font-semibold">Brainstorm with the team</div>
       <p className="max-w-md text-sm text-muted-foreground">
-        Marcus (Project Manager) chairs every conversation. He can pull
-        specialists in, then create + start a project once you've agreed on
-        direction.
+        Marcus (Project Manager) chairs every conversation. He can pull specialists in, then create
+        + start a project once you've agreed on direction.
       </p>
       <Button onClick={onStart}>
         <MessageSquarePlus className="mr-2 h-4 w-4" /> Start conversation
@@ -534,12 +521,12 @@ function ConversationStarter({ manager }: { manager: Agent }) {
         <div className="space-y-2 text-sm">
           <div className="font-semibold">Marcus</div>
           <p className="text-muted-foreground">
-            Hi! Tell me what you're thinking about — a feature idea, a bug to
-            chase, or a fresh project. I'll loop in the specialists you need.
+            Hi! Tell me what you're thinking about — a feature idea, a bug to chase, or a fresh
+            project. I'll loop in the specialists you need.
           </p>
           <p className="text-xs text-muted-foreground">
-            Tip: type <code className="rounded bg-muted px-1">@Lena</code> to
-            address the frontend lead directly.
+            Tip: type <code className="rounded bg-muted px-1">@Lena</code> to address the frontend
+            lead directly.
           </p>
         </div>
       </div>
@@ -609,12 +596,12 @@ function MessageBlock({
 }) {
   const isUser = message.role === 'user';
   const author = !isUser
-    ? participants.find((p) => p.agentId === message.authorAgentId) ?? {
+    ? (participants.find((p) => p.agentId === message.authorAgentId) ?? {
         agentId: manager.id,
         name: manager.name,
         seedKey: manager.seedKey ?? null,
         role: 'manager' as const,
-      }
+      })
     : null;
 
   if (isUser) {
@@ -639,9 +626,7 @@ function MessageBlock({
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-baseline gap-2">
           <span className="text-sm font-semibold">{authorName}</span>
-          <span className="text-[10px] text-muted-foreground">
-            {fmtTime(message.createdAt)}
-          </span>
+          <span className="text-[10px] text-muted-foreground">{fmtTime(message.createdAt)}</span>
           {message.errorReason === 'pending' && (
             <span className="rounded bg-warning/20 px-1 text-[9px] uppercase text-warning">
               interrupted
@@ -652,11 +637,13 @@ function MessageBlock({
               Timeout (180s)
             </span>
           )}
-          {message.errorReason && message.errorReason !== 'pending' && message.errorReason !== 'timeout' && (
-            <span className="rounded bg-destructive/20 px-1 text-[9px] uppercase text-destructive">
-              {message.errorReason}
-            </span>
-          )}
+          {message.errorReason &&
+            message.errorReason !== 'pending' &&
+            message.errorReason !== 'timeout' && (
+              <span className="rounded bg-destructive/20 px-1 text-[9px] uppercase text-destructive">
+                {message.errorReason}
+              </span>
+            )}
         </div>
         <div className="rounded-2xl rounded-tl-sm bg-card px-4 py-2 text-sm shadow-sm ring-1 ring-border">
           <div className="whitespace-pre-wrap">{message.content || '(no response)'}</div>
@@ -682,7 +669,14 @@ function AuthorAvatar({
 }) {
   const agents = useAgents();
   const agent = authorAgentId ? agents.data?.find((a) => a.id === authorAgentId) : null;
-  return <Avatar name={name} avatarUrl={agent?.avatarUrl ?? null} color={agent?.color ?? null} size={32} />;
+  return (
+    <Avatar
+      name={name}
+      avatarUrl={agent?.avatarUrl ?? null}
+      color={agent?.color ?? null}
+      size={32}
+    />
+  );
 }
 
 // ---- Action card ----
@@ -693,17 +687,15 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     status === 'ok'
       ? 'border-success/40 bg-success/5'
       : status === 'failed'
-      ? 'border-destructive/40 bg-destructive/5'
-      : 'border-info/40 bg-info/5';
+        ? 'border-destructive/40 bg-destructive/5'
+        : 'border-info/40 bg-info/5';
 
   if (action.kind === 'create_project' && status === 'ok') {
     const r = action.resultJson as { projectId: string; name: string; teamSize: number } | null;
     return (
       <div className={`rounded-lg border ${palette} p-3 text-xs`}>
         <div className="font-semibold">Project created · {r?.name}</div>
-        <div className="text-muted-foreground">
-          Team of {r?.teamSize}. Ready to plan & run.
-        </div>
+        <div className="text-muted-foreground">Team of {r?.teamSize}. Ready to plan & run.</div>
         {r?.projectId && (
           <Link
             to={`/projects/${r.projectId}`}
@@ -727,8 +719,7 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     const r = action.resultJson as { consultedName?: string } | null;
     return (
       <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-        Consulted <strong>{r?.consultedName ?? 'specialist'}</strong>. Reply
-        posted below ↓
+        Consulted <strong>{r?.consultedName ?? 'specialist'}</strong>. Reply posted below ↓
       </div>
     );
   }
@@ -763,7 +754,9 @@ function ActionCard({ action }: { action: ChatActionRow }) {
         <span className="mr-2 inline-flex items-center gap-1 text-muted-foreground">
           🔧 invoked skill
         </span>
-        <span className="font-mono font-semibold">{r?.skillName ?? payload?.name ?? 'unknown'}</span>
+        <span className="font-mono font-semibold">
+          {r?.skillName ?? payload?.name ?? 'unknown'}
+        </span>
         <span className="ml-2 text-muted-foreground">
           ({tokens} tokens, {r?.durationMs ?? 0}ms)
         </span>
@@ -804,10 +797,7 @@ function AddMemberDialog({
   const [tab, setTab] = useState<'team' | 'custom'>('team');
   const list = tab === 'team' ? team : customAgents;
   return (
-    <div
-      className="fixed inset-0 z-[55] grid place-items-center bg-black/60 p-4"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[55] grid place-items-center bg-black/60 p-4" onClick={onClose}>
       <div
         className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-xl border bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
@@ -852,7 +842,12 @@ function AddMemberDialog({
                 onClick={() => onPick(a.id)}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <Avatar name={a.name} avatarUrl={a.avatarUrl ?? null} color={a.color ?? null} size={36} />
+                <Avatar
+                  name={a.name}
+                  avatarUrl={a.avatarUrl ?? null}
+                  color={a.color ?? null}
+                  size={36}
+                />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{a.name}</div>
                   <div className="truncate text-[11px] text-muted-foreground">

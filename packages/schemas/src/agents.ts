@@ -34,10 +34,9 @@ export const createAgentInputSchema = z.object({
 });
 export type CreateAgentInput = z.infer<typeof createAgentInputSchema>;
 
-export const updateAgentInputSchema = createAgentInputSchema.partial().refine(
-  (v) => Object.keys(v).length > 0,
-  { message: 'at least one field required' },
-);
+export const updateAgentInputSchema = createAgentInputSchema
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, { message: 'at least one field required' });
 export type UpdateAgentInput = z.infer<typeof updateAgentInputSchema>;
 
 /**

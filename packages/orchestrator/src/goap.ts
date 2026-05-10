@@ -48,14 +48,21 @@ function key(state: WorldState): string {
 }
 
 export function planGoap(input: GoapInput): Action[] | null {
-  interface Node { state: WorldState; path: Action[]; g: number; f: number }
+  interface Node {
+    state: WorldState;
+    path: Action[];
+    g: number;
+    f: number;
+  }
 
-  const open: Node[] = [{
-    state: input.initial,
-    path: [],
-    g: 0,
-    f: heuristic(input.initial, input.goal),
-  }];
+  const open: Node[] = [
+    {
+      state: input.initial,
+      path: [],
+      g: 0,
+      f: heuristic(input.initial, input.goal),
+    },
+  ];
   const closed = new Map<string, number>();
 
   while (open.length > 0) {

@@ -29,7 +29,9 @@ function countSeedAgents() {
 
 function countMigrations() {
   const dir = resolve(ROOT, 'apps/dashboard-server/drizzle');
-  return readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort();
 }
 
 function countDirectives() {
