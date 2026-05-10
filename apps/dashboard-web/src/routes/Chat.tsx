@@ -647,7 +647,12 @@ function MessageBlock({
               interrupted
             </span>
           )}
-          {message.errorReason && message.errorReason !== 'pending' && (
+          {message.errorReason === 'timeout' && (
+            <span className="rounded bg-destructive/20 px-1 text-[9px] font-semibold text-destructive">
+              Timeout (180s)
+            </span>
+          )}
+          {message.errorReason && message.errorReason !== 'pending' && message.errorReason !== 'timeout' && (
             <span className="rounded bg-destructive/20 px-1 text-[9px] uppercase text-destructive">
               {message.errorReason}
             </span>
