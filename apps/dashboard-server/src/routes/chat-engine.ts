@@ -35,6 +35,7 @@ export interface RunAgentTurnOpts {
   model: AgentModel;
   taskId: string;
   runner?: SubprocessRunner;
+  timeoutMs?: number;
 }
 
 export interface RunAgentTurnResult {
@@ -49,7 +50,11 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
   const runner: SubprocessRunner = opts.runner ?? runClaude;
   const cwd = await mkdtemp(join(tmpdir(), 'harness-chat-'));
   const ac = new AbortController();
-  const timeoutId = setTimeout(() => ac.abort(), CHAT_TIMEOUT_MS);
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    ac.abort();
+  }, opts.timeoutMs ?? CHAT_TIMEOUT_MS);
   const t0 = Date.now();
   let text = '';
   let tokensIn = 0;
@@ -76,7 +81,7 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
       }
     }
   } catch (err) {
-    failed = err instanceof Error ? err.message : String(err);
+    failed = timedOut ? 'timeout' : (err instanceof Error ? err.message : String(err));
   } finally {
     clearTimeout(timeoutId);
     await rm(cwd, { recursive: true, force: true }).catch(() => {
