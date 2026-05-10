@@ -10,6 +10,7 @@ import {
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { existsSync } from 'node:fs';
+import { runAgentTurn } from '../routes/chat-engine.js';
 
 beforeAll(() => {
   runMigrations();
@@ -101,5 +102,71 @@ describe('evictStaleBundles', () => {
     const stats = await evictStaleBundles(7 * 24 * 60 * 60 * 1000);
     expect(stats.deleted).toBe(0);
     expect(lookupBundle(key)).toBeDefined();
+  });
+});
+
+describe('runAgentTurn with bundleKey', () => {
+  it('captures sessionId and writes it back to the bundle', async () => {
+    const key = buildBundleKey({ systemPrompt: 'capture-test', allowedTools: [], model: 'haiku' });
+    const { cwd } = await upsertBundle(key, {
+      systemPrompt: 'capture-test',
+      allowedTools: [],
+      model: 'haiku',
+    });
+    async function* mockRunner(opts: { taskId: string }) {
+      yield {
+        type: 'task.session-id',
+        payload: { taskId: opts.taskId, sessionId: 'sess-abc' },
+      } as const;
+      yield {
+        type: 'task.text-delta',
+        payload: { taskId: opts.taskId, text: 'hi' },
+      } as const;
+      yield {
+        type: 'task.usage',
+        payload: { taskId: opts.taskId, tokensIn: 1, tokensOut: 1, turns: 1 },
+      } as const;
+      yield {
+        type: 'task.completed',
+        payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+      } as const;
+    }
+    await runAgentTurn({
+      systemPrompt: 'capture-test',
+      prompt: '',
+      allowedTools: [],
+      model: 'haiku',
+      taskId: 't',
+      runner: mockRunner as any,
+      cwd,
+      bundleKey: key,
+    });
+    const row = lookupBundle(key);
+    expect(row?.claudeSessionId).toBe('sess-abc');
+  });
+
+  it('does NOT delete cwd when isStableCwd', async () => {
+    const key = buildBundleKey({ systemPrompt: 'no-delete', allowedTools: [], model: 'haiku' });
+    const { cwd } = await upsertBundle(key, {
+      systemPrompt: 'no-delete',
+      allowedTools: [],
+      model: 'haiku',
+    });
+    async function* mockRunner(opts: { taskId: string }) {
+      yield {
+        type: 'task.completed',
+        payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+      } as const;
+    }
+    await runAgentTurn({
+      systemPrompt: 'no-delete',
+      prompt: '',
+      allowedTools: [],
+      model: 'haiku',
+      taskId: 't',
+      runner: mockRunner as any,
+      cwd,
+    });
+    expect(existsSync(cwd)).toBe(true);
   });
 });
