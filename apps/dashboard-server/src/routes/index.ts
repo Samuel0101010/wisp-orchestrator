@@ -21,6 +21,7 @@ import { consolidateMemory } from '../workers/handlers/consolidate-memory.js';
 import { createWorkersRouter } from './workers.js';
 import { tickAutopilot } from '../autopilot/runner.js';
 import { routerRoutes } from './router.js';
+import { insightsRoutes } from './insights.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -52,4 +53,5 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(createChatRouter({ skillRegistry }));
   await app.register(createWorkersRouter({ registry: workerRegistry }));
   await app.register(routerRoutes);
+  await app.register(insightsRoutes);
 };
