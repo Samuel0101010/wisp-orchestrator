@@ -19,7 +19,6 @@ import {
   chatActions,
   plans as plansTable,
   projects as projectsTable,
-  teams as teamsTable,
   threadParticipants,
   type ChatActionKind,
   type ChatActionStatus,

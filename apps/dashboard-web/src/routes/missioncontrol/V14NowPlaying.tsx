@@ -41,15 +41,6 @@ function durationOf(r: GlobalRunRow): number {
   return Math.max(0, (end - start) / 1000);
 }
 
-function rel(d: string | Date | null | undefined) {
-  if (!d) return '—';
-  const t = typeof d === 'string' ? new Date(d).getTime() : (d as Date).getTime();
-  const dt = Date.now() - t;
-  if (dt < 60_000) return `${Math.floor(dt / 1000)}s ago`;
-  if (dt < 3_600_000) return `${Math.floor(dt / 60_000)}m ago`;
-  if (dt < 86_400_000) return `${Math.floor(dt / 3_600_000)}h ago`;
-  return `${Math.floor(dt / 86_400_000)}d ago`;
-}
 
 export function MissionControlV14NowPlaying() {
   const projects = useProjects();

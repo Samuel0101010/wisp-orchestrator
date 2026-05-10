@@ -8,7 +8,6 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
 import { agents, teams, type NewAgent } from '@agent-harness/schemas';
 import { db, sqlite } from './index.js';
 

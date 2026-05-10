@@ -19,7 +19,6 @@ import { z } from 'zod';
 import {
   agents,
   createAgentInputSchema,
-  teams,
   updateAgentInputSchema,
 } from '@agent-harness/schemas';
 import { db, sqlite } from '../db/index.js';

@@ -10,7 +10,6 @@ const PANEL_LO = '#0e0f10';
 const AMBER = '#f5a524';
 const GREEN = '#39d353';
 const RED = '#f06262';
-const STEEL = '#86888c';
 
 function fmtTok(n: number) {
   if (n < 1000) return String(n);

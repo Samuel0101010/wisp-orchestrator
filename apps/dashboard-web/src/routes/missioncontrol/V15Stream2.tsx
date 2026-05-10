@@ -60,7 +60,7 @@ export function MissionControlV15Stream2() {
       const stored = parseInt(localStorage.getItem(LS_LAST_VISIT) || '0', 10);
       if (stored > 0) lastVisitRef.current = stored;
       const onUnload = () => {
-        try { localStorage.setItem(LS_LAST_VISIT, String(Date.now())); } catch {}
+        try { localStorage.setItem(LS_LAST_VISIT, String(Date.now())); } catch { /* storage unavailable */ }
       };
       window.addEventListener('beforeunload', onUnload);
       const writeNow = setInterval(onUnload, 30_000);
@@ -189,7 +189,7 @@ export function MissionControlV15Stream2() {
                   </span>
                   <button
                     onClick={() => {
-                      try { localStorage.setItem(LS_LAST_VISIT, String(Date.now())); } catch {}
+                      try { localStorage.setItem(LS_LAST_VISIT, String(Date.now())); } catch { /* storage unavailable */ }
                       lastVisitRef.current = Date.now();
                     }}
                     className="ml-auto rounded-full border border-cyan-400/30 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.18em] text-cyan-200 hover:bg-cyan-400/10"

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { checkAutopilotBudget } from '../autopilot/budget.js';
+import { type Run } from '@agent-harness/schemas';
 
 const baseRun = {
   // satisfy the Run shape minimally — only the fields budget cares about matter
@@ -16,20 +17,20 @@ const baseRun = {
 
 describe('autopilot budget', () => {
   it('passes when not in autopilot mode', () => {
-    expect(checkAutopilotBudget({ ...baseRun, autopilotMode: false } as any, 1e9).exceeded).toBe(false);
+    expect(checkAutopilotBudget({ ...baseRun, autopilotMode: false } as Run, 1e9).exceeded).toBe(false);
   });
   it('passes when autopilot on and no budget set', () => {
-    expect(checkAutopilotBudget({ ...baseRun, autopilotMode: true } as any, 1_000_000).exceeded).toBe(false);
+    expect(checkAutopilotBudget({ ...baseRun, autopilotMode: true } as Run, 1_000_000).exceeded).toBe(false);
   });
   it('halts on token excess', () => {
     expect(checkAutopilotBudget(
-      { ...baseRun, autopilotMode: true, autopilotBudgetTokens: 100 } as any,
+      { ...baseRun, autopilotMode: true, autopilotBudgetTokens: 100 } as Run,
       200,
     ).exceeded).toBe(true);
   });
   it('halts on wallclock excess', () => {
     expect(checkAutopilotBudget(
-      { ...baseRun, autopilotMode: true, autopilotBudgetMinutes: 1, autopilotStartedAt: new Date(Date.now() - 120_000) } as any,
+      { ...baseRun, autopilotMode: true, autopilotBudgetMinutes: 1, autopilotStartedAt: new Date(Date.now() - 120_000) } as Run,
       0,
     ).exceeded).toBe(true);
   });

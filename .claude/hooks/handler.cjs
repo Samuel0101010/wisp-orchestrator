@@ -36,7 +36,7 @@ process.stdin.on('end', async () => {
     if (!res.ok) {
       console.error(`[harness-hook] ${event}: HTTP ${res.status}`);
     }
-  } catch (e) {
+  } catch {
     // Never block claude code — eat the error silently
   }
   process.exit(0);
