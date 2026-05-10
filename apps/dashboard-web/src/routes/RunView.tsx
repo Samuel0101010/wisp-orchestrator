@@ -693,6 +693,18 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
             {run.status}
             {run.outcome ? ` (${run.outcome})` : ''}
           </Badge>
+          {snapshot.run.errorReason === 'max_turns' && (
+            <span
+              className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400"
+              data-testid="max-turns-badge"
+            >
+              Max-turns ({snapshot.run.retryCount}/4 retries
+              {snapshot.run.nextRetryAt
+                ? `, next at ${new Date(snapshot.run.nextRetryAt).toLocaleTimeString()}`
+                : ''}
+              )
+            </span>
+          )}
           <PlanVersionBadge planId={run.planId} />
           {wsStatus !== 'open' && (
             <Badge
