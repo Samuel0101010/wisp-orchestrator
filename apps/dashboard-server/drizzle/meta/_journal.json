@@ -50,6 +50,13 @@
       "when": 1777972384102,
       "tag": "0006_chat_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1778000000000,
+      "tag": "0007_ruflo_port",
+      "breakpoints": true
     }
   ]
 }

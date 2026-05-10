@@ -353,6 +353,24 @@ export const chatActions = sqliteTable('chat_actions', {
 export type ChatAction = typeof chatActions.$inferSelect;
 export type NewChatAction = typeof chatActions.$inferInsert;
 
+// Worker runs (cron-style background tasks: orphan-run audit, auto-doc, etc).
+// Each run is one execution of a registered worker handler.
+
+export const workerRunStatusValues = ['running', 'ok', 'failed'] as const;
+export type WorkerRunStatus = (typeof workerRunStatusValues)[number];
+
+export const workerRuns = sqliteTable('worker_runs', {
+  id: text('id').primaryKey(),
+  workerName: text('worker_name').notNull(),
+  startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
+  endedAt: integer('ended_at', { mode: 'timestamp_ms' }),
+  status: text('status', { enum: workerRunStatusValues }).notNull(),
+  resultJson: text('result_json', { mode: 'json' }).$type<unknown>(),
+  errorReason: text('error_reason'),
+});
+export type WorkerRun = typeof workerRuns.$inferSelect;
+export type NewWorkerRun = typeof workerRuns.$inferInsert;
+
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {
   id: text('id').primaryKey(),

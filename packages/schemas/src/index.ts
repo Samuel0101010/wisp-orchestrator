@@ -14,6 +14,7 @@ export {
   agentMessages,
   threadParticipants,
   chatActions,
+  workerRuns,
   planStatusValues,
   taskStatusValues,
   runStatusValues,
@@ -25,6 +26,7 @@ export {
   participantRoleValues,
   chatActionKindValues,
   chatActionStatusValues,
+  workerRunStatusValues,
 } from './db.js';
 
 export type {
@@ -54,6 +56,9 @@ export type {
   NewThreadParticipant,
   ChatAction as ChatActionRow,
   NewChatAction,
+  WorkerRun,
+  NewWorkerRun,
+  WorkerRunStatus,
   PlanStatus,
   TaskStatus,
   TaskRole,
