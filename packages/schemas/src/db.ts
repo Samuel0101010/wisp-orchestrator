@@ -137,6 +137,7 @@ export const runs = sqliteTable('runs', {
   endedAt: integer('ended_at', { mode: 'timestamp_ms' }),
   outcome: text('outcome', { enum: runOutcomeValues }),
   status: text('status', { enum: runStatusValues }).notNull(),
+  checkoutToken: text('checkout_token'),
   budgetMinutes: integer('budget_minutes').notNull(),
   budgetTurns: integer('budget_turns').notNull(),
   maxParallel: integer('max_parallel').notNull(),
