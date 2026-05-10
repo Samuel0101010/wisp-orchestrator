@@ -78,10 +78,22 @@ import {
   MAX_DIRECTIVES_PER_TURN,
   type ExecutedDirective,
 } from './chat-directives.js';
+import type { SkillRegistry } from '../skills/registry.js';
 
 export interface ChatRouterDeps {
   /** Test seam — swap the underlying runner. Default: real runClaude. */
   runner?: SubprocessRunner;
+  skillRegistry?: SkillRegistry;
+}
+
+export function buildManagerSystemPrompt(base: string, registry: SkillRegistry | undefined): string {
+  if (!registry) return base;
+  const skills = registry.list();
+  if (skills.length === 0) return base;
+  const skillsList = skills
+    .map((s) => `- ${s.name}: ${s.description}` + (s.argumentHint ? ` (args: ${s.argumentHint})` : ''))
+    .join('\n');
+  return `${base}\n\n## Available skills\n\nUse <<ACTION>>{"kind":"invoke_skill","name":"<NAME>","args":"<args>"}<<END>> to invoke:\n${skillsList}`;
 }
 
 function autoTitle(firstMessage: string): string {
@@ -657,8 +669,13 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
               authorName: author?.name,
             };
           });
+        // If the responder is the manager, parse + execute directives.
+        const isManager = responder.seedKey === 'manager';
+        const effectiveSystemPrompt = isManager
+          ? buildManagerSystemPrompt(responder.systemPrompt, deps.skillRegistry)
+          : responder.systemPrompt;
         const composed = composePrompt(
-          responder.systemPrompt,
+          effectiveSystemPrompt,
           history,
           parsed.data.content,
           'user',
@@ -672,9 +689,6 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           taskId: `chat-${threadId.slice(0, 8)}-${responder.seedKey ?? 'agent'}`,
           runner: deps.runner ?? runner,
         });
-
-        // If the responder is the manager, parse + execute directives.
-        const isManager = responder.seedKey === 'manager';
         const parsedDirectives = isManager
           ? parseDirectives(turn.text)
           : { directives: [], errors: [], cleaned: turn.text };
@@ -711,6 +725,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
             threadId,
             managerMessageId: assistantId,
             runner: deps.runner ?? runner,
+            skillRegistry: deps.skillRegistry,
           });
           executed.push(r);
         }

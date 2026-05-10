@@ -30,12 +30,15 @@ import { db, sqlite } from '../db/index.js';
 import { resolveAgentRef } from '../db/agents-seed.js';
 import { runAgentTurn, composePrompt, type HistoryMessage } from './chat-engine.js';
 import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SkillRegistry } from '../skills/registry.js';
+import { invokeSkill } from '../skills/invoker.js';
 
 export interface DirectiveContext {
   threadId: string;
   managerMessageId: string;
   /** Optional runner override for tests. */
   runner?: SubprocessRunner;
+  skillRegistry?: SkillRegistry;
 }
 
 export interface ExecutedDirective {
@@ -94,6 +97,11 @@ export async function executeDirective(
       }
       case 'start_run': {
         result = await handleStartRun(d, ctx);
+        status = 'ok';
+        break;
+      }
+      case 'invoke_skill': {
+        result = await handleInvokeSkill(d, ctx, extraMessages);
         status = 'ok';
         break;
       }
@@ -356,6 +364,71 @@ async function handleStartRun(
     throw new Error(`run_start_failed: ${startResult.error}`);
   }
   return { projectId, planId: latestPlan.id, runId: startResult.runId };
+}
+
+async function handleInvokeSkill(
+  d: Extract<ManagerDirective, { kind: 'invoke_skill' }>,
+  ctx: DirectiveContext,
+  out: ExtraMessage[],
+): Promise<unknown> {
+  if (!ctx.skillRegistry) throw new Error('skills_not_configured');
+  const skillResult = await invokeSkill({
+    registry: ctx.skillRegistry,
+    name: d.name,
+    args: d.args,
+    runner: ctx.runner,
+  });
+  if (skillResult.failed === 'skill_not_found') {
+    throw new Error(`unknown_skill: ${d.name}`);
+  }
+
+  const manager = db.select().from(agents).where(eq(agents.seedKey, 'manager')).get();
+  if (!manager) throw new Error('manager_agent_missing');
+
+  const messageId = randomUUID();
+  const createdAt = new Date();
+  const content =
+    skillResult.text || (skillResult.failed ? `(skill failed: ${skillResult.failed})` : '(no output)');
+
+  sqlite
+    .prepare(
+      `INSERT INTO agent_messages
+         (id, thread_id, role, content, tokens_in, tokens_out, duration_ms,
+          error_reason, author_agent_id, created_at)
+       VALUES (?, ?, 'assistant', ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      messageId,
+      ctx.threadId,
+      content,
+      skillResult.tokensIn || null,
+      skillResult.tokensOut || null,
+      skillResult.durationMs,
+      skillResult.failed,
+      manager.id,
+      createdAt.getTime(),
+    );
+
+  out.push({
+    id: messageId,
+    threadId: ctx.threadId,
+    role: 'assistant',
+    content,
+    authorAgentId: manager.id,
+    tokensIn: skillResult.tokensIn || null,
+    tokensOut: skillResult.tokensOut || null,
+    durationMs: skillResult.durationMs,
+    errorReason: skillResult.failed,
+    createdAt,
+  });
+
+  return {
+    skillName: skillResult.skillName,
+    durationMs: skillResult.durationMs,
+    tokensIn: skillResult.tokensIn,
+    tokensOut: skillResult.tokensOut,
+    failed: skillResult.failed,
+  };
 }
 
 /** Soft cap on directives executed per turn — guards against runaway loops. */
