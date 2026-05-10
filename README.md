@@ -143,6 +143,23 @@ Notes:
 - Setting `NODE_ENV=production` makes `HARNESS_DATA_DIR` mandatory and disables the pretty pino transport.
 - `HARNESS_SERVE_WEB` requires that `apps/dashboard-web/dist/` exists. Run `pnpm build` first (or omit the flag and use the Vite dev server during development).
 
+## Claude Code Hooks (optional)
+
+The harness can capture telemetry from Claude Code sessions running inside this
+repo via the bundled `.claude/settings.json`. To enable:
+
+1. Pick a random shared secret and set it in `.env.local`:
+   ```bash
+   echo "HARNESS_HOOK_TOKEN=$(openssl rand -hex 16)" >> .env.local
+   ```
+2. Make sure the dashboard-server is running (`pnpm --filter dashboard-server dev`).
+3. Open Claude Code in this repo. The hooks at `.claude/hooks/handler.cjs` will
+   POST events to `http://127.0.0.1:4400/api/hooks/event` and you'll see them at
+   `GET /api/hooks/events`.
+
+Without `HARNESS_HOOK_TOKEN`, the handler exits silently and the server returns
+503 — hooks are off by default and never block Claude Code.
+
 ## Development
 
 Common scripts (run from the repo root):

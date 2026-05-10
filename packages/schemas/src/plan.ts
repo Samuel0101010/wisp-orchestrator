@@ -15,6 +15,14 @@ export const agentSpecSchema = z.object({
   model: z.enum(['opus', 'sonnet', 'haiku']),
   allowedTools: z.array(z.string()),
   systemPrompt: z.string().min(40).max(4000),
+  /**
+   * Optional reference to a row in the `agents` registry (Model B). When set,
+   * the role inherits the agent's persistent identity for chat threads. The
+   * inline model/allowedTools/systemPrompt remain authoritative for the
+   * orchestrator (so existing teams keep working unchanged); the agentId is
+   * a soft link.
+   */
+  agentId: z.string().min(1).optional(),
 });
 export type AgentSpec = z.infer<typeof agentSpecSchema>;
 

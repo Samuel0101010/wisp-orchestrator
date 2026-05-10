@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import {
+  agents,
   planSchema,
   plans,
   projects,
@@ -11,6 +12,7 @@ import {
   validateDag,
   type Team,
 } from '@agent-harness/schemas';
+import { inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import {
@@ -20,6 +22,8 @@ import {
   isRateLimitOutcome,
   type Runner,
 } from '../orchestrator/planner-runner.js';
+import { pickModel, recordOutcome } from '../router/thompson.js';
+import { retrieveSimilar } from '../reasoningbank/store.js';
 
 interface PlansRouterDeps {
   runner?: Runner;
@@ -69,6 +73,26 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         }
 
         const team = teamSchema.parse(req.body);
+
+        // Reject roles whose agentId points at a non-existent agent — without
+        // this guard a client could plant an arbitrary UUID and the server
+        // would silently accept it (later surfacing as a 404 from chat).
+        const referencedAgentIds = team.roles
+          .map((r) => r.agentId)
+          .filter((v): v is string => typeof v === 'string' && v.length > 0);
+        if (referencedAgentIds.length > 0) {
+          const found = await db
+            .select({ id: agents.id })
+            .from(agents)
+            .where(inArray(agents.id, referencedAgentIds))
+            .all();
+          const foundSet = new Set(found.map((r) => r.id));
+          const missing = referencedAgentIds.filter((id) => !foundSet.has(id));
+          if (missing.length > 0) {
+            reply.code(400);
+            return { error: 'unknown_agent_ids', agentIds: missing };
+          }
+        }
 
         // Store the Team object directly. Physical column is TEXT-JSON
         // so the storage shape change is transparent.
@@ -146,7 +170,23 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           };
         }
 
-        const outcome = await generatePlan(runner, team, project.goal, projectId);
+        const pick = pickModel('planner');
+
+        const similar = await retrieveSimilar(project.goal, projectId, 3);
+        const context = similar.length > 0
+          ? `## Context from past similar runs\n\n` +
+            similar.map((t, i) => {
+              const lessonsLine = t.lessons ? `Lessons: ${t.lessons}\n` : '';
+              return `### Past run ${i + 1} (outcome: ${t.outcome}, similarity: ${t.score.toFixed(2)})\nGoal: ${t.prompt}\n${lessonsLine}`;
+            }).join('\n')
+          : undefined;
+
+        const outcome = await generatePlan(runner, team, project.goal, projectId, context);
+
+        const succeeded = isPlannerSuccess(outcome);
+        recordOutcome(pick.sampleId, succeeded ? 'success' : 'failure').catch((err) => {
+          console.error('[router] recordOutcome failed', err);
+        });
 
         if (isRateLimitOutcome(outcome)) {
           reply.code(503);

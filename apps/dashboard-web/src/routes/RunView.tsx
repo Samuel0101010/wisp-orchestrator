@@ -33,6 +33,7 @@ import {
   type TaskColumn,
 } from '@/store/run';
 import { PlanVersionBadge } from '@/components/PlanVersionBadge';
+import { AutopilotToggle } from '@/components/AutopilotToggle';
 
 const COLUMN_ORDER: TaskColumn[] = ['pending', 'running', 'verifying', 'done', 'failed'];
 const COLUMN_LABELS: Record<TaskColumn, string> = {
@@ -737,6 +738,13 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
           nowMs={nowMs}
         />
       )}
+
+      <AutopilotToggle
+        runId={run.id}
+        initialEnabled={Boolean(snapshot.run.autopilotMode)}
+        initialBudgetMinutes={snapshot.run.autopilotBudgetMinutes ?? null}
+        initialBudgetTokens={snapshot.run.autopilotBudgetTokens ?? null}
+      />
 
       <Kanban
         tasks={orderedTasks}

@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
+    "inventory": "node scripts/inventory.mjs",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "test:integration": "pnpm -r run test:integration",
