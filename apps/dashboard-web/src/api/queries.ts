@@ -280,6 +280,24 @@ export const usePauseRun = makeRunActionMutation('pause');
 export const useResumeRun = makeRunActionMutation('resume');
 export const useCancelRun = makeRunActionMutation('cancel');
 
+export function useToggleAutopilot() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { runId: string; enabled: boolean; budgetMinutes?: number; budgetTokens?: number }) =>
+      apiFetch(`/api/runs/${input.runId}/autopilot`, {
+        method: 'POST',
+        body: JSON.stringify({
+          enabled: input.enabled,
+          budgetMinutes: input.budgetMinutes,
+          budgetTokens: input.budgetTokens,
+        }),
+      }),
+    onSuccess: (_d, input) => {
+      void qc.invalidateQueries({ queryKey: ['run', input.runId] });
+    },
+  });
+}
+
 export interface ProjectRunRow {
   id: string;
   planId: string;
