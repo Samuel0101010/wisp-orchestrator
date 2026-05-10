@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { runAgentTurn, type RunAgentTurnOpts } from '../routes/chat-engine.js';
+import { describe, expect, it, vi } from 'vitest';
+import { runAgentTurn } from '../routes/chat-engine.js';
 import type { HarnessEvent } from '@agent-harness/schemas';
 import type { RunClaudeOpts } from '@agent-harness/orchestrator';
 
@@ -20,9 +20,21 @@ describe('runAgentTurn timeout', () => {
     expect(result.text).toBe('');
   });
 
-  it('uses default 180_000ms when timeoutMs omitted', () => {
-    const opts: RunAgentTurnOpts = { systemPrompt: '', prompt: '', allowedTools: [], model: 'haiku', taskId: 't' };
-    expect(opts.timeoutMs).toBeUndefined();
-    // Behavior: chat-engine.ts must default to CHAT_TIMEOUT_MS
+  it('defaults to 180_000ms when timeoutMs is omitted', async () => {
+    async function* fastRunner(opts: RunClaudeOpts): AsyncGenerator<HarnessEvent> {
+      yield { type: 'task.usage', payload: { taskId: opts.taskId, tokensIn: 0, tokensOut: 0, turns: 1 } };
+      yield { type: 'task.completed', payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 } };
+    }
+    const spy = vi.spyOn(globalThis, 'setTimeout');
+    try {
+      await runAgentTurn({
+        systemPrompt: '', prompt: '', allowedTools: [], model: 'haiku',
+        taskId: 't', runner: fastRunner,
+      });
+      const callsWith180k = spy.mock.calls.filter((c) => c[1] === 180_000);
+      expect(callsWith180k.length).toBeGreaterThanOrEqual(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

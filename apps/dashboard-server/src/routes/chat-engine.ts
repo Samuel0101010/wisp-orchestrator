@@ -81,7 +81,9 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
       }
     }
   } catch (err) {
-    failed = timedOut ? 'timeout' : (err instanceof Error ? err.message : String(err));
+    if (failed === null) {
+      failed = timedOut ? 'timeout' : (err instanceof Error ? err.message : String(err));
+    }
   } finally {
     clearTimeout(timeoutId);
     await rm(cwd, { recursive: true, force: true }).catch(() => {
