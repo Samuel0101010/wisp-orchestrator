@@ -43,6 +43,7 @@ export const insightsRoutes: FastifyPluginAsync = async (app) => {
     const samples = db.select().from(modelRouterSamples).all();
     const samplesByKey = new Map<string, number>();
     for (const s of samples) {
+      if (s.outcome == null) continue; // only count recorded samples
       const k = `${s.role}::${s.model}`;
       samplesByKey.set(k, (samplesByKey.get(k) ?? 0) + 1);
     }

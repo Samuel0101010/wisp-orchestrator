@@ -41,9 +41,6 @@
  *   the UI can render "Manager created project X" inline cards.
  */
 
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { asc, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
@@ -86,12 +83,20 @@ export interface ChatRouterDeps {
   skillRegistry?: SkillRegistry;
 }
 
+function stripDirectiveSigils(text: string): string {
+  return text.replace(/<<ACTION>>/g, '«ACTION»').replace(/<<END>>/g, '«END»');
+}
+
 export function buildManagerSystemPrompt(base: string, registry: SkillRegistry | undefined): string {
   if (!registry) return base;
   const skills = registry.list();
   if (skills.length === 0) return base;
   const skillsList = skills
-    .map((s) => `- ${s.name}: ${s.description}` + (s.argumentHint ? ` (args: ${s.argumentHint})` : ''))
+    .map((s) => {
+      const desc = stripDirectiveSigils(s.description);
+      const hint = s.argumentHint ? stripDirectiveSigils(s.argumentHint) : null;
+      return `- ${s.name}: ${desc}` + (hint ? ` (args: ${hint})` : '');
+    })
     .join('\n');
   return `${base}\n\n## Available skills\n\nUse <<ACTION>>{"kind":"invoke_skill","name":"<NAME>","args":"<args>"}<<END>> to invoke:\n${skillsList}`;
 }
@@ -811,9 +816,3 @@ function pickResponder(
   return participants[0] ?? null;
 }
 
-// Suppress unused-import warnings for tooling that may strip them. mkdtemp/
-// rm/tmpdir/join are referenced by chat-engine indirectly.
-void mkdtemp;
-void rm;
-void tmpdir;
-void join;
