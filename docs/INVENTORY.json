@@ -34,20 +34,8 @@
     "security",
     "tech-writer"
   ],
-  "skills": [
-    "audit-orphan-runs",
-    "auto-doc",
-    "deep-research",
-    "doctor",
-    "summarize-thread"
-  ],
-  "directives": [
-    "consult",
-    "add_member",
-    "create_project",
-    "start_run",
-    "invoke_skill"
-  ],
+  "skills": ["audit-orphan-runs", "auto-doc", "deep-research", "doctor", "summarize-thread"],
+  "directives": ["consult", "add_member", "create_project", "start_run", "invoke_skill"],
   "migrations": [
     "0000_harsh_oracle.sql",
     "0001_silky_random.sql",
