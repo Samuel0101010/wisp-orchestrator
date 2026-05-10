@@ -441,6 +441,22 @@ export const hookEvents = sqliteTable('hook_events', {
 export type HookEvent = typeof hookEvents.$inferSelect;
 export type NewHookEvent = typeof hookEvents.$inferInsert;
 
+// ----- prompt bundles (paperclip-port: Anthropic prompt-cache reuse) -----
+
+export const promptBundles = sqliteTable('prompt_bundles', {
+  bundleKey: text('bundle_key').primaryKey(),
+  cwd: text('cwd').notNull(),
+  claudeSessionId: text('claude_session_id'),
+  systemPromptHash: text('system_prompt_hash').notNull(),
+  allowedToolsHash: text('allowed_tools_hash').notNull(),
+  model: text('model').notNull(),
+  hitCount: integer('hit_count').notNull().default(0),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+});
+export type PromptBundle = typeof promptBundles.$inferSelect;
+export type NewPromptBundle = typeof promptBundles.$inferInsert;
+
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {
   id: text('id').primaryKey(),
