@@ -22,6 +22,7 @@ import { createWorkersRouter } from './workers.js';
 import { tickAutopilot } from '../autopilot/runner.js';
 import { routerRoutes } from './router.js';
 import { insightsRoutes } from './insights.js';
+import { goapRoutes } from './goap.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -54,4 +55,5 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(createWorkersRouter({ registry: workerRegistry }));
   await app.register(routerRoutes);
   await app.register(insightsRoutes);
+  await app.register(goapRoutes);
 };

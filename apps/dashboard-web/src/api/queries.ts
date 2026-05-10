@@ -864,3 +864,32 @@ export function useReloadSkills() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['skills'] }),
   });
 }
+
+// ---------- GOAP Planner ----------
+
+export interface GoapAction {
+  name: string;
+  cost: number;
+  preconditions: Record<string, boolean>;
+  effects: Record<string, boolean>;
+}
+export interface GoapPlanRequest {
+  initial: Record<string, boolean>;
+  goal: Record<string, boolean>;
+  actions: GoapAction[];
+}
+export interface GoapPlanResponse {
+  plan: GoapAction[] | null;
+  totalCost: number | null;
+}
+
+export function usePlanGoap() {
+  return useMutation({
+    mutationFn: (input: GoapPlanRequest) =>
+      apiFetch<GoapPlanResponse>('/api/goap/plan', {
+        method: 'POST',
+        body: JSON.stringify(input),
+        headers: { 'Content-Type': 'application/json' },
+      }),
+  });
+}

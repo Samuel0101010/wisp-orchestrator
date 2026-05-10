@@ -36,6 +36,7 @@ import { ChatRoute } from '@/routes/Chat';
 import { SkillsRoute } from '@/routes/Skills';
 import { WorkersRoute } from '@/routes/Workers';
 import { InsightsRoute } from '@/routes/Insights';
+import { GoapRoute } from '@/routes/Goap';
 import { useUiStore } from '@/store/ui';
 
 function Shell() {
@@ -100,6 +101,7 @@ export function App() {
         <Route path="/skills" element={<SkillsRoute />} />
         <Route path="/workers" element={<WorkersRoute />} />
         <Route path="/insights" element={<InsightsRoute />} />
+        <Route path="/goap" element={<GoapRoute />} />
       </Route>
     </Routes>
   );

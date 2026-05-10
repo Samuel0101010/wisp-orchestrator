@@ -33,7 +33,7 @@ export function cosineSim(a: SparseVec, b: SparseVec): number {
   let dot = 0, na = 0, nb = 0;
   for (const [k, v] of Object.entries(a)) {
     na += v * v;
-    if (k in b) dot += v * b[k];
+    if (k in b) dot += v * (b[k] ?? 0);
   }
   for (const v of Object.values(b)) nb += v * v;
   if (na === 0 || nb === 0) return 0;
