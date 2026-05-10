@@ -47,3 +47,6 @@ export type {
   RunState,
   WorktreeAdapter,
 } from './walker.js';
+
+export { planGoap } from './goap.js';
+export type { Action, WorldState, GoapInput } from './goap.js';

@@ -46,6 +46,7 @@ import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
 import { writeMemoryMcpConfig } from './mcp-config.js';
 import { replanOnQAFailure } from './replan.js';
+import { storeTrajectory } from '../reasoningbank/store.js';
 
 function resolveMemoryMcpEntrypoint(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -694,6 +695,30 @@ export class RunRuntime {
       // looks like an infinite hang in the UI. Log so it's diagnosable.
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[runtime] persistRunPatch failed for run ${runId}: ${message}`);
+    }
+
+    // Fire-and-forget: store a trajectory when the run reaches a terminal outcome.
+    if (patch.outcome !== undefined) {
+      void (async () => {
+        try {
+          const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
+          if (!run) return;
+          const plan = await this.db.select().from(plans).where(eq(plans.id, run.planId)).get();
+          const project = plan
+            ? await this.db.select().from(projects).where(eq(projects.id, plan.projectId)).get()
+            : null;
+          if (!project || !plan) return;
+          await storeTrajectory({
+            projectId: project.id,
+            prompt: project.goal,
+            planJson: plan.dagJson,
+            outcome: patch.outcome!,
+            tokensTotal: (run.tokensInTotal ?? 0) + (run.tokensOutTotal ?? 0),
+          });
+        } catch (err) {
+          console.error('[reasoningbank] store failed', err);
+        }
+      })();
     }
   }
 

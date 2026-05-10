@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Plus, FolderOpen, LayoutGrid } from 'lucide-react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Plus, FolderOpen, LayoutGrid, Bot, MessagesSquare, Wrench, Activity, Sparkles, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -38,6 +38,7 @@ export function Sidebar() {
   const [repoPath, setRepoPath] = useState('');
   const [templateId, setTemplateId] = useState<string | null>(null);
   const params = useParams<{ projectId?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { data: projects = [], isLoading } = useProjects();
   const { data: templates = [] } = useTemplates();
@@ -103,7 +104,13 @@ export function Sidebar() {
     }
   };
 
-  const isHomeActive = !params.projectId;
+  const isHomeActive = !params.projectId && location.pathname === '/';
+  const isAgentsActive = location.pathname.startsWith('/agents');
+  const isChatActive = location.pathname.startsWith('/chat');
+  const isSkillsActive = location.pathname.startsWith('/skills');
+  const isWorkersActive = location.pathname.startsWith('/workers');
+  const isInsightsActive = location.pathname.startsWith('/insights');
+  const isGoapActive = location.pathname.startsWith('/goap');
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
@@ -127,6 +134,72 @@ export function Sidebar() {
         >
           <LayoutGrid className="h-4 w-4" />
           <span>{t('topBar.missionControl')}</span>
+        </Link>
+        <Link
+          to="/chat"
+          className={
+            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isChatActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-chat"
+        >
+          <MessagesSquare className="h-4 w-4" />
+          <span>Team Chat</span>
+        </Link>
+        <Link
+          to="/agents"
+          className={
+            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isAgentsActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-agents"
+        >
+          <Bot className="h-4 w-4" />
+          <span>Agents</span>
+        </Link>
+        <Link
+          to="/skills"
+          className={
+            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isSkillsActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-skills"
+        >
+          <Wrench className="h-4 w-4" />
+          <span>Skills</span>
+        </Link>
+        <Link
+          to="/workers"
+          className={
+            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isWorkersActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-workers"
+        >
+          <Activity className="h-4 w-4" />
+          <span>Workers</span>
+        </Link>
+        <Link
+          to="/insights"
+          className={
+            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isInsightsActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-insights"
+        >
+          <Sparkles className="h-4 w-4" />
+          <span>Insights</span>
+        </Link>
+        <Link
+          to="/goap"
+          className={
+            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isGoapActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-goap"
+        >
+          <GitBranch className="h-4 w-4" />
+          <span>GOAP Planner</span>
         </Link>
       </nav>
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
