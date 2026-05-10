@@ -1,0 +1,38 @@
+description: auto-doc produces docs/solutions entry with correct frontmatter
+
+prompts:
+  - |
+    Given the run-id and slug in the user message:
+    1. Read the run's events via the orchestrator
+    2. Read the latest commit message for the run's worktree
+    3. Synthesize a docs/solutions entry with frontmatter:
+       ---
+       date: <today YYYY-MM-DD>
+       tags: [<2-5 kebab-case>]
+       files: [<paths touched>]
+       related: []
+       ---
+       # <title>
+       ## Problem
+       ## Root cause
+       ## Solution
+       ## Verification
+       ## Lessons
+    4. Write to `docs/solutions/<date>-<slug>.md`. Output the path.
+
+tests:
+  - vars:
+      input: 'run-abc123 fastify-cors-fix'
+    assert:
+      - type: contains
+        value: '---'
+      - type: contains
+        value: 'date:'
+      - type: contains
+        value: 'tags:'
+      - type: contains
+        value: '## Problem'
+      - type: contains
+        value: '## Solution'
+      - type: regex
+        value: 'docs/solutions/\d{4}-\d{2}-\d{2}-fastify-cors-fix\.md'
