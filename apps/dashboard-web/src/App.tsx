@@ -34,6 +34,7 @@ import { MissionControlCompare3 } from '@/routes/missioncontrol/Compare3';
 import { AgentsRoute } from '@/routes/Agents';
 import { ChatRoute } from '@/routes/Chat';
 import { SkillsRoute } from '@/routes/Skills';
+import { WorkersRoute } from '@/routes/Workers';
 import { useUiStore } from '@/store/ui';
 
 function Shell() {
@@ -96,6 +97,7 @@ export function App() {
         <Route path="/agents" element={<AgentsRoute />} />
         <Route path="/chat" element={<ChatRoute />} />
         <Route path="/skills" element={<SkillsRoute />} />
+        <Route path="/workers" element={<WorkersRoute />} />
       </Route>
     </Routes>
   );

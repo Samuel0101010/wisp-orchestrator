@@ -765,6 +765,46 @@ export function useCompressThread() {
   });
 }
 
+// ---------- Workers ----------
+
+export interface WorkerSummary {
+  name: string;
+  cronSpec: string;
+  enabled: boolean;
+}
+
+export interface WorkerRunRow {
+  id: string;
+  workerName: string;
+  startedAt: number | string;
+  endedAt: number | string | null;
+  status: 'running' | 'ok' | 'failed';
+  resultJson: unknown;
+  errorReason: string | null;
+}
+
+export function useWorkers() {
+  return useQuery<WorkerSummary[]>({ queryKey: ['workers'], queryFn: () => apiFetch('/api/workers') });
+}
+
+export function useWorkerRuns(name: string | undefined) {
+  return useQuery<WorkerRunRow[]>({
+    queryKey: ['worker-runs', name],
+    queryFn: () => apiFetch(`/api/workers/${name}/runs`),
+    enabled: !!name,
+  });
+}
+
+export function useRunWorker() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => apiFetch(`/api/workers/${name}/run`, { method: 'POST' }),
+    onSuccess: (_d, name) => {
+      void qc.invalidateQueries({ queryKey: ['worker-runs', name] });
+    },
+  });
+}
+
 export function usePlanVersionChain(planId: string | undefined) {
   return useQuery<PlanChainEntry[]>({
     queryKey: ['plan-chain', planId ?? null],

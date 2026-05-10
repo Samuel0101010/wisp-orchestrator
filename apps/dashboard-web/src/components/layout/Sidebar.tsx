@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Plus, FolderOpen, LayoutGrid, Bot, MessagesSquare, Wrench } from 'lucide-react';
+import { Plus, FolderOpen, LayoutGrid, Bot, MessagesSquare, Wrench, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -108,6 +108,7 @@ export function Sidebar() {
   const isAgentsActive = location.pathname.startsWith('/agents');
   const isChatActive = location.pathname.startsWith('/chat');
   const isSkillsActive = location.pathname.startsWith('/skills');
+  const isWorkersActive = location.pathname.startsWith('/workers');
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
@@ -164,6 +165,17 @@ export function Sidebar() {
         >
           <Wrench className="h-4 w-4" />
           <span>Skills</span>
+        </Link>
+        <Link
+          to="/workers"
+          className={
+            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+            (isWorkersActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+          }
+          data-testid="sidebar-workers"
+        >
+          <Activity className="h-4 w-4" />
+          <span>Workers</span>
         </Link>
       </nav>
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
