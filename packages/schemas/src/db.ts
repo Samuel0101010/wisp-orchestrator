@@ -407,6 +407,22 @@ export const modelRouterSamples = sqliteTable('model_router_samples', {
 });
 export type ModelRouterSample = typeof modelRouterSamples.$inferSelect;
 
+// ----- trajectories (ReasoningBank Lite) -----
+
+export const trajectories = sqliteTable('trajectories', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+  prompt: text('prompt').notNull(),
+  planJson: text('plan_json').notNull(),
+  outcome: text('outcome').notNull(),
+  termsJson: text('terms_json').notNull(),
+  lessons: text('lessons'),
+  tokensTotal: integer('tokens_total').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+});
+export type Trajectory = typeof trajectories.$inferSelect;
+export type NewTrajectory = typeof trajectories.$inferInsert;
+
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {
   id: text('id').primaryKey(),

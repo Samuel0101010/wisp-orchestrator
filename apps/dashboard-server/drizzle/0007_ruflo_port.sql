@@ -37,3 +37,17 @@ CREATE TABLE `model_router_samples` (
 );
 --> statement-breakpoint
 CREATE INDEX `model_router_samples_pending_idx` ON `model_router_samples` (`outcome`);
+--> statement-breakpoint
+CREATE TABLE `trajectories` (
+	`id` text PRIMARY KEY NOT NULL,
+	`project_id` text REFERENCES `projects`(`id`) ON DELETE cascade,
+	`prompt` text NOT NULL,
+	`plan_json` text NOT NULL,
+	`outcome` text NOT NULL,
+	`terms_json` text NOT NULL,
+	`lessons` text,
+	`tokens_total` integer NOT NULL DEFAULT 0,
+	`created_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX `trajectories_project_idx` ON `trajectories` (`project_id`,`created_at`);

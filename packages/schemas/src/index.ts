@@ -17,6 +17,7 @@ export {
   workerRuns,
   modelRouterPriors,
   modelRouterSamples,
+  trajectories,
   planStatusValues,
   taskStatusValues,
   runStatusValues,
@@ -81,6 +82,8 @@ export type {
   ModelRouterPrior,
   ModelRouterSample,
   ModelRouterSampleOutcome,
+  Trajectory,
+  NewTrajectory,
 } from './db.js';
 
 // Plan DAG (Zod)
