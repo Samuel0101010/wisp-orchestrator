@@ -10,13 +10,17 @@ const __dirname = dirname(__filename);
 
 export async function autoDoc(): Promise<{ candidates: string[] }> {
   const since = Date.now() - 24 * 60 * 60 * 1000;
-  const recent = db.select({ id: runs.id, endedAt: runs.endedAt })
+  const recent = db
+    .select({ id: runs.id, endedAt: runs.endedAt })
     .from(runs)
     .where(eq(runs.outcome, 'success'))
     .all()
     .filter((r) => {
       if (!r.endedAt) return false;
-      const ts = r.endedAt instanceof Date ? r.endedAt.getTime() : new Date(r.endedAt as unknown as string).getTime();
+      const ts =
+        r.endedAt instanceof Date
+          ? r.endedAt.getTime()
+          : new Date(r.endedAt as unknown as string).getTime();
       return ts > since;
     });
   const docsDir = resolve(__dirname, '../../../../../docs/solutions');

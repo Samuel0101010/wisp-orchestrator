@@ -335,21 +335,30 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
       '/api/runs/:id/autopilot',
       wrap(async (req, reply) => {
         const { id } = z.object({ id: z.string() }).parse(req.params);
-        const body = z.object({
-          enabled: z.boolean(),
-          budgetMinutes: z.number().int().positive().optional(),
-          budgetTokens: z.number().int().positive().optional(),
-        }).parse(req.body ?? {});
+        const body = z
+          .object({
+            enabled: z.boolean(),
+            budgetMinutes: z.number().int().positive().optional(),
+            budgetTokens: z.number().int().positive().optional(),
+          })
+          .parse(req.body ?? {});
 
         const existing = db.select().from(runs).where(eq(runs.id, id)).get();
-        if (!existing) { reply.code(404); return { error: 'not_found' }; }
+        if (!existing) {
+          reply.code(404);
+          return { error: 'not_found' };
+        }
 
-        await db.update(runs).set({
-          autopilotMode: body.enabled,
-          autopilotBudgetMinutes: body.budgetMinutes ?? null,
-          autopilotBudgetTokens: body.budgetTokens ?? null,
-          autopilotStartedAt: body.enabled ? new Date() : null,
-        }).where(eq(runs.id, id)).run();
+        await db
+          .update(runs)
+          .set({
+            autopilotMode: body.enabled,
+            autopilotBudgetMinutes: body.budgetMinutes ?? null,
+            autopilotBudgetTokens: body.budgetTokens ?? null,
+            autopilotStartedAt: body.enabled ? new Date() : null,
+          })
+          .where(eq(runs.id, id))
+          .run();
 
         return {
           id,

@@ -77,9 +77,7 @@ export function backfillAgents(): BackfillStats {
       for (const r of parsed.roles) {
         if (r.agentId) {
           // Verify the referenced agent still exists; if not, treat as unlinked.
-          const exists = sqlite
-            .prepare('SELECT 1 FROM agents WHERE id = ?')
-            .get(r.agentId);
+          const exists = sqlite.prepare('SELECT 1 FROM agents WHERE id = ?').get(r.agentId);
           if (exists) {
             stats.rolesAlreadyLinked += 1;
             updated.push(r);

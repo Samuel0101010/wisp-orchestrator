@@ -43,17 +43,35 @@ function buckets(runs: GlobalRunRow[], windowDays = 14): number[] {
   return arr;
 }
 
-function AreaSpark({ data, w = 220, h = 50, color }: { data: number[]; w?: number; h?: number; color: string }) {
+function AreaSpark({
+  data,
+  w = 220,
+  h = 50,
+  color,
+}: {
+  data: number[];
+  w?: number;
+  h?: number;
+  color: string;
+}) {
   if (!data.length) return null;
   const max = Math.max(...data, 1);
   const step = data.length > 1 ? w / (data.length - 1) : w;
-  const top = data.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h * 0.95).toFixed(1)}`);
+  const top = data.map(
+    (v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h * 0.95).toFixed(1)}`,
+  );
   const polyline = top.join(' ');
   const area = `M 0,${h} L ${top.join(' L ')} L ${w},${h} Z`;
   return (
     <svg width={w} height={h} className="overflow-visible">
       <path d={area} fill={color} opacity={0.12} />
-      <polyline points={polyline} fill="none" stroke={color} strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
+      <polyline
+        points={polyline}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.4}
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
 }
@@ -150,7 +168,13 @@ export function MissionControlV11Portfolio() {
       <header className="border-b border-stone-200 pb-6">
         <div className="flex items-baseline justify-between text-[11px] uppercase tracking-[0.22em] text-stone-500">
           <span>portfolio · agent-harness</span>
-          <span>{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+          <span>
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+            })}
+          </span>
         </div>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-6">
           <div>
@@ -175,11 +199,22 @@ export function MissionControlV11Portfolio() {
             <Stat
               k="Success"
               v={`${Math.round((summary.data?.successRate ?? 0) * 100)}%`}
-              tone={(summary.data?.successRate ?? 0) >= 0.8 ? '#047857' : (summary.data?.successRate ?? 0) >= 0.5 ? '#a16207' : '#b91c1c'}
+              tone={
+                (summary.data?.successRate ?? 0) >= 0.8
+                  ? '#047857'
+                  : (summary.data?.successRate ?? 0) >= 0.5
+                    ? '#a16207'
+                    : '#b91c1c'
+              }
             />
             <Stat k="Holdings" v={String(holdings.length)} />
             <div>
-              <AreaSpark data={totalSeries} w={300} h={80} color={totalPct >= 0 ? '#047857' : '#b91c1c'} />
+              <AreaSpark
+                data={totalSeries}
+                w={300}
+                h={80}
+                color={totalPct >= 0 ? '#047857' : '#b91c1c'}
+              />
               <div className="mt-1 flex justify-between font-mono text-[10px] uppercase tracking-[0.22em] text-stone-500">
                 <span>14d</span>
                 <span>now</span>
@@ -242,7 +277,10 @@ export function MissionControlV11Portfolio() {
                       <span className="num text-right text-[13px] font-medium">
                         {fmtTok(h.totalTok)}
                       </span>
-                      <span className={`num text-right text-[13px] font-medium`} style={{ color: tone }}>
+                      <span
+                        className={`num text-right text-[13px] font-medium`}
+                        style={{ color: tone }}
+                      >
                         {h.pctChange7d >= 0 ? '+' : ''}
                         {h.pctChange7d.toFixed(1)}%
                       </span>
@@ -291,17 +329,27 @@ export function MissionControlV11Portfolio() {
                     className="num text-[14px] font-medium"
                     style={{ color: selected.pctChange7d >= 0 ? '#047857' : '#b91c1c' }}
                   >
-                    {selected.pctChange7d >= 0 ? '▲' : '▼'} {Math.abs(selected.pctChange7d).toFixed(1)}%
+                    {selected.pctChange7d >= 0 ? '▲' : '▼'}{' '}
+                    {Math.abs(selected.pctChange7d).toFixed(1)}%
                   </span>
                 </div>
                 <p className="mt-3 line-clamp-3 text-[13px] text-stone-700">{selected.goal}</p>
                 <div className="mt-4">
-                  <AreaSpark data={selected.series} w={460} h={80} color={selected.pctChange7d >= 0 ? '#047857' : '#b91c1c'} />
+                  <AreaSpark
+                    data={selected.series}
+                    w={460}
+                    h={80}
+                    color={selected.pctChange7d >= 0 ? '#047857' : '#b91c1c'}
+                  />
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-3 text-[12px]">
                   <Cell k="Runs" v={String(selected.runs.length)} />
-                  <Cell k="Live now" v={String(selected.liveCount)} tone={selected.liveCount > 0 ? '#047857' : undefined} />
+                  <Cell
+                    k="Live now"
+                    v={String(selected.liveCount)}
+                    tone={selected.liveCount > 0 ? '#047857' : undefined}
+                  />
                   <Cell k="Success" v={`${selected.successRate}%`} />
                 </div>
 
@@ -312,9 +360,19 @@ export function MissionControlV11Portfolio() {
                   <ul className="flex flex-col">
                     {selected.runs.slice(0, 6).map((r) => {
                       const c = classify(r);
-                      const tone = c === 'failure' ? '#b91c1c' : c === 'success' ? '#047857' : c === 'running' || c === 'paused' ? '#b45309' : '#52525b';
+                      const tone =
+                        c === 'failure'
+                          ? '#b91c1c'
+                          : c === 'success'
+                            ? '#047857'
+                            : c === 'running' || c === 'paused'
+                              ? '#b45309'
+                              : '#52525b';
                       return (
-                        <li key={r.id} className="flex items-center gap-2 border-b border-stone-100 py-1.5 text-[12px] last:border-b-0">
+                        <li
+                          key={r.id}
+                          className="flex items-center gap-2 border-b border-stone-100 py-1.5 text-[12px] last:border-b-0"
+                        >
                           <span
                             className="h-1.5 w-1.5 flex-none rounded-full"
                             style={{ background: tone }}
@@ -326,7 +384,9 @@ export function MissionControlV11Portfolio() {
                           >
                             {r.id.slice(0, 8)}
                           </Link>
-                          <span className="num text-stone-700">{fmtTok(r.tokensInTotal + r.tokensOutTotal)}</span>
+                          <span className="num text-stone-700">
+                            {fmtTok(r.tokensInTotal + r.tokensOutTotal)}
+                          </span>
                           <span className="text-[11px] text-stone-500">{rel(r.startedAt)}</span>
                         </li>
                       );

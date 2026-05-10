@@ -87,7 +87,10 @@ function stripDirectiveSigils(text: string): string {
   return text.replace(/<<ACTION>>/g, '«ACTION»').replace(/<<END>>/g, '«END»');
 }
 
-export function buildManagerSystemPrompt(base: string, registry: SkillRegistry | undefined): string {
+export function buildManagerSystemPrompt(
+  base: string,
+  registry: SkillRegistry | undefined,
+): string {
   if (!registry) return base;
   const skills = registry.list();
   if (skills.length === 0) return base;
@@ -242,7 +245,11 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
       '/api/threads/:threadId',
       wrap(async (req, reply) => {
         const { threadId } = z.object({ threadId: z.string().min(1) }).parse(req.params);
-        const thread = await db.select().from(agentThreads).where(eq(agentThreads.id, threadId)).get();
+        const thread = await db
+          .select()
+          .from(agentThreads)
+          .where(eq(agentThreads.id, threadId))
+          .get();
         if (!thread) {
           reply.code(404);
           return { error: 'thread_not_found' };
@@ -428,9 +435,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           return { error: 'cannot_remove_manager' };
         }
         sqlite
-          .prepare(
-            `DELETE FROM thread_participants WHERE thread_id = ? AND agent_id = ?`,
-          )
+          .prepare(`DELETE FROM thread_participants WHERE thread_id = ? AND agent_id = ?`)
           .run(threadId, agentId);
         reply.code(204);
         return null;
@@ -462,19 +467,13 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           return { compressed: false, reason: 'not_enough_messages' };
         }
         // Use the manager (or thread's primary agent) to summarise.
-        const manager = await db
-          .select()
-          .from(agents)
-          .where(eq(agents.seedKey, 'manager'))
-          .get();
+        const manager = await db.select().from(agents).where(eq(agents.seedKey, 'manager')).get();
         const summariser = manager ?? loadAgent(thread.agentId);
         if (!summariser) {
           reply.code(500);
           return { error: 'no_summariser_agent_available' };
         }
-        const transcript = messages
-          .map((m) => `${m.role}: ${m.content}`)
-          .join('\n\n');
+        const transcript = messages.map((m) => `${m.role}: ${m.content}`).join('\n\n');
         const summaryPrompt =
           'Summarise the conversation below into 4–8 short bullet points covering ' +
           'decisions, open questions, and any action items. Keep it neutral, ' +
@@ -497,9 +496,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
         const firstUser = messages.find((m) => m.role === 'user');
         const summaryId = randomUUID();
         const tx = sqlite.transaction(() => {
-          sqlite
-            .prepare(`DELETE FROM agent_messages WHERE thread_id = ?`)
-            .run(threadId);
+          sqlite.prepare(`DELETE FROM agent_messages WHERE thread_id = ?`).run(threadId);
           if (firstUser) {
             sqlite
               .prepare(
@@ -635,13 +632,13 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
                VALUES (?, ?, 'assistant', '', NULL, NULL, NULL, 'pending', ?, ?)`,
             )
             .run(assistantId, threadId, responder.id, now.getTime() + 1);
-          const count = (
+          const count =
             sqlite
-              .prepare<unknown[], { c: number }>(
-                'SELECT COUNT(*) AS c FROM agent_messages WHERE thread_id = ?',
-              )
-              .get(threadId)?.c ?? 0
-          );
+              .prepare<
+                unknown[],
+                { c: number }
+              >('SELECT COUNT(*) AS c FROM agent_messages WHERE thread_id = ?')
+              .get(threadId)?.c ?? 0;
           if (count === 2 && !thread.title) {
             sqlite
               .prepare('UPDATE agent_threads SET title = ?, updated_at = ? WHERE id = ?')
@@ -663,9 +660,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           .orderBy(asc(agentMessages.createdAt))
           .all();
         const history: HistoryMessage[] = prior
-          .filter(
-            (m) => m.id !== userMsgId && m.id !== assistantId && m.errorReason == null,
-          )
+          .filter((m) => m.id !== userMsgId && m.id !== assistantId && m.errorReason == null)
           .map((m) => {
             const author = m.authorAgentId ? loadAgent(m.authorAgentId) : null;
             return {
@@ -679,12 +674,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
         const effectiveSystemPrompt = isManager
           ? buildManagerSystemPrompt(responder.systemPrompt, deps.skillRegistry)
           : responder.systemPrompt;
-        const composed = composePrompt(
-          effectiveSystemPrompt,
-          history,
-          parsed.data.content,
-          'user',
-        );
+        const composed = composePrompt(effectiveSystemPrompt, history, parsed.data.content, 'user');
 
         const turn = await runAgentTurn({
           systemPrompt: composed.systemPrompt,
@@ -700,9 +690,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
 
         // Persist primary assistant message (UPDATE the pending stub).
         const primaryContent =
-          parsedDirectives.cleaned ||
-          turn.text ||
-          (turn.failed ? '' : '(no response)');
+          parsedDirectives.cleaned || turn.text || (turn.failed ? '' : '(no response)');
         await db
           .update(agentMessages)
           .set({
@@ -802,9 +790,7 @@ function pickResponder(
   const mentions = parseMentions(body.content);
   for (const m of mentions) {
     const lc = m.toLowerCase();
-    const match = participants.find(
-      (p) => p.name.toLowerCase() === lc || p.seedKey === lc,
-    );
+    const match = participants.find((p) => p.name.toLowerCase() === lc || p.seedKey === lc);
     if (match) return match;
   }
   // 3. Manager.
@@ -815,4 +801,3 @@ function pickResponder(
   if (primary) return primary;
   return participants[0] ?? null;
 }
-

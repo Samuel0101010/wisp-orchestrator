@@ -4,7 +4,7 @@ export type WorkerHandler = () => Promise<unknown>;
 
 export interface WorkerDef {
   name: string;
-  cronSpec: string;        // 5-field cron, e.g. '*/15 * * * *'
+  cronSpec: string; // 5-field cron, e.g. '*/15 * * * *'
   enabled: boolean;
   handler: WorkerHandler;
 }
@@ -22,9 +22,15 @@ export interface WorkerRunRecord {
 export class WorkerRegistry {
   private workers = new Map<string, WorkerDef>();
 
-  register(def: WorkerDef): void { this.workers.set(def.name, def); }
-  list(): WorkerDef[] { return [...this.workers.values()]; }
-  get(name: string): WorkerDef | undefined { return this.workers.get(name); }
+  register(def: WorkerDef): void {
+    this.workers.set(def.name, def);
+  }
+  list(): WorkerDef[] {
+    return [...this.workers.values()];
+  }
+  get(name: string): WorkerDef | undefined {
+    return this.workers.get(name);
+  }
 
   async runNow(name: string): Promise<WorkerRunRecord> {
     const w = this.workers.get(name);
@@ -34,13 +40,22 @@ export class WorkerRegistry {
     try {
       const result = await w.handler();
       return {
-        id, workerName: name, startedAt,
-        endedAt: new Date(), status: 'ok', result, errorReason: null,
+        id,
+        workerName: name,
+        startedAt,
+        endedAt: new Date(),
+        status: 'ok',
+        result,
+        errorReason: null,
       };
     } catch (err) {
       return {
-        id, workerName: name, startedAt,
-        endedAt: new Date(), status: 'failed', result: null,
+        id,
+        workerName: name,
+        startedAt,
+        endedAt: new Date(),
+        status: 'failed',
+        result: null,
         errorReason: err instanceof Error ? err.message : String(err),
       };
     }

@@ -17,7 +17,8 @@ function statusToken(r: GlobalRunRow): string {
   if (r.status === 'running') return 'RUN';
   if (r.status === 'paused') return 'PSE';
   if (r.status === 'cancelled') return 'CXL';
-  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded') return 'FAI';
+  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded')
+    return 'FAI';
   if (r.status === 'completed') return 'OK ';
   return 'WAI';
 }
@@ -40,7 +41,10 @@ function CornerTickFrame({
   className?: string;
 }) {
   return (
-    <div className={`relative border border-stone-900/60 ${className}`} style={{ background: '#fbf8f1' }}>
+    <div
+      className={`relative border border-stone-900/60 ${className}`}
+      style={{ background: '#fbf8f1' }}
+    >
       <CornerTicks />
       {(label || serial) && (
         <div className="flex items-baseline justify-between border-b border-stone-900/40 px-3 py-1.5 text-[10px] uppercase tracking-[0.22em] text-stone-700">
@@ -93,7 +97,10 @@ function ProjectSpec({ projectName, runs }: { projectName: string; runs: GlobalR
           </div>
         </div>
         <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.2em] text-stone-600">
-          <Stamp text={live > 0 ? 'in flight' : closed ? 'closed' : '—'} tone={live > 0 ? RED : COBALT} />
+          <Stamp
+            text={live > 0 ? 'in flight' : closed ? 'closed' : '—'}
+            tone={live > 0 ? RED : COBALT}
+          />
         </div>
       </div>
 
@@ -111,7 +118,9 @@ function ProjectSpec({ projectName, runs }: { projectName: string; runs: GlobalR
       </div>
 
       <div className="border-t border-stone-900/30 px-4 py-3">
-        <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-stone-600">part list · runs</div>
+        <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-stone-600">
+          part list · runs
+        </div>
         <ol className="font-mono text-[11px]">
           {runs.slice(0, 5).map((r, i) => (
             <li key={r.id} className="flex items-baseline gap-2 border-b border-stone-900/10 py-1">
@@ -271,11 +280,7 @@ export function MissionControlV4SpecSheet() {
               v={String(summary.data?.totalRuns ?? 0)}
               unit="in window"
             />
-            <DimensionRow
-              k="tokens.total"
-              v={fmtTok(summary.data?.totalTokens ?? 0)}
-              unit="tok"
-            />
+            <DimensionRow k="tokens.total" v={fmtTok(summary.data?.totalTokens ?? 0)} unit="tok" />
             <DimensionRow
               k="success"
               v={`${Math.round((summary.data?.successRate ?? 0) * 100)}`}
@@ -315,9 +320,7 @@ export function MissionControlV4SpecSheet() {
           Drawn at scale · all measurements verified at last refresh ·{' '}
           <span className="font-mono">tabular-nums</span>
         </div>
-        <div className="font-mono">
-          Sheet 02 of 02 · MC-001 / A · {today} · agent-harness
-        </div>
+        <div className="font-mono">Sheet 02 of 02 · MC-001 / A · {today} · agent-harness</div>
       </footer>
     </div>
   );

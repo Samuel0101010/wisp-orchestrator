@@ -13,15 +13,18 @@ export class WorkerDaemon {
       const task = cron.schedule(w.cronSpec, async () => {
         const run = await this.registry.runNow(w.name);
         try {
-          await db.insert(workerRuns).values({
-            id: run.id,
-            workerName: run.workerName,
-            startedAt: run.startedAt,
-            endedAt: run.endedAt,
-            status: run.status,
-            resultJson: run.result,
-            errorReason: run.errorReason,
-          }).run();
+          await db
+            .insert(workerRuns)
+            .values({
+              id: run.id,
+              workerName: run.workerName,
+              startedAt: run.startedAt,
+              endedAt: run.endedAt,
+              status: run.status,
+              resultJson: run.result,
+              errorReason: run.errorReason,
+            })
+            .run();
         } catch (err) {
           // Never throw out of the cron task — it would be silently swallowed
           // by node-cron and we'd lose visibility. Log to console instead.

@@ -56,16 +56,10 @@ export function MissionControlV17Dispatch() {
     [data],
   );
   const recent = useMemo(
-    () =>
-      data
-        .filter((r) => classify(r) === 'success' && r.endedAt)
-        .slice(0, 12),
+    () => data.filter((r) => classify(r) === 'success' && r.endedAt).slice(0, 12),
     [data],
   );
-  const failures = useMemo(
-    () => data.filter((r) => classify(r) === 'failure'),
-    [data],
-  );
+  const failures = useMemo(() => data.filter((r) => classify(r) === 'failure'), [data]);
 
   // Natural-language-to-action suggestions
   const suggestions: Suggestion[] = useMemo(() => {
@@ -73,12 +67,33 @@ export function MissionControlV17Dispatch() {
     const out: Suggestion[] = [];
     if (q.length === 0) {
       out.push(
-        { kind: 'action', label: 'Start a new run', detail: 'paste a goal · we wire the team', icon: '▶' },
-        { kind: 'action', label: 'Resume paused runs', detail: `${data.filter((r) => r.status === 'paused').length} paused`, icon: '⏵' },
-        { kind: 'action', label: 'Ask the architect', detail: '@architect · cross-project', icon: '@' },
+        {
+          kind: 'action',
+          label: 'Start a new run',
+          detail: 'paste a goal · we wire the team',
+          icon: '▶',
+        },
+        {
+          kind: 'action',
+          label: 'Resume paused runs',
+          detail: `${data.filter((r) => r.status === 'paused').length} paused`,
+          icon: '⏵',
+        },
+        {
+          kind: 'action',
+          label: 'Ask the architect',
+          detail: '@architect · cross-project',
+          icon: '@',
+        },
       );
       (projects.data ?? []).slice(0, 3).forEach((p) => {
-        out.push({ kind: 'project', label: `Open ${p.name}`, detail: 'project page', href: `/projects/${p.id}`, icon: '◆' });
+        out.push({
+          kind: 'project',
+          label: `Open ${p.name}`,
+          detail: 'project page',
+          href: `/projects/${p.id}`,
+          icon: '◆',
+        });
       });
       live.slice(0, 3).forEach((r) => {
         out.push({
@@ -140,8 +155,7 @@ export function MissionControlV17Dispatch() {
       data-mc-variant="dispatch"
       className="-m-6 grid h-[calc(100vh-3.5rem)] grid-rows-[auto_auto_1fr_auto]"
       style={{
-        background:
-          'radial-gradient(ellipse at top, #1c1d22 0%, #0c0d10 60%, #08090b 100%)',
+        background: 'radial-gradient(ellipse at top, #1c1d22 0%, #0c0d10 60%, #08090b 100%)',
         color: '#e4e4e7',
       }}
     >
@@ -196,7 +210,9 @@ export function MissionControlV17Dispatch() {
               )}
             </div>
             <div className="mt-2 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-              <span>{suggestions.length} suggestion{suggestions.length === 1 ? '' : 's'}</span>
+              <span>
+                {suggestions.length} suggestion{suggestions.length === 1 ? '' : 's'}
+              </span>
               <span>↑↓ navigate · enter act · @ for agent · / for command</span>
             </div>
           </div>
@@ -205,7 +221,13 @@ export function MissionControlV17Dispatch() {
           <ul className="mt-3 flex flex-col">
             {suggestions.map((s, i) => {
               const tone =
-                s.kind === 'action' ? '#67e8f9' : s.kind === 'agent' ? '#c084fc' : s.kind === 'run' ? '#34d399' : '#fbbf24';
+                s.kind === 'action'
+                  ? '#67e8f9'
+                  : s.kind === 'agent'
+                    ? '#c084fc'
+                    : s.kind === 'run'
+                      ? '#34d399'
+                      : '#fbbf24';
               const Inner = (
                 <>
                   <span
@@ -260,13 +282,18 @@ export function MissionControlV17Dispatch() {
             { k: 'projects', v: projects.data?.length ?? 0 },
           ].map((s) => (
             <span key={s.k} className="text-zinc-300">
-              {s.k} <span className="font-semibold text-zinc-100" style={{ color: s.tone }}>{s.v}</span>
+              {s.k}{' '}
+              <span className="font-semibold text-zinc-100" style={{ color: s.tone }}>
+                {s.v}
+              </span>
             </span>
           ))}
         </div>
         <div className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
           <span>v17 · dispatch</span>
-          <Link to="/" className="text-zinc-300 hover:text-zinc-100">/ home</Link>
+          <Link to="/" className="text-zinc-300 hover:text-zinc-100">
+            / home
+          </Link>
         </div>
       </footer>
     </div>
@@ -309,9 +336,16 @@ function Lane({
                   style={{ borderColor: accent ? `${tone}40` : 'rgba(255,255,255,0.05)' }}
                 >
                   <div className="flex items-baseline gap-2">
-                    <span className="block h-1.5 w-1.5 flex-none rounded-full" style={{ background: tone }} />
-                    <span className="truncate text-[13px] font-medium text-zinc-100">{r.projectName}</span>
-                    <span className="ml-auto font-mono text-[10px] text-zinc-500">{rel(r.startedAt)}</span>
+                    <span
+                      className="block h-1.5 w-1.5 flex-none rounded-full"
+                      style={{ background: tone }}
+                    />
+                    <span className="truncate text-[13px] font-medium text-zinc-100">
+                      {r.projectName}
+                    </span>
+                    <span className="ml-auto font-mono text-[10px] text-zinc-500">
+                      {rel(r.startedAt)}
+                    </span>
                   </div>
                   <div className="mt-1 flex items-baseline justify-between font-mono text-[11px] tabular-nums text-zinc-500">
                     <span>{r.id.slice(0, 8)}</span>

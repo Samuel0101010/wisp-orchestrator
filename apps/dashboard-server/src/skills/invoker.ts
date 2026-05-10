@@ -16,8 +16,12 @@ export async function invokeSkill(opts: InvokeSkillOpts): Promise<InvokeSkillRes
   const skill = opts.registry.get(opts.name);
   if (!skill) {
     return {
-      text: '', tokensIn: 0, tokensOut: 0, durationMs: 0,
-      failed: 'skill_not_found', skillName: opts.name,
+      text: '',
+      tokensIn: 0,
+      tokensOut: 0,
+      durationMs: 0,
+      failed: 'skill_not_found',
+      skillName: opts.name,
     };
   }
   const result = await runAgentTurn({

@@ -41,10 +41,18 @@ function Sparkline({ data, w = 96, h = 22 }: { data: number[]; w?: number; h?: n
   if (!data.length) return <span className="text-muted-foreground/50">—</span>;
   const max = Math.max(...data, 1);
   const step = data.length > 1 ? w / (data.length - 1) : w;
-  const pts = data.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`).join(' ');
+  const pts = data
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`)
+    .join(' ');
   return (
     <svg width={w} height={h} className="text-info">
-      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth={1.4} vectorEffect="non-scaling-stroke" />
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.4}
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
 }
@@ -73,29 +81,35 @@ export function Home() {
       arr.push(r);
       byId.set(r.projectId, arr);
     });
-    return (projects.data ?? []).map((p) => {
-      const rs = byId.get(p.id) ?? [];
-      const live = rs.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length;
-      const failed = rs.filter((r) => classify(r) === 'failure').length;
-      const closed = rs.filter((r) => ['success', 'failure', 'cancelled'].includes(classify(r))).length;
-      const ok = rs.filter((r) => classify(r) === 'success').length;
-      const tok = rs.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0);
-      const buckets = Array.from({ length: 7 }, () => 0);
-      rs.forEach((r) => {
-        if (!r.startedAt) return;
-        const days = Math.floor((Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000);
-        if (days >= 0 && days < 7) buckets[6 - days] = (buckets[6 - days] ?? 0) + 1;
-      });
-      return {
-        project: p,
-        runs: rs.length,
-        live,
-        failed,
-        successRate: closed > 0 ? Math.round((ok / closed) * 100) : null,
-        tokens: tok,
-        spark: buckets,
-      };
-    }).sort((a, b) => b.live - a.live || b.runs - a.runs);
+    return (projects.data ?? [])
+      .map((p) => {
+        const rs = byId.get(p.id) ?? [];
+        const live = rs.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length;
+        const failed = rs.filter((r) => classify(r) === 'failure').length;
+        const closed = rs.filter((r) =>
+          ['success', 'failure', 'cancelled'].includes(classify(r)),
+        ).length;
+        const ok = rs.filter((r) => classify(r) === 'success').length;
+        const tok = rs.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0);
+        const buckets = Array.from({ length: 7 }, () => 0);
+        rs.forEach((r) => {
+          if (!r.startedAt) return;
+          const days = Math.floor(
+            (Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000,
+          );
+          if (days >= 0 && days < 7) buckets[6 - days] = (buckets[6 - days] ?? 0) + 1;
+        });
+        return {
+          project: p,
+          runs: rs.length,
+          live,
+          failed,
+          successRate: closed > 0 ? Math.round((ok / closed) * 100) : null,
+          tokens: tok,
+          spark: buckets,
+        };
+      })
+      .sort((a, b) => b.live - a.live || b.runs - a.runs);
   }, [globalRuns.data, projects.data]);
 
   // experiments dropdown — collapsed by default
@@ -105,16 +119,23 @@ export function Home() {
     try {
       const v = localStorage.getItem('mc-show-variants');
       if (v) setShowVariants(v === '1');
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, []);
   useEffect(() => {
     try {
       localStorage.setItem('mc-show-variants', showVariants ? '1' : '0');
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [showVariants]);
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]" data-testid="mission-control">
+    <div
+      className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]"
+      data-testid="mission-control"
+    >
       {/* MAIN COLUMN */}
       <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-1">
@@ -155,7 +176,9 @@ export function Home() {
             value={successPercent}
             format={(n) => `${Math.round(n)}%`}
             icon={<CheckCircle2 className="h-4 w-4" />}
-            tone={successPercent >= 80 ? 'success' : successPercent >= 50 ? 'warning' : 'destructive'}
+            tone={
+              successPercent >= 80 ? 'success' : successPercent >= 50 ? 'warning' : 'destructive'
+            }
             caption={t('home.kpis.successCaption', '{{ok}}/{{total}} successful', {
               ok: outcomeCounts.success ?? 0,
               total: summary.data?.totalRuns ?? 0,
@@ -232,7 +255,9 @@ export function Home() {
                     >
                       <div className="flex flex-col gap-0.5 min-w-0">
                         <span className="truncate text-sm font-medium">{p.project.name}</span>
-                        <span className="truncate text-xs text-muted-foreground">{p.project.goal}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {p.project.goal}
+                        </span>
                       </div>
                       <span className="text-right font-mono text-sm tabular-nums">{p.runs}</span>
                       <span
@@ -240,7 +265,9 @@ export function Home() {
                       >
                         {p.live > 0 ? p.live : '—'}
                       </span>
-                      <span className="text-right font-mono text-sm tabular-nums">{formatTokensCompact(p.tokens)}</span>
+                      <span className="text-right font-mono text-sm tabular-nums">
+                        {formatTokensCompact(p.tokens)}
+                      </span>
                       <span
                         className={`text-right font-mono text-sm tabular-nums ${p.successRate === null ? 'text-muted-foreground' : p.successRate >= 80 ? 'text-success' : p.successRate >= 50 ? 'text-warning' : 'text-destructive'}`}
                       >
@@ -294,39 +321,74 @@ export function Home() {
           {showVariants && (
             <div className="mt-2 flex flex-col gap-1 font-mono text-[11px] tracking-tight text-muted-foreground">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">Set A · 1—8</span>
-                <Link to="/mc" className="font-semibold text-foreground hover:underline underline-offset-4">
+                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">
+                  Set A · 1—8
+                </span>
+                <Link
+                  to="/mc"
+                  className="font-semibold text-foreground hover:underline underline-offset-4"
+                >
                   /mc · cycler
                 </Link>
                 {[
-                  ['v1', 'terminal'], ['v2', 'broadsheet'], ['v3', 'radar'], ['v4', 'spec'],
-                  ['v5', 'transit'], ['v6', 'poster'], ['v7', 'heatmap'], ['v8', 'console'],
+                  ['v1', 'terminal'],
+                  ['v2', 'broadsheet'],
+                  ['v3', 'radar'],
+                  ['v4', 'spec'],
+                  ['v5', 'transit'],
+                  ['v6', 'poster'],
+                  ['v7', 'heatmap'],
+                  ['v8', 'console'],
                 ].map(([slug, name]) => (
-                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">{name}</Link>
+                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">
+                    {name}
+                  </Link>
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">Set B · 9—14</span>
-                <Link to="/mc/2" className="font-semibold text-foreground hover:underline underline-offset-4">
+                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">
+                  Set B · 9—14
+                </span>
+                <Link
+                  to="/mc/2"
+                  className="font-semibold text-foreground hover:underline underline-offset-4"
+                >
                   /mc/2 · cycler
                 </Link>
                 {[
-                  ['v9', 'cockpit'], ['v10', 'stream'], ['v11', 'portfolio'],
-                  ['v12', 'honeycomb'], ['v13', 'exposé'], ['v14', 'now playing'],
+                  ['v9', 'cockpit'],
+                  ['v10', 'stream'],
+                  ['v11', 'portfolio'],
+                  ['v12', 'honeycomb'],
+                  ['v13', 'exposé'],
+                  ['v14', 'now playing'],
                 ].map(([slug, name]) => (
-                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">{name}</Link>
+                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">
+                    {name}
+                  </Link>
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">Set C · 15—20</span>
-                <Link to="/mc/3" className="font-semibold text-foreground hover:underline underline-offset-4">
+                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">
+                  Set C · 15—20
+                </span>
+                <Link
+                  to="/mc/3"
+                  className="font-semibold text-foreground hover:underline underline-offset-4"
+                >
                   /mc/3 · cycler
                 </Link>
                 {[
-                  ['v15', 'stream²'], ['v16', 'focus'], ['v17', 'dispatch'],
-                  ['v18', 'cockpit²'], ['v19', 'timeline'], ['v20', 'inbox'],
+                  ['v15', 'stream²'],
+                  ['v16', 'focus'],
+                  ['v17', 'dispatch'],
+                  ['v18', 'cockpit²'],
+                  ['v19', 'timeline'],
+                  ['v20', 'inbox'],
                 ].map(([slug, name]) => (
-                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">{name}</Link>
+                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">
+                    {name}
+                  </Link>
                 ))}
               </div>
             </div>

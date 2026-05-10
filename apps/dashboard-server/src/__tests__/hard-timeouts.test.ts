@@ -10,11 +10,19 @@ describe('runAgentTurn timeout', () => {
       await new Promise((r, rej) => {
         opts.signal?.addEventListener('abort', () => rej(new Error('aborted')));
       });
-      yield { type: 'task.completed', payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 } };
+      yield {
+        type: 'task.completed',
+        payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+      };
     }
     const result = await runAgentTurn({
-      systemPrompt: 'x', prompt: 'x', allowedTools: [], model: 'haiku',
-      taskId: 'tt', runner: hangingRunner, timeoutMs: 100,
+      systemPrompt: 'x',
+      prompt: 'x',
+      allowedTools: [],
+      model: 'haiku',
+      taskId: 'tt',
+      runner: hangingRunner,
+      timeoutMs: 100,
     });
     expect(result.failed).toBe('timeout');
     expect(result.text).toBe('');
@@ -22,14 +30,24 @@ describe('runAgentTurn timeout', () => {
 
   it('defaults to 180_000ms when timeoutMs is omitted', async () => {
     async function* fastRunner(opts: RunClaudeOpts): AsyncGenerator<HarnessEvent> {
-      yield { type: 'task.usage', payload: { taskId: opts.taskId, tokensIn: 0, tokensOut: 0, turns: 1 } };
-      yield { type: 'task.completed', payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 } };
+      yield {
+        type: 'task.usage',
+        payload: { taskId: opts.taskId, tokensIn: 0, tokensOut: 0, turns: 1 },
+      };
+      yield {
+        type: 'task.completed',
+        payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+      };
     }
     const spy = vi.spyOn(globalThis, 'setTimeout');
     try {
       await runAgentTurn({
-        systemPrompt: '', prompt: '', allowedTools: [], model: 'haiku',
-        taskId: 't', runner: fastRunner,
+        systemPrompt: '',
+        prompt: '',
+        allowedTools: [],
+        model: 'haiku',
+        taskId: 't',
+        runner: fastRunner,
       });
       const callsWith180k = spy.mock.calls.filter((c) => c[1] === 180_000);
       expect(callsWith180k.length).toBeGreaterThanOrEqual(1);

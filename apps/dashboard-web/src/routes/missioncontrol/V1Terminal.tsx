@@ -24,7 +24,8 @@ function classify(r: GlobalRunRow): keyof typeof GLYPHS {
   if (r.status === 'running') return 'running';
   if (r.status === 'paused') return 'paused';
   if (r.status === 'cancelled') return 'cancelled';
-  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded') return 'failure';
+  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded')
+    return 'failure';
   if (r.status === 'completed' && r.outcome === 'success') return 'success';
   if (r.status === 'completed') return 'success';
   return 'pending';
@@ -47,10 +48,18 @@ function Sparkline({ data, w = 160, h = 24 }: { data: number[]; w?: number; h?: 
   if (!data.length) return <span className="text-zinc-600">—</span>;
   const max = Math.max(...data, 1);
   const step = data.length > 1 ? w / (data.length - 1) : w;
-  const pts = data.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`).join(' ');
+  const pts = data
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`)
+    .join(' ');
   return (
     <svg width={w} height={h} className="overflow-visible">
-      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1}
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
 }
@@ -93,15 +102,24 @@ export function MissionControlV1Terminal() {
   const summary = useRunsSummary(7);
   const runs = useGlobalRuns(100);
   const data = runs.data ?? [];
-  const tokenSeries = useMemo(() => (summary.data?.tokensByDay ?? []).map((d) => d.tokens), [summary.data]);
-  const runsSeries = useMemo(() => (summary.data?.runsByDay ?? []).map((d) => d.runs), [summary.data]);
+  const tokenSeries = useMemo(
+    () => (summary.data?.tokensByDay ?? []).map((d) => d.tokens),
+    [summary.data],
+  );
+  const runsSeries = useMemo(
+    () => (summary.data?.runsByDay ?? []).map((d) => d.runs),
+    [summary.data],
+  );
 
   const success = summary.data?.outcomeCounts.success ?? 0;
   const failure = summary.data?.outcomeCounts.failure ?? 0;
   const cancelled = summary.data?.outcomeCounts.cancelled ?? 0;
 
   return (
-    <div data-mc-variant="terminal" className="-m-6 min-h-[calc(100vh-3.5rem)] bg-[#0a0a0b] text-amber-200 [color-scheme:dark]">
+    <div
+      data-mc-variant="terminal"
+      className="-m-6 min-h-[calc(100vh-3.5rem)] bg-[#0a0a0b] text-amber-200 [color-scheme:dark]"
+    >
       <style>{`
         [data-mc-variant="terminal"] *::selection { background: #fbbf24; color: #0a0a0b; }
         [data-mc-variant="terminal"] .grid-row:hover { background: rgba(251,191,36,0.06); }
@@ -145,7 +163,9 @@ export function MissionControlV1Terminal() {
       <section className="px-6 pt-6">
         <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.25em]">
           <span className="text-amber-500/70">// runs · sorted descending start</span>
-          <span className="text-amber-500/40">cols: state · proj · run · pln · in · out · turns · dur · started</span>
+          <span className="text-amber-500/40">
+            cols: state · proj · run · pln · in · out · turns · dur · started
+          </span>
         </div>
         <div className="grid grid-cols-[1.4rem_1fr_5rem_5rem_4rem_4rem_3rem_3rem_3rem] gap-x-3 border-y border-amber-500/30 bg-black/30 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-500/60">
           <span>S</span>
@@ -161,7 +181,9 @@ export function MissionControlV1Terminal() {
 
         <ul className="font-mono text-[12px]">
           {data.length === 0 ? (
-            <li className="px-3 py-6 text-amber-500/50">// no runs in window — kick one off from a project.</li>
+            <li className="px-3 py-6 text-amber-500/50">
+              // no runs in window — kick one off from a project.
+            </li>
           ) : (
             data.map((r) => {
               const g = glyph(r);
@@ -176,7 +198,11 @@ export function MissionControlV1Terminal() {
                     ? Math.round((Date.now() - new Date(r.startedAt as string).getTime()) / 1000)
                     : 0;
               const durStr =
-                dur < 60 ? `${dur}s` : dur < 3600 ? `${Math.floor(dur / 60)}m` : `${(dur / 3600).toFixed(1)}h`;
+                dur < 60
+                  ? `${dur}s`
+                  : dur < 3600
+                    ? `${Math.floor(dur / 60)}m`
+                    : `${(dur / 3600).toFixed(1)}h`;
               return (
                 <li
                   key={r.id}
@@ -189,12 +215,20 @@ export function MissionControlV1Terminal() {
                     <span className="uppercase tracking-tight">{r.projectName}</span>
                     <span className="ml-2 text-amber-400/70">{r.id.slice(0, 8)}</span>
                   </span>
-                  <span className="text-right tabular-nums text-amber-200">{fmtTok(r.tokensInTotal)}</span>
-                  <span className="text-right tabular-nums text-amber-200">{fmtTok(r.tokensOutTotal)}</span>
+                  <span className="text-right tabular-nums text-amber-200">
+                    {fmtTok(r.tokensInTotal)}
+                  </span>
+                  <span className="text-right tabular-nums text-amber-200">
+                    {fmtTok(r.tokensOutTotal)}
+                  </span>
                   <span className="text-right tabular-nums text-amber-300/80">{r.turnsTotal}</span>
-                  <span className="text-right tabular-nums text-amber-500/60">{r.budgetMinutes}m</span>
+                  <span className="text-right tabular-nums text-amber-500/60">
+                    {r.budgetMinutes}m
+                  </span>
                   <span className="text-right tabular-nums text-amber-300/80">{durStr}</span>
-                  <span className="text-right tabular-nums text-amber-500/60">{relTime(r.startedAt)}</span>
+                  <span className="text-right tabular-nums text-amber-500/60">
+                    {relTime(r.startedAt)}
+                  </span>
                   <span className="text-right">
                     <Link
                       to={`/projects/${r.projectId}/run/${r.id}`}
@@ -211,7 +245,9 @@ export function MissionControlV1Terminal() {
       </section>
 
       <footer className="mt-10 border-t border-amber-500/20 px-6 py-3 font-mono text-[10px] uppercase tracking-[0.25em] text-amber-500/40">
-        <span>EOF · agent-harness mission control · terminal variant · ←/→ to switch · g for grid</span>
+        <span>
+          EOF · agent-harness mission control · terminal variant · ←/→ to switch · g for grid
+        </span>
       </footer>
     </div>
   );

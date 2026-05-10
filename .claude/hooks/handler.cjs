@@ -10,15 +10,20 @@ const eventMap = {
   'pre-tool': 'PreToolUse',
   'post-tool': 'PostToolUse',
   'prompt-submit': 'UserPromptSubmit',
-  'stop': 'Stop',
+  stop: 'Stop',
 };
 const event = eventMap[subcommand] || 'unknown';
 
 let payload = '';
-process.stdin.on('data', (chunk) => { payload += chunk; });
+process.stdin.on('data', (chunk) => {
+  payload += chunk;
+});
 process.stdin.on('end', async () => {
   const token = process.env.HARNESS_HOOK_TOKEN;
-  if (!token) { process.exit(0); return; }
+  if (!token) {
+    process.exit(0);
+    return;
+  }
   const port = process.env.HARNESS_PORT || '4400';
   const body = {
     event,
@@ -44,8 +49,16 @@ process.stdin.on('end', async () => {
 process.stdin.on('error', () => process.exit(0));
 
 function safeJson(s) {
-  try { return JSON.parse(s); } catch { return { raw: s.slice(0, 500) }; }
+  try {
+    return JSON.parse(s);
+  } catch {
+    return { raw: s.slice(0, 500) };
+  }
 }
 function extractTool(s) {
-  try { return JSON.parse(s).tool_name ?? null; } catch { return null; }
+  try {
+    return JSON.parse(s).tool_name ?? null;
+  } catch {
+    return null;
+  }
 }

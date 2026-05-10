@@ -10,7 +10,13 @@ export class SkillRegistry {
     for (const s of loadAllSkills(this.rootDir)) this.skills.set(s.name, s);
   }
 
-  list(): Skill[] { return [...this.skills.values()]; }
-  get(name: string): Skill | undefined { return this.skills.get(name); }
-  reload(): void { this.init(); }
+  list(): Skill[] {
+    return [...this.skills.values()];
+  }
+  get(name: string): Skill | undefined {
+    return this.skills.get(name);
+  }
+  reload(): void {
+    this.init();
+  }
 }

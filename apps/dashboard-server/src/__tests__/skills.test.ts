@@ -7,8 +7,9 @@ import { SkillRegistry } from '../skills/registry.js';
 function fixtureSkill(rootDir: string, name: string, body: string): void {
   const dir = join(rootDir, name);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'SKILL.md'),
-`---
+  writeFileSync(
+    join(dir, 'SKILL.md'),
+    `---
 name: ${name}
 description: Test skill ${name}
 model: haiku
@@ -16,7 +17,8 @@ allowed-tools: ["Read","Edit"]
 ---
 You are a test skill body.
 ${body}
-`);
+`,
+  );
 }
 
 describe('SkillRegistry', () => {
@@ -26,7 +28,12 @@ describe('SkillRegistry', () => {
     fixtureSkill(root, 'bar', 'bar body');
     const reg = new SkillRegistry(root);
     reg.init();
-    expect(reg.list().map((s) => s.name).sort()).toEqual(['bar', 'foo']);
+    expect(
+      reg
+        .list()
+        .map((s) => s.name)
+        .sort(),
+    ).toEqual(['bar', 'foo']);
     expect(reg.get('foo')?.systemPrompt).toContain('foo body');
   });
 
@@ -52,10 +59,21 @@ describe('invokeSkill', () => {
     async function* mockRunner(opts: RunClaudeOpts): AsyncGenerator<HarnessEvent> {
       captured.push(opts);
       yield { type: 'task.text-delta', payload: { taskId: opts.taskId, text: 'OK' } };
-      yield { type: 'task.usage', payload: { taskId: opts.taskId, tokensIn: 1, tokensOut: 1, turns: 1 } };
-      yield { type: 'task.completed', payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 } };
+      yield {
+        type: 'task.usage',
+        payload: { taskId: opts.taskId, tokensIn: 1, tokensOut: 1, turns: 1 },
+      };
+      yield {
+        type: 'task.completed',
+        payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+      };
     }
-    const result = await invokeSkill({ registry: reg, name: 'echo', args: 'hello', runner: mockRunner });
+    const result = await invokeSkill({
+      registry: reg,
+      name: 'echo',
+      args: 'hello',
+      runner: mockRunner,
+    });
     expect(result.failed).toBeNull();
     expect(result.text).toBe('OK');
     expect(captured[0].systemPrompt).toContain('echo body');

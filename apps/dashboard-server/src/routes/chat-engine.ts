@@ -17,11 +17,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  directiveSchema,
-  type AgentModel,
-  type ManagerDirective,
-} from '@agent-harness/schemas';
+import { directiveSchema, type AgentModel, type ManagerDirective } from '@agent-harness/schemas';
 import { runClaude, type SubprocessRunner } from '@agent-harness/orchestrator';
 
 const CHAT_MAX_TURNS = 4;
@@ -82,7 +78,7 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
     }
   } catch (err) {
     if (failed === null) {
-      failed = timedOut ? 'timeout' : (err instanceof Error ? err.message : String(err));
+      failed = timedOut ? 'timeout' : err instanceof Error ? err.message : String(err);
     }
   } finally {
     clearTimeout(timeoutId);
@@ -161,19 +157,28 @@ export function parseDirectives(text: string): DirectiveParseResult {
     try {
       parsed = JSON.parse(body);
     } catch (err) {
-      errors.push({ raw, reason: `invalid_json: ${err instanceof Error ? err.message : String(err)}` });
+      errors.push({
+        raw,
+        reason: `invalid_json: ${err instanceof Error ? err.message : String(err)}`,
+      });
       continue;
     }
     const result = directiveSchema.safeParse(parsed);
     if (!result.success) {
-      errors.push({ raw, reason: `invalid_shape: ${result.error.issues.map((i) => i.message).join('; ')}` });
+      errors.push({
+        raw,
+        reason: `invalid_shape: ${result.error.issues.map((i) => i.message).join('; ')}`,
+      });
       continue;
     }
     directives.push({ directive: result.data, raw });
   }
   // Strip every directive snippet from the cleaned text. Done in a second
   // pass so a single bad block doesn't pollute the prose the user sees.
-  cleaned = text.replace(DIRECTIVE_RE, '').replace(/\n{3,}/g, '\n\n').trim();
+  cleaned = text
+    .replace(DIRECTIVE_RE, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
   return { directives, errors, cleaned };
 }
 
