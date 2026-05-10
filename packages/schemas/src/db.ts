@@ -423,6 +423,19 @@ export const trajectories = sqliteTable('trajectories', {
 export type Trajectory = typeof trajectories.$inferSelect;
 export type NewTrajectory = typeof trajectories.$inferInsert;
 
+// ----- hook events (F9: Claude Code telemetry) -----
+
+export const hookEvents = sqliteTable('hook_events', {
+  id: text('id').primaryKey(),
+  event: text('event').notNull(),
+  toolName: text('tool_name'),
+  cwd: text('cwd'),
+  payloadJson: text('payload_json').notNull(),
+  receivedAt: integer('received_at', { mode: 'timestamp_ms' }).notNull(),
+});
+export type HookEvent = typeof hookEvents.$inferSelect;
+export type NewHookEvent = typeof hookEvents.$inferInsert;
+
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {
   id: text('id').primaryKey(),

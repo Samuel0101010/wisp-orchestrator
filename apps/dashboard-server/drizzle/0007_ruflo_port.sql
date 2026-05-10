@@ -51,3 +51,14 @@ CREATE TABLE `trajectories` (
 );
 --> statement-breakpoint
 CREATE INDEX `trajectories_project_idx` ON `trajectories` (`project_id`,`created_at`);
+--> statement-breakpoint
+CREATE TABLE `hook_events` (
+	`id` text PRIMARY KEY NOT NULL,
+	`event` text NOT NULL,
+	`tool_name` text,
+	`cwd` text,
+	`payload_json` text NOT NULL,
+	`received_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE INDEX `hook_events_event_idx` ON `hook_events` (`event`,`received_at`);
