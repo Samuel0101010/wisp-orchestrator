@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite-core';
 
 // ----- projects -----
 export const projects = sqliteTable('projects', {
@@ -374,6 +374,38 @@ export const workerRuns = sqliteTable('worker_runs', {
 });
 export type WorkerRun = typeof workerRuns.$inferSelect;
 export type NewWorkerRun = typeof workerRuns.$inferInsert;
+
+// ----- model router priors + samples (Thompson sampling) -----
+
+export const modelRouterRoleValues = ['planner'] as const;
+export type ModelRouterRole = (typeof modelRouterRoleValues)[number];
+
+export const modelRouterModelValues = ['opus', 'sonnet', 'haiku'] as const;
+export type ModelRouterModel = (typeof modelRouterModelValues)[number];
+
+export const modelRouterPriors = sqliteTable('model_router_priors', {
+  role: text('role').notNull(),
+  model: text('model').notNull(),
+  alpha: real('alpha').notNull().default(1),
+  beta: real('beta').notNull().default(1),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
+}, (t) => ({
+  pk: primaryKey({ columns: [t.role, t.model] }),
+}));
+export type ModelRouterPrior = typeof modelRouterPriors.$inferSelect;
+
+export const modelRouterSampleOutcomeValues = ['success', 'failure'] as const;
+export type ModelRouterSampleOutcome = (typeof modelRouterSampleOutcomeValues)[number];
+
+export const modelRouterSamples = sqliteTable('model_router_samples', {
+  id: text('id').primaryKey(),
+  role: text('role').notNull(),
+  model: text('model').notNull(),
+  takenAt: integer('taken_at', { mode: 'timestamp_ms' }).notNull(),
+  outcome: text('outcome', { enum: modelRouterSampleOutcomeValues }),
+  recordedAt: integer('recorded_at', { mode: 'timestamp_ms' }),
+});
+export type ModelRouterSample = typeof modelRouterSamples.$inferSelect;
 
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {

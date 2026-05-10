@@ -17,3 +17,23 @@ ALTER TABLE `runs` ADD COLUMN `autopilot_budget_minutes` integer;
 ALTER TABLE `runs` ADD COLUMN `autopilot_budget_tokens` integer;
 --> statement-breakpoint
 ALTER TABLE `runs` ADD COLUMN `autopilot_started_at` integer;
+--> statement-breakpoint
+CREATE TABLE `model_router_priors` (
+	`role` text NOT NULL,
+	`model` text NOT NULL,
+	`alpha` real NOT NULL DEFAULT 1,
+	`beta` real NOT NULL DEFAULT 1,
+	`updated_at` integer NOT NULL,
+	PRIMARY KEY(`role`, `model`)
+);
+--> statement-breakpoint
+CREATE TABLE `model_router_samples` (
+	`id` text PRIMARY KEY NOT NULL,
+	`role` text NOT NULL,
+	`model` text NOT NULL,
+	`taken_at` integer NOT NULL,
+	`outcome` text,
+	`recorded_at` integer
+);
+--> statement-breakpoint
+CREATE INDEX `model_router_samples_pending_idx` ON `model_router_samples` (`outcome`);

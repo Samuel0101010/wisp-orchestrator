@@ -15,6 +15,8 @@ export {
   threadParticipants,
   chatActions,
   workerRuns,
+  modelRouterPriors,
+  modelRouterSamples,
   planStatusValues,
   taskStatusValues,
   runStatusValues,
@@ -27,6 +29,9 @@ export {
   chatActionKindValues,
   chatActionStatusValues,
   workerRunStatusValues,
+  modelRouterRoleValues,
+  modelRouterModelValues,
+  modelRouterSampleOutcomeValues,
 } from './db.js';
 
 export type {
@@ -71,6 +76,11 @@ export type {
   ChatActionKind,
   ChatActionStatus,
   MessageRole as MessageRoleType,
+  ModelRouterRole,
+  ModelRouterModel,
+  ModelRouterPrior,
+  ModelRouterSample,
+  ModelRouterSampleOutcome,
 } from './db.js';
 
 // Plan DAG (Zod)
