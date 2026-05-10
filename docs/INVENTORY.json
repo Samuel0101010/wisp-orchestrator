@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-05-10T14:42:24.273Z",
+  "routes": [
+    "agents",
+    "chat-directives",
+    "chat-engine",
+    "chat",
+    "health",
+    "index",
+    "plan-chain",
+    "plans",
+    "probe-prompt",
+    "projects",
+    "runs",
+    "team-templates",
+    "wrap"
+  ],
+  "agents": [
+    "manager",
+    "frontend-dev",
+    "backend-dev",
+    "mobile-dev",
+    "devops",
+    "qa-engineer",
+    "designer",
+    "ml-engineer",
+    "security",
+    "tech-writer"
+  ],
+  "skills": [],
+  "directives": [
+    "consult",
+    "add_member",
+    "create_project",
+    "start_run"
+  ],
+  "migrations": [
+    "0000_harsh_oracle.sql",
+    "0001_silky_random.sql",
+    "0002_variable_team.sql",
+    "0003_plan_versions.sql",
+    "0004_events_run_id_index.sql",
+    "0005_agents.sql",
+    "0006_chat_v2.sql"
+  ]
+}
