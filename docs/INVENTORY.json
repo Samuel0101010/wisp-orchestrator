@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T14:42:24.273Z",
+  "generatedAt": "2026-05-10T15:24:00.350Z",
   "routes": [
     "agents",
     "chat-directives",
@@ -11,8 +11,11 @@
     "plans",
     "probe-prompt",
     "projects",
+    "router",
     "runs",
+    "skills",
     "team-templates",
+    "workers",
     "wrap"
   ],
   "agents": [
@@ -27,12 +30,19 @@
     "security",
     "tech-writer"
   ],
-  "skills": [],
+  "skills": [
+    "audit-orphan-runs",
+    "auto-doc",
+    "deep-research",
+    "doctor",
+    "summarize-thread"
+  ],
   "directives": [
     "consult",
     "add_member",
     "create_project",
-    "start_run"
+    "start_run",
+    "invoke_skill"
   ],
   "migrations": [
     "0000_harsh_oracle.sql",
@@ -41,6 +51,7 @@
     "0003_plan_versions.sql",
     "0004_events_run_id_index.sql",
     "0005_agents.sql",
-    "0006_chat_v2.sql"
+    "0006_chat_v2.sql",
+    "0007_ruflo_port.sql"
   ]
 }
