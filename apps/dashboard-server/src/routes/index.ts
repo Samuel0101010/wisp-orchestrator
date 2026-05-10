@@ -4,7 +4,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { healthRoutes } from './health.js';
 import { projectRoutes } from './projects.js';
 import { planRoutes } from './plans.js';
-import { runRoutes, setRuntimeSkillRegistry } from './runs.js';
+import { runRoutes, setRuntimeSkillRegistry, getDefaultRuntime } from './runs.js';
 import { teamTemplatesRoutes } from './team-templates.js';
 import { planChainRoutes } from './plan-chain.js';
 import { probePromptRoutes } from './probe-prompt.js';
@@ -23,6 +23,7 @@ import {
   runSummaryFallback,
   setRunSummaryFallbackRegistry,
 } from '../workers/handlers/run-summary-fallback.js';
+import { retryMaxTurns, setRetryMaxTurnsRuntime } from '../workers/handlers/retry-max-turns.js';
 import { createWorkersRouter } from './workers.js';
 import { tickAutopilot } from '../autopilot/runner.js';
 import { routerRoutes } from './router.js';
@@ -76,6 +77,12 @@ workerRegistry.register({
   enabled: true,
   handler: runSummaryFallback,
 });
+workerRegistry.register({
+  name: 'retry-max-turns',
+  cronSpec: '*/2 * * * *',
+  enabled: true,
+  handler: retryMaxTurns,
+});
 
 export const workerDaemon = new WorkerDaemon(workerRegistry);
 
@@ -93,6 +100,10 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(projectRoutes);
   await app.register(planRoutes);
   await app.register(runRoutes);
+  // Wire the default runtime into the retry-max-turns worker. Must come AFTER
+  // runRoutes registers (which constructs the default runtime), so that the
+  // singleton is fully initialized before the worker references it.
+  setRetryMaxTurnsRuntime(getDefaultRuntime());
   await app.register(teamTemplatesRoutes);
   await app.register(planChainRoutes);
   await app.register(probePromptRoutes());
