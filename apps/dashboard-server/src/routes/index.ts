@@ -18,6 +18,7 @@ import { auditOrphanRuns } from '../workers/handlers/audit-orphan-runs.js';
 import { autoDoc } from '../workers/handlers/auto-doc.js';
 import { inventoryRefresh } from '../workers/handlers/inventory-refresh.js';
 import { consolidateMemory } from '../workers/handlers/consolidate-memory.js';
+import { promptBundleEvict } from '../workers/handlers/prompt-bundle-evict.js';
 import { createWorkersRouter } from './workers.js';
 import { tickAutopilot } from '../autopilot/runner.js';
 import { routerRoutes } from './router.js';
@@ -58,6 +59,12 @@ workerRegistry.register({
   cronSpec: '* * * * *',
   enabled: true,
   handler: tickAutopilot,
+});
+workerRegistry.register({
+  name: 'prompt-bundle-evict',
+  cronSpec: '0 4 * * *',
+  enabled: true,
+  handler: promptBundleEvict,
 });
 
 export const workerDaemon = new WorkerDaemon(workerRegistry);
