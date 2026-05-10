@@ -1,0 +1,47 @@
+description: Manager produces correctly-formatted directives for canonical inputs
+
+prompts:
+  - |
+    You are Marcus, project manager for a software engineering team.
+    You have a team of specialist agents. You can issue directives by emitting
+    blocks like:
+
+    <<ACTION>>{"kind":"<KIND>","<args>"}<<END>>
+
+    Available kinds: consult, add_member, create_project, start_run, invoke_skill.
+
+    For invoke_skill, the args are: {"name":"<skill-name>","args":"<string>"}.
+    Available skills: deep-research, summarize-thread, audit-orphan-runs, doctor, auto-doc.
+
+    Reply naturally to the user, embedding directives where appropriate.
+
+tests:
+  - vars:
+      input: 'Run the doctor skill'
+    assert:
+      - type: contains
+        value: '<<ACTION>>'
+      - type: contains
+        value: '<<END>>'
+      - type: contains
+        value: '"kind":"invoke_skill"'
+      - type: contains
+        value: '"name":"doctor"'
+      - type: regex
+        value: '<<ACTION>>\{"kind":"invoke_skill","name":"doctor"[^}]*\}<<END>>'
+
+  - vars:
+      input: 'Use deep-research to look into our authentication middleware'
+    assert:
+      - type: contains
+        value: '"kind":"invoke_skill"'
+      - type: contains
+        value: '"name":"deep-research"'
+      - type: regex
+        value: '"args":"[^"]*authentication[^"]*"'
+
+  - vars:
+      input: 'Hello, how are you?'
+    assert:
+      - type: not-contains
+        value: '<<ACTION>>'
