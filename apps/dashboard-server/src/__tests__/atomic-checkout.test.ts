@@ -25,7 +25,10 @@ async function seedRun(status: 'running' | 'paused' = 'paused'): Promise<string>
       createdAt: new Date(),
     })
     .run();
-  await db.insert(teams).values({ id: randomUUID(), projectId, rolesJson: { roles: [] } }).run();
+  await db
+    .insert(teams)
+    .values({ id: randomUUID(), projectId, rolesJson: { roles: [] } })
+    .run();
   await db
     .insert(plans)
     .values({

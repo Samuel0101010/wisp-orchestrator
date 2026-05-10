@@ -9,7 +9,12 @@ const TRANSCRIPT_BUDGET_CHARS = 24_000;
 const SUMMARY_MAX_CHARS = 8_000;
 
 export function buildTranscript(runId: string): string {
-  const rows = db.select().from(events).where(eq(events.runId, runId)).orderBy(asc(events.ts)).all();
+  const rows = db
+    .select()
+    .from(events)
+    .where(eq(events.runId, runId))
+    .orderBy(asc(events.ts))
+    .all();
   const lines: string[] = [];
   let chars = 0;
   for (let i = rows.length - 1; i >= 0; i--) {
@@ -26,7 +31,8 @@ export function buildTranscript(runId: string): string {
 
 function detectMode(summary: string): string | null {
   const m = summary.toLowerCase();
-  if (m.includes('implementation') || m.includes('coded') || m.includes('refactor')) return 'implement';
+  if (m.includes('implementation') || m.includes('coded') || m.includes('refactor'))
+    return 'implement';
   if (m.includes('plan') || m.includes('proposed')) return 'plan';
   if (m.includes('reviewed') || m.includes('audit')) return 'review';
   return null;
