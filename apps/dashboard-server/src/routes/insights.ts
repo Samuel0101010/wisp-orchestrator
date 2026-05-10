@@ -71,14 +71,21 @@ export const insightsRoutes: FastifyPluginAsync = async (app) => {
         const k = `${s.role}::${s.model}`;
         samplesByKey.set(k, (samplesByKey.get(k) ?? 0) + 1);
       }
-      return rows.map((r) => ({
-        role: r.role,
-        model: r.model,
-        alpha: r.alpha,
-        beta: r.beta,
-        mean: r.alpha / (r.alpha + r.beta),
-        samples: samplesByKey.get(`${r.role}::${r.model}`) ?? 0,
-      }));
+      return rows.map((r) => {
+        const phaseMatch = r.role.match(/-(orchestration|substantive)$/);
+        const phase = phaseMatch ? phaseMatch[1] : 'unspecified';
+        const baseRole = phaseMatch ? r.role.slice(0, -phaseMatch[0].length) : r.role;
+        return {
+          role: r.role,
+          baseRole,
+          phase,
+          model: r.model,
+          alpha: r.alpha,
+          beta: r.beta,
+          mean: r.alpha / (r.alpha + r.beta),
+          samples: samplesByKey.get(`${r.role}::${r.model}`) ?? 0,
+        };
+      });
     }),
   );
 };

@@ -12,6 +12,8 @@ interface TrajectoryRow {
 }
 interface PriorRow {
   role: string;
+  baseRole: string;
+  phase: 'orchestration' | 'substantive' | 'unspecified';
   model: string;
   alpha: number;
   beta: number;
@@ -85,6 +87,7 @@ export function InsightsRoute() {
             <thead className="text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th>Role</th>
+                <th>Phase</th>
                 <th>Model</th>
                 <th>α</th>
                 <th>β</th>
@@ -96,6 +99,7 @@ export function InsightsRoute() {
               {priorsQ.data?.map((p) => (
                 <tr key={`${p.role}-${p.model}`} className="border-t border-border">
                   <td className="py-1 pr-3 font-mono">{p.role}</td>
+                  <td className="py-1 pr-3 font-mono">{p.phase}</td>
                   <td className="py-1 pr-3 font-mono">{p.model}</td>
                   <td className="py-1 pr-3">{p.alpha.toFixed(2)}</td>
                   <td className="py-1 pr-3">{p.beta.toFixed(2)}</td>
