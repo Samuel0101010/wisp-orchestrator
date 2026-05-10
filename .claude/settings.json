@@ -5,7 +5,11 @@
       {
         "matcher": "Bash|Write|Edit",
         "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" pre-tool", "timeout": 5000 }
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" pre-tool",
+            "timeout": 5000
+          }
         ]
       }
     ],
@@ -13,21 +17,33 @@
       {
         "matcher": "",
         "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" post-tool", "timeout": 5000 }
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" post-tool",
+            "timeout": 5000
+          }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" prompt-submit", "timeout": 5000 }
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" prompt-submit",
+            "timeout": 5000
+          }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" stop", "timeout": 5000 }
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" stop",
+            "timeout": 5000
+          }
         ]
       }
     ]

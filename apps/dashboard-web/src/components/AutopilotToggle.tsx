@@ -33,15 +33,21 @@ export function AutopilotToggle({
         <span className="font-medium">Autopilot</span>
       </label>
       <input
-        type="number" min={1} placeholder="budget min"
+        type="number"
+        min={1}
+        placeholder="budget min"
         className="w-24 rounded border border-border bg-background px-2 py-1"
-        value={budgetMin} onChange={(e) => setBudgetMin(e.target.value)}
+        value={budgetMin}
+        onChange={(e) => setBudgetMin(e.target.value)}
         disabled={!enabled}
       />
       <input
-        type="number" min={1} placeholder="budget tokens"
+        type="number"
+        min={1}
+        placeholder="budget tokens"
         className="w-32 rounded border border-border bg-background px-2 py-1"
-        value={budgetTok} onChange={(e) => setBudgetTok(e.target.value)}
+        value={budgetTok}
+        onChange={(e) => setBudgetTok(e.target.value)}
         disabled={!enabled}
       />
       <button

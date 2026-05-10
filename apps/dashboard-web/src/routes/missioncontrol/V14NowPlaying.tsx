@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  useGlobalRuns,
-  useProjects,
-  useProjectRuns,
-  useRunsSummary,
-  useTeam,
-} from '@/api/queries';
+import { useGlobalRuns, useProjects, useProjectRuns, useRunsSummary, useTeam } from '@/api/queries';
 import type { GlobalRunRow } from '@/api/queries';
 import { VariantSwitcher } from './Switcher';
 
@@ -41,7 +35,6 @@ function durationOf(r: GlobalRunRow): number {
   return Math.max(0, (end - start) / 1000);
 }
 
-
 export function MissionControlV14NowPlaying() {
   const projects = useProjects();
   const summary = useRunsSummary(7);
@@ -74,19 +67,22 @@ export function MissionControlV14NowPlaying() {
   useEffect(() => {
     if (selectedId == null && sortedProjects.length > 0) {
       const firstActive = sortedProjects.find((p) =>
-        (projMap.get(p.id) ?? []).some((r) => classify(r) === 'running' || classify(r) === 'paused'),
+        (projMap.get(p.id) ?? []).some(
+          (r) => classify(r) === 'running' || classify(r) === 'paused',
+        ),
       );
       setSelectedId(firstActive?.id ?? sortedProjects[0]?.id ?? null);
     }
   }, [selectedId, sortedProjects, projMap]);
 
   const selected = sortedProjects.find((p) => p.id === selectedId) ?? null;
-  const selectedRuns = selectedId ? projMap.get(selectedId) ?? [] : [];
+  const selectedRuns = selectedId ? (projMap.get(selectedId) ?? []) : [];
   const team = useTeam(selectedId ?? undefined);
   const projectRuns = useProjectRuns(selectedId ?? undefined);
 
   const allLive = useMemo(
-    () => (globalRuns.data ?? []).filter((r) => classify(r) === 'running' || classify(r) === 'paused'),
+    () =>
+      (globalRuns.data ?? []).filter((r) => classify(r) === 'running' || classify(r) === 'paused'),
     [globalRuns.data],
   );
   const nowPlaying = allLive[0] ?? null;
@@ -102,7 +98,10 @@ export function MissionControlV14NowPlaying() {
   }, []);
 
   const projectHue = selectedId
-    ? HUES[(sortedProjects.findIndex((p) => p.id === selectedId) % HUES.length + HUES.length) % HUES.length] ?? 22
+    ? (HUES[
+        ((sortedProjects.findIndex((p) => p.id === selectedId) % HUES.length) + HUES.length) %
+          HUES.length
+      ] ?? 22)
     : 22;
 
   return (
@@ -161,7 +160,9 @@ export function MissionControlV14NowPlaying() {
             )}
             {sortedProjects.map((p, i) => {
               const rs = projMap.get(p.id) ?? [];
-              const live = rs.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length;
+              const live = rs.filter(
+                (r) => classify(r) === 'running' || classify(r) === 'paused',
+              ).length;
               const isSel = selectedId === p.id;
               const hue = HUES[i % HUES.length] ?? 22;
               return (
@@ -181,7 +182,9 @@ export function MissionControlV14NowPlaying() {
                       {p.name.slice(0, 2)}
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                      <span className="truncate text-[13px] font-medium text-stone-100">{p.name}</span>
+                      <span className="truncate text-[13px] font-medium text-stone-100">
+                        {p.name}
+                      </span>
                       <span className="truncate font-mono text-[10px] text-stone-500">
                         {rs.length} run{rs.length === 1 ? '' : 's'}
                       </span>
@@ -205,7 +208,11 @@ export function MissionControlV14NowPlaying() {
               <span>7d</span>
             </div>
             <div className="mt-2 grid grid-cols-2 gap-2 text-[12px]">
-              <Stat k="Active" v={String(summary.data?.activeCount ?? 0)} tone={(summary.data?.activeCount ?? 0) > 0 ? '#34d399' : undefined} />
+              <Stat
+                k="Active"
+                v={String(summary.data?.activeCount ?? 0)}
+                tone={(summary.data?.activeCount ?? 0) > 0 ? '#34d399' : undefined}
+              />
               <Stat k="Runs" v={String(summary.data?.totalRuns ?? 0)} />
               <Stat k="Tok" v={fmtTok(summary.data?.totalTokens ?? 0)} />
               <Stat k="OK" v={`${Math.round((summary.data?.successRate ?? 0) * 100)}%`} />
@@ -244,11 +251,27 @@ export function MissionControlV14NowPlaying() {
                   <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] uppercase tracking-[0.22em] text-stone-300">
                     <span>{selectedRuns.length} runs on file</span>
                     <span>·</span>
-                    <span style={{ color: selectedRuns.some((r) => classify(r) === 'running') ? '#34d399' : undefined }}>
-                      {selectedRuns.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length} live
+                    <span
+                      style={{
+                        color: selectedRuns.some((r) => classify(r) === 'running')
+                          ? '#34d399'
+                          : undefined,
+                      }}
+                    >
+                      {
+                        selectedRuns.filter(
+                          (r) => classify(r) === 'running' || classify(r) === 'paused',
+                        ).length
+                      }{' '}
+                      live
                     </span>
                     <span>·</span>
-                    <span>tok {fmtTok(selectedRuns.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0))}</span>
+                    <span>
+                      tok{' '}
+                      {fmtTok(
+                        selectedRuns.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0),
+                      )}
+                    </span>
                     <span>·</span>
                     <Link
                       to={`/projects/${selected.id}`}
@@ -278,7 +301,9 @@ export function MissionControlV14NowPlaying() {
                     <span className="text-right">state</span>
                   </div>
                   {selectedRuns.length === 0 ? (
-                    <div className="px-4 py-6 italic text-stone-500">No tracks on this project yet.</div>
+                    <div className="px-4 py-6 italic text-stone-500">
+                      No tracks on this project yet.
+                    </div>
                   ) : (
                     <ul>
                       {selectedRuns.map((r, i) => {
@@ -357,23 +382,29 @@ export function MissionControlV14NowPlaying() {
             {team.data?.roles && team.data.roles.length > 0 ? (
               <ul className="flex flex-col gap-3">
                 {team.data.roles.map((role) => {
-                  const tone =
-                    role.role.toLowerCase().includes('architect')
-                      ? '#67e8f9'
-                      : role.role.toLowerCase().includes('qa') || role.role.toLowerCase().includes('review')
-                        ? '#fcd34d'
-                        : '#86efac';
+                  const tone = role.role.toLowerCase().includes('architect')
+                    ? '#67e8f9'
+                    : role.role.toLowerCase().includes('qa') ||
+                        role.role.toLowerCase().includes('review')
+                      ? '#fcd34d'
+                      : '#86efac';
                   return (
                     <li key={role.role} className="flex flex-col gap-2 rounded-md bg-white/5 p-3">
                       <div className="flex items-center gap-2.5">
                         <span
                           className="grid h-9 w-9 flex-none place-items-center rounded-full text-[12px] font-bold uppercase"
-                          style={{ background: `${tone}1f`, color: tone, border: `1px solid ${tone}40` }}
+                          style={{
+                            background: `${tone}1f`,
+                            color: tone,
+                            border: `1px solid ${tone}40`,
+                          }}
                         >
                           {role.role.slice(0, 2)}
                         </span>
                         <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                          <span className="truncate text-[13px] font-medium text-stone-100">{role.role}</span>
+                          <span className="truncate text-[13px] font-medium text-stone-100">
+                            {role.role}
+                          </span>
                           <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
                             {role.model}
                           </span>
@@ -391,7 +422,10 @@ export function MissionControlV14NowPlaying() {
                 {selected ? (
                   <>
                     No team configured.{' '}
-                    <Link to={`/projects/${selected.id}/teams`} className="text-amber-300 hover:underline">
+                    <Link
+                      to={`/projects/${selected.id}/teams`}
+                      className="text-amber-300 hover:underline"
+                    >
                       Configure →
                     </Link>
                   </>
@@ -423,7 +457,7 @@ export function MissionControlV14NowPlaying() {
               <span
                 className="grid h-12 w-12 flex-none place-items-center rounded text-[12px] font-bold uppercase"
                 style={{
-                  background: `linear-gradient(135deg, hsl(${HUES[(sortedProjects.findIndex((p) => p.id === nowPlaying.projectId) % HUES.length + HUES.length) % HUES.length] ?? 22} 70% 45%), hsl(${(HUES[(sortedProjects.findIndex((p) => p.id === nowPlaying.projectId) % HUES.length + HUES.length) % HUES.length] ?? 22) + 30} 70% 28%))`,
+                  background: `linear-gradient(135deg, hsl(${HUES[((sortedProjects.findIndex((p) => p.id === nowPlaying.projectId) % HUES.length) + HUES.length) % HUES.length] ?? 22} 70% 45%), hsl(${(HUES[((sortedProjects.findIndex((p) => p.id === nowPlaying.projectId) % HUES.length) + HUES.length) % HUES.length] ?? 22) + 30} 70% 28%))`,
                   color: 'white',
                 }}
               >
@@ -444,14 +478,32 @@ export function MissionControlV14NowPlaying() {
             </div>
             <div className="flex flex-col items-stretch gap-1">
               <div className="flex items-center justify-center gap-3">
-                <button className="rounded-full p-1.5 text-stone-400 hover:text-stone-100" disabled aria-label="Previous">
-                  <svg width={16} height={16} viewBox="0 0 16 16" fill="currentColor"><path d="M3 2v12M14 2L5 8l9 6V2z" /></svg>
+                <button
+                  className="rounded-full p-1.5 text-stone-400 hover:text-stone-100"
+                  disabled
+                  aria-label="Previous"
+                >
+                  <svg width={16} height={16} viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M3 2v12M14 2L5 8l9 6V2z" />
+                  </svg>
                 </button>
-                <button className="grid h-9 w-9 place-items-center rounded-full bg-white text-black hover:scale-105" aria-label="Pause" disabled>
-                  <svg width={14} height={14} viewBox="0 0 14 14" fill="currentColor"><path d="M3 2h3v10H3zM8 2h3v10H8z" /></svg>
+                <button
+                  className="grid h-9 w-9 place-items-center rounded-full bg-white text-black hover:scale-105"
+                  aria-label="Pause"
+                  disabled
+                >
+                  <svg width={14} height={14} viewBox="0 0 14 14" fill="currentColor">
+                    <path d="M3 2h3v10H3zM8 2h3v10H8z" />
+                  </svg>
                 </button>
-                <button className="rounded-full p-1.5 text-stone-400 hover:text-stone-100" disabled aria-label="Next">
-                  <svg width={16} height={16} viewBox="0 0 16 16" fill="currentColor"><path d="M13 2v12M2 2l9 6-9 6V2z" /></svg>
+                <button
+                  className="rounded-full p-1.5 text-stone-400 hover:text-stone-100"
+                  disabled
+                  aria-label="Next"
+                >
+                  <svg width={16} height={16} viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M13 2v12M2 2l9 6-9 6V2z" />
+                  </svg>
                 </button>
               </div>
               <div className="flex items-center gap-2 font-mono text-[10px] tabular-nums text-stone-400">
@@ -500,7 +552,10 @@ function Stat({ k, v, tone }: { k: string; v: string; tone?: string }) {
   return (
     <div className="flex flex-col rounded-md bg-white/5 px-2 py-1.5 leading-none">
       <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-stone-500">{k}</span>
-      <span className="mt-0.5 font-mono text-[13px] tabular-nums" style={{ color: tone ?? '#e7e5e4' }}>
+      <span
+        className="mt-0.5 font-mono text-[13px] tabular-nums"
+        style={{ color: tone ?? '#e7e5e4' }}
+      >
         {v}
       </span>
     </div>

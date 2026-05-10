@@ -22,7 +22,12 @@ function fmtTok(n: number) {
 
 function rel(d: string | Date | null | undefined | number) {
   if (!d && d !== 0) return '—';
-  const t = typeof d === 'number' ? d : typeof d === 'string' ? new Date(d).getTime() : (d as Date).getTime();
+  const t =
+    typeof d === 'number'
+      ? d
+      : typeof d === 'string'
+        ? new Date(d).getTime()
+        : (d as Date).getTime();
   const dt = Date.now() - t;
   if (dt < 60_000) return `${Math.floor(dt / 1000)}s`;
   if (dt < 3_600_000) return `${Math.floor(dt / 60_000)}m`;
@@ -119,7 +124,12 @@ export function MissionControlV20Inbox() {
       }
     });
     // sort: failure → rate-limit → paused → anomaly
-    const order: Record<TriageItem['kind'], number> = { failure: 0, 'rate-limit': 1, paused: 2, anomaly: 3 };
+    const order: Record<TriageItem['kind'], number> = {
+      failure: 0,
+      'rate-limit': 1,
+      paused: 2,
+      anomaly: 3,
+    };
     items.sort((a, b) => order[a.kind] - order[b.kind]);
     return items;
   }, [data, projectStats]);
@@ -162,13 +172,16 @@ export function MissionControlV20Inbox() {
       <header className="grid grid-cols-[1fr_auto] items-end gap-6 border-b border-stone-200 px-6 pb-3">
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500">
-            inbox · {triage.length === 0 ? 'all clear' : `${triage.length} item${triage.length === 1 ? '' : 's'} need attention`}
+            inbox ·{' '}
+            {triage.length === 0
+              ? 'all clear'
+              : `${triage.length} item${triage.length === 1 ? '' : 's'} need attention`}
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-stone-900">
             {triage.length === 0
               ? "You're caught up. Nothing to do."
               : triage.length === 1
-                ? "One thing needs you."
+                ? 'One thing needs you.'
                 : `${triage.length} things need you.`}
           </h1>
         </div>
@@ -182,7 +195,10 @@ export function MissionControlV20Inbox() {
           ].map((s) => (
             <div key={s.k} className="flex flex-col items-end leading-none">
               <span className="text-[9px] uppercase tracking-[0.22em] text-stone-500">{s.k}</span>
-              <span className="mt-1 text-[15px] font-semibold text-stone-900" style={{ color: s.tone }}>
+              <span
+                className="mt-1 text-[15px] font-semibold text-stone-900"
+                style={{ color: s.tone }}
+              >
                 {s.v}
               </span>
             </div>
@@ -209,7 +225,10 @@ export function MissionControlV20Inbox() {
                     key={`${t.kind}-${t.run.id}`}
                     className="row group grid grid-cols-[8px_1fr_auto] items-center gap-3 border-b border-stone-100 px-4 py-2.5 last:border-b-0"
                   >
-                    <span className="block h-1.5 w-1.5 rounded-full" style={{ background: t.tone }} />
+                    <span
+                      className="block h-1.5 w-1.5 rounded-full"
+                      style={{ background: t.tone }}
+                    />
                     <Link
                       to={`/projects/${t.run.projectId}/run/${t.run.id}`}
                       className="flex min-w-0 flex-col gap-0.5"
@@ -285,13 +304,19 @@ export function MissionControlV20Inbox() {
                         className="flex flex-col gap-0.5 min-w-0"
                       >
                         <div className="flex flex-wrap items-baseline gap-x-2">
-                          <span className="text-[14px] font-semibold tracking-tight">{r.projectName}</span>
-                          <span className="font-mono text-[11px] text-stone-500">{r.id.slice(0, 8)}</span>
+                          <span className="text-[14px] font-semibold tracking-tight">
+                            {r.projectName}
+                          </span>
+                          <span className="font-mono text-[11px] text-stone-500">
+                            {r.id.slice(0, 8)}
+                          </span>
                         </div>
                         <div className="flex flex-wrap gap-x-3 font-mono text-[11px] text-stone-500">
                           <span>tok {fmtTok(r.tokensInTotal + r.tokensOutTotal)}</span>
                           <span>turns {r.turnsTotal}</span>
-                          <span>{Math.round(elapsedMin)}m / {r.budgetMinutes}m budget</span>
+                          <span>
+                            {Math.round(elapsedMin)}m / {r.budgetMinutes}m budget
+                          </span>
                         </div>
                       </Link>
                       <div>
@@ -300,7 +325,8 @@ export function MissionControlV20Inbox() {
                             className="h-full"
                             style={{
                               width: `${usage}%`,
-                              background: usage > 90 ? '#dc2626' : usage > 70 ? '#d97706' : '#0891b2',
+                              background:
+                                usage > 90 ? '#dc2626' : usage > 70 ? '#d97706' : '#0891b2',
                             }}
                           />
                         </div>
@@ -308,7 +334,9 @@ export function MissionControlV20Inbox() {
                           {Math.round(usage)}%
                         </div>
                       </div>
-                      <span className="font-mono text-[11px] text-stone-500">{rel(r.startedAt)}</span>
+                      <span className="font-mono text-[11px] text-stone-500">
+                        {rel(r.startedAt)}
+                      </span>
                     </li>
                   );
                 })}
@@ -348,7 +376,9 @@ export function MissionControlV20Inbox() {
                         className="flex items-baseline gap-2 truncate text-[13px]"
                       >
                         <span className="font-semibold tracking-tight">{r.projectName}</span>
-                        <span className="font-mono text-[11px] text-stone-500">{r.id.slice(0, 8)}</span>
+                        <span className="font-mono text-[11px] text-stone-500">
+                          {r.id.slice(0, 8)}
+                        </span>
                       </Link>
                       <span
                         className="text-right font-mono text-[10px] uppercase tracking-[0.18em]"
@@ -359,8 +389,12 @@ export function MissionControlV20Inbox() {
                       <span className="text-right font-mono tabular-nums text-stone-700">
                         {fmtTok(r.tokensInTotal + r.tokensOutTotal)}
                       </span>
-                      <span className="text-right font-mono tabular-nums text-stone-500">{r.turnsTotal}t</span>
-                      <span className="font-mono text-[11px] text-stone-500">{rel(r.endedAt)} ago</span>
+                      <span className="text-right font-mono tabular-nums text-stone-500">
+                        {r.turnsTotal}t
+                      </span>
+                      <span className="font-mono text-[11px] text-stone-500">
+                        {rel(r.endedAt)} ago
+                      </span>
                     </li>
                   );
                 })}
@@ -372,7 +406,9 @@ export function MissionControlV20Inbox() {
         <aside className="flex min-h-0 flex-col border-l border-stone-200 bg-white">
           <header className="border-b border-stone-200 px-4 py-3">
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500">agents</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-stone-500">
+                agents
+              </span>
               <span className="rounded-full bg-amber-100 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.18em] text-amber-800">
                 wip
               </span>
@@ -416,7 +452,9 @@ export function MissionControlV20Inbox() {
                 value={composer}
                 onChange={(e) => setComposer(e.target.value)}
                 rows={3}
-                placeholder={triage[0] ? `why did ${triage[0].run.projectName} fail?` : 'ask anything…'}
+                placeholder={
+                  triage[0] ? `why did ${triage[0].run.projectName} fail?` : 'ask anything…'
+                }
                 className="w-full resize-none border-0 bg-transparent text-[12px] outline-none placeholder:text-stone-400"
               />
               <div className="flex items-center justify-between font-mono text-[10px] text-stone-500">
@@ -431,7 +469,8 @@ export function MissionControlV20Inbox() {
       <footer className="flex items-center justify-between border-t border-stone-200 bg-white px-6 py-2 font-mono text-[10px] uppercase tracking-[0.22em] text-stone-500">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-600" /> ws · live
+            <span className="block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-600" /> ws ·
+            live
           </span>
           <span>rate-limit · ok</span>
           <span>v1.2.0</span>

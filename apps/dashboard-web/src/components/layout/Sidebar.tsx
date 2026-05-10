@@ -1,7 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Plus, FolderOpen, LayoutGrid, Bot, MessagesSquare, Wrench, Activity, Sparkles, GitBranch } from 'lucide-react';
+import {
+  Plus,
+  FolderOpen,
+  LayoutGrid,
+  Bot,
+  MessagesSquare,
+  Wrench,
+  Activity,
+  Sparkles,
+  GitBranch,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';

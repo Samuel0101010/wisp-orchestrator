@@ -4,7 +4,12 @@ import { planGoap, type Action } from '../goap.js';
 const actions: Action[] = [
   { name: 'gather-info', cost: 1, preconditions: {}, effects: { hasInfo: true } },
   { name: 'analyze', cost: 2, preconditions: { hasInfo: true }, effects: { hasAnalysis: true } },
-  { name: 'write-report', cost: 3, preconditions: { hasAnalysis: true }, effects: { hasReport: true } },
+  {
+    name: 'write-report',
+    cost: 3,
+    preconditions: { hasAnalysis: true },
+    effects: { hasReport: true },
+  },
 ];
 
 describe('GOAP planner', () => {

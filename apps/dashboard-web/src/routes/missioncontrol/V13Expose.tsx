@@ -45,7 +45,13 @@ function MicroBars({ data, color }: { data: number[]; color: string }) {
     <div className="flex h-9 items-end gap-[3px]" aria-hidden>
       {data.map((v, i) => {
         const h = Math.max(2, (v / max) * 36);
-        return <span key={i} className="flex-1" style={{ height: h, background: color, opacity: v ? 0.8 : 0.15, borderRadius: 1 }} />;
+        return (
+          <span
+            key={i}
+            className="flex-1"
+            style={{ height: h, background: color, opacity: v ? 0.8 : 0.15, borderRadius: 1 }}
+          />
+        );
       })}
     </div>
   );
@@ -83,7 +89,9 @@ export function MissionControlV13Expose() {
         const buckets = Array.from({ length: 14 }, () => 0);
         rs.forEach((r) => {
           if (!r.startedAt) return;
-          const days = Math.floor((Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000);
+          const days = Math.floor(
+            (Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000,
+          );
           if (days < 0 || days >= 14) return;
           buckets[13 - days] = (buckets[13 - days] ?? 0) + (r.tokensInTotal + r.tokensOutTotal);
         });
@@ -92,7 +100,13 @@ export function MissionControlV13Expose() {
         const ok = rs.filter((r) => classify(r) === 'success').length;
         const fail = rs.filter((r) => classify(r) === 'failure').length;
         const primaryState: keyof typeof TONE =
-          live.length > 0 ? 'running' : fail > ok ? 'failure' : closed.length > 0 ? 'success' : 'pending';
+          live.length > 0
+            ? 'running'
+            : fail > ok
+              ? 'failure'
+              : closed.length > 0
+                ? 'success'
+                : 'pending';
         return {
           id: p.id,
           name: p.name,
@@ -193,7 +207,9 @@ export function MissionControlV13Expose() {
                           boxShadow: t.liveRuns.length > 0 ? `0 0 0 3px ${tone}26` : 'none',
                         }}
                       />
-                      <h2 className="truncate text-[16px] font-semibold tracking-tight">{t.name}</h2>
+                      <h2 className="truncate text-[16px] font-semibold tracking-tight">
+                        {t.name}
+                      </h2>
                     </div>
                     <div className="mt-0.5 line-clamp-2 text-[12px] text-stone-600">{t.goal}</div>
                   </div>
@@ -209,7 +225,10 @@ export function MissionControlV13Expose() {
 
                 {/* 4 micro-widgets */}
                 <div className="grid grid-cols-2 gap-3 px-5 pb-4">
-                  <Widget label="Live runs" sub={t.liveRuns.length > 0 ? `tracking ${t.liveRuns.length}` : 'idle'}>
+                  <Widget
+                    label="Live runs"
+                    sub={t.liveRuns.length > 0 ? `tracking ${t.liveRuns.length}` : 'idle'}
+                  >
                     <span className="text-3xl font-light leading-none tabular-nums">
                       {t.liveRuns.length}
                     </span>
@@ -344,9 +363,15 @@ export function MissionControlV13Expose() {
         >
           <div className="flex items-center gap-2">
             <span className="block h-2 w-2 animate-pulse rounded-full bg-cyan-500" />
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-stone-500">aggregate</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-stone-500">
+              aggregate
+            </span>
           </div>
-          <Stat k="Active" v={String(summary.data?.activeCount ?? 0)} tone={(summary.data?.activeCount ?? 0) > 0 ? '#0e7490' : undefined} />
+          <Stat
+            k="Active"
+            v={String(summary.data?.activeCount ?? 0)}
+            tone={(summary.data?.activeCount ?? 0) > 0 ? '#0e7490' : undefined}
+          />
           <Stat k="Runs · 7d" v={String(summary.data?.totalRuns ?? 0)} />
           <Stat k="Tokens · 7d" v={fmtTok(summary.data?.totalTokens ?? 0)} />
           <Stat k="OK" v={`${Math.round((summary.data?.successRate ?? 0) * 100)}%`} />

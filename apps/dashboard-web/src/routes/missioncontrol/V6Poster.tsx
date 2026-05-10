@@ -16,11 +16,14 @@ function fmtTok(n: number) {
   return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
-function classify(r: GlobalRunRow): 'running' | 'paused' | 'success' | 'failure' | 'cancelled' | 'pending' {
+function classify(
+  r: GlobalRunRow,
+): 'running' | 'paused' | 'success' | 'failure' | 'cancelled' | 'pending' {
   if (r.status === 'running') return 'running';
   if (r.status === 'paused') return 'paused';
   if (r.status === 'cancelled') return 'cancelled';
-  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded') return 'failure';
+  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded')
+    return 'failure';
   if (r.status === 'completed') return 'success';
   return 'pending';
 }
@@ -112,7 +115,9 @@ export function MissionControlV6Poster() {
         >
           <div className="flex items-baseline justify-between">
             <span className="stamp text-[11px]">Now playing · in flight</span>
-            <span className="stamp text-[11px]">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}</span>
+            <span className="stamp text-[11px]">
+              {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+            </span>
           </div>
           <div className="mega self-start" style={{ fontSize: 'clamp(8rem, 22vw, 22rem)' }}>
             {String(active).padStart(2, '0')}
@@ -120,10 +125,15 @@ export function MissionControlV6Poster() {
           <div className="flex items-end justify-between gap-6">
             <div className="max-w-[44ch]">
               <div className="text-3xl font-black uppercase tracking-tight">
-                {active === 0 ? 'all quiet on the line' : active === 1 ? 'one run in flight' : `${active} runs in flight`}
+                {active === 0
+                  ? 'all quiet on the line'
+                  : active === 1
+                    ? 'one run in flight'
+                    : `${active} runs in flight`}
               </div>
               <div className="mt-1 text-sm text-stone-900/80">
-                across {projectStats.length} projects on the books · {total} departures over the last seven days
+                across {projectStats.length} projects on the books · {total} departures over the
+                last seven days
               </div>
             </div>
             <div className="stamp text-[11px] text-stone-900/70">
@@ -178,7 +188,10 @@ export function MissionControlV6Poster() {
             {tokensByDay.length === 0
               ? Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} className="flex flex-1 flex-col items-center gap-2">
-                    <div className="w-full" style={{ height: 8, background: 'rgba(239,230,210,0.25)' }} />
+                    <div
+                      className="w-full"
+                      style={{ height: 8, background: 'rgba(239,230,210,0.25)' }}
+                    />
                     <span className="stamp text-[9px] opacity-60">·</span>
                   </div>
                 ))
@@ -207,7 +220,9 @@ export function MissionControlV6Poster() {
           style={{ background: CREAM, color: INK, minHeight: 360 }}
         >
           <div className="flex items-baseline justify-between">
-            <span className="stamp text-[11px] text-stone-700">Track 04 · the docket · recent runs</span>
+            <span className="stamp text-[11px] text-stone-700">
+              Track 04 · the docket · recent runs
+            </span>
             <span className="stamp text-[11px] text-stone-700">{data.length} on file</span>
           </div>
           {recent.length === 0 ? (
@@ -227,7 +242,10 @@ export function MissionControlV6Poster() {
                         ? '#736a55'
                         : TEAL;
                 return (
-                  <li key={r.id} className="flex items-baseline gap-3 border-b border-stone-900/20 py-1.5">
+                  <li
+                    key={r.id}
+                    className="flex items-baseline gap-3 border-b border-stone-900/20 py-1.5"
+                  >
                     <span className="w-7 text-right font-mono text-[12px] tabular-nums text-stone-600">
                       {String(i + 1).padStart(2, '0')}
                     </span>
@@ -235,8 +253,12 @@ export function MissionControlV6Poster() {
                       to={`/projects/${r.projectId}/run/${r.id}`}
                       className="flex flex-1 items-baseline gap-3 hover:opacity-70"
                     >
-                      <span className="text-[15px] font-black uppercase tracking-tight">{r.projectName}</span>
-                      <span className="font-mono text-[11px] text-stone-600">{r.id.slice(0, 8)}</span>
+                      <span className="text-[15px] font-black uppercase tracking-tight">
+                        {r.projectName}
+                      </span>
+                      <span className="font-mono text-[11px] text-stone-600">
+                        {r.id.slice(0, 8)}
+                      </span>
                       <span className="ml-auto stamp text-[10px]" style={{ color: tone }}>
                         {c}
                       </span>

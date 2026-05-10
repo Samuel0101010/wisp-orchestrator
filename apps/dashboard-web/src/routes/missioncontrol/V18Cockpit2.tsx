@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  useGlobalRuns,
-  useProjects,
-  useProjectRuns,
-  useRunsSummary,
-  useTeam,
-} from '@/api/queries';
+import { useGlobalRuns, useProjects, useProjectRuns, useRunsSummary, useTeam } from '@/api/queries';
 import type { GlobalRunRow } from '@/api/queries';
 import { VariantSwitcher } from './Switcher';
 
@@ -53,7 +47,9 @@ function elapsedSec(r: GlobalRunRow): number {
 const COST_PER_M_IN = 3;
 const COST_PER_M_OUT = 15;
 function projectedCost(r: GlobalRunRow): number {
-  return (r.tokensInTotal / 1_000_000) * COST_PER_M_IN + (r.tokensOutTotal / 1_000_000) * COST_PER_M_OUT;
+  return (
+    (r.tokensInTotal / 1_000_000) * COST_PER_M_IN + (r.tokensOutTotal / 1_000_000) * COST_PER_M_OUT
+  );
 }
 
 function burnRateEta(r: GlobalRunRow): { tokPerMin: number; etaMs: number; etaText: string } {
@@ -116,8 +112,9 @@ export function MissionControlV18Cockpit2() {
   const selected = sortedProjects.find((p) => p.id === selectedId) ?? null;
   const team = useTeam(selectedId ?? undefined);
   const projectRunRows = useProjectRuns(selectedId ?? undefined);
-  const selectedRuns = selectedId ? projectMap.get(selectedId) ?? [] : [];
-  const liveRun = selectedRuns.find((r) => classify(r) === 'running' || classify(r) === 'paused') ?? null;
+  const selectedRuns = selectedId ? (projectMap.get(selectedId) ?? []) : [];
+  const liveRun =
+    selectedRuns.find((r) => classify(r) === 'running' || classify(r) === 'paused') ?? null;
 
   // Cross-project live runs (for aggregate mode)
   const allLive = (globalRuns.data ?? []).filter(
@@ -209,13 +206,19 @@ export function MissionControlV18Cockpit2() {
         {/* LEFT — projects rail */}
         <aside className="flex min-h-0 flex-col overflow-auto bg-[#08090b]">
           <div className="flex items-baseline justify-between border-b border-white/5 px-4 py-2.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">projects</span>
-            <span className="font-mono text-[10px] tabular-nums text-zinc-500">{sortedProjects.length}</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-zinc-500">
+              projects
+            </span>
+            <span className="font-mono text-[10px] tabular-nums text-zinc-500">
+              {sortedProjects.length}
+            </span>
           </div>
           <ul className="flex-1">
             {sortedProjects.map((p) => {
               const rs = projectMap.get(p.id) ?? [];
-              const live = rs.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length;
+              const live = rs.filter(
+                (r) => classify(r) === 'running' || classify(r) === 'paused',
+              ).length;
               const tok = rs.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0);
               const isSel = selectedId === p.id;
               return (
@@ -232,7 +235,9 @@ export function MissionControlV18Cockpit2() {
                       style={{ background: live > 0 ? '#22d3ee' : '#3f3f46' }}
                     />
                     <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                      <span className="truncate text-[13px] font-medium text-zinc-100">{p.name}</span>
+                      <span className="truncate text-[13px] font-medium text-zinc-100">
+                        {p.name}
+                      </span>
                       <span className="font-mono text-[10px] text-zinc-500">
                         {rs.length} runs · {fmtTok(tok)}
                       </span>
@@ -256,7 +261,9 @@ export function MissionControlV18Cockpit2() {
         <main className="min-h-0 overflow-auto bg-[#0b0c10]">
           {mode === 'aggregate' ? (
             <div className="flex flex-col gap-4 px-6 pb-6 pt-5">
-              <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">All projects · in flight</h2>
+              <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">
+                All projects · in flight
+              </h2>
               {allLive.length === 0 ? (
                 <div className="rounded-lg border border-white/10 bg-white/3 p-12 text-center font-mono text-[12px] text-zinc-500">
                   Nothing live across {sortedProjects.length} projects.
@@ -271,22 +278,45 @@ export function MissionControlV18Cockpit2() {
                 </ul>
               )}
 
-              <h2 className="mt-4 text-base font-semibold tracking-tight text-zinc-200">Recent across projects</h2>
+              <h2 className="mt-4 text-base font-semibold tracking-tight text-zinc-200">
+                Recent across projects
+              </h2>
               <ul className="overflow-hidden rounded-lg border border-white/10">
                 {(globalRuns.data ?? []).slice(0, 12).map((r) => (
-                  <li key={r.id} className="border-b border-white/5 px-3 py-2 hover:bg-white/3 last:border-b-0">
+                  <li
+                    key={r.id}
+                    className="border-b border-white/5 px-3 py-2 hover:bg-white/3 last:border-b-0"
+                  >
                     <Link
                       to={`/projects/${r.projectId}/run/${r.id}`}
                       className="grid grid-cols-[1fr_72px_72px_60px_56px] items-baseline gap-3 text-[12px]"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <span className="block h-1.5 w-1.5 flex-none rounded-full" style={{ background: classify(r) === 'failure' ? '#fb7185' : classify(r) === 'success' ? '#86efac' : '#67e8f9' }} />
+                        <span
+                          className="block h-1.5 w-1.5 flex-none rounded-full"
+                          style={{
+                            background:
+                              classify(r) === 'failure'
+                                ? '#fb7185'
+                                : classify(r) === 'success'
+                                  ? '#86efac'
+                                  : '#67e8f9',
+                          }}
+                        />
                         <span className="text-zinc-200">{r.projectName}</span>
-                        <span className="font-mono text-[11px] text-zinc-500">{r.id.slice(0, 8)}</span>
+                        <span className="font-mono text-[11px] text-zinc-500">
+                          {r.id.slice(0, 8)}
+                        </span>
                       </div>
-                      <span className="text-right font-mono tabular-nums text-zinc-300">{fmtTok(r.tokensInTotal + r.tokensOutTotal)}</span>
-                      <span className="text-right font-mono tabular-nums text-zinc-500">{fmtUsd(projectedCost(r))}</span>
-                      <span className="text-right font-mono tabular-nums text-zinc-500">{r.turnsTotal}t</span>
+                      <span className="text-right font-mono tabular-nums text-zinc-300">
+                        {fmtTok(r.tokensInTotal + r.tokensOutTotal)}
+                      </span>
+                      <span className="text-right font-mono tabular-nums text-zinc-500">
+                        {fmtUsd(projectedCost(r))}
+                      </span>
+                      <span className="text-right font-mono tabular-nums text-zinc-500">
+                        {r.turnsTotal}t
+                      </span>
                       <span className="text-right font-mono text-zinc-500">{rel(r.startedAt)}</span>
                     </Link>
                   </li>
@@ -302,8 +332,12 @@ export function MissionControlV18Cockpit2() {
               {/* Hero with project meta */}
               <header className="flex flex-wrap items-end justify-between gap-3 border-b border-white/5 pb-3">
                 <div className="min-w-0">
-                  <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">{selected.name}</h2>
-                  <p className="mt-1 line-clamp-2 max-w-prose text-[13px] text-zinc-400">{selected.goal}</p>
+                  <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">
+                    {selected.name}
+                  </h2>
+                  <p className="mt-1 line-clamp-2 max-w-prose text-[13px] text-zinc-400">
+                    {selected.goal}
+                  </p>
                 </div>
                 <Link
                   to={`/projects/${selected.id}`}
@@ -314,15 +348,16 @@ export function MissionControlV18Cockpit2() {
               </header>
 
               {/* KILLER: Burn rate ETA panel — only when run live */}
-              {liveRun && (
-                <BurnRatePanel run={liveRun} />
-              )}
+              {liveRun && <BurnRatePanel run={liveRun} />}
 
               {/* Run lanes */}
               <section className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">in flight</div>
-                  {selectedRuns.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length === 0 ? (
+                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                    in flight
+                  </div>
+                  {selectedRuns.filter((r) => classify(r) === 'running' || classify(r) === 'paused')
+                    .length === 0 ? (
                     <div className="rounded-lg border border-dashed border-white/10 px-4 py-6 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">
                       idle
                     </div>
@@ -333,14 +368,17 @@ export function MissionControlV18Cockpit2() {
                   )}
                 </div>
                 <div className="flex flex-col gap-2">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">history</div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                    history
+                  </div>
                   <ul className="flex-1 overflow-hidden rounded-lg border border-white/10">
                     {selectedRuns
                       .filter((r) => classify(r) !== 'running' && classify(r) !== 'paused')
                       .slice(0, 8)
                       .map((r) => {
                         const c = classify(r);
-                        const tone = c === 'failure' ? '#fb7185' : c === 'success' ? '#86efac' : '#71717a';
+                        const tone =
+                          c === 'failure' ? '#fb7185' : c === 'success' ? '#86efac' : '#71717a';
                         return (
                           <li key={r.id} className="border-b border-white/5 last:border-b-0">
                             <Link
@@ -348,22 +386,38 @@ export function MissionControlV18Cockpit2() {
                               className="grid grid-cols-[1fr_72px_72px_60px] items-baseline gap-3 px-3 py-2 text-[12px] hover:bg-white/3"
                             >
                               <div className="flex items-center gap-2 truncate">
-                                <span className="block h-1.5 w-1.5 flex-none rounded-full" style={{ background: tone }} />
+                                <span
+                                  className="block h-1.5 w-1.5 flex-none rounded-full"
+                                  style={{ background: tone }}
+                                />
                                 <span className="font-mono text-zinc-200">{r.id.slice(0, 10)}</span>
-                                <span className="font-mono text-[10px] uppercase tracking-[0.18em]" style={{ color: tone }}>{c}</span>
+                                <span
+                                  className="font-mono text-[10px] uppercase tracking-[0.18em]"
+                                  style={{ color: tone }}
+                                >
+                                  {c}
+                                </span>
                               </div>
-                              <span className="text-right font-mono tabular-nums text-zinc-300">{fmtTok(r.tokensInTotal + r.tokensOutTotal)}</span>
-                              <span className="text-right font-mono tabular-nums text-zinc-500">{fmtUsd(projectedCost(r))}</span>
-                              <span className="text-right font-mono text-zinc-500">{rel(r.startedAt)}</span>
+                              <span className="text-right font-mono tabular-nums text-zinc-300">
+                                {fmtTok(r.tokensInTotal + r.tokensOutTotal)}
+                              </span>
+                              <span className="text-right font-mono tabular-nums text-zinc-500">
+                                {fmtUsd(projectedCost(r))}
+                              </span>
+                              <span className="text-right font-mono text-zinc-500">
+                                {rel(r.startedAt)}
+                              </span>
                             </Link>
                           </li>
                         );
                       })}
-                    {projectRunRows.data && projectRunRows.data.length === 0 && selectedRuns.length === 0 && (
-                      <li className="px-4 py-6 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-                        no runs yet
-                      </li>
-                    )}
+                    {projectRunRows.data &&
+                      projectRunRows.data.length === 0 &&
+                      selectedRuns.length === 0 && (
+                        <li className="px-4 py-6 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+                          no runs yet
+                        </li>
+                      )}
                   </ul>
                 </div>
               </section>
@@ -375,11 +429,15 @@ export function MissionControlV18Cockpit2() {
         <aside className="flex min-h-0 flex-col bg-[#08090b]">
           <header className="border-b border-white/5 px-4 py-2.5">
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">agents</span>
-              <span className="rounded-full bg-amber-400/15 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.18em] text-amber-300">wip</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-zinc-500">
+                agents
+              </span>
+              <span className="rounded-full bg-amber-400/15 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.18em] text-amber-300">
+                wip
+              </span>
             </div>
             <div className="mt-1 truncate text-[12px] text-zinc-300">
-              {mode === 'aggregate' ? 'cross-project' : selected?.name ?? '—'}
+              {mode === 'aggregate' ? 'cross-project' : (selected?.name ?? '—')}
             </div>
           </header>
           <div className="flex-1 overflow-auto px-3 py-3">
@@ -397,12 +455,18 @@ export function MissionControlV18Cockpit2() {
                       >
                         <span
                           className="grid h-7 w-7 flex-none place-items-center rounded-full text-[10px] font-bold uppercase"
-                          style={{ background: `${tone}1f`, color: tone, border: `1px solid ${tone}40` }}
+                          style={{
+                            background: `${tone}1f`,
+                            color: tone,
+                            border: `1px solid ${tone}40`,
+                          }}
                         >
                           {role.role.slice(0, 2)}
                         </span>
                         <span className="flex min-w-0 flex-1 flex-col leading-tight">
-                          <span className="truncate text-[12px] font-medium text-zinc-100">@{role.role}</span>
+                          <span className="truncate text-[12px] font-medium text-zinc-100">
+                            @{role.role}
+                          </span>
                           <span className="font-mono text-[10px] text-zinc-500">{role.model}</span>
                         </span>
                       </button>
@@ -424,12 +488,21 @@ export function MissionControlV18Cockpit2() {
                 value={composer}
                 onChange={(e) => setComposer(e.target.value)}
                 rows={3}
-                placeholder={liveRun ? `why is run ${liveRun.id.slice(0, 6)} burning so fast?` : 'ask anything…'}
+                placeholder={
+                  liveRun
+                    ? `why is run ${liveRun.id.slice(0, 6)} burning so fast?`
+                    : 'ask anything…'
+                }
                 className="w-full resize-none border-0 bg-transparent text-[12px] text-zinc-100 outline-none placeholder:text-zinc-600"
               />
               <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] text-zinc-500">+ context: {liveRun ? 'live run' : selected?.name ?? '—'}</span>
-                <button className="rounded-full bg-cyan-500 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-950 disabled:bg-zinc-700 disabled:text-zinc-500" disabled>
+                <span className="font-mono text-[10px] text-zinc-500">
+                  + context: {liveRun ? 'live run' : (selected?.name ?? '—')}
+                </span>
+                <button
+                  className="rounded-full bg-cyan-500 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-950 disabled:bg-zinc-700 disabled:text-zinc-500"
+                  disabled
+                >
                   send · soon
                 </button>
               </div>
@@ -484,12 +557,18 @@ function LiveCard({ run }: { run: GlobalRunRow }) {
         <Field k="tok·out" v={fmtTok(run.tokensOutTotal)} />
         <Field k="turns" v={String(run.turnsTotal)} />
         <Field k="burn" v={`${Math.round(burn.tokPerMin)}/min`} tone="#67e8f9" />
-        <Field k="eta" v={burn.etaText} tone={burn.etaText.includes('exceeded') ? '#fb7185' : '#67e8f9'} />
+        <Field
+          k="eta"
+          v={burn.etaText}
+          tone={burn.etaText.includes('exceeded') ? '#fb7185' : '#67e8f9'}
+        />
         <Field k="cost·est" v={fmtUsd(cost)} tone="#fbbf24" />
       </div>
       <div className="mt-2.5">
         <div className="flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-          <span>budget {Math.round(elapsedMin)}m / {run.budgetMinutes}m</span>
+          <span>
+            budget {Math.round(elapsedMin)}m / {run.budgetMinutes}m
+          </span>
           <span>{Math.round(budgetUsage)}%</span>
         </div>
         <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/5">
@@ -511,7 +590,11 @@ function BurnRatePanel({ run }: { run: GlobalRunRow }) {
   const cost = projectedCost(run);
   const elapsedMin = elapsedSec(run) / 60;
   const budgetUsage = Math.min(100, (elapsedMin / run.budgetMinutes) * 100);
-  const tone = burn.etaText.includes('exceeded') ? '#fb7185' : budgetUsage > 80 ? '#fbbf24' : '#22d3ee';
+  const tone = burn.etaText.includes('exceeded')
+    ? '#fb7185'
+    : budgetUsage > 80
+      ? '#fbbf24'
+      : '#22d3ee';
   return (
     <section
       className="rounded-xl border-2 p-4"
@@ -535,7 +618,9 @@ function BurnRatePanel({ run }: { run: GlobalRunRow }) {
             </span>
           </div>
           <div className="flex flex-col items-end leading-none">
-            <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">cost·so·far</span>
+            <span className="text-[10px] uppercase tracking-[0.22em] text-zinc-500">
+              cost·so·far
+            </span>
             <span className="mt-1 text-lg text-amber-300">{fmtUsd(cost)}</span>
           </div>
         </div>
@@ -551,7 +636,9 @@ function Field({ k, v, tone }: { k: string; v: string; tone?: string }) {
   return (
     <div className="flex flex-col leading-none">
       <span className="text-[9px] uppercase tracking-[0.22em] text-zinc-500">{k}</span>
-      <span className="mt-1 text-zinc-100" style={{ color: tone }}>{v}</span>
+      <span className="mt-1 text-zinc-100" style={{ color: tone }}>
+        {v}
+      </span>
     </div>
   );
 }

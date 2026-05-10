@@ -16,7 +16,8 @@ function classify(r: GlobalRunRow): keyof typeof STATUS_COLOR {
   if (r.status === 'running') return 'running';
   if (r.status === 'paused') return 'paused';
   if (r.status === 'cancelled') return 'cancelled';
-  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded') return 'failure';
+  if (r.status === 'failed' || r.outcome === 'failure' || r.outcome === 'budget_exceeded')
+    return 'failure';
   if (r.status === 'completed') return 'success';
   return 'pending';
 }
@@ -91,7 +92,8 @@ export function MissionControlV3Radar() {
   }, [data]);
 
   const selected = useMemo(
-    () => (selectedId ? data.find((r) => r.id === selectedId) : data.find((r) => r.status === 'running')),
+    () =>
+      selectedId ? data.find((r) => r.id === selectedId) : data.find((r) => r.status === 'running'),
     [data, selectedId],
   );
 
@@ -136,7 +138,12 @@ export function MissionControlV3Radar() {
             <span className="text-amber-200/70">contacts · {data.length}</span>
           </div>
 
-          <svg viewBox="0 0 640 640" className="block w-full" role="img" aria-label="Radar of agent runs">
+          <svg
+            viewBox="0 0 640 640"
+            className="block w-full"
+            role="img"
+            aria-label="Radar of agent runs"
+          >
             <defs>
               <radialGradient id="radarGlow" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="rgba(252,211,77,0.25)" />
@@ -154,7 +161,14 @@ export function MissionControlV3Radar() {
 
             {rings.map((r, i) => (
               <g key={r}>
-                <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(110,200,160,0.15)" strokeWidth={0.6} />
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={r}
+                  fill="none"
+                  stroke="rgba(110,200,160,0.15)"
+                  strokeWidth={0.6}
+                />
                 <text
                   x={cx + r}
                   y={cy - 4}
@@ -248,18 +262,20 @@ export function MissionControlV3Radar() {
           </svg>
 
           <div className="grid grid-cols-6 gap-3 border-t border-amber-200/10 px-4 py-3 text-[10px] uppercase tracking-[0.2em]">
-            {(['running', 'paused', 'success', 'failure', 'cancelled', 'pending'] as const).map((s) => (
-              <div key={s} className="flex items-center gap-2">
-                <span
-                  className="inline-block h-2 w-2 rounded-full"
-                  style={{ background: STATUS_COLOR[s] }}
-                />
-                <span className="text-emerald-300/70">{s}</span>
-                <span className="ml-auto tabular-nums text-emerald-100/70">
-                  {data.filter((r) => classify(r) === s).length}
-                </span>
-              </div>
-            ))}
+            {(['running', 'paused', 'success', 'failure', 'cancelled', 'pending'] as const).map(
+              (s) => (
+                <div key={s} className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-2 w-2 rounded-full"
+                    style={{ background: STATUS_COLOR[s] }}
+                  />
+                  <span className="text-emerald-300/70">{s}</span>
+                  <span className="ml-auto tabular-nums text-emerald-100/70">
+                    {data.filter((r) => classify(r) === s).length}
+                  </span>
+                </div>
+              ),
+            )}
           </div>
         </div>
 
@@ -274,12 +290,22 @@ export function MissionControlV3Radar() {
           {selected ? (
             <div className="flex flex-col gap-3 text-[12px]">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.3em] text-emerald-300/60">project</div>
+                <div className="text-[10px] uppercase tracking-[0.3em] text-emerald-300/60">
+                  project
+                </div>
                 <div className="mt-1 text-base text-amber-100">{selected.projectName}</div>
               </div>
               <Row k="status" v={selected.status} tone={colorOf(selected)} />
-              <Row k="started" v={selected.startedAt ? new Date(selected.startedAt as string).toLocaleString() : '—'} />
-              <Row k="ended" v={selected.endedAt ? new Date(selected.endedAt as string).toLocaleString() : '—'} />
+              <Row
+                k="started"
+                v={
+                  selected.startedAt ? new Date(selected.startedAt as string).toLocaleString() : '—'
+                }
+              />
+              <Row
+                k="ended"
+                v={selected.endedAt ? new Date(selected.endedAt as string).toLocaleString() : '—'}
+              />
               <Row k="tokens.in" v={fmtTok(selected.tokensInTotal)} />
               <Row k="tokens.out" v={fmtTok(selected.tokensOutTotal)} />
               <Row k="turns" v={String(selected.turnsTotal)} />
@@ -295,7 +321,9 @@ export function MissionControlV3Radar() {
               </Link>
             </div>
           ) : (
-            <div className="text-[12px] text-emerald-300/60">No contact selected. Hover a blip.</div>
+            <div className="text-[12px] text-emerald-300/60">
+              No contact selected. Hover a blip.
+            </div>
           )}
 
           <div className="mt-auto border-t border-amber-200/10 pt-3 text-[10px] uppercase tracking-[0.3em] text-emerald-300/50">
@@ -313,7 +341,9 @@ export function MissionControlV3Radar() {
             </div>
             <div className="mt-1 flex justify-between">
               <span>active</span>
-              <span className="tabular-nums text-amber-200/80">{summary.data?.activeCount ?? 0}</span>
+              <span className="tabular-nums text-amber-200/80">
+                {summary.data?.activeCount ?? 0}
+              </span>
             </div>
           </div>
         </aside>

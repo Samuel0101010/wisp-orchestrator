@@ -146,9 +146,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
       <div className="flex h-full flex-col items-center justify-center gap-3 p-4 text-center">
         <MessageSquare className="h-6 w-6 text-muted-foreground/60" />
         <div className="text-sm font-medium">No agents yet</div>
-        <p className="text-xs text-muted-foreground">
-          Create your first agent to start chatting.
-        </p>
+        <p className="text-xs text-muted-foreground">Create your first agent to start chatting.</p>
         <Link
           to="/agents"
           className="rounded-md border bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
@@ -167,7 +165,10 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
           <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
             agent
           </span>
-          <Link to="/agents" className="font-mono text-[10px] text-muted-foreground hover:text-foreground">
+          <Link
+            to="/agents"
+            className="font-mono text-[10px] text-muted-foreground hover:text-foreground"
+          >
             manage →
           </Link>
         </div>
@@ -204,14 +205,16 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
         </div>
         <div className={`flex flex-col gap-1 overflow-y-auto ${compact ? 'max-h-32' : 'max-h-48'}`}>
           {threads.data && threads.data.length > 0 ? (
-            threads.data.slice(0, 8).map((t) => (
-              <ThreadRow
-                key={t.id}
-                thread={t}
-                active={selectedThreadId === t.id}
-                onClick={() => setSelectedThreadId(t.id)}
-              />
-            ))
+            threads.data
+              .slice(0, 8)
+              .map((t) => (
+                <ThreadRow
+                  key={t.id}
+                  thread={t}
+                  active={selectedThreadId === t.id}
+                  onClick={() => setSelectedThreadId(t.id)}
+                />
+              ))
           ) : (
             <div className="text-[11px] italic text-muted-foreground/60">
               no threads — type below to start one.
@@ -232,15 +235,13 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
             </div>
           </div>
         )}
-        {messages.data && messages.data.length > 0 ? (
-          messages.data.map((m) => <MessageBubble key={m.id} message={m} agent={selectedAgent} />)
-        ) : (
-          !sendMessage.isPending && (
-            <div className="my-auto text-center text-[12px] italic text-muted-foreground/70">
-              Type a message below to start the conversation.
-            </div>
-          )
-        )}
+        {messages.data && messages.data.length > 0
+          ? messages.data.map((m) => <MessageBubble key={m.id} message={m} agent={selectedAgent} />)
+          : !sendMessage.isPending && (
+              <div className="my-auto text-center text-[12px] italic text-muted-foreground/70">
+                Type a message below to start the conversation.
+              </div>
+            )}
         {sendMessage.isPending && (
           <div className="flex items-center gap-2 self-start rounded-md bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -283,7 +284,11 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
             className="grid h-9 w-9 flex-none place-items-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
             aria-label="Send"
           >
-            {sendMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sendMessage.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </button>
         </div>
         {selectedThreadId && (
@@ -318,9 +323,7 @@ function ThreadRow({
       onClick={onClick}
       className={`flex w-full items-baseline justify-between gap-2 rounded px-2 py-1 text-left text-xs ${active ? 'bg-info/15 text-info-foreground' : 'hover:bg-muted'}`}
     >
-      <span className="truncate flex-1">
-        {thread.title ?? `thread ${thread.id.slice(0, 6)}`}
-      </span>
+      <span className="truncate flex-1">{thread.title ?? `thread ${thread.id.slice(0, 6)}`}</span>
       <span className="font-mono text-[10px] text-muted-foreground">
         {fmtRel(thread.updatedAt as Date | string | number)}
       </span>
@@ -352,7 +355,12 @@ function MessageBubble({
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-destructive">
               {message.errorReason}
             </span>
-            {message.content ? <><br />{message.content}</> : null}
+            {message.content ? (
+              <>
+                <br />
+                {message.content}
+              </>
+            ) : null}
           </span>
         ) : (
           message.content

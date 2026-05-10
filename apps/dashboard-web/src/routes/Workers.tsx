@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { useWorkers, useWorkerRuns, useRunWorker, type WorkerSummary, type WorkerRunRow } from '@/api/queries';
+import {
+  useWorkers,
+  useWorkerRuns,
+  useRunWorker,
+  type WorkerSummary,
+  type WorkerRunRow,
+} from '@/api/queries';
 
 function statusColor(status: WorkerRunRow['status']): string {
   if (status === 'ok') return 'text-green-600 dark:text-green-400';
@@ -33,16 +39,22 @@ function RunsPanel({ name }: { name: string }) {
       <tbody>
         {rows.map((r) => (
           <tr key={r.id} className="border-b border-border last:border-0">
-            <td className="py-1.5 pr-4 font-mono text-xs text-muted-foreground">{r.id.slice(0, 8)}</td>
+            <td className="py-1.5 pr-4 font-mono text-xs text-muted-foreground">
+              {r.id.slice(0, 8)}
+            </td>
             <td className="py-1.5 pr-4 text-xs">{fmtTs(r.startedAt)}</td>
             <td className="py-1.5 pr-4 text-xs">{fmtTs(r.endedAt)}</td>
-            <td className={`py-1.5 pr-4 text-xs font-medium ${statusColor(r.status)}`}>{r.status}</td>
+            <td className={`py-1.5 pr-4 text-xs font-medium ${statusColor(r.status)}`}>
+              {r.status}
+            </td>
             <td className="py-1.5 font-mono text-xs text-muted-foreground">
-              {r.errorReason
-                ? <span className="text-destructive">{r.errorReason}</span>
-                : r.resultJson != null
-                  ? <span>{JSON.stringify(r.resultJson).slice(0, 120)}</span>
-                  : '—'}
+              {r.errorReason ? (
+                <span className="text-destructive">{r.errorReason}</span>
+              ) : r.resultJson != null ? (
+                <span>{JSON.stringify(r.resultJson).slice(0, 120)}</span>
+              ) : (
+                '—'
+              )}
             </td>
           </tr>
         ))}
@@ -90,14 +102,18 @@ export function WorkersRoute() {
                 onClick={() => setSelected(selected === w.name ? null : w.name)}
               >
                 <td className="px-4 py-2.5 font-mono font-semibold">{w.name}</td>
-                <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">{w.cronSpec}</td>
+                <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                  {w.cronSpec}
+                </td>
                 <td className="px-4 py-2.5">
-                  <span className={
-                    'rounded px-2 py-0.5 text-xs font-medium ' +
-                    (w.enabled
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      : 'bg-secondary text-secondary-foreground')
-                  }>
+                  <span
+                    className={
+                      'rounded px-2 py-0.5 text-xs font-medium ' +
+                      (w.enabled
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-secondary text-secondary-foreground')
+                    }
+                  >
                     {w.enabled ? 'enabled' : 'disabled'}
                   </span>
                 </td>

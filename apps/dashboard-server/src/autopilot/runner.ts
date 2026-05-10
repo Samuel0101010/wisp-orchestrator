@@ -9,7 +9,9 @@ export interface AutopilotTickResult {
 }
 
 export async function tickAutopilot(): Promise<AutopilotTickResult> {
-  const candidates = db.select().from(runs)
+  const candidates = db
+    .select()
+    .from(runs)
     .where(and(eq(runs.autopilotMode, true), eq(runs.status, 'paused')))
     .all();
   const resumed: string[] = [];
@@ -18,11 +20,15 @@ export async function tickAutopilot(): Promise<AutopilotTickResult> {
     const tokens = run.tokensInTotal + run.tokensOutTotal;
     const v = checkAutopilotBudget(run, tokens);
     if (v.exceeded) {
-      await db.update(runs).set({
-        status: 'cancelled',
-        endedAt: new Date(),
-        outcome: 'budget_exceeded',
-      }).where(eq(runs.id, run.id)).run();
+      await db
+        .update(runs)
+        .set({
+          status: 'cancelled',
+          endedAt: new Date(),
+          outcome: 'budget_exceeded',
+        })
+        .where(eq(runs.id, run.id))
+        .run();
       halted.push(run.id);
       continue;
     }

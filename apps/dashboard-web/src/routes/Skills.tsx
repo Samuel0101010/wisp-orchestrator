@@ -42,12 +42,17 @@ export function SkillsRoute() {
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{s.description}</p>
               {s.argumentHint && (
-                <p className="mt-2 font-mono text-xs text-muted-foreground">args: {s.argumentHint}</p>
+                <p className="mt-2 font-mono text-xs text-muted-foreground">
+                  args: {s.argumentHint}
+                </p>
               )}
               {s.allowedTools.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1">
                   {s.allowedTools.map((t) => (
-                    <span key={t} className="rounded border border-border px-1.5 py-0.5 font-mono text-xs">
+                    <span
+                      key={t}
+                      className="rounded border border-border px-1.5 py-0.5 font-mono text-xs"
+                    >
                       {t}
                     </span>
                   ))}

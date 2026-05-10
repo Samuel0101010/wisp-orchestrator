@@ -28,11 +28,36 @@ import { createHooksRouter } from './hooks.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export const workerRegistry = new WorkerRegistry();
-workerRegistry.register({ name: 'audit-orphan-runs', cronSpec: '*/30 * * * *', enabled: true, handler: auditOrphanRuns });
-workerRegistry.register({ name: 'auto-doc', cronSpec: '0 * * * *', enabled: true, handler: autoDoc });
-workerRegistry.register({ name: 'inventory-refresh', cronSpec: '0 6 * * *', enabled: true, handler: inventoryRefresh });
-workerRegistry.register({ name: 'consolidate-memory', cronSpec: '0 3 * * *', enabled: false, handler: consolidateMemory });
-workerRegistry.register({ name: 'autopilot-tick', cronSpec: '* * * * *', enabled: true, handler: tickAutopilot });
+workerRegistry.register({
+  name: 'audit-orphan-runs',
+  cronSpec: '*/30 * * * *',
+  enabled: true,
+  handler: auditOrphanRuns,
+});
+workerRegistry.register({
+  name: 'auto-doc',
+  cronSpec: '0 * * * *',
+  enabled: true,
+  handler: autoDoc,
+});
+workerRegistry.register({
+  name: 'inventory-refresh',
+  cronSpec: '0 6 * * *',
+  enabled: true,
+  handler: inventoryRefresh,
+});
+workerRegistry.register({
+  name: 'consolidate-memory',
+  cronSpec: '0 3 * * *',
+  enabled: false,
+  handler: consolidateMemory,
+});
+workerRegistry.register({
+  name: 'autopilot-tick',
+  cronSpec: '* * * * *',
+  enabled: true,
+  handler: tickAutopilot,
+});
 
 export const workerDaemon = new WorkerDaemon(workerRegistry);
 
@@ -46,8 +71,7 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(probePromptRoutes());
   await app.register(agentRoutes);
 
-  const skillsRoot = process.env.HARNESS_SKILLS_DIR
-    ?? resolve(__dirname, '../skills/seed');
+  const skillsRoot = process.env.HARNESS_SKILLS_DIR ?? resolve(__dirname, '../skills/seed');
   const skillRegistry = new SkillRegistry(skillsRoot);
   skillRegistry.init();
 

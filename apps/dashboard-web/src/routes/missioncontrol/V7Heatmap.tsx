@@ -129,7 +129,8 @@ export function MissionControlV7Heatmap() {
         </h1>
         <div className="mt-1 max-w-[80ch] text-[14px] text-stone-700">
           Each cell is six hours of one project. Saturation maps to logarithmic token volume in that
-          window; an empty cell is a quiet quarter, a fully-saturated cell is the busiest in the survey.
+          window; an empty cell is a quiet quarter, a fully-saturated cell is the busiest in the
+          survey.
         </div>
       </header>
 
@@ -146,9 +147,15 @@ export function MissionControlV7Heatmap() {
                   d.setDate(d.getDate() + (di - 6));
                   const isToday = di === 6;
                   return (
-                    <th key={di} colSpan={4} className="border-l border-stone-900/40 px-2 pb-1 pt-2 text-left">
+                    <th
+                      key={di}
+                      colSpan={4}
+                      className="border-l border-stone-900/40 px-2 pb-1 pt-2 text-left"
+                    >
                       <div className="flex items-baseline gap-2">
-                        <span className={`text-base font-bold tabular-nums ${isToday ? 'text-stone-900' : 'text-stone-700'}`}>
+                        <span
+                          className={`text-base font-bold tabular-nums ${isToday ? 'text-stone-900' : 'text-stone-700'}`}
+                        >
                           {d.getDate()}
                         </span>
                         <span className="micro text-stone-600">
@@ -193,7 +200,9 @@ export function MissionControlV7Heatmap() {
                     <tr key={projectName} className="border-t border-stone-900/15">
                       <td className="sticky left-0 z-10 bg-[#fbf6ec] py-2 pr-3">
                         <div className="flex flex-col">
-                          <span className="text-[14px] font-semibold text-stone-900">{projectName}</span>
+                          <span className="text-[14px] font-semibold text-stone-900">
+                            {projectName}
+                          </span>
                           <span className="micro text-stone-600">
                             {row.reduce((s, c) => s + c.runs.length, 0)} runs
                           </span>
@@ -201,7 +210,8 @@ export function MissionControlV7Heatmap() {
                       </td>
                       {row.map((c, ci) => {
                         const isQuarterStart = c.quarter === 0;
-                        const isHover = hover?.project === c.project && hover?.bucketIndex === c.bucketIndex;
+                        const isHover =
+                          hover?.project === c.project && hover?.bucketIndex === c.bucketIndex;
                         return (
                           <td
                             key={ci}
@@ -246,7 +256,9 @@ export function MissionControlV7Heatmap() {
                 {fmtTok(summary.data?.totalTokens ?? 0)}
               </dd>
               <dt className="text-stone-700">Active right now</dt>
-              <dd className="text-right font-bold tabular-nums">{summary.data?.activeCount ?? 0}</dd>
+              <dd className="text-right font-bold tabular-nums">
+                {summary.data?.activeCount ?? 0}
+              </dd>
               <dt className="text-stone-700">Success rate</dt>
               <dd className="text-right font-bold tabular-nums">
                 {Math.round((summary.data?.successRate ?? 0) * 100)}%
@@ -284,7 +296,8 @@ export function MissionControlV7Heatmap() {
                   · {QUARTERS[hover.quarter]}h
                 </div>
                 <div className="font-mono">
-                  {hover.runs.length} run{hover.runs.length === 1 ? '' : 's'} · {fmtTok(hover.tokens)} tok
+                  {hover.runs.length} run{hover.runs.length === 1 ? '' : 's'} ·{' '}
+                  {fmtTok(hover.tokens)} tok
                 </div>
                 {hover.runs[0] && (
                   <Link
@@ -297,9 +310,7 @@ export function MissionControlV7Heatmap() {
                 )}
               </div>
             ) : (
-              <div className="text-[12px] italic text-stone-600">
-                Hover a cell to inspect.
-              </div>
+              <div className="text-[12px] italic text-stone-600">Hover a cell to inspect.</div>
             )}
           </div>
         </aside>

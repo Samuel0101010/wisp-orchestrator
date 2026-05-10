@@ -173,13 +173,16 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         const pick = pickModel('planner');
 
         const similar = await retrieveSimilar(project.goal, projectId, 3);
-        const context = similar.length > 0
-          ? `## Context from past similar runs\n\n` +
-            similar.map((t, i) => {
-              const lessonsLine = t.lessons ? `Lessons: ${t.lessons}\n` : '';
-              return `### Past run ${i + 1} (outcome: ${t.outcome}, similarity: ${t.score.toFixed(2)})\nGoal: ${t.prompt}\n${lessonsLine}`;
-            }).join('\n')
-          : undefined;
+        const context =
+          similar.length > 0
+            ? `## Context from past similar runs\n\n` +
+              similar
+                .map((t, i) => {
+                  const lessonsLine = t.lessons ? `Lessons: ${t.lessons}\n` : '';
+                  return `### Past run ${i + 1} (outcome: ${t.outcome}, similarity: ${t.score.toFixed(2)})\nGoal: ${t.prompt}\n${lessonsLine}`;
+                })
+                .join('\n')
+            : undefined;
 
         const outcome = await generatePlan(runner, team, project.goal, projectId, context);
 

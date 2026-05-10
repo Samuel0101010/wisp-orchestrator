@@ -14,6 +14,6 @@ export interface Skill {
   allowedTools: string[];
   argumentHint?: string;
   timeoutMs: number;
-  systemPrompt: string;  // body of SKILL.md after frontmatter
+  systemPrompt: string; // body of SKILL.md after frontmatter
   filePath: string;
 }

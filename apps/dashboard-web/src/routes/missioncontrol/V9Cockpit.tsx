@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  useGlobalRuns,
-  useProjects,
-  useProjectRuns,
-  useRunsSummary,
-  useTeam,
-} from '@/api/queries';
+import { useGlobalRuns, useProjects, useProjectRuns, useRunsSummary, useTeam } from '@/api/queries';
 import type { GlobalRunRow } from '@/api/queries';
 import { VariantSwitcher } from './Switcher';
 
@@ -49,12 +43,20 @@ function Spark({ data, w = 96, h = 22 }: { data: number[]; w?: number; h?: numbe
   if (!data.length) return <span className="text-zinc-600">—</span>;
   const max = Math.max(...data, 1);
   const step = data.length > 1 ? w / (data.length - 1) : w;
-  const pts = data.map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`).join(' ');
+  const pts = data
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`)
+    .join(' ');
   const lastY = h - ((data[data.length - 1] ?? 0) / max) * h;
   const lastX = (data.length - 1) * step;
   return (
     <svg width={w} height={h} className="overflow-visible">
-      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1}
+        vectorEffect="non-scaling-stroke"
+      />
       <circle cx={lastX} cy={lastY} r={1.5} fill="currentColor" />
     </svg>
   );
@@ -93,19 +95,27 @@ export function MissionControlV9Cockpit() {
   useEffect(() => {
     if (selectedId == null && projectList.length > 0) {
       const firstActive = projectList.find((p) =>
-        (projectMap.get(p.id) ?? []).some((r) => classify(r) === 'running' || classify(r) === 'paused'),
+        (projectMap.get(p.id) ?? []).some(
+          (r) => classify(r) === 'running' || classify(r) === 'paused',
+        ),
       );
       setSelectedId(firstActive?.id ?? projectList[0]?.id ?? null);
     }
   }, [selectedId, projectList, projectMap]);
 
   const selectedProject = projectList.find((p) => p.id === selectedId) ?? null;
-  const selectedRuns = selectedId ? projectMap.get(selectedId) ?? [] : [];
+  const selectedRuns = selectedId ? (projectMap.get(selectedId) ?? []) : [];
   const team = useTeam(selectedId ?? undefined);
   const projectRuns = useProjectRuns(selectedId ?? undefined);
 
-  const tokenSeries = useMemo(() => (summary.data?.tokensByDay ?? []).map((d) => d.tokens), [summary.data]);
-  const runsSeries = useMemo(() => (summary.data?.runsByDay ?? []).map((d) => d.runs), [summary.data]);
+  const tokenSeries = useMemo(
+    () => (summary.data?.tokensByDay ?? []).map((d) => d.tokens),
+    [summary.data],
+  );
+  const runsSeries = useMemo(
+    () => (summary.data?.runsByDay ?? []).map((d) => d.runs),
+    [summary.data],
+  );
 
   const kpis = [
     { k: 'Active', v: String(summary.data?.activeCount ?? 0) },
@@ -118,7 +128,9 @@ export function MissionControlV9Cockpit() {
     { k: 'Projects', v: String(projectList.length) },
   ];
 
-  const liveSelected = selectedRuns.filter((r) => classify(r) === 'running' || classify(r) === 'paused');
+  const liveSelected = selectedRuns.filter(
+    (r) => classify(r) === 'running' || classify(r) === 'paused',
+  );
   const recentSelected = selectedRuns.slice(0, 8);
 
   return (
@@ -169,16 +181,22 @@ export function MissionControlV9Cockpit() {
         <div className="flex items-center gap-7 text-right">
           {kpis.map((k) => (
             <div key={k.k} className="flex flex-col leading-none">
-              <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-500">{k.k}</span>
+              <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-500">
+                {k.k}
+              </span>
               <span className="mt-1 text-base font-semibold tabular-nums text-zinc-100">{k.v}</span>
             </div>
           ))}
           <div className="flex flex-col items-end leading-none text-cyan-300">
-            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-500">tok·d</span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-500">
+              tok·d
+            </span>
             <Spark data={tokenSeries} w={64} h={18} />
           </div>
           <div className="flex flex-col items-end leading-none text-emerald-300">
-            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-500">runs·d</span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-500">
+              runs·d
+            </span>
             <Spark data={runsSeries} w={64} h={18} />
           </div>
         </div>
@@ -198,9 +216,7 @@ export function MissionControlV9Cockpit() {
           </div>
           <ul className="flex-1 overflow-auto">
             {projectList.length === 0 && (
-              <li className="px-4 py-6 text-[12px] italic text-zinc-600">
-                No projects on file.
-              </li>
+              <li className="px-4 py-6 text-[12px] italic text-zinc-600">No projects on file.</li>
             )}
             {projectList.map((p) => {
               const rs = projectMap.get(p.id) ?? [];
@@ -211,7 +227,9 @@ export function MissionControlV9Cockpit() {
                 const buckets = Array.from({ length: 7 }, () => 0);
                 rs.forEach((r) => {
                   if (!r.startedAt) return;
-                  const days = Math.floor((Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000);
+                  const days = Math.floor(
+                    (Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000,
+                  );
                   if (days >= 0 && days < 7) buckets[6 - days] = (buckets[6 - days] ?? 0) + 1;
                 });
                 return buckets;
@@ -237,12 +255,17 @@ export function MissionControlV9Cockpit() {
                       />
                     </span>
                     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="truncate text-[13px] font-medium text-zinc-100">{p.name}</span>
+                      <span className="truncate text-[13px] font-medium text-zinc-100">
+                        {p.name}
+                      </span>
                       <span className="truncate font-mono text-[10px] text-zinc-500">
-                        {rs.length} runs · {fmtTok(rs.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0))}
+                        {rs.length} runs ·{' '}
+                        {fmtTok(rs.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0))}
                       </span>
                     </span>
-                    <span className={`flex flex-col items-end gap-1 ${isSel ? 'text-cyan-300' : 'text-zinc-500'}`}>
+                    <span
+                      className={`flex flex-col items-end gap-1 ${isSel ? 'text-cyan-300' : 'text-zinc-500'}`}
+                    >
                       {live > 0 && (
                         <span className="rounded-full bg-cyan-400/15 px-1.5 py-px font-mono text-[9px] font-medium tabular-nums text-cyan-300">
                           {live} live
@@ -276,7 +299,9 @@ export function MissionControlV9Cockpit() {
                     open ↗
                   </Link>
                 </div>
-                <div className="mt-1 max-w-prose text-[13px] text-zinc-400">{selectedProject.goal}</div>
+                <div className="mt-1 max-w-prose text-[13px] text-zinc-400">
+                  {selectedProject.goal}
+                </div>
                 <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
                   <span>repo · {selectedProject.repoPath}</span>
                   <span>runs · {selectedRuns.length}</span>
@@ -316,7 +341,10 @@ export function MissionControlV9Cockpit() {
                           </Link>
                           <span
                             className="rounded-full px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.18em]"
-                            style={{ color: TONE[classify(r)], background: `${TONE[classify(r)]}1a` }}
+                            style={{
+                              color: TONE[classify(r)],
+                              background: `${TONE[classify(r)]}1a`,
+                            }}
                           >
                             {classify(r)}
                           </span>
@@ -332,7 +360,9 @@ export function MissionControlV9Cockpit() {
                         </div>
                         <div
                           className="absolute inset-x-0 bottom-0 h-px"
-                          style={{ background: `linear-gradient(90deg, transparent, ${TONE[classify(r)]}, transparent)` }}
+                          style={{
+                            background: `linear-gradient(90deg, transparent, ${TONE[classify(r)]}, transparent)`,
+                          }}
                         />
                       </li>
                     ))}
@@ -354,11 +384,19 @@ export function MissionControlV9Cockpit() {
                   <table className="w-full text-[12px]">
                     <thead>
                       <tr className="bg-white/3 font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-                        <th className="border-b hairline px-3 py-1.5 text-left font-normal">state</th>
+                        <th className="border-b hairline px-3 py-1.5 text-left font-normal">
+                          state
+                        </th>
                         <th className="border-b hairline px-3 py-1.5 text-left font-normal">id</th>
-                        <th className="border-b hairline px-3 py-1.5 text-right font-normal">tok</th>
-                        <th className="border-b hairline px-3 py-1.5 text-right font-normal">turns</th>
-                        <th className="border-b hairline px-3 py-1.5 text-right font-normal">started</th>
+                        <th className="border-b hairline px-3 py-1.5 text-right font-normal">
+                          tok
+                        </th>
+                        <th className="border-b hairline px-3 py-1.5 text-right font-normal">
+                          turns
+                        </th>
+                        <th className="border-b hairline px-3 py-1.5 text-right font-normal">
+                          started
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -407,7 +445,10 @@ export function MissionControlV9Cockpit() {
                 </div>
                 <div className="mt-2 text-right font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
                   Stream · {projectRuns.data?.length ?? selectedRuns.length} total runs ·{' '}
-                  <Link to={`/projects/${selectedProject.id}`} className="text-zinc-300 hover:text-cyan-300">
+                  <Link
+                    to={`/projects/${selectedProject.id}`}
+                    className="text-zinc-300 hover:text-cyan-300"
+                  >
                     full project ↗
                   </Link>
                 </div>
@@ -434,12 +475,12 @@ export function MissionControlV9Cockpit() {
             {team.data?.roles && team.data.roles.length > 0 ? (
               <ul className="flex flex-col gap-3">
                 {team.data.roles.map((role) => {
-                  const tone =
-                    role.role.toLowerCase().includes('architect')
-                      ? '#67e8f9'
-                      : role.role.toLowerCase().includes('qa') || role.role.toLowerCase().includes('review')
-                        ? '#fbbf24'
-                        : '#86efac';
+                  const tone = role.role.toLowerCase().includes('architect')
+                    ? '#67e8f9'
+                    : role.role.toLowerCase().includes('qa') ||
+                        role.role.toLowerCase().includes('review')
+                      ? '#fbbf24'
+                      : '#86efac';
                   return (
                     <li
                       key={role.role}
@@ -463,7 +504,9 @@ export function MissionControlV9Cockpit() {
                           </span>
                         </div>
                       </div>
-                      <p className="line-clamp-2 text-[11px] text-zinc-400">{role.systemPrompt.slice(0, 140)}</p>
+                      <p className="line-clamp-2 text-[11px] text-zinc-400">
+                        {role.systemPrompt.slice(0, 140)}
+                      </p>
                     </li>
                   );
                 })}

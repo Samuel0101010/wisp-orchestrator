@@ -140,7 +140,8 @@ export function MissionControlV16Focus() {
   const plan = useGeneratedPlan(selectedId ?? undefined);
   const allRuns = useProjectRuns(selectedId ?? undefined);
   const runsForProject = projectRuns.get(selectedId ?? '') ?? [];
-  const liveRun = runsForProject.find((r) => classify(r) === 'running' || classify(r) === 'paused') ?? null;
+  const liveRun =
+    runsForProject.find((r) => classify(r) === 'running' || classify(r) === 'paused') ?? null;
 
   const dag = useMemo(() => layoutPlan(plan.data?.dagJson ?? plan.data?.plan ?? null), [plan.data]);
   const layers = useMemo(() => {
@@ -154,7 +155,9 @@ export function MissionControlV16Focus() {
   }, [dag]);
 
   // killer feature: active task highlight (mock — pick a node based on live run progress)
-  const activeNodeIdx = liveRun ? Math.min(dag.length - 1, Math.floor(((liveRun.turnsTotal % 12) / 12) * dag.length)) : -1;
+  const activeNodeIdx = liveRun
+    ? Math.min(dag.length - 1, Math.floor(((liveRun.turnsTotal % 12) / 12) * dag.length))
+    : -1;
   const activeNodeId = dag[activeNodeIdx]?.id ?? null;
   const completedNodeIds = useMemo(() => {
     if (!liveRun || dag.length === 0) return new Set<string>();
@@ -209,7 +212,9 @@ export function MissionControlV16Focus() {
           ) : (
             sortedProjects.map((p) => {
               const rs = projectRuns.get(p.id) ?? [];
-              const live = rs.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length;
+              const live = rs.filter(
+                (r) => classify(r) === 'running' || classify(r) === 'paused',
+              ).length;
               const isSel = selectedId === p.id;
               return (
                 <button
@@ -231,7 +236,10 @@ export function MissionControlV16Focus() {
           )}
         </div>
         <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
-          <span>cross-project · {summary.data?.activeCount ?? 0} live · {fmtTok(summary.data?.totalTokens ?? 0)}/7d</span>
+          <span>
+            cross-project · {summary.data?.activeCount ?? 0} live ·{' '}
+            {fmtTok(summary.data?.totalTokens ?? 0)}/7d
+          </span>
           <button
             onClick={() => setChatOpen(!chatOpen)}
             className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] hover:bg-white/5"
@@ -255,21 +263,35 @@ export function MissionControlV16Focus() {
               {/* Project hero strip */}
               <section className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">{selected.name}</h1>
+                  <h1 className="text-2xl font-semibold tracking-tight text-zinc-50">
+                    {selected.name}
+                  </h1>
                   <p className="mt-1 max-w-prose text-[13px] text-zinc-400">{selected.goal}</p>
                 </div>
                 <div className="flex items-end gap-5 font-mono text-[11px] tabular-nums">
                   {[
                     { k: 'runs', v: String(allRuns.data?.length ?? runsForProject.length) },
-                    { k: 'live', v: String(runsForProject.filter((r) => classify(r) === 'running' || classify(r) === 'paused').length), tone: '#34d399' },
+                    {
+                      k: 'live',
+                      v: String(
+                        runsForProject.filter(
+                          (r) => classify(r) === 'running' || classify(r) === 'paused',
+                        ).length,
+                      ),
+                      tone: '#34d399',
+                    },
                     {
                       k: 'tok·all',
-                      v: fmtTok(runsForProject.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0)),
+                      v: fmtTok(
+                        runsForProject.reduce((s, r) => s + r.tokensInTotal + r.tokensOutTotal, 0),
+                      ),
                     },
                     { k: 'team', v: String(team.data?.roles?.length ?? 0) },
                   ].map((s) => (
                     <div key={s.k} className="flex flex-col items-end leading-none">
-                      <span className="text-[9px] uppercase tracking-[0.25em] text-zinc-500">{s.k}</span>
+                      <span className="text-[9px] uppercase tracking-[0.25em] text-zinc-500">
+                        {s.k}
+                      </span>
                       <span className="mt-1 text-[15px] text-zinc-100" style={{ color: s.tone }}>
                         {s.v}
                       </span>
@@ -293,7 +315,8 @@ export function MissionControlV16Focus() {
                     </span>
                     {liveRun && (
                       <span className="ml-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-emerald-300">
-                        <span className="block h-1.5 w-1.5 rounded-full bg-emerald-400" /> live · {liveRun.id.slice(0, 6)}
+                        <span className="block h-1.5 w-1.5 rounded-full bg-emerald-400" /> live ·{' '}
+                        {liveRun.id.slice(0, 6)}
                       </span>
                     )}
                   </div>
@@ -323,14 +346,21 @@ export function MissionControlV16Focus() {
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <div className="flex items-stretch gap-8 py-2" style={{ minWidth: layers.length * 220 }}>
+                    <div
+                      className="flex items-stretch gap-8 py-2"
+                      style={{ minWidth: layers.length * 220 }}
+                    >
                       {layers.map(([l, nodes]) => (
                         <div key={l} className="flex flex-col gap-3" style={{ minWidth: 200 }}>
                           <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-zinc-500">
                             layer {l + 1}
                           </div>
                           {nodes.map((n) => {
-                            const tone = n.role ? ROLE_TONE[n.role.toLowerCase().split(/[-_\s]/)[0] ?? 'developer'] ?? '#86efac' : '#86efac';
+                            const tone = n.role
+                              ? (ROLE_TONE[
+                                  n.role.toLowerCase().split(/[-_\s]/)[0] ?? 'developer'
+                                ] ?? '#86efac')
+                              : '#86efac';
                             const isActive = n.id === activeNodeId;
                             const isDone = completedNodeIds.has(n.id);
                             return (
@@ -359,16 +389,18 @@ export function MissionControlV16Focus() {
                                   >
                                     {n.role ?? 'task'}
                                   </span>
-                                  <span className="font-mono text-[10px] text-zinc-500">{n.id.slice(0, 8)}</span>
+                                  <span className="font-mono text-[10px] text-zinc-500">
+                                    {n.id.slice(0, 8)}
+                                  </span>
                                   {isDone && <span className="ml-auto text-emerald-400">✓</span>}
-                                  {isActive && <span className="ml-auto block h-1.5 w-1.5 rounded-full bg-cyan-400 pulse" />}
+                                  {isActive && (
+                                    <span className="ml-auto block h-1.5 w-1.5 rounded-full bg-cyan-400 pulse" />
+                                  )}
                                 </div>
                                 <p className="mt-2 line-clamp-2 text-[12px] text-zinc-200">
                                   {n.prompt?.slice(0, 100) ?? '—'}
                                 </p>
-                                <button
-                                  className="mt-2 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-200"
-                                >
+                                <button className="mt-2 text-left font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 hover:text-zinc-200">
                                   ↳ ask {n.role ?? 'agent'}
                                 </button>
                               </div>
@@ -401,7 +433,13 @@ export function MissionControlV16Focus() {
                       {runsForProject.slice(0, 6).map((r) => {
                         const c = classify(r);
                         const tone =
-                          c === 'failure' ? '#fb7185' : c === 'running' || c === 'paused' ? '#67e8f9' : c === 'success' ? '#86efac' : '#71717a';
+                          c === 'failure'
+                            ? '#fb7185'
+                            : c === 'running' || c === 'paused'
+                              ? '#67e8f9'
+                              : c === 'success'
+                                ? '#86efac'
+                                : '#71717a';
                         return (
                           <li
                             key={r.id}
@@ -411,18 +449,30 @@ export function MissionControlV16Focus() {
                               to={`/projects/${r.projectId}/run/${r.id}`}
                               className="flex items-center gap-2 truncate font-mono text-[12px] text-zinc-100 hover:underline"
                             >
-                              <span className="block h-1.5 w-1.5 flex-none rounded-full" style={{ background: tone }} />
+                              <span
+                                className="block h-1.5 w-1.5 flex-none rounded-full"
+                                style={{ background: tone }}
+                              />
                               {r.id.slice(0, 10)}
                             </Link>
-                            <span className="text-right font-mono text-[10px] uppercase tracking-[0.18em]" style={{ color: tone }}>
+                            <span
+                              className="text-right font-mono text-[10px] uppercase tracking-[0.18em]"
+                              style={{ color: tone }}
+                            >
                               {c}
                             </span>
                             <span className="text-right font-mono tabular-nums text-zinc-300">
                               {fmtTok(r.tokensInTotal + r.tokensOutTotal)}
                             </span>
-                            <span className="text-right font-mono tabular-nums text-zinc-500">{r.turnsTotal}t</span>
-                            <span className="text-right font-mono text-[10px] text-zinc-500">{rel(r.startedAt)}</span>
-                            <span className="font-mono text-[10px] text-zinc-500">{r.budgetMinutes}m</span>
+                            <span className="text-right font-mono tabular-nums text-zinc-500">
+                              {r.turnsTotal}t
+                            </span>
+                            <span className="text-right font-mono text-[10px] text-zinc-500">
+                              {rel(r.startedAt)}
+                            </span>
+                            <span className="font-mono text-[10px] text-zinc-500">
+                              {r.budgetMinutes}m
+                            </span>
                           </li>
                         );
                       })}
@@ -443,13 +493,21 @@ export function MissionControlV16Focus() {
                           <li key={role.role} className="flex items-center gap-2.5">
                             <span
                               className="grid h-7 w-7 flex-none place-items-center rounded-full text-[10px] font-bold uppercase"
-                              style={{ background: `${tone}1f`, color: tone, border: `1px solid ${tone}40` }}
+                              style={{
+                                background: `${tone}1f`,
+                                color: tone,
+                                border: `1px solid ${tone}40`,
+                              }}
                             >
                               {role.role.slice(0, 2)}
                             </span>
                             <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                              <span className="truncate text-[12px] font-medium text-zinc-100">@{role.role}</span>
-                              <span className="font-mono text-[10px] text-zinc-500">{role.model}</span>
+                              <span className="truncate text-[12px] font-medium text-zinc-100">
+                                @{role.role}
+                              </span>
+                              <span className="font-mono text-[10px] text-zinc-500">
+                                {role.model}
+                              </span>
                             </div>
                             <button className="rounded-full border border-white/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.18em] text-zinc-400 hover:text-zinc-100 hover:bg-white/5">
                               ask
@@ -460,7 +518,10 @@ export function MissionControlV16Focus() {
                     </ul>
                   ) : (
                     <div className="text-[12px] italic text-zinc-500">
-                      <Link to={`/projects/${selected.id}/teams`} className="text-cyan-300 hover:underline">
+                      <Link
+                        to={`/projects/${selected.id}/teams`}
+                        className="text-cyan-300 hover:underline"
+                      >
                         configure team →
                       </Link>
                     </div>
@@ -537,7 +598,9 @@ export function MissionControlV16Focus() {
                 />
                 <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
                   <span>cmd+enter</span>
-                  <span className="rounded-full bg-amber-400/15 px-1.5 py-px text-amber-300">soon</span>
+                  <span className="rounded-full bg-amber-400/15 px-1.5 py-px text-amber-300">
+                    soon
+                  </span>
                 </div>
               </div>
             </div>

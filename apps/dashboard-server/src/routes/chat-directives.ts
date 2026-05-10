@@ -321,9 +321,7 @@ async function handleStartRun(
       .where(eq(chatActions.threadId, ctx.threadId))
       .orderBy(desc(chatActions.createdAt))
       .all();
-    const created = recent.find(
-      (r) => r.kind === 'create_project' && r.status === 'ok',
-    );
+    const created = recent.find((r) => r.kind === 'create_project' && r.status === 'ok');
     const result = created?.resultJson as { projectId?: string } | null | undefined;
     if (!result?.projectId) {
       throw new Error('no_project_to_run: pass projectId or create_project first');
@@ -331,11 +329,7 @@ async function handleStartRun(
     projectId = result.projectId;
   }
 
-  const project = db
-    .select()
-    .from(projectsTable)
-    .where(eq(projectsTable.id, projectId))
-    .get();
+  const project = db.select().from(projectsTable).where(eq(projectsTable.id, projectId)).get();
   if (!project) throw new Error(`project_not_found: ${projectId}`);
 
   // Pick the latest plan; if none, the manager needs to generate one first
@@ -387,7 +381,8 @@ async function handleInvokeSkill(
   const messageId = randomUUID();
   const createdAt = new Date();
   const content =
-    skillResult.text || (skillResult.failed ? `(skill failed: ${skillResult.failed})` : '(no output)');
+    skillResult.text ||
+    (skillResult.failed ? `(skill failed: ${skillResult.failed})` : '(no output)');
 
   sqlite
     .prepare(
