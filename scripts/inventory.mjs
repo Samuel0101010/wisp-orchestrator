@@ -47,7 +47,9 @@ const out = {
   migrations: countMigrations(),
 };
 
-const outPath = resolve(ROOT, 'docs/INVENTORY.json');
+const outPath = process.env.HARNESS_INVENTORY_OUT
+  ? resolve(process.env.HARNESS_INVENTORY_OUT)
+  : resolve(ROOT, 'docs/INVENTORY.json');
 writeFileSync(outPath, JSON.stringify(out, null, 2) + '\n', 'utf8');
 console.log(`wrote ${outPath}`);
 console.log(

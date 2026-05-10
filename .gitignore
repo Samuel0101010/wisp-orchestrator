@@ -49,8 +49,11 @@ Thumbs.db
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 .claude/skills/
-# ...except the harness-repo Claude Code hooks bundle (F9) — these are tracked:
-# .claude/settings.json and .claude/hooks/handler.cjs are committed intentionally.
+# Local Claude Code hook helpers — ignore everything under .claude/hooks/ except
+# the F9 harness-repo bundle file we ship intentionally.
+.claude/hooks/*
+!.claude/hooks/handler.cjs
+# .claude/settings.json is committed intentionally (F9 bundle).
 
 # Impeccable live preview runtime artifacts
 .impeccable-live.json
