@@ -94,10 +94,13 @@ export async function generatePlan(
   team: Team,
   goal: string,
   projectId: string,
+  additionalContext?: string,
 ): Promise<PlannerOutcome> {
   const cwd = mkdtempSync(path.join(env.HARNESS_DATA_DIR, 'planner-'));
   const planJsonPath = path.join(cwd, 'plan.json');
-  const basePrompt = buildPlannerPrompt(goal, team);
+  const basePrompt = additionalContext
+    ? `${buildPlannerPrompt(goal, team)}\n\n${additionalContext}`
+    : buildPlannerPrompt(goal, team);
 
   let lastError = '';
   let attempts = 0;

@@ -23,6 +23,7 @@ import {
   type Runner,
 } from '../orchestrator/planner-runner.js';
 import { pickModel, recordOutcome } from '../router/thompson.js';
+import { retrieveSimilar } from '../reasoningbank/store.js';
 
 interface PlansRouterDeps {
   runner?: Runner;
@@ -171,7 +172,16 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
 
         const pick = pickModel('planner');
 
-        const outcome = await generatePlan(runner, team, project.goal, projectId);
+        const similar = await retrieveSimilar(project.goal, projectId, 3);
+        const context = similar.length > 0
+          ? `## Context from past similar runs\n\n` +
+            similar.map((t, i) => {
+              const lessonsLine = t.lessons ? `Lessons: ${t.lessons}\n` : '';
+              return `### Past run ${i + 1} (outcome: ${t.outcome}, similarity: ${t.score.toFixed(2)})\nGoal: ${t.prompt}\n${lessonsLine}`;
+            }).join('\n')
+          : undefined;
+
+        const outcome = await generatePlan(runner, team, project.goal, projectId, context);
 
         const succeeded = isPlannerSuccess(outcome);
         recordOutcome(pick.sampleId, succeeded ? 'success' : 'failure').catch((err) => {
