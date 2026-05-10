@@ -100,9 +100,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: verify
-    # Opt-in: only runs when RUN_EVALS variable is "true" AND the secret is configured.
-    # Promptfoo evals consume API budget — gate explicitly.
-    if: ${{ vars.RUN_EVALS == 'true' && secrets.ANTHROPIC_API_KEY != '' }}
+    # Opt-in: only runs when RUN_EVALS repo variable is set to "true".
+    # The eval step also requires the ANTHROPIC_API_KEY secret — if missing,
+    # promptfoo fails the step with a clear provider-auth error. (GitHub
+    # Actions forbids secrets.* in job-level `if:` conditions, so the secret
+    # cannot be gated here.) Promptfoo evals consume API budget.
+    if: ${{ vars.RUN_EVALS == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
