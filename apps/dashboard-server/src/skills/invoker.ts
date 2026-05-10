@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { runAgentTurn, type RunAgentTurnResult } from '../routes/chat-engine.js';
 import type { SubprocessRunner } from '@agent-harness/orchestrator';
 import type { SkillRegistry } from './registry.js';
+import { buildBundleKey, lookupBundle, upsertBundle } from '../cache/prompt-bundle.js';
 
 export interface InvokeSkillOpts {
   registry: SkillRegistry;
@@ -24,6 +25,27 @@ export async function invokeSkill(opts: InvokeSkillOpts): Promise<InvokeSkillRes
       skillName: opts.name,
     };
   }
+
+  const bundleKey = buildBundleKey({
+    systemPrompt: skill.systemPrompt,
+    allowedTools: skill.allowedTools,
+    model: skill.model,
+  });
+  const existing = lookupBundle(bundleKey);
+  let cwd: string;
+  let resumeSessionId: string | undefined;
+  if (existing) {
+    cwd = existing.cwd;
+    resumeSessionId = existing.claudeSessionId ?? undefined;
+  } else {
+    const upserted = await upsertBundle(bundleKey, {
+      systemPrompt: skill.systemPrompt,
+      allowedTools: skill.allowedTools,
+      model: skill.model,
+    });
+    cwd = upserted.cwd;
+  }
+
   const result = await runAgentTurn({
     systemPrompt: skill.systemPrompt,
     prompt: opts.args,
@@ -32,6 +54,9 @@ export async function invokeSkill(opts: InvokeSkillOpts): Promise<InvokeSkillRes
     taskId: `skill-${skill.name}-${randomUUID().slice(0, 8)}`,
     runner: opts.runner,
     timeoutMs: skill.timeoutMs,
+    cwd,
+    resumeSessionId,
+    bundleKey,
   });
   return { ...result, skillName: skill.name };
 }

@@ -9,8 +9,12 @@ import {
 } from '../cache/prompt-bundle.js';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runAgentTurn } from '../routes/chat-engine.js';
+import { invokeSkill } from '../skills/invoker.js';
+import { SkillRegistry } from '../skills/registry.js';
 
 beforeAll(() => {
   runMigrations();
@@ -168,5 +172,39 @@ describe('runAgentTurn with bundleKey', () => {
       cwd,
     });
     expect(existsSync(cwd)).toBe(true);
+  });
+});
+
+describe('invokeSkill bundle reuse', () => {
+  it('passes the same cwd to a second call with identical inputs', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'skills-bundle-'));
+    mkdirSync(join(root, 'echo'), { recursive: true });
+    writeFileSync(
+      join(root, 'echo/SKILL.md'),
+      `---
+name: echo
+description: Bundle test skill
+model: haiku
+allowed-tools: ["Read"]
+---
+echo body`,
+    );
+    const reg = new SkillRegistry(root);
+    reg.init();
+    const seenCwds: string[] = [];
+    async function* mockRunner(opts: any) {
+      seenCwds.push(opts.cwd);
+      yield {
+        type: 'task.session-id',
+        payload: { taskId: opts.taskId, sessionId: 'sess-1' },
+      } as const;
+      yield {
+        type: 'task.completed',
+        payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+      } as const;
+    }
+    await invokeSkill({ registry: reg, name: 'echo', args: 'a', runner: mockRunner as any });
+    await invokeSkill({ registry: reg, name: 'echo', args: 'b', runner: mockRunner as any });
+    expect(seenCwds[0]).toBe(seenCwds[1]);
   });
 });
