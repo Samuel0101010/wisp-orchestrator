@@ -895,6 +895,27 @@ export function usePlanGoap() {
   });
 }
 
+// ---------- Run Summaries ----------
+
+export interface RunSummaryRow {
+  runId: string;
+  projectId: string;
+  summaryMd: string;
+  mode: string | null;
+  tokensTotal: number;
+  createdAt: number | string;
+}
+
+export function useRunSummaries(projectId?: string) {
+  return useQuery<RunSummaryRow[]>({
+    queryKey: ['run-summaries', projectId ?? 'all'],
+    queryFn: () =>
+      apiFetch(
+        `/api/insights/run-summaries${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
+      ),
+  });
+}
+
 // ---------- Prompt Bundles ----------
 
 export interface PromptBundleRow {

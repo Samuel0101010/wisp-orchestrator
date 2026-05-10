@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/api/client';
+import { useRunSummaries } from '@/api/queries';
 
 interface TrajectoryRow {
   id: string;
@@ -30,6 +31,7 @@ export function InsightsRoute() {
     queryKey: ['insights', 'router-priors'],
     queryFn: () => apiFetch('/api/insights/router-priors'),
   });
+  const summariesQ = useRunSummaries();
 
   return (
     <div className="space-y-8">
@@ -73,6 +75,27 @@ export function InsightsRoute() {
               ))}
             </tbody>
           </table>
+        )}
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">Recent run summaries</h2>
+        {summariesQ.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : (summariesQ.data?.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted-foreground">No summaries yet.</p>
+        ) : (
+          <ul className="space-y-2">
+            {summariesQ.data?.map((s) => (
+              <li key={s.runId} className="rounded border border-border bg-card p-3 text-sm">
+                <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{new Date(s.createdAt).toLocaleString()}</span>
+                  <span className="font-mono">{s.runId.slice(0, 8)}</span>
+                </div>
+                <pre className="whitespace-pre-wrap font-sans">{s.summaryMd}</pre>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

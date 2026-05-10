@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { eq, desc } from 'drizzle-orm';
 import { wrap } from './wrap.js';
 import { db } from '../db/index.js';
-import { trajectories, modelRouterPriors, modelRouterSamples } from '@agent-harness/schemas';
+import {
+  trajectories,
+  modelRouterPriors,
+  modelRouterSamples,
+  runSummaries,
+} from '@agent-harness/schemas';
 
 export const insightsRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -56,6 +61,23 @@ export const insightsRoutes: FastifyPluginAsync = async (app) => {
       const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
       db.delete(trajectories).where(eq(trajectories.id, id)).run();
       return { id, deleted: true };
+    }),
+  );
+
+  app.get(
+    '/api/insights/run-summaries',
+    wrap(async (req) => {
+      const { projectId } = z.object({ projectId: z.string().optional() }).parse(req.query ?? {});
+      const rows = projectId
+        ? db
+            .select()
+            .from(runSummaries)
+            .where(eq(runSummaries.projectId, projectId))
+            .orderBy(desc(runSummaries.createdAt))
+            .limit(50)
+            .all()
+        : db.select().from(runSummaries).orderBy(desc(runSummaries.createdAt)).limit(50).all();
+      return rows;
     }),
   );
 
