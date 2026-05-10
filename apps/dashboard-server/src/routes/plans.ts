@@ -170,7 +170,10 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           };
         }
 
-        const pick = pickModel('planner');
+        // Substantive plan generation — gets full Thompson exploration. Orchestration
+        // phases (context-ingest, status-post) should call pickFixed('haiku', 'planner-orchestration')
+        // instead of consuming the same prior.
+        const pick = pickModel('planner-substantive');
 
         const similar = await retrieveSimilar(project.goal, projectId, 3);
         const context =
