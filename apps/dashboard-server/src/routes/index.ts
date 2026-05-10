@@ -19,6 +19,7 @@ import { autoDoc } from '../workers/handlers/auto-doc.js';
 import { inventoryRefresh } from '../workers/handlers/inventory-refresh.js';
 import { consolidateMemory } from '../workers/handlers/consolidate-memory.js';
 import { createWorkersRouter } from './workers.js';
+import { tickAutopilot } from '../autopilot/runner.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -27,6 +28,7 @@ workerRegistry.register({ name: 'audit-orphan-runs', cronSpec: '*/30 * * * *', e
 workerRegistry.register({ name: 'auto-doc', cronSpec: '0 * * * *', enabled: true, handler: autoDoc });
 workerRegistry.register({ name: 'inventory-refresh', cronSpec: '0 6 * * *', enabled: true, handler: inventoryRefresh });
 workerRegistry.register({ name: 'consolidate-memory', cronSpec: '0 3 * * *', enabled: false, handler: consolidateMemory });
+workerRegistry.register({ name: 'autopilot-tick', cronSpec: '* * * * *', enabled: true, handler: tickAutopilot });
 
 export const workerDaemon = new WorkerDaemon(workerRegistry);
 
