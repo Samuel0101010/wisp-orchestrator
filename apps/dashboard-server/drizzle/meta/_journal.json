@@ -36,6 +36,20 @@
       "when": 1777972384100,
       "tag": "0004_events_run_id_index",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1777972384101,
+      "tag": "0005_agents",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1777972384102,
+      "tag": "0006_chat_v2",
+      "breakpoints": true
     }
   ]
 }

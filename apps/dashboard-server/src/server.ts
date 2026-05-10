@@ -7,6 +7,8 @@ import { env } from './env.js';
 import { setLastAuthProbe } from './auth-status.js';
 import { db, sqlite } from './db/index.js';
 import { runMigrations } from './db/migrate.js';
+import { backfillAgents } from './db/agents-backfill.js';
+import { seedAgents } from './db/agents-seed.js';
 import { fixUpAbruptCrashes } from './orchestrator/recovery.js';
 import { getDefaultRuntime } from './routes/runs.js';
 
@@ -24,6 +26,38 @@ const SHUTDOWN_TIMEOUT_MS = 30_000;
  */
 export async function bootstrap(): Promise<FastifyInstance> {
   runMigrations();
+  // Chat v2: install the built-in dev team (Marcus + 9 specialists). Idempotent
+  // — keyed on agents.seed_key UNIQUE.
+  try {
+    const seed = seedAgents();
+    if (seed.installed > 0 || seed.refreshed > 0) {
+      console.log(JSON.stringify({ event: 'agents-seed', ...seed }));
+    }
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        event: 'agents-seed',
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
+  // Model B: ensure every team role has a corresponding agent in the registry
+  // so the chat surface can target it. Idempotent.
+  try {
+    const stats = backfillAgents();
+    if (stats.agentsCreated > 0 || stats.rolesLinked > 0) {
+      console.log(JSON.stringify({ event: 'agents-backfill', ...stats }));
+    }
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        event: 'agents-backfill',
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
   await fixUpAbruptCrashes(db);
   await runBootAuthProbe();
   return buildApp();

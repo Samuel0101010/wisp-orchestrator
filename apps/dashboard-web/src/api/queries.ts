@@ -1,13 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  Agent,
+  AgentMessage,
+  AgentThread,
+  CreateAgentInput,
+  CreateThreadInput,
   Plan,
   Project,
   Run,
   RunOutcome,
   RunPausedReason,
   RunStatus,
+  SendMessageResponse,
   Task,
   Team,
+  UpdateAgentInput,
 } from '@agent-harness/schemas';
 import { ApiError, apiFetch } from './client';
 
@@ -462,6 +469,298 @@ export function useRunsSummary(windowDays = 7) {
       } catch {
         return { ...emptySummary, windowDays };
       }
+    },
+  });
+}
+
+// ---------- Agents (Model B) ----------
+
+export function useAgents() {
+  return useQuery<Agent[]>({
+    queryKey: ['agents'],
+    queryFn: async () => {
+      try {
+        return await apiFetch<Agent[]>('/api/agents');
+      } catch {
+        return [];
+      }
+    },
+  });
+}
+
+export function useAgent(agentId: string | undefined) {
+  return useQuery<Agent | null>({
+    queryKey: ['agent', agentId ?? null],
+    enabled: Boolean(agentId),
+    queryFn: async () => {
+      if (!agentId) return null;
+      try {
+        return await apiFetch<Agent>(`/api/agents/${agentId}`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
+  });
+}
+
+export function useCreateAgent() {
+  const qc = useQueryClient();
+  return useMutation<Agent, Error, CreateAgentInput>({
+    mutationFn: (input) =>
+      apiFetch<Agent>('/api/agents', {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['agents'] });
+    },
+  });
+}
+
+export function useUpdateAgent() {
+  const qc = useQueryClient();
+  return useMutation<Agent, Error, { id: string; patch: UpdateAgentInput }>({
+    mutationFn: ({ id, patch }) =>
+      apiFetch<Agent>(`/api/agents/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      }),
+    onSuccess: (agent) => {
+      void qc.invalidateQueries({ queryKey: ['agents'] });
+      void qc.invalidateQueries({ queryKey: ['agent', agent.id] });
+    },
+  });
+}
+
+export function useDeleteAgent() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { id: string; force?: boolean }>({
+    mutationFn: async ({ id, force }) => {
+      await apiFetch<unknown>(
+        `/api/agents/${id}${force ? '?force=1' : ''}`,
+        { method: 'DELETE' },
+      );
+    },
+    onSuccess: (_, { id }) => {
+      void qc.invalidateQueries({ queryKey: ['agents'] });
+      // Cascade-delete on the server removes threads + messages; drop their
+      // caches too so a second tab doesn't keep serving stale rows.
+      void qc.invalidateQueries({ queryKey: ['agent-threads', id] });
+      void qc.invalidateQueries({ queryKey: ['agent-usage', id] });
+    },
+  });
+}
+
+export interface AgentUsage {
+  usage: Array<{ teamId: string; projectId: string; projectName: string; role: string }>;
+}
+
+export function useAgentUsage(agentId: string | undefined) {
+  return useQuery<AgentUsage>({
+    queryKey: ['agent-usage', agentId ?? null],
+    enabled: Boolean(agentId),
+    queryFn: async () => {
+      if (!agentId) return { usage: [] };
+      try {
+        return await apiFetch<AgentUsage>(`/api/agents/${agentId}/usage`);
+      } catch {
+        return { usage: [] };
+      }
+    },
+  });
+}
+
+// ---------- Agent threads + messages ----------
+
+export function useAgentThreads(agentId: string | undefined) {
+  return useQuery<AgentThread[]>({
+    queryKey: ['agent-threads', agentId ?? null],
+    enabled: Boolean(agentId),
+    queryFn: async () => {
+      if (!agentId) return [];
+      try {
+        return await apiFetch<AgentThread[]>(`/api/agents/${agentId}/threads`);
+      } catch {
+        return [];
+      }
+    },
+  });
+}
+
+export function useCreateThread() {
+  const qc = useQueryClient();
+  return useMutation<AgentThread, Error, { agentId: string; input?: CreateThreadInput }>({
+    mutationFn: ({ agentId, input }) =>
+      apiFetch<AgentThread>(`/api/agents/${agentId}/threads`, {
+        method: 'POST',
+        body: JSON.stringify(input ?? {}),
+      }),
+    onSuccess: (thread) => {
+      void qc.invalidateQueries({ queryKey: ['agent-threads', thread.agentId] });
+    },
+  });
+}
+
+export function useDeleteThread() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { threadId: string; agentId: string }>({
+    mutationFn: async ({ threadId }) => {
+      await apiFetch<unknown>(`/api/threads/${threadId}`, { method: 'DELETE' });
+    },
+    onSuccess: (_, { threadId, agentId }) => {
+      void qc.invalidateQueries({ queryKey: ['agent-threads', agentId] });
+      void qc.invalidateQueries({ queryKey: ['thread-messages', threadId] });
+      void qc.invalidateQueries({ queryKey: ['thread', threadId] });
+    },
+  });
+}
+
+export function useThreadMessages(threadId: string | undefined) {
+  return useQuery<AgentMessage[]>({
+    queryKey: ['thread-messages', threadId ?? null],
+    enabled: Boolean(threadId),
+    queryFn: async () => {
+      if (!threadId) return [];
+      try {
+        return await apiFetch<AgentMessage[]>(`/api/threads/${threadId}/messages`);
+      } catch {
+        return [];
+      }
+    },
+  });
+}
+
+export function useSendMessage() {
+  const qc = useQueryClient();
+  return useMutation<
+    SendMessageResponse,
+    Error,
+    { threadId: string; agentId: string; content: string; addressedTo?: string }
+  >({
+    mutationFn: ({ threadId, content, addressedTo }) =>
+      apiFetch<SendMessageResponse>(`/api/threads/${threadId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ content, ...(addressedTo ? { addressedTo } : {}) }),
+      }),
+    onSuccess: (_, { threadId, agentId }) => {
+      void qc.invalidateQueries({ queryKey: ['thread-messages', threadId] });
+      void qc.invalidateQueries({ queryKey: ['agent-threads', agentId] });
+      void qc.invalidateQueries({ queryKey: ['thread-participants', threadId] });
+      void qc.invalidateQueries({ queryKey: ['thread', threadId] });
+      // create_project directives can mutate the project list.
+      void qc.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+}
+
+// ----- Chat v2: participants & thread detail -----
+
+export interface ThreadParticipantSummary {
+  agentId: string;
+  name: string;
+  seedKey: string | null;
+  role: 'manager' | 'member';
+}
+
+export function useThreadParticipants(threadId: string | undefined) {
+  return useQuery<ThreadParticipantSummary[]>({
+    queryKey: ['thread-participants', threadId ?? null],
+    enabled: Boolean(threadId),
+    queryFn: async () => {
+      if (!threadId) return [];
+      try {
+        return await apiFetch<ThreadParticipantSummary[]>(
+          `/api/threads/${threadId}/participants`,
+        );
+      } catch {
+        return [];
+      }
+    },
+  });
+}
+
+export function useAddParticipant() {
+  const qc = useQueryClient();
+  return useMutation<
+    { agentId: string; name: string; role: string },
+    Error,
+    { threadId: string; agentId: string; role?: 'manager' | 'member' }
+  >({
+    mutationFn: ({ threadId, agentId, role }) =>
+      apiFetch(`/api/threads/${threadId}/participants`, {
+        method: 'POST',
+        body: JSON.stringify({ agentId, ...(role ? { role } : {}) }),
+      }),
+    onSuccess: (_, { threadId }) => {
+      void qc.invalidateQueries({ queryKey: ['thread-participants', threadId] });
+      void qc.invalidateQueries({ queryKey: ['thread', threadId] });
+    },
+  });
+}
+
+export function useRemoveParticipant() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, { threadId: string; agentId: string }>({
+    mutationFn: async ({ threadId, agentId }) => {
+      await apiFetch<unknown>(
+        `/api/threads/${threadId}/participants/${agentId}`,
+        { method: 'DELETE' },
+      );
+    },
+    onSuccess: (_, { threadId }) => {
+      void qc.invalidateQueries({ queryKey: ['thread-participants', threadId] });
+      void qc.invalidateQueries({ queryKey: ['thread', threadId] });
+    },
+  });
+}
+
+export interface ChatActionRow {
+  id: string;
+  threadId: string;
+  messageId: string | null;
+  kind: 'consult' | 'add_member' | 'create_project' | 'start_run';
+  payloadJson: unknown;
+  resultJson: unknown;
+  status: 'pending' | 'ok' | 'failed';
+  createdAt: string | number | Date;
+}
+
+export interface ThreadDetailResponse {
+  thread: AgentThread;
+  agent: Agent | null;
+  project: Project | null;
+  participants: ThreadParticipantSummary[];
+  actions: ChatActionRow[];
+}
+
+export function useThreadDetail(threadId: string | undefined) {
+  return useQuery<ThreadDetailResponse | null>({
+    queryKey: ['thread', threadId ?? null],
+    enabled: Boolean(threadId),
+    queryFn: async () => {
+      if (!threadId) return null;
+      try {
+        return await apiFetch<ThreadDetailResponse>(`/api/threads/${threadId}`);
+      } catch {
+        return null;
+      }
+    },
+  });
+}
+
+export function useCompressThread() {
+  const qc = useQueryClient();
+  return useMutation<
+    { compressed: boolean; reason?: string; remainingMessageCount?: number },
+    Error,
+    { threadId: string }
+  >({
+    mutationFn: ({ threadId }) =>
+      apiFetch(`/api/threads/${threadId}/compress`, { method: 'POST' }),
+    onSuccess: (_, { threadId }) => {
+      void qc.invalidateQueries({ queryKey: ['thread-messages', threadId] });
+      void qc.invalidateQueries({ queryKey: ['thread', threadId] });
     },
   });
 }

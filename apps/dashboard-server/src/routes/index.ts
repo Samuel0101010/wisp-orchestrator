@@ -6,6 +6,8 @@ import { runRoutes } from './runs.js';
 import { teamTemplatesRoutes } from './team-templates.js';
 import { planChainRoutes } from './plan-chain.js';
 import { probePromptRoutes } from './probe-prompt.js';
+import { agentRoutes } from './agents.js';
+import { createChatRouter } from './chat.js';
 
 export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(healthRoutes);
@@ -15,4 +17,6 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(teamTemplatesRoutes);
   await app.register(planChainRoutes);
   await app.register(probePromptRoutes());
+  await app.register(agentRoutes);
+  await app.register(createChatRouter());
 };

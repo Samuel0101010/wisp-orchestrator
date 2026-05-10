@@ -9,11 +9,22 @@ export {
   events,
   checkpoints,
   rateWindows,
+  agents,
+  agentThreads,
+  agentMessages,
+  threadParticipants,
+  chatActions,
   planStatusValues,
   taskStatusValues,
   runStatusValues,
   runOutcomeValues,
   runPausedReasonValues,
+  agentModelValues,
+  messageRoleValues,
+  agentKindValues,
+  participantRoleValues,
+  chatActionKindValues,
+  chatActionStatusValues,
 } from './db.js';
 
 export type {
@@ -33,12 +44,28 @@ export type {
   NewCheckpoint,
   RateWindow,
   NewRateWindow,
+  Agent as AgentRow,
+  NewAgent,
+  AgentThread as AgentThreadRow,
+  NewAgentThread,
+  AgentMessage as AgentMessageRow,
+  NewAgentMessage,
+  ThreadParticipant as ThreadParticipantRow,
+  NewThreadParticipant,
+  ChatAction as ChatActionRow,
+  NewChatAction,
   PlanStatus,
   TaskStatus,
   TaskRole,
   RunStatus,
   RunOutcome,
   RunPausedReason,
+  AgentModel,
+  AgentKind,
+  ParticipantRole,
+  ChatActionKind,
+  ChatActionStatus,
+  MessageRole as MessageRoleType,
 } from './db.js';
 
 // Plan DAG (Zod)
@@ -70,3 +97,39 @@ export type { HarnessEvent, HarnessEventType } from './events.js';
 
 // Team (Zod) — re-export shape helpers; row type is `TeamRow` from db.
 export { parseTeam, safeParseTeam } from './team.js';
+
+// Agents (Zod / Model B + Chat v2)
+export {
+  agentKindSchema,
+  agentSchema,
+  createAgentInputSchema,
+  updateAgentInputSchema,
+  agentThreadSchema,
+  createThreadInputSchema,
+  agentMessageSchema,
+  messageRoleSchema,
+  sendMessageInputSchema,
+  sendMessageResponseSchema,
+  participantRoleSchema,
+  threadParticipantSchema,
+  addParticipantInputSchema,
+  consultDirectiveSchema,
+  addMemberDirectiveSchema,
+  createProjectDirectiveSchema,
+  startRunDirectiveSchema,
+  directiveSchema,
+} from './agents.js';
+export type {
+  Agent,
+  CreateAgentInput,
+  UpdateAgentInput,
+  AgentThread,
+  CreateThreadInput,
+  AgentMessage,
+  MessageRole,
+  SendMessageInput,
+  SendMessageResponse,
+  ThreadParticipant,
+  AddParticipantInput,
+  ManagerDirective,
+} from './agents.js';

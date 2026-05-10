@@ -46,3 +46,14 @@ Thumbs.db
 
 # Claude Code session-local state (NOT the plugin manifest at .claude-plugin/)
 .claude/
+
+# Impeccable live preview runtime artifacts
+.impeccable-live.json
+.impeccable-live/
+
+# Local screenshots from design review
+mc-*.png
+mc-compare*.png
+mc-home-*.png
+mc-screenshot.png
+agents-page.png
