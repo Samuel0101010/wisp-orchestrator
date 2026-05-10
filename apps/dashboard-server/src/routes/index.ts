@@ -4,7 +4,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { healthRoutes } from './health.js';
 import { projectRoutes } from './projects.js';
 import { planRoutes } from './plans.js';
-import { runRoutes } from './runs.js';
+import { runRoutes, setRuntimeSkillRegistry } from './runs.js';
 import { teamTemplatesRoutes } from './team-templates.js';
 import { planChainRoutes } from './plan-chain.js';
 import { probePromptRoutes } from './probe-prompt.js';
@@ -70,6 +70,14 @@ workerRegistry.register({
 export const workerDaemon = new WorkerDaemon(workerRegistry);
 
 export const registerRoutes: FastifyPluginAsync = async (app) => {
+  // Initialize skill registry FIRST and wire it into the default runtime
+  // before any route that could trigger runtime construction (runRoutes
+  // resolves the default runtime when its plugin function runs).
+  const skillsRoot = process.env.HARNESS_SKILLS_DIR ?? resolve(__dirname, '../skills/seed');
+  const skillRegistry = new SkillRegistry(skillsRoot);
+  skillRegistry.init();
+  setRuntimeSkillRegistry(skillRegistry);
+
   await app.register(healthRoutes);
   await app.register(projectRoutes);
   await app.register(planRoutes);
@@ -78,10 +86,6 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(planChainRoutes);
   await app.register(probePromptRoutes());
   await app.register(agentRoutes);
-
-  const skillsRoot = process.env.HARNESS_SKILLS_DIR ?? resolve(__dirname, '../skills/seed');
-  const skillRegistry = new SkillRegistry(skillsRoot);
-  skillRegistry.init();
 
   await app.register(createSkillsRouter({ registry: skillRegistry }));
   await app.register(createChatRouter({ skillRegistry }));

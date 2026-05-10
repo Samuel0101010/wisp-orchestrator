@@ -74,6 +74,9 @@ export interface RunRuntimeDeps {
    * mock-CLI mode (see env.HARNESS_MOCK_CLI) and for tests.
    */
   runner?: SubprocessRunner;
+  /** Optional skill registry — when present, terminal runs trigger
+   *  the summarize-thread skill to produce a continuation summary. */
+  skillRegistry?: import('../skills/registry.js').SkillRegistry;
 }
 
 export interface StartRunArgs {
@@ -128,6 +131,7 @@ export class RunRuntime {
   private readonly buildWalker: (args: { walkerDeps: WalkerDeps; runId: string }) => Walker;
   private readonly snapshotIntervalMs: number;
   private readonly runner: SubprocessRunner | undefined;
+  private readonly skillRegistry: import('../skills/registry.js').SkillRegistry | undefined;
 
   constructor(deps: RunRuntimeDeps) {
     this.db = deps.db;
@@ -137,6 +141,7 @@ export class RunRuntime {
     this.buildWalker = deps.buildWalker ?? (({ walkerDeps }) => new Walker(walkerDeps));
     this.snapshotIntervalMs = deps.snapshotIntervalMs ?? DEFAULT_SNAPSHOT_INTERVAL_MS;
     this.runner = deps.runner;
+    this.skillRegistry = deps.skillRegistry;
   }
 
   /**
@@ -715,6 +720,31 @@ export class RunRuntime {
           console.error('[reasoningbank] store failed', err);
         }
       })();
+
+      // Run-continuation summary — fire-and-forget; fallback worker catches misses.
+      if (this.skillRegistry) {
+        void (async () => {
+          try {
+            const { summarizeRun } = await import('../run-summary/summarizer.js');
+            const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
+            const plan = run
+              ? await this.db.select().from(plans).where(eq(plans.id, run.planId)).get()
+              : null;
+            const project = plan
+              ? await this.db.select().from(projects).where(eq(projects.id, plan.projectId)).get()
+              : null;
+            if (run && project && this.skillRegistry) {
+              await summarizeRun({
+                runId: run.id,
+                projectId: project.id,
+                registry: this.skillRegistry,
+              });
+            }
+          } catch (err) {
+            console.error('[run-summary] hook failed', err);
+          }
+        })();
+      }
     }
   }
 
