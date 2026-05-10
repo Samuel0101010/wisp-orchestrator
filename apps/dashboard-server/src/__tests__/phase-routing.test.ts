@@ -1,6 +1,6 @@
 import './setup.js';
 import { describe, expect, it, beforeAll } from 'vitest';
-import { pickFixed, pickModel } from '../router/thompson.js';
+import { pickFixed, pickModel, recordOutcome } from '../router/thompson.js';
 import { db } from '../db/index.js';
 import { modelRouterSamples } from '@agent-harness/schemas';
 import { runMigrations } from '../db/migrate.js';
@@ -15,6 +15,7 @@ describe('pickFixed', () => {
     const pick = pickFixed('haiku', 'planner-orchestration');
     expect(pick.model).toBe('haiku');
     expect(pick.sampleId).toBe('NO_OP');
+    expect(pick.theta).toBe(0);
     const after = db.select().from(modelRouterSamples).all().length;
     expect(after).toBe(before);
   });
@@ -24,5 +25,9 @@ describe('pickFixed', () => {
     pickModel('planner-substantive');
     const after = db.select().from(modelRouterSamples).all().length;
     expect(after).toBe(before + 1);
+  });
+
+  it('recordOutcome is a no-op for NO_OP sampleId', async () => {
+    await expect(recordOutcome('NO_OP', 'success')).resolves.toBeUndefined();
   });
 });
