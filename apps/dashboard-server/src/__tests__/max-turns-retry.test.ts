@@ -59,27 +59,39 @@ async function seedFailedRun(
 describe('retryMaxTurns worker', () => {
   it('retries a run whose nextRetryAt is in the past', async () => {
     const runId = await seedFailedRun(0);
-    const fakeRuntime = { resumeRun: vi.fn(async () => ({ ok: true })) };
+    const fakeRuntime: { resumeRun: ReturnType<typeof vi.fn> } = {
+      resumeRun: vi.fn(async () => ({ ok: true })),
+    };
     const { retryMaxTurnsImpl } = await import('../workers/handlers/retry-max-turns.js');
-    const result = await retryMaxTurnsImpl(fakeRuntime as any);
+    const result = await retryMaxTurnsImpl(
+      fakeRuntime as unknown as Parameters<typeof retryMaxTurnsImpl>[0],
+    );
     expect(result.retried).toContain(runId);
     expect(fakeRuntime.resumeRun).toHaveBeenCalledWith(runId);
   });
 
   it('skips runs whose nextRetryAt is in the future', async () => {
     const runId = await seedFailedRun(0, new Date(Date.now() + 60_000));
-    const fakeRuntime = { resumeRun: vi.fn(async () => ({ ok: true })) };
+    const fakeRuntime: { resumeRun: ReturnType<typeof vi.fn> } = {
+      resumeRun: vi.fn(async () => ({ ok: true })),
+    };
     const { retryMaxTurnsImpl } = await import('../workers/handlers/retry-max-turns.js');
-    const result = await retryMaxTurnsImpl(fakeRuntime as any);
+    const result = await retryMaxTurnsImpl(
+      fakeRuntime as unknown as Parameters<typeof retryMaxTurnsImpl>[0],
+    );
     expect(result.retried).not.toContain(runId);
     expect(fakeRuntime.resumeRun).not.toHaveBeenCalled();
   });
 
   it('does not retry past 4 attempts', async () => {
     const runId = await seedFailedRun(4);
-    const fakeRuntime = { resumeRun: vi.fn(async () => ({ ok: true })) };
+    const fakeRuntime: { resumeRun: ReturnType<typeof vi.fn> } = {
+      resumeRun: vi.fn(async () => ({ ok: true })),
+    };
     const { retryMaxTurnsImpl } = await import('../workers/handlers/retry-max-turns.js');
-    const result = await retryMaxTurnsImpl(fakeRuntime as any);
+    const result = await retryMaxTurnsImpl(
+      fakeRuntime as unknown as Parameters<typeof retryMaxTurnsImpl>[0],
+    );
     expect(result.retried).not.toContain(runId);
   });
 });

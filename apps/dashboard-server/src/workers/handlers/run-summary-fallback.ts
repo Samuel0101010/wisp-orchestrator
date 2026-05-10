@@ -36,7 +36,6 @@ export async function runSummaryFallback(): Promise<{ summarized: string[]; skip
     .slice(0, 5);
 
   const summarized: string[] = [];
-  let failed = 0;
   for (const c of candidates) {
     const plan = db.select().from(plansTable).where(eq(plansTable.id, c.planId)).get();
     if (!plan) continue;
@@ -45,7 +44,6 @@ export async function runSummaryFallback(): Promise<{ summarized: string[]; skip
       summarized.push(c.id);
     } catch (err) {
       console.error('[run-summary-fallback] failed', c.id, err);
-      failed++;
     }
   }
   return { summarized, skipped: candidates.length - summarized.length };

@@ -7,7 +7,7 @@ import {
   recordSessionId,
   evictStaleBundles,
 } from '../cache/prompt-bundle.js';
-import { db, sqlite } from '../db/index.js';
+import { sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { existsSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -15,6 +15,7 @@ import { join } from 'node:path';
 import { runAgentTurn } from '../routes/chat-engine.js';
 import { invokeSkill } from '../skills/invoker.js';
 import { SkillRegistry } from '../skills/registry.js';
+import type { SubprocessRunner } from '@agent-harness/orchestrator';
 
 beforeAll(() => {
   runMigrations();
@@ -141,7 +142,7 @@ describe('runAgentTurn with bundleKey', () => {
       allowedTools: [],
       model: 'haiku',
       taskId: 't',
-      runner: mockRunner as any,
+      runner: mockRunner as unknown as SubprocessRunner,
       cwd,
       bundleKey: key,
     });
@@ -168,7 +169,7 @@ describe('runAgentTurn with bundleKey', () => {
       allowedTools: [],
       model: 'haiku',
       taskId: 't',
-      runner: mockRunner as any,
+      runner: mockRunner as unknown as SubprocessRunner,
       cwd,
     });
     expect(existsSync(cwd)).toBe(true);
@@ -192,7 +193,7 @@ echo body`,
     const reg = new SkillRegistry(root);
     reg.init();
     const seenCwds: string[] = [];
-    async function* mockRunner(opts: any) {
+    async function* mockRunner(opts: { taskId: string; cwd: string }) {
       seenCwds.push(opts.cwd);
       yield {
         type: 'task.session-id',
@@ -203,8 +204,18 @@ echo body`,
         payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
       } as const;
     }
-    await invokeSkill({ registry: reg, name: 'echo', args: 'a', runner: mockRunner as any });
-    await invokeSkill({ registry: reg, name: 'echo', args: 'b', runner: mockRunner as any });
+    await invokeSkill({
+      registry: reg,
+      name: 'echo',
+      args: 'a',
+      runner: mockRunner as unknown as SubprocessRunner,
+    });
+    await invokeSkill({
+      registry: reg,
+      name: 'echo',
+      args: 'b',
+      runner: mockRunner as unknown as SubprocessRunner,
+    });
     expect(seenCwds[0]).toBe(seenCwds[1]);
   });
 });

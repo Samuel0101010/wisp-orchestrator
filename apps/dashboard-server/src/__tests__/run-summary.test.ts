@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { SubprocessRunner } from '@agent-harness/orchestrator';
 
 beforeAll(() => {
   runMigrations();
@@ -112,7 +113,7 @@ test`,
     const reg = new SkillRegistry(root);
     reg.init();
 
-    async function* mockRunner(opts: any) {
+    async function* mockRunner(opts: { taskId: string }) {
       yield {
         type: 'task.text-delta',
         payload: {
@@ -130,7 +131,12 @@ test`,
       } as const;
     }
 
-    await summarizeRun({ runId, projectId, registry: reg, runner: mockRunner as any });
+    await summarizeRun({
+      runId,
+      projectId,
+      registry: reg,
+      runner: mockRunner as unknown as SubprocessRunner,
+    });
 
     const stored = db.select().from(runSummaries).get();
     expect(stored).toBeDefined();
@@ -155,7 +161,7 @@ test`,
     const reg = new SkillRegistry(root);
     reg.init();
     let calls = 0;
-    async function* mockRunner(opts: any) {
+    async function* mockRunner(opts: { taskId: string }) {
       calls++;
       yield {
         type: 'task.text-delta',
@@ -166,8 +172,18 @@ test`,
         payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
       } as const;
     }
-    await summarizeRun({ runId, projectId, registry: reg, runner: mockRunner as any });
-    await summarizeRun({ runId, projectId, registry: reg, runner: mockRunner as any });
+    await summarizeRun({
+      runId,
+      projectId,
+      registry: reg,
+      runner: mockRunner as unknown as SubprocessRunner,
+    });
+    await summarizeRun({
+      runId,
+      projectId,
+      registry: reg,
+      runner: mockRunner as unknown as SubprocessRunner,
+    });
     expect(calls).toBe(1);
   });
 });

@@ -99,6 +99,7 @@ export async function recordOutcome(
  * same recordOutcome path for both pickModel and pickFixed without
  * branching.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function pickFixed(model: ModelName, _role: string): ModelPick {
   return { model, sampleId: 'NO_OP', theta: 0 };
 }
