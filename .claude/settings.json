@@ -1,0 +1,35 @@
+{
+  "$schema": "https://docs.anthropic.com/claude-code/settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Write|Edit",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" pre-tool", "timeout": 5000 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" post-tool", "timeout": 5000 }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" prompt-submit", "timeout": 5000 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/handler.cjs\" stop", "timeout": 5000 }
+        ]
+      }
+    ]
+  }
+}

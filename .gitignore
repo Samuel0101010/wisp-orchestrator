@@ -45,7 +45,12 @@ Thumbs.db
 .vscode/
 
 # Claude Code session-local state (NOT the plugin manifest at .claude-plugin/)
-.claude/
+# Use file-level patterns (not trailing /) so negation works for F9 hook files.
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/skills/
+# ...except the harness-repo Claude Code hooks bundle (F9) — these are tracked:
+# .claude/settings.json and .claude/hooks/handler.cjs are committed intentionally.
 
 # Impeccable live preview runtime artifacts
 .impeccable-live.json
