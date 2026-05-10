@@ -22,6 +22,7 @@ import {
   isRateLimitOutcome,
   type Runner,
 } from '../orchestrator/planner-runner.js';
+import { pickModel, recordOutcome } from '../router/thompson.js';
 
 interface PlansRouterDeps {
   runner?: Runner;
@@ -168,7 +169,14 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           };
         }
 
+        const pick = pickModel('planner');
+
         const outcome = await generatePlan(runner, team, project.goal, projectId);
+
+        const succeeded = isPlannerSuccess(outcome);
+        recordOutcome(pick.sampleId, succeeded ? 'success' : 'failure').catch((err) => {
+          console.error('[router] recordOutcome failed', err);
+        });
 
         if (isRateLimitOutcome(outcome)) {
           reply.code(503);
