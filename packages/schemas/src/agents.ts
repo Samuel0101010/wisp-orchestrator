@@ -104,7 +104,7 @@ export const sendMessageResponseSchema = z.object({
     .array(
       z.object({
         id: z.string(),
-        kind: z.enum(['consult', 'add_member', 'create_project', 'start_run']),
+        kind: z.enum(['consult', 'add_member', 'create_project', 'start_run', 'invoke_skill']),
         status: z.enum(['pending', 'ok', 'failed']),
         payload: z.unknown(),
         result: z.unknown().nullable(),
@@ -170,10 +170,17 @@ export const startRunDirectiveSchema = z.object({
   projectId: z.string().min(1).optional(),
 });
 
+export const invokeSkillDirectiveSchema = z.object({
+  kind: z.literal('invoke_skill'),
+  name: z.string().min(1).max(80),
+  args: z.string().max(8000).default(''),
+});
+
 export const directiveSchema = z.union([
   consultDirectiveSchema,
   addMemberDirectiveSchema,
   createProjectDirectiveSchema,
   startRunDirectiveSchema,
+  invokeSkillDirectiveSchema,
 ]);
 export type ManagerDirective = z.infer<typeof directiveSchema>;
