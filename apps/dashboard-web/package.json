@@ -11,7 +11,7 @@
     "typecheck": "tsc -b --pretty",
     "lint": "eslint src",
     "test": "vitest run",
-    "tokens:check": "node scripts/validate-tokens.cjs"
+    "tokens:check": "node scripts/validate-tokens.cjs && node scripts/validate-tokens.test.cjs"
   },
   "dependencies": {
     "@agent-harness/schemas": "workspace:*",

@@ -304,6 +304,7 @@ interface AgentDialogProps {
 }
 
 function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
+  const { t } = useTranslation();
   const agents = useAgents();
   const existing = mode === 'edit' && agentId ? agents.data?.find((a) => a.id === agentId) : null;
   const [name, setName] = useState(existing?.name ?? '');
@@ -525,7 +526,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                 type="text"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                placeholder="e.g. #67e8f9"
+                placeholder={t('agents.dialog.colorPlaceholder')}
                 className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 font-mono text-xs outline-none focus:border-info"
               />
             </div>

@@ -158,6 +158,9 @@
       "tools_one": "{{count}} tool",
       "tools_other": "{{count}} tools"
     },
+    "dialog": {
+      "colorPlaceholder": "e.g. #67e8f9"
+    },
     "loading": "Loading agents…",
     "loadFailed": "Failed to load agents",
     "emptyTitle": "No custom agents yet",
