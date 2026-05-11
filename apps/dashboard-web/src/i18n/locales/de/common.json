@@ -361,13 +361,31 @@
     "loadFailedDesc": "Der Server hat einen Fehler zurückgegeben oder die Run-ID ist ungültig.",
     "notFound": "Run nicht gefunden",
     "notFoundDesc": "Dieser Run existiert nicht oder wurde gelöscht.",
+    "loadFailedBody": "Der Dashboard-Server hat beim Laden dieses Runs einen Fehler zurückgegeben. Der Run könnte noch im Backend laufen — versuche es erneut.",
     "backToPlan": "← Plan",
+    "runPrefix": "Run {{id}}",
+    "reconnecting": "Verbinde neu…",
+    "maxTurnsRetry": "Max-Turns ({{count}}/4 Versuche{{next}})",
+    "maxTurnsNext": ", nächster um {{time}}",
+    "resourceBar": {
+      "time": "Zeit",
+      "turns": "Turns",
+      "pool": "Pool",
+      "tokensInOut": "{{in}} ein · {{out}} aus"
+    },
+    "autopilot": {
+      "label": "Autopilot",
+      "budgetMinPlaceholder": "Budget Min",
+      "budgetTokensPlaceholder": "Budget Tokens",
+      "save": "Speichern",
+      "saving": "Speichere…"
+    },
     "kanban": {
-      "pending": "Wartend",
-      "running": "Läuft",
-      "verifying": "Verifiziere",
-      "done": "Fertig",
-      "failed": "Fehlgeschlagen",
+      "pending": "AUSSTEHEND",
+      "running": "LÄUFT",
+      "verifying": "VERIFIZIERE",
+      "done": "FERTIG",
+      "failed": "FEHLGESCHLAGEN",
       "empty": "leer"
     },
     "task": {
@@ -383,13 +401,20 @@
       "noOutput": "Noch keine Ausgabe."
     },
     "controls": {
+      "pause": "Pausieren",
+      "resume": "Fortsetzen",
+      "cancel": "Abbrechen",
       "probingResume": "Prüfe Fortsetzung…",
       "quotaExhausted": "Quota erschöpft — automatische Fortsetzung in {{countdown}}",
-      "pausedByUser": "Run vom Benutzer pausiert."
+      "quotaExhaustedPrefix": "Quota erschöpft — automatische Fortsetzung in",
+      "pausedByUser": "Run vom Benutzer pausiert.",
+      "resumeNow": "Jetzt fortsetzen"
     },
     "cancelDialog": {
       "title": "Run abbrechen?",
-      "description": "Der Run wird als abgebrochen markiert. Laufende Subprozesse erhalten SIGTERM. Branches und das Event-Log bleiben für die Forensik erhalten."
+      "description": "Stoppt den Walker und markiert den Run als abgebrochen. Laufende Subprozesse können einen Moment benötigen um zu beenden.",
+      "keepRunning": "Weiterlaufen lassen",
+      "cancelRun": "Run abbrechen"
     },
     "toasts": {
       "paused": "Run pausiert",

@@ -90,7 +90,7 @@ describe('TopBar', () => {
       ),
     );
     expect(screen.getByTestId('topbar-run-active')).toBeInTheDocument();
-    expect(screen.getByTestId('topbar-run-status')).toHaveTextContent('running');
+    expect(screen.getByTestId('topbar-run-status')).toHaveTextContent('Running');
     expect(screen.getByTestId('topbar-time-bar')).toBeInTheDocument();
     expect(screen.getByTestId('topbar-turns-bar')).toBeInTheDocument();
     // 200 + 50 = 250 tokens.

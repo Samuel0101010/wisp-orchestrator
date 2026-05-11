@@ -361,13 +361,31 @@
     "loadFailedDesc": "The server returned an error or the run id is invalid.",
     "notFound": "Run not found",
     "notFoundDesc": "This run does not exist or has been deleted.",
+    "loadFailedBody": "The dashboard server returned an error while fetching this run. The run may still be running on the backend — try retrying.",
     "backToPlan": "← Plan",
+    "runPrefix": "Run {{id}}",
+    "reconnecting": "Reconnecting…",
+    "maxTurnsRetry": "Max-turns ({{count}}/4 retries{{next}})",
+    "maxTurnsNext": ", next at {{time}}",
+    "resourceBar": {
+      "time": "Time",
+      "turns": "Turns",
+      "pool": "Pool",
+      "tokensInOut": "{{in}} in · {{out}} out"
+    },
+    "autopilot": {
+      "label": "Autopilot",
+      "budgetMinPlaceholder": "budget min",
+      "budgetTokensPlaceholder": "budget tokens",
+      "save": "Save",
+      "saving": "Saving…"
+    },
     "kanban": {
-      "pending": "Pending",
-      "running": "Running",
-      "verifying": "Verifying",
-      "done": "Done",
-      "failed": "Failed",
+      "pending": "PENDING",
+      "running": "RUNNING",
+      "verifying": "VERIFYING",
+      "done": "DONE",
+      "failed": "FAILED",
       "empty": "empty"
     },
     "task": {
@@ -383,13 +401,20 @@
       "noOutput": "No output yet."
     },
     "controls": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "cancel": "Cancel",
       "probingResume": "Probing for resume…",
       "quotaExhausted": "Quota exhausted — automatic resume in {{countdown}}",
-      "pausedByUser": "Run paused by user."
+      "quotaExhaustedPrefix": "Quota exhausted — automatic resume in",
+      "pausedByUser": "Run paused by user.",
+      "resumeNow": "Resume now"
     },
     "cancelDialog": {
       "title": "Cancel run?",
-      "description": "The run will be marked cancelled. In-flight subprocesses receive SIGTERM. Branches and the events log are preserved for forensics."
+      "description": "This stops the walker and marks the run as cancelled. In-flight subprocesses may take a moment to terminate.",
+      "keepRunning": "Keep running",
+      "cancelRun": "Cancel run"
     },
     "toasts": {
       "paused": "Run paused",

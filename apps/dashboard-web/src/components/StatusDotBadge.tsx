@@ -1,5 +1,7 @@
 import * as React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { statusLabel } from '@/lib/status-labels';
 
 export type StatusTone = 'running' | 'success' | 'failed' | 'pending' | 'paused' | 'neutral';
 
@@ -72,25 +74,26 @@ export function StatusDotBadge({
   iconOnly,
   ...rest
 }: StatusDotBadgeProps) {
+  const { t } = useTranslation();
   const resolvedTone = tone ?? statusToTone(status);
-  const t = toneClasses[resolvedTone];
-  const text = label ?? (status ? status.toLowerCase() : resolvedTone);
+  const toneStyle = toneClasses[resolvedTone];
+  const text = label ?? (status ? statusLabel(status, t) : resolvedTone);
   return (
     <span
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
         'bg-transparent ring-1 ring-inset',
-        t.text,
-        t.ring,
+        toneStyle.text,
+        toneStyle.ring,
         className,
       )}
       data-status={resolvedTone}
       {...rest}
     >
-      <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', t.dot)}>
+      <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', toneStyle.dot)}>
         {pulse && (
           <span
-            className={cn('absolute inset-0 -m-0.5 animate-ping rounded-full opacity-60', t.dot)}
+            className={cn('absolute inset-0 -m-0.5 animate-ping rounded-full opacity-60', toneStyle.dot)}
             aria-hidden
           />
         )}
