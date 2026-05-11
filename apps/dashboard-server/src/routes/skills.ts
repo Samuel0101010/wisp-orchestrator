@@ -22,6 +22,7 @@ export const createSkillsRouter =
           model: s.model,
           allowedTools: s.allowedTools,
           argumentHint: s.argumentHint,
+          source: s.source ?? 'seed',
         }));
       }),
     );
