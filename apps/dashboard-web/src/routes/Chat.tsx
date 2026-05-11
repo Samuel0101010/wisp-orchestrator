@@ -18,6 +18,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Loader2,
   MessageSquarePlus,
@@ -47,6 +48,8 @@ import {
 import type { Agent, AgentMessage, AgentThread } from '@agent-harness/schemas';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 function fmtRel(d: Date | string | number): string {
   const t = typeof d === 'number' ? d : typeof d === 'string' ? new Date(d).getTime() : d.getTime();
@@ -63,6 +66,7 @@ function fmtTime(d: Date | string | number): string {
 }
 
 export function ChatRoute() {
+  const { t } = useTranslation();
   const agents = useAgents();
   const manager = useMemo<Agent | null>(
     () => agents.data?.find((a) => a.seedKey === 'manager') ?? null,
@@ -190,15 +194,12 @@ export function ChatRoute() {
       <aside className="flex h-full flex-col border-r bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-sm font-semibold">Conversations</span>
-          <Button
-            variant="ghost"
-            size="icon"
+          <IconButton
+            icon={<MessageSquarePlus className="h-4 w-4" />}
+            label={t('tooltips.newThread')}
             onClick={startNewThread}
             disabled={createThread.isPending}
-            title="New conversation"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-          </Button>
+          />
         </div>
         <div className="flex-1 overflow-y-auto py-1">
           {threadList.length === 0 && (
@@ -250,27 +251,27 @@ export function ChatRoute() {
           </div>
           {selectedThreadId && (
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!selectedThreadId || compress.isPending || messageList.length < 4}
-                onClick={async () => {
-                  if (!selectedThreadId) return;
-                  try {
-                    await compress.mutateAsync({ threadId: selectedThreadId });
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : String(err));
-                  }
-                }}
-                title={
-                  messageList.length < 4
-                    ? 'Need at least 4 messages to compress'
-                    : 'Summarise this conversation into one message'
-                }
-              >
-                {compress.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
-                Compress
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={!selectedThreadId || compress.isPending || messageList.length < 4}
+                    onClick={async () => {
+                      if (!selectedThreadId) return;
+                      try {
+                        await compress.mutateAsync({ threadId: selectedThreadId });
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : String(err));
+                      }
+                    }}
+                  >
+                    {compress.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                    Compress
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('tooltips.compressThread')}</TooltipContent>
+              </Tooltip>
             </div>
           )}
         </header>
@@ -310,18 +311,19 @@ export function ChatRoute() {
                 rows={1}
                 className="max-h-32 flex-1 resize-none bg-transparent text-sm outline-none"
               />
-              <Button
-                size="icon"
+              <IconButton
+                icon={
+                  sendMessage.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )
+                }
+                label={t('tooltips.sendMessage')}
+                variant="default"
                 onClick={send}
                 disabled={!composer.trim() || sendMessage.isPending}
-                title="Send (⌘⏎)"
-              >
-                {sendMessage.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+              />
             </div>
           </div>
         )}
@@ -334,15 +336,12 @@ export function ChatRoute() {
             <Users className="h-4 w-4" /> People
           </div>
           {selectedThreadId && (
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Add member"
+            <IconButton
+              icon={<Plus className="h-4 w-4" />}
+              label={t('tooltips.addMember')}
               onClick={() => setShowAddMember(true)}
               disabled={!selectedThreadId}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            />
           )}
         </div>
         <div className="flex-1 overflow-y-auto p-2">
@@ -461,6 +460,7 @@ function ParticipantRow({
   agent: Agent | null;
   onRemove: (() => Promise<void>) | null;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="group flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent">
       <Avatar
@@ -479,17 +479,16 @@ function ParticipantRow({
         </span>
       )}
       {onRemove && (
-        <button
+        <IconButton
+          icon={<X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />}
+          label={t('tooltips.removeMember')}
+          className="opacity-0 transition-opacity group-hover:opacity-100"
           onClick={() => {
             if (confirm(`Remove ${participant.name} from this conversation?`)) {
               void onRemove();
             }
           }}
-          className="opacity-0 transition-opacity group-hover:opacity-100"
-          title="Remove from chat"
-        >
-          <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-        </button>
+        />
       )}
     </div>
   );
