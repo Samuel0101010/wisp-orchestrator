@@ -29,12 +29,25 @@ const startRunSchema = z.object({
 });
 
 let defaultRuntime: RunRuntime | null = null;
+let _runtimeSkillRegistry: import('../skills/registry.js').SkillRegistry | null = null;
+
+/**
+ * Set the SkillRegistry the default runtime will be constructed with. Must be
+ * called BEFORE the first `defaultRuntimeInstance()` call (i.e. before the
+ * runs router is registered on the Fastify app); we cannot retroactively
+ * change the readonly field on an already-constructed RunRuntime.
+ */
+export function setRuntimeSkillRegistry(reg: import('../skills/registry.js').SkillRegistry): void {
+  _runtimeSkillRegistry = reg;
+}
+
 function defaultRuntimeInstance(): RunRuntime {
   if (!defaultRuntime) {
     defaultRuntime = new RunRuntime({
       db,
       ws: { publishToRun },
       runner: env.HARNESS_MOCK_CLI ? makeMockRunner() : undefined,
+      skillRegistry: _runtimeSkillRegistry ?? undefined,
     });
   }
   return defaultRuntime;
@@ -46,8 +59,12 @@ export function getDefaultRuntime(): RunRuntime {
 }
 
 export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync {
-  const runtime = deps.runtime ?? defaultRuntimeInstance();
+  // Deferred to the async router body so callers (routes/index.ts) can set
+  // the skill registry via setRuntimeSkillRegistry() before the runtime is
+  // first instantiated. If resolved here at module load, the runtime would
+  // be built before any wiring in routes/index.ts had a chance to run.
   const router: FastifyPluginAsync = async (app) => {
+    const runtime = deps.runtime ?? defaultRuntimeInstance();
     app.get(
       '/api/runs/daily-count',
       wrap(async () => {

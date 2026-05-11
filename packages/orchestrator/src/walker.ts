@@ -65,6 +65,10 @@ export interface RunState {
   tokensInTotal?: number;
   tokensOutTotal?: number;
   turnsTotal?: number;
+  /** Structured error reason for analytics + retry routing.
+   *  Currently set to 'max_turns' when a task fails because the
+   *  Claude CLI exhausted its --max-turns budget. */
+  errorReason?: string | null;
 }
 
 export interface WorktreeAdapter {
@@ -227,6 +231,7 @@ export class Walker {
   private lastLaunchAt = 0;
 
   private consecutiveFailures = 0;
+  private runErrorReason: string | null = null;
   private static readonly CONSECUTIVE_FAILURE_THRESHOLD = 3;
 
   private replanCount = 0;
@@ -776,6 +781,8 @@ export class Walker {
             ev.payload.resetAt ?? this.deps.now() + RATE_LIMIT_DEFAULT_MS,
           );
           // Continue draining; subprocess will exit shortly.
+        } else if (ev.type === 'task.max-turns-exhausted') {
+          this.runErrorReason = 'max_turns';
         } else if (ev.type === 'task.failed') {
           lastTaskFailedError = ev.payload.error;
         } else if (ev.type === 'task.completed') {
@@ -1143,6 +1150,7 @@ export class Walker {
       status,
       outcome,
       endedAt: new Date(this.deps.now()),
+      errorReason: this.runErrorReason ?? undefined,
     });
     this.deps.emit({ type: 'run.completed', payload: { runId: this.runId, outcome } });
     const resolve = this.finishResolve;

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T15:52:32.502Z",
+  "generatedAt": "2026-05-10T21:50:47.666Z",
   "routes": [
     "agents",
     "chat-directives",
@@ -14,6 +14,7 @@
     "plans",
     "probe-prompt",
     "projects",
+    "prompt-bundles",
     "router",
     "runs",
     "skills",
@@ -43,6 +44,7 @@
     "0004_events_run_id_index.sql",
     "0005_agents.sql",
     "0006_chat_v2.sql",
-    "0007_ruflo_port.sql"
+    "0007_ruflo_port.sql",
+    "0008_paperclip_port.sql"
   ]
 }

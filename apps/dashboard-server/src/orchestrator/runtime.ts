@@ -74,6 +74,9 @@ export interface RunRuntimeDeps {
    * mock-CLI mode (see env.HARNESS_MOCK_CLI) and for tests.
    */
   runner?: SubprocessRunner;
+  /** Optional skill registry — when present, terminal runs trigger
+   *  the summarize-thread skill to produce a continuation summary. */
+  skillRegistry?: import('../skills/registry.js').SkillRegistry;
 }
 
 export interface StartRunArgs {
@@ -128,6 +131,7 @@ export class RunRuntime {
   private readonly buildWalker: (args: { walkerDeps: WalkerDeps; runId: string }) => Walker;
   private readonly snapshotIntervalMs: number;
   private readonly runner: SubprocessRunner | undefined;
+  private readonly skillRegistry: import('../skills/registry.js').SkillRegistry | undefined;
 
   constructor(deps: RunRuntimeDeps) {
     this.db = deps.db;
@@ -137,6 +141,7 @@ export class RunRuntime {
     this.buildWalker = deps.buildWalker ?? (({ walkerDeps }) => new Walker(walkerDeps));
     this.snapshotIntervalMs = deps.snapshotIntervalMs ?? DEFAULT_SNAPSHOT_INTERVAL_MS;
     this.runner = deps.runner;
+    this.skillRegistry = deps.skillRegistry;
   }
 
   /**
@@ -422,14 +427,10 @@ export class RunRuntime {
     }
 
     // Cold-path: rebuild walker from DB state (E2).
-    if (run.status !== 'paused') {
-      return {
-        ok: false,
-        status: 409,
-        error: 'run not paused',
-        details: { currentStatus: run.status },
-      };
-    }
+    // Accept both 'paused' and 'running': the autopilot tick atomically flips
+    // paused → running via tryCheckoutRun BEFORE calling resumeRun, so by the
+    // time we get here the row is already 'running'. The top-level status
+    // gate above already rejected anything other than paused/running.
     if (this.resumingRuns.has(runId)) {
       return { ok: false, status: 409, error: 'run already resuming' };
     }
@@ -686,6 +687,21 @@ export class RunRuntime {
     if (patch.tokensInTotal !== undefined) update.tokensInTotal = patch.tokensInTotal;
     if (patch.tokensOutTotal !== undefined) update.tokensOutTotal = patch.tokensOutTotal;
     if (patch.turnsTotal !== undefined) update.turnsTotal = patch.turnsTotal;
+    if (patch.errorReason !== undefined) update.errorReason = patch.errorReason;
+    // When a run terminates because the agent hit max-turns, schedule a retry
+    // at an exponential backoff with ±25% jitter. The retry-max-turns worker
+    // picks up these rows on its 2-minute cron tick.
+    if (patch.errorReason === 'max_turns') {
+      const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
+      const retryCount = run?.retryCount ?? 0;
+      const RETRY_BACKOFF_MIN = [2, 10, 30, 120];
+      if (retryCount < RETRY_BACKOFF_MIN.length) {
+        const baseMin = RETRY_BACKOFF_MIN[retryCount]!;
+        const jitter = 1 + (Math.random() - 0.5) * 0.5; // ±0.25
+        const delayMs = Math.round(baseMin * 60_000 * jitter);
+        update.nextRetryAt = new Date(Date.now() + delayMs);
+      }
+    }
     if (Object.keys(update).length === 0) return;
     try {
       await this.db.update(runs).set(update).where(eq(runs.id, runId)).run();
@@ -719,6 +735,31 @@ export class RunRuntime {
           console.error('[reasoningbank] store failed', err);
         }
       })();
+
+      // Run-continuation summary — fire-and-forget; fallback worker catches misses.
+      if (this.skillRegistry) {
+        void (async () => {
+          try {
+            const { summarizeRun } = await import('../run-summary/summarizer.js');
+            const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
+            const plan = run
+              ? await this.db.select().from(plans).where(eq(plans.id, run.planId)).get()
+              : null;
+            const project = plan
+              ? await this.db.select().from(projects).where(eq(projects.id, plan.projectId)).get()
+              : null;
+            if (run && project && this.skillRegistry) {
+              await summarizeRun({
+                runId: run.id,
+                projectId: project.id,
+                registry: this.skillRegistry,
+              });
+            }
+          } catch (err) {
+            console.error('[run-summary] hook failed', err);
+          }
+        })();
+      }
     }
   }
 

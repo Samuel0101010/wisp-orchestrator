@@ -137,6 +137,7 @@ export const runs = sqliteTable('runs', {
   endedAt: integer('ended_at', { mode: 'timestamp_ms' }),
   outcome: text('outcome', { enum: runOutcomeValues }),
   status: text('status', { enum: runStatusValues }).notNull(),
+  checkoutToken: text('checkout_token'),
   budgetMinutes: integer('budget_minutes').notNull(),
   budgetTurns: integer('budget_turns').notNull(),
   maxParallel: integer('max_parallel').notNull(),
@@ -149,6 +150,9 @@ export const runs = sqliteTable('runs', {
   autopilotBudgetMinutes: integer('autopilot_budget_minutes'),
   autopilotBudgetTokens: integer('autopilot_budget_tokens'),
   autopilotStartedAt: integer('autopilot_started_at', { mode: 'timestamp_ms' }),
+  errorReason: text('error_reason'),
+  retryCount: integer('retry_count').notNull().default(0),
+  nextRetryAt: integer('next_retry_at', { mode: 'timestamp_ms' }),
 });
 export type Run = typeof runs.$inferSelect;
 export type NewRun = typeof runs.$inferInsert;
@@ -439,6 +443,39 @@ export const hookEvents = sqliteTable('hook_events', {
 });
 export type HookEvent = typeof hookEvents.$inferSelect;
 export type NewHookEvent = typeof hookEvents.$inferInsert;
+
+// ----- prompt bundles (paperclip-port: Anthropic prompt-cache reuse) -----
+
+export const promptBundles = sqliteTable('prompt_bundles', {
+  bundleKey: text('bundle_key').primaryKey(),
+  cwd: text('cwd').notNull(),
+  claudeSessionId: text('claude_session_id'),
+  systemPromptHash: text('system_prompt_hash').notNull(),
+  allowedToolsHash: text('allowed_tools_hash').notNull(),
+  model: text('model').notNull(),
+  hitCount: integer('hit_count').notNull().default(0),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp_ms' }).notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+});
+export type PromptBundle = typeof promptBundles.$inferSelect;
+export type NewPromptBundle = typeof promptBundles.$inferInsert;
+
+// ----- run summaries (paperclip-port: cross-run continuation context) -----
+
+export const runSummaries = sqliteTable('run_summaries', {
+  runId: text('run_id')
+    .primaryKey()
+    .references(() => runs.id, { onDelete: 'cascade' }),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  summaryMd: text('summary_md').notNull(),
+  mode: text('mode'),
+  tokensTotal: integer('tokens_total').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+});
+export type RunSummary = typeof runSummaries.$inferSelect;
+export type NewRunSummary = typeof runSummaries.$inferInsert;
 
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {

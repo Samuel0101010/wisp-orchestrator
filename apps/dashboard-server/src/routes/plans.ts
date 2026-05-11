@@ -24,6 +24,7 @@ import {
 } from '../orchestrator/planner-runner.js';
 import { pickModel, recordOutcome } from '../router/thompson.js';
 import { retrieveSimilar } from '../reasoningbank/store.js';
+import { getLatestSummaryForProject } from '../run-summary/retrieve.js';
 
 interface PlansRouterDeps {
   runner?: Runner;
@@ -170,19 +171,30 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           };
         }
 
-        const pick = pickModel('planner');
+        // Substantive plan generation — gets full Thompson exploration. Orchestration
+        // phases (context-ingest, status-post) should call pickFixed('haiku', 'planner-orchestration')
+        // instead of consuming the same prior.
+        const pick = pickModel('planner-substantive');
 
         const similar = await retrieveSimilar(project.goal, projectId, 3);
-        const context =
-          similar.length > 0
-            ? `## Context from past similar runs\n\n` +
+        const lastSummary = getLatestSummaryForProject(projectId);
+
+        const sections: string[] = [];
+        if (similar.length > 0) {
+          sections.push(
+            `## Context from past similar runs\n\n` +
               similar
                 .map((t, i) => {
                   const lessonsLine = t.lessons ? `Lessons: ${t.lessons}\n` : '';
                   return `### Past run ${i + 1} (outcome: ${t.outcome}, similarity: ${t.score.toFixed(2)})\nGoal: ${t.prompt}\n${lessonsLine}`;
                 })
-                .join('\n')
-            : undefined;
+                .join('\n'),
+          );
+        }
+        if (lastSummary) {
+          sections.push(`## Previous run on this project\n\n${lastSummary.summaryMd}`);
+        }
+        const context = sections.length > 0 ? sections.join('\n\n') : undefined;
 
         const outcome = await generatePlan(runner, team, project.goal, projectId, context);
 

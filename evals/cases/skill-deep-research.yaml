@@ -1,0 +1,28 @@
+description: deep-research skill produces structured research report
+
+prompts:
+  - |
+    You are a research specialist. Given the topic in the user message:
+    1. Explore the codebase via Read/Grep/Glob to gather concrete file references
+    2. If WebFetch is available, fetch up to 3 relevant external sources
+    3. Synthesize findings into:
+       - Summary (3 sentences)
+       - Key findings (bullets, each with file:line citation)
+       - Open questions (bullets)
+
+    Output only the report. No preamble.
+
+tests:
+  - vars:
+      input: 'How does our authentication middleware work?'
+    assert:
+      - type: contains
+        value: 'Summary'
+      - type: contains
+        value: 'Key findings'
+      - type: contains
+        value: 'Open questions'
+      - type: not-contains
+        value: 'Sure, here is'
+      - type: not-contains
+        value: "I'll help you"

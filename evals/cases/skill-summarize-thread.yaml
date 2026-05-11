@@ -1,0 +1,46 @@
+description: summarize-thread skill produces the 5-section structured summary
+
+prompts:
+  - |
+    Summarize the thread in the user message. Output exactly:
+    - Decisions: <bullets>
+    - Action items: <bullets, each with owner if mentioned>
+    - Open questions: <bullets>
+    - Context preserved: <key facts future readers need>
+    - Last activity: <one line>
+
+    Preserve technical details verbatim. No filler.
+
+tests:
+  - vars:
+      input: |
+        2026-05-10T14:00:00Z [user] We need to fix the login bug. Sven, can you handle infra?
+        2026-05-10T14:01:00Z [assistant] On it. Will check session timeout in nginx.
+        2026-05-10T14:05:00Z [user] Also Maya should look at the password-reset flow.
+    assert:
+      - type: contains
+        value: 'Decisions:'
+      - type: contains
+        value: 'Action items:'
+      - type: contains
+        value: 'Open questions:'
+      - type: contains
+        value: 'Context preserved:'
+      - type: contains
+        value: 'Last activity:'
+      - type: contains
+        value: 'Sven'
+      - type: contains
+        value: 'Maya'
+
+  - vars:
+      input: |
+        2026-05-10T15:00:00Z [user] Status?
+        2026-05-10T15:01:00Z [assistant] Build passing, deploy in 10.
+    assert:
+      - type: contains
+        value: 'Decisions:'
+      - type: llm-rubric
+        value: |
+          The output preserves the technical fact that the build is passing and
+          deployment is happening in 10 minutes.

@@ -55,6 +55,14 @@ export const harnessEventSchema = z.discriminatedUnion('type', [
     payload: z.object({ taskId: z.string(), sessionId: z.string().min(1) }),
   }),
   z.object({
+    type: z.literal('task.max-turns-exhausted'),
+    payload: z.object({
+      taskId: z.string(),
+      turnsUsed: z.number().int().nonnegative(),
+      maxTurns: z.number().int().nonnegative(),
+    }),
+  }),
+  z.object({
     type: z.literal('run.started'),
     payload: z.object({ runId: z.string() }),
   }),

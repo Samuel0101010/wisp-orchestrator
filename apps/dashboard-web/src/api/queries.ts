@@ -894,3 +894,52 @@ export function usePlanGoap() {
       }),
   });
 }
+
+// ---------- Run Summaries ----------
+
+export interface RunSummaryRow {
+  runId: string;
+  projectId: string;
+  summaryMd: string;
+  mode: string | null;
+  tokensTotal: number;
+  createdAt: number | string;
+}
+
+export function useRunSummaries(projectId?: string) {
+  return useQuery<RunSummaryRow[]>({
+    queryKey: ['run-summaries', projectId ?? 'all'],
+    queryFn: () =>
+      apiFetch(
+        `/api/insights/run-summaries${projectId ? `?projectId=${encodeURIComponent(projectId)}` : ''}`,
+      ),
+  });
+}
+
+// ---------- Prompt Bundles ----------
+
+export interface PromptBundleRow {
+  bundleKey: string;
+  cwd: string;
+  claudeSessionId: string | null;
+  model: string;
+  hitCount: number;
+  lastUsedAt: number | string;
+  createdAt: number | string;
+}
+
+export function usePromptBundles() {
+  return useQuery<PromptBundleRow[]>({
+    queryKey: ['prompt-bundles'],
+    queryFn: () => apiFetch<PromptBundleRow[]>('/api/prompt-bundles'),
+  });
+}
+
+export function useDeletePromptBundle() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (key: string) =>
+      apiFetch(`/api/prompt-bundles/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['prompt-bundles'] }),
+  });
+}

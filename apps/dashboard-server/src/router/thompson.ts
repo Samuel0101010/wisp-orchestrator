@@ -61,6 +61,7 @@ export async function recordOutcome(
   sampleId: string,
   outcome: 'success' | 'failure',
 ): Promise<void> {
+  if (sampleId === 'NO_OP') return; // pickFixed paths skip Thompson updates
   const sample = db
     .select()
     .from(modelRouterSamples)
@@ -86,4 +87,19 @@ export async function recordOutcome(
     })
     .where(eq(modelRouterSamples.id, sampleId))
     .run();
+}
+
+/**
+ * Force-pick a model without consuming a Thompson sample slot. Use for
+ * orchestration phases (context-ingest, status-post, workspace-inspect)
+ * where the model choice is fixed by policy, not by exploration.
+ *
+ * The returned sampleId is the literal string 'NO_OP' — recordOutcome
+ * is a no-op for it (silent return). Callers can therefore use the
+ * same recordOutcome path for both pickModel and pickFixed without
+ * branching.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function pickFixed(model: ModelName, _role: string): ModelPick {
+  return { model, sampleId: 'NO_OP', theta: 0 };
 }

@@ -1,8 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import './setup.js';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SkillRegistry } from '../skills/registry.js';
+import { runMigrations } from '../db/migrate.js';
+
+beforeAll(() => {
+  runMigrations();
+});
 
 function fixtureSkill(rootDir: string, name: string, body: string): void {
   const dir = join(rootDir, name);

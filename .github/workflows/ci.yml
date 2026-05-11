@@ -94,3 +94,34 @@ jobs:
           name: playwright-report
           path: tests/e2e/playwright-report
           retention-days: 7
+
+  evals:
+    name: evals
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: verify
+    # Opt-in: only runs when RUN_EVALS repo variable is set to "true".
+    # The eval step also requires the ANTHROPIC_API_KEY secret — if missing,
+    # promptfoo fails the step with a clear provider-auth error. (GitHub
+    # Actions forbids secrets.* in job-level `if:` conditions, so the secret
+    # cannot be gated here.) Promptfoo evals consume API budget.
+    if: ${{ vars.RUN_EVALS == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run promptfoo evals
+        run: pnpm eval
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

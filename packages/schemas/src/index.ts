@@ -19,6 +19,8 @@ export {
   modelRouterSamples,
   trajectories,
   hookEvents,
+  promptBundles,
+  runSummaries,
   planStatusValues,
   taskStatusValues,
   runStatusValues,
@@ -87,6 +89,10 @@ export type {
   NewTrajectory,
   HookEvent,
   NewHookEvent,
+  PromptBundle,
+  NewPromptBundle,
+  RunSummary,
+  NewRunSummary,
 } from './db.js';
 
 // Plan DAG (Zod)
