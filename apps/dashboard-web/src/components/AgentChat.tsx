@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Loader2, MessageSquare, Plus, Send, Trash2 } from 'lucide-react';
@@ -14,7 +14,7 @@ import type { Agent, AgentThread } from '@agent-harness/schemas';
 import { fmtRel } from '@/lib/fmt-rel';
 
 export interface AgentChatProps {
-  /** Optional project context — when set, threads are created with this projectId. */
+  /** Optional project context â€” when set, threads are created with this projectId. */
   projectId?: string | null;
   /** Compact variant (used in narrow rails). Pass `false` on full pages. */
   compact?: boolean;
@@ -154,17 +154,17 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Header — agent picker */}
+      {/* Header â€” agent picker */}
       <header className="flex flex-col gap-2 border-b border-border/60 px-3 py-2">
         <div className="flex items-baseline justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
             agent
           </span>
           <Link
             to="/agents"
-            className="font-mono text-[10px] text-muted-foreground hover:text-foreground"
+            className="font-mono text-2xs text-muted-foreground hover:text-foreground"
           >
-            manage →
+            manage â†’
           </Link>
         </div>
         <select
@@ -177,7 +177,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
         >
           {agents.data.map((a) => (
             <option key={a.id} value={a.id}>
-              @{a.name} · {a.model}
+              @{a.name} Â· {a.model}
             </option>
           ))}
         </select>
@@ -186,13 +186,13 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
       {/* Threads list */}
       <div className="border-b border-border/60 px-3 py-2">
         <div className="mb-1 flex items-baseline justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            threads · {threads.data?.length ?? 0}
+          <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
+            threads Â· {threads.data?.length ?? 0}
           </span>
           <button
             onClick={startNewThread}
             disabled={createThread.isPending || !selectedAgentId}
-            className="flex items-center gap-1 font-mono text-[10px] text-muted-foreground hover:text-foreground disabled:opacity-40"
+            className="flex items-center gap-1 font-mono text-2xs text-muted-foreground hover:text-foreground disabled:opacity-40"
             title="New thread"
           >
             <Plus className="h-3 w-3" /> new
@@ -212,7 +212,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
                 />
               ))
           ) : (
-            <div className="text-[11px] italic text-muted-foreground/60">
+            <div className="text-xs2 italic text-muted-foreground/60">
               {t('agentChat.noThreads')}
             </div>
           )}
@@ -222,19 +222,19 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
       {/* Messages */}
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-3">
         {selectedAgent && (
-          <div className="rounded-md border border-dashed border-border/60 bg-muted/30 p-2 text-[11px] text-muted-foreground">
+          <div className="rounded-md border border-dashed border-border/60 bg-muted/30 p-2 text-xs2 text-muted-foreground">
             <span className="font-medium">@{selectedAgent.name}</span>
-            {selectedAgent.description && <> · {selectedAgent.description}</>}
-            <div className="mt-0.5 line-clamp-2 font-mono text-[10px] opacity-70">
+            {selectedAgent.description && <> Â· {selectedAgent.description}</>}
+            <div className="mt-0.5 line-clamp-2 font-mono text-2xs opacity-70">
               {selectedAgent.systemPrompt.slice(0, 140)}
-              {selectedAgent.systemPrompt.length > 140 ? '…' : ''}
+              {selectedAgent.systemPrompt.length > 140 ? 'â€¦' : ''}
             </div>
           </div>
         )}
         {messages.data && messages.data.length > 0
           ? messages.data.map((m) => <MessageBubble key={m.id} message={m} agent={selectedAgent} />)
           : !sendMessage.isPending && (
-              <div className="my-auto text-center text-[12px] italic text-muted-foreground/70">
+              <div className="my-auto text-center text-xs italic text-muted-foreground/70">
                 {t('agentChat.startConversation')}
               </div>
             )}
@@ -254,7 +254,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
 
       {/* Composer */}
       <footer className="flex flex-col gap-1.5 border-t border-border/60 p-3">
-        <div className="flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="flex items-baseline justify-between font-mono text-2xs uppercase tracking-widest text-muted-foreground">
           <span>
             {selectedAgent
               ? t('agentChat.composerLabel', { name: selectedAgent.name })
@@ -292,7 +292,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
           </button>
         </div>
         {selectedThreadId && (
-          <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground/80">
+          <div className="flex items-center justify-between font-mono text-2xs text-muted-foreground/80">
             <span>{t('agentChat.threadMeta.count', { count: messages.data?.length ?? 0 })}</span>
             <button
               onClick={() => void deleteCurrentThread()}
@@ -329,7 +329,7 @@ function ThreadRow({
       <span className="truncate flex-1">
         {thread.title ?? t('agentChat.threadMeta.untitled', { id: thread.id.slice(0, 6) })}
       </span>
-      <span className="font-mono text-[10px] text-muted-foreground">
+      <span className="font-mono text-2xs text-muted-foreground">
         {fmtRel(thread.updatedAt as Date | string | number, lang)}
       </span>
     </button>
@@ -358,7 +358,7 @@ function MessageBubble({
       >
         {message.errorReason ? (
           <span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-destructive">
+            <span className="font-mono text-2xs uppercase tracking-widest text-destructive">
               {message.errorReason}
             </span>
             {message.content ? (
@@ -372,13 +372,13 @@ function MessageBubble({
           message.content
         )}
       </div>
-      <div className="flex items-center gap-2 px-1 font-mono text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-2 px-1 font-mono text-2xs text-muted-foreground">
         <span>{isUser ? t('agentChat.message.you') : `@${agent?.name ?? 'agent'}`}</span>
         {message.tokensIn != null && message.tokensOut != null && (
-          <span>· {message.tokensIn + message.tokensOut} tok</span>
+          <span>Â· {message.tokensIn + message.tokensOut} tok</span>
         )}
         {message.durationMs != null && message.durationMs > 0 && (
-          <span>· {(message.durationMs / 1000).toFixed(1)}s</span>
+          <span>Â· {(message.durationMs / 1000).toFixed(1)}s</span>
         )}
       </div>
     </div>

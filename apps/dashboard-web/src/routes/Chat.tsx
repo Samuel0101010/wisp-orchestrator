@@ -1,15 +1,15 @@
-/**
- * Full-page chat — Microsoft-Teams-style 3-pane layout.
+﻿/**
+ * Full-page chat â€” Microsoft-Teams-style 3-pane layout.
  *
- *   ┌────────┬───────────────────────────────────┬────────┐
- *   │        │              messages              │        │
- *   │ thread │  ──────────────────────────────── │ people │
- *   │  list  │              composer              │  list  │
- *   └────────┴───────────────────────────────────┴────────┘
+ *   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”
+ *   â”‚        â”‚              messages              â”‚        â”‚
+ *   â”‚ thread â”‚  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ â”‚ people â”‚
+ *   â”‚  list  â”‚              composer              â”‚  list  â”‚
+ *   â””â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”˜
  *
  * The center transcript shows multi-author chat: each assistant message has
  * an avatar + author name; user messages are right-aligned. Inline cards
- * surface manager directive results (e.g. "Created project X — open").
+ * surface manager directive results (e.g. "Created project X â€” open").
  *
  * Threads are scoped to whichever agent the user picked from the manager-led
  * "New chat with team" entry point. By default the manager (seedKey='manager')
@@ -179,7 +179,7 @@ export function ChatRoute() {
 
   return (
     <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-[260px_1fr_280px] overflow-hidden">
-      {/* ──────────── LEFT: Thread list ──────────── */}
+      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ LEFT: Thread list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <aside className="flex h-full flex-col border-r bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-sm font-semibold">{t('chat.sidebar.title')}</span>
@@ -222,7 +222,7 @@ export function ChatRoute() {
         </div>
       </aside>
 
-      {/* ──────────── CENTER: Transcript ──────────── */}
+      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ CENTER: Transcript â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="flex h-full min-w-0 flex-col">
         <header className="flex items-center justify-between border-b px-5 py-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -231,10 +231,10 @@ export function ChatRoute() {
               <div className="truncate text-sm font-semibold">
                 {detail.data?.thread.title ?? t('chat.header.defaultTitle')}
               </div>
-              <div className="text-[11px] text-muted-foreground">
+              <div className="text-xs2 text-muted-foreground">
                 {t('chat.header.participants', { count: participants.length })}
                 {detail.data?.actions && detail.data.actions.length > 0 && (
-                  <> · {t('chat.header.actions', { count: detail.data.actions.length })}</>
+                  <> Â· {t('chat.header.actions', { count: detail.data.actions.length })}</>
                 )}
               </div>
             </div>
@@ -319,7 +319,7 @@ export function ChatRoute() {
         )}
       </section>
 
-      {/* ──────────── RIGHT: Participants ──────────── */}
+      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ RIGHT: Participants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <aside className="flex h-full flex-col border-l bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
@@ -365,7 +365,7 @@ export function ChatRoute() {
             );
           })}
         </div>
-        <div className="border-t p-3 text-[11px] text-muted-foreground">
+        <div className="border-t p-3 text-xs2 text-muted-foreground">
           {t('chat.participants.permanent')}
         </div>
       </aside>
@@ -421,7 +421,7 @@ function ThreadRow({
     >
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{thread.title ?? t('chat.thread.untitled')}</div>
-        <div className="text-[10px] text-muted-foreground">{fmtRel(thread.updatedAt, lang)}</div>
+        <div className="text-2xs text-muted-foreground">{fmtRel(thread.updatedAt, lang)}</div>
       </div>
       {hover && (
         <button
@@ -463,10 +463,10 @@ function ParticipantRow({
       />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{participant.name}</div>
-        <div className="truncate text-[11px] text-muted-foreground">{agent?.description ?? ''}</div>
+        <div className="truncate text-xs2 text-muted-foreground">{agent?.description ?? ''}</div>
       </div>
       {participant.role === 'manager' && (
-        <span className="rounded-full bg-info/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-info">
+        <span className="rounded-full bg-info/15 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider text-info">
           {t('chat.participants.roleLead')}
         </span>
       )}
@@ -537,7 +537,7 @@ function Transcript({
   isPending: boolean;
 }) {
   const { t, i18n } = useTranslation();
-  // Build a map: messageId → actions[] so we can render action cards below
+  // Build a map: messageId â†’ actions[] so we can render action cards below
   // their parent manager message.
   const actionsByMessage = useMemo(() => {
     const map = new Map<string, ChatActionRow[]>();
@@ -601,7 +601,7 @@ function MessageBlock({
       <div className="flex justify-end">
         <div className="max-w-[72%] rounded-2xl rounded-br-sm bg-info/10 px-4 py-2 text-sm">
           <div className="whitespace-pre-wrap">{message.content}</div>
-          <div className="mt-1 text-right text-[10px] text-muted-foreground">
+          <div className="mt-1 text-right text-2xs text-muted-foreground">
             {fmtTime(message.createdAt, lang)}
           </div>
         </div>
@@ -618,21 +618,21 @@ function MessageBlock({
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-baseline gap-2">
           <span className="text-sm font-semibold">{authorName}</span>
-          <span className="text-[10px] text-muted-foreground">{fmtTime(message.createdAt, lang)}</span>
+          <span className="text-2xs text-muted-foreground">{fmtTime(message.createdAt, lang)}</span>
           {message.errorReason === 'pending' && (
-            <span className="rounded bg-warning/20 px-1 text-[9px] uppercase text-warning">
+            <span className="rounded bg-warning/20 px-1 text-3xs uppercase text-warning">
               {t('chat.transcript.interrupted')}
             </span>
           )}
           {message.errorReason === 'timeout' && (
-            <span className="rounded bg-destructive/20 px-1 text-[9px] font-semibold text-destructive">
+            <span className="rounded bg-destructive/20 px-1 text-3xs font-semibold text-destructive">
               {t('chat.transcript.timeout')}
             </span>
           )}
           {message.errorReason &&
             message.errorReason !== 'pending' &&
             message.errorReason !== 'timeout' && (
-              <span className="rounded bg-destructive/20 px-1 text-[9px] uppercase text-destructive">
+              <span className="rounded bg-destructive/20 px-1 text-3xs uppercase text-destructive">
                 {message.errorReason}
               </span>
             )}
@@ -754,7 +754,7 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     return (
       <div className={`rounded-lg border ${palette} p-3 text-xs`}>
         <span className="mr-2 inline-flex items-center gap-1 text-muted-foreground">
-          🔧 invoked skill
+          ðŸ”§ invoked skill
         </span>
         <span className="font-mono font-semibold">
           {r?.skillName ?? payload?.name ?? 'unknown'}
@@ -851,12 +851,12 @@ function AddMemberDialog({
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{a.name}</div>
-                  <div className="truncate text-[11px] text-muted-foreground">
+                  <div className="truncate text-xs2 text-muted-foreground">
                     {a.description ?? ''}
                   </div>
                 </div>
                 {already ? (
-                  <span className="text-[10px] text-muted-foreground">{t('chat.addMember.alreadyIn')}</span>
+                  <span className="text-2xs text-muted-foreground">{t('chat.addMember.alreadyIn')}</span>
                 ) : (
                   <ChevronRight className="h-3 w-3 text-muted-foreground" />
                 )}
