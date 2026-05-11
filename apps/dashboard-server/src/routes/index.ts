@@ -90,8 +90,21 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   // Initialize skill registry FIRST and wire it into the default runtime
   // before any route that could trigger runtime construction (runRoutes
   // resolves the default runtime when its plugin function runs).
-  const skillsRoot = process.env.HARNESS_SKILLS_DIR ?? resolve(__dirname, '../skills/seed');
-  const skillRegistry = new SkillRegistry(skillsRoot);
+  //
+  // HARNESS_SKILLS_DIR (legacy single-root override) still works — when set,
+  // only that directory is loaded. Otherwise we run multi-source discovery
+  // across built-in seed, project-local `.claude/skills`, user-global
+  // `~/.claude/skills`, and the plugin cache. First-loaded wins on name
+  // collisions (priority: seed > project > user > plugin).
+  const legacyRoot = process.env.HARNESS_SKILLS_DIR;
+  const skillRegistry = legacyRoot
+    ? new SkillRegistry(legacyRoot)
+    : new SkillRegistry({
+        discoveryOpts: {
+          seedRoot: resolve(__dirname, '../skills/seed'),
+          projectRoot: process.env.HARNESS_PROJECT_ROOT ?? process.cwd(),
+        },
+      });
   skillRegistry.init();
   setRuntimeSkillRegistry(skillRegistry);
   setRunSummaryFallbackRegistry(skillRegistry);

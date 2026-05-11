@@ -849,6 +849,8 @@ export interface SkillSummary {
   model: 'opus' | 'sonnet' | 'haiku';
   allowedTools: string[];
   argumentHint?: string;
+  /** Discovery origin: 'seed' | 'project' | 'user' | 'plugin:<name>'. */
+  source: string;
 }
 
 export function useSkills() {
