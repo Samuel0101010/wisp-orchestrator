@@ -64,9 +64,7 @@ export function AgentsRoute() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{t('agents.title')}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            {t('agents.subtitleLead')}
-          </p>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t('agents.subtitleLead')}</p>
         </div>
         <button
           onClick={() => setCreating(true)}
@@ -220,11 +218,11 @@ function AgentCard({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Users className="h-3 w-3" />
-          {refCount > 0
-            ? t('agents.card.onTeams', { count: refCount })
-            : t('agents.card.unused')}
+          {refCount > 0 ? t('agents.card.onTeams', { count: refCount }) : t('agents.card.unused')}
         </span>
-        <span className="font-mono">{t('agents.card.tools', { count: agent.allowedTools.length })}</span>
+        <span className="font-mono">
+          {t('agents.card.tools', { count: agent.allowedTools.length })}
+        </span>
         <span className="ml-auto font-mono">
           {fmtRel(agent.updatedAt as Date | string | number)}
         </span>

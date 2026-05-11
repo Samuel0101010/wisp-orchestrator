@@ -111,9 +111,7 @@ export function SkillsRoute() {
           icon={<Wrench className="h-6 w-6" />}
           title={t('skills.emptyTitle')}
           description={
-            skills.length === 0
-              ? t('skills.emptyDescription')
-              : t('skills.emptyDescription')
+            skills.length === 0 ? t('skills.emptyDescription') : t('skills.emptyDescription')
           }
         />
       ) : (

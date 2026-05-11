@@ -12,22 +12,11 @@ export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivEl
   );
 }
 
-export function SkeletonText({
-  lines = 3,
-  className,
-}: {
-  lines?: number;
-  className?: string;
-}) {
+export function SkeletonText({ lines = 3, className }: { lines?: number; className?: string }) {
   return (
     <div className={cn('space-y-2', className)}>
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton
-          key={i}
-          className="h-4"
-          style={{ width: `${100 - i * 8}%` }}
-          aria-hidden="true"
-        />
+        <Skeleton key={i} className="h-4" style={{ width: `${100 - i * 8}%` }} aria-hidden="true" />
       ))}
     </div>
   );

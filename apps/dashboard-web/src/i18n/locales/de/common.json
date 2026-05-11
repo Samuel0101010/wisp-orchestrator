@@ -60,8 +60,7 @@
     "loading": "Lade Skills…",
     "loadFailed": "Skills konnten nicht geladen werden",
     "emptyTitle": "Keine Skills gefunden",
-    "emptyDescription": "Lege SKILL.md-Dateien unter .claude/skills an oder installiere ein Plugin mit Skills."
-  ,
+    "emptyDescription": "Lege SKILL.md-Dateien unter .claude/skills an oder installiere ein Plugin mit Skills.",
     "reload": "Skills neu laden",
     "reloading": "Lade neu…"
   },
