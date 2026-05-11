@@ -65,3 +65,7 @@ mc-compare*.png
 mc-home-*.png
 mc-screenshot.png
 agents-page.png
+
+# Runtime per-run MCP configs / memory DBs (server only)
+apps/dashboard-server/mcp-configs/
+apps/dashboard-server/memory/
