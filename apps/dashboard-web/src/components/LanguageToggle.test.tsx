@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import i18n from '../i18n';
 import { LanguageToggle } from './LanguageToggle';
 
@@ -10,20 +11,20 @@ describe('LanguageToggle', () => {
   });
 
   it('renders the current language code (EN by default)', () => {
-    render(<LanguageToggle />);
+    render(<TooltipProvider><LanguageToggle /></TooltipProvider>);
     const toggle = screen.getByTestId('language-toggle');
     expect(toggle).toHaveTextContent('EN');
   });
 
   it('opens the menu and lists EN + DE options', () => {
-    render(<LanguageToggle />);
+    render(<TooltipProvider><LanguageToggle /></TooltipProvider>);
     fireEvent.click(screen.getByTestId('language-toggle'));
     expect(screen.getByTestId('language-toggle-en')).toHaveTextContent('English');
     expect(screen.getByTestId('language-toggle-de')).toHaveTextContent('Deutsch');
   });
 
   it('switches to German on click and persists in localStorage', async () => {
-    render(<LanguageToggle />);
+    render(<TooltipProvider><LanguageToggle /></TooltipProvider>);
     fireEvent.click(screen.getByTestId('language-toggle'));
     await act(async () => {
       fireEvent.click(screen.getByTestId('language-toggle-de'));
@@ -37,7 +38,7 @@ describe('LanguageToggle', () => {
     await act(async () => {
       await i18n.changeLanguage('de');
     });
-    render(<LanguageToggle />);
+    render(<TooltipProvider><LanguageToggle /></TooltipProvider>);
     fireEvent.click(screen.getByTestId('language-toggle'));
     await act(async () => {
       fireEvent.click(screen.getByTestId('language-toggle-en'));

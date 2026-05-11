@@ -14,6 +14,7 @@ import {
   Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
@@ -237,9 +238,10 @@ export function Sidebar() {
           }}
         >
           <DialogTrigger asChild>
-            <Button size="icon" variant="ghost" aria-label={t('navigation.newProject')}>
-              <Plus className="h-4 w-4" />
-            </Button>
+            <IconButton
+              icon={<Plus className="h-4 w-4" />}
+              label={t('tooltips.newProject')}
+            />
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
