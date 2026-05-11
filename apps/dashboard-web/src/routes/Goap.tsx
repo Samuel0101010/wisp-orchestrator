@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlanGoap, type GoapAction } from '@/api/queries';
 
 const EXAMPLE = {
@@ -26,6 +27,7 @@ const EXAMPLE = {
 };
 
 export function GoapRoute() {
+  const { t } = useTranslation();
   const [initial, setInitial] = useState(EXAMPLE.initial);
   const [goal, setGoal] = useState(EXAMPLE.goal);
   const [actions, setActions] = useState(EXAMPLE.actions);
@@ -49,37 +51,37 @@ export function GoapRoute() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-2xl font-semibold">GOAP Planner</h1>
-        <p className="text-sm text-muted-foreground">
-          Goal-oriented action planning over boolean world state. Provide initial state, goal, and
-          an action library; get back the cheapest plan.
-        </p>
+        <h1 className="text-2xl font-semibold">{t('goap.title')}</h1>
+        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{t('goap.subtitle')}</p>
       </header>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         {[
-          { label: 'Initial state', value: initial, set: setInitial },
-          { label: 'Goal', value: goal, set: setGoal },
-          { label: 'Actions', value: actions, set: setActions },
+          { label: t('goap.fields.start'), value: initial, set: setInitial },
+          { label: t('goap.fields.goal'), value: goal, set: setGoal },
+          { label: t('goap.fields.actions'), value: actions, set: setActions },
         ].map(({ label, value, set }) => (
-          <div key={label} className="flex flex-col">
-            <label className="text-xs uppercase text-muted-foreground">{label}</label>
+          <div key={label} className="flex flex-col gap-1">
+            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {label}
+            </label>
             <textarea
               value={value}
               onChange={(e) => set(e.target.value)}
-              className="h-48 rounded border border-border bg-background p-2 font-mono text-xs"
+              className="h-56 rounded-md border border-border bg-background p-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+              spellCheck={false}
             />
           </div>
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={submit}
           disabled={planM.isPending}
-          className="rounded bg-primary px-4 py-1.5 text-sm text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {planM.isPending ? 'Planning…' : 'Plan'}
+          {planM.isPending ? t('goap.actions.planning') : t('goap.actions.plan')}
         </button>
         <button
           onClick={() => {
@@ -87,27 +89,35 @@ export function GoapRoute() {
             setGoal(EXAMPLE.goal);
             setActions(EXAMPLE.actions);
           }}
-          className="rounded border border-border px-4 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="rounded-md border border-border px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
           Load example
         </button>
-        {parseError && <span className="text-sm text-destructive">JSON error: {parseError}</span>}
+        {parseError && (
+          <span className="text-sm text-destructive" role="alert">
+            JSON error: {parseError}
+          </span>
+        )}
       </div>
 
+      {!planM.data && !planM.isPending && !parseError && (
+        <p className="text-sm text-muted-foreground">{t('goap.noResult')}</p>
+      )}
+
       {planM.data && (
-        <div className="rounded border border-border bg-card p-3">
+        <div className="rounded-md border border-border bg-card p-4">
           <h2 className="text-sm font-semibold">
             {planM.data.plan === null
               ? 'No plan exists'
               : planM.data.plan.length === 0
                 ? 'Goal already satisfied'
-                : `Plan (cost ${planM.data.totalCost})`}
+                : `${t('goap.result')} (cost ${planM.data.totalCost})`}
           </h2>
           {planM.data.plan && planM.data.plan.length > 0 && (
             <ol className="mt-2 space-y-1 text-sm">
               {planM.data.plan.map((a: GoapAction, i: number) => (
                 <li key={i} className="flex items-baseline gap-3">
-                  <span className="text-xs text-muted-foreground">{i + 1}.</span>
+                  <span className="font-mono text-xs text-muted-foreground">{i + 1}.</span>
                   <span className="font-mono font-semibold">{a.name}</span>
                   <span className="text-xs text-muted-foreground">cost: {a.cost}</span>
                 </li>

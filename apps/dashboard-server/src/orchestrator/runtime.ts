@@ -136,8 +136,7 @@ export class RunRuntime {
   constructor(deps: RunRuntimeDeps) {
     this.db = deps.db;
     this.ws = deps.ws;
-    this.snapshotsDir =
-      deps.snapshotsDir ?? path.join(process.env.HARNESS_DATA_DIR ?? '.', 'snapshots');
+    this.snapshotsDir = deps.snapshotsDir ?? path.join(env.HARNESS_DATA_DIR, 'snapshots');
     this.buildWalker = deps.buildWalker ?? (({ walkerDeps }) => new Walker(walkerDeps));
     this.snapshotIntervalMs = deps.snapshotIntervalMs ?? DEFAULT_SNAPSHOT_INTERVAL_MS;
     this.runner = deps.runner;
@@ -151,14 +150,15 @@ export class RunRuntime {
   private makeWalkerDeps(runId: string, planId: string, maxParallel: number): WalkerDeps {
     const mcpConfigPath = env.HARNESS_MOCK_CLI
       ? undefined
-      : (() => {
-          const dataDir = process.env.HARNESS_DATA_DIR ?? '.';
-          return writeMemoryMcpConfig({
-            runId,
-            dataDir,
-            memoryMcpEntrypoint: resolveMemoryMcpEntrypoint(),
-          }).path;
-        })();
+      : writeMemoryMcpConfig({
+          runId,
+          // env.HARNESS_DATA_DIR has the os.tmpdir() default applied by the
+          // Zod schema in env.ts; reading process.env directly would lose it
+          // and produce a relative './mcp-configs/...' path that fails when
+          // claude resolves it from a worktree cwd.
+          dataDir: env.HARNESS_DATA_DIR,
+          memoryMcpEntrypoint: resolveMemoryMcpEntrypoint(),
+        }).path;
     const pool = new SubprocessPool({
       maxParallel,
       runner: this.runner,

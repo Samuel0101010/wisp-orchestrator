@@ -11,7 +11,8 @@ files:
   - apps/dashboard-server/src/routes/plans.ts
   - apps/dashboard-server/src/routes/index.ts
   - apps/dashboard-server/src/__tests__/thompson.test.ts
-related: []
+related:
+  - 2026-05-11-pnpm-drizzle-peer-dep-duplication.md
 ---
 
 # Thompson-Sampling Model Router (F6)
