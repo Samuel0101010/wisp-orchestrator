@@ -89,9 +89,12 @@ test.describe('Phase F1 smoke', () => {
 
     // Step 5: navigate to /projects/<id>/plan, plan rendered with 3 nodes.
     await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/plan$`), { timeout: 30_000 });
-    await expect(page.getByTestId('plan-status')).toContainText(/draft|locked/i, {
-      timeout: 30_000,
-    });
+    const draftLabel = tt(lang, 'status.draft');
+    const lockedLabel = tt(lang, 'status.locked');
+    await expect(page.getByTestId('plan-status')).toContainText(
+      new RegExp(`${draftLabel}|${lockedLabel}`, 'i'),
+      { timeout: 30_000 },
+    );
 
     // The PlanCanvas renders 3 nodes — assert each role label appears at least
     // once on the page.
@@ -116,9 +119,13 @@ test.describe('Phase F1 smoke', () => {
     expect(runId, 'runId should be present in URL').toBeTruthy();
 
     // Step 8: Wait for run status to be `completed` (mock CLI runs all 3 tasks fast).
-    await expect(page.getByTestId('run-status')).toContainText(/completed|done|success/i, {
-      timeout: 90_000,
-    });
+    const completedLabel = tt(lang, 'status.completed');
+    const doneLabel = tt(lang, 'status.done');
+    const successLabel = tt(lang, 'status.success');
+    await expect(page.getByTestId('run-status')).toContainText(
+      new RegExp(`${completedLabel}|${doneLabel}|${successLabel}`, 'i'),
+      { timeout: 90_000 },
+    );
 
     // Step 9: All 3 task cards in `Done` column.
     const doneColumn = page.getByTestId('kanban-column-done');
