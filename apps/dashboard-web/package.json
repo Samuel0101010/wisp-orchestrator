@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty",
     "lint": "eslint src",
-    "test": "vitest run"
+    "test": "vitest run",
+    "tokens:check": "node scripts/validate-tokens.cjs"
   },
   "dependencies": {
     "@agent-harness/schemas": "workspace:*",
