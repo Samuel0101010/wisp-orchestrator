@@ -1,5 +1,118 @@
 # Changelog
 
+## 1.3.0 — Paperclip-port (6 features)
+
+Ports six high-leverage ideas from the paperclip analysis into the
+harness: cheaper Claude calls (prompt-bundle cache), continuity across
+runs (per-project summary), robustness under load (max-turns retry +
+atomic checkout), cost-aware orchestration routing (phase-based
+Thompson roles), and a CI regression safety net (promptfoo evals).
+One Drizzle migration (`0008_paperclip_port.sql`) covers all schema
+additions. Three new background workers, one new web route. 33 new
+unit/integration tests; full suite stays green (206 dashboard-server,
+90 orchestrator).
+
+### Added — Phase-based routing (F1)
+
+- `pickFixed(model, role)` in `router/thompson.ts` — hard-picks a
+  model with sentinel sampleId `'NO_OP'` so orchestration phases
+  (context-ingest, status-post) don't consume the Thompson sample
+  budget reserved for substantive picks.
+- `recordOutcome` early-returns on `'NO_OP'` so callers share one
+  code path.
+- `pickModel('planner')` renamed to `pickModel('planner-substantive')`;
+  `/api/insights/router-priors` and the Insights table surface a new
+  `phase` column derived from the role suffix.
+
+### Added — Atomic run checkout (F2)
+
+- `runs.checkout_token` column + `tryCheckoutRun(runId, from, to)` /
+  `releaseCheckout` transactional helpers under
+  `src/checkout/atomic-checkout.ts`. Wraps the paused→running
+  transition in a single SQLite transaction so concurrent
+  autopilot-tick + manual `/resume` calls can't both win.
+- Autopilot tick claims via `tryCheckoutRun` before calling
+  `runtime.resumeRun`; `RunRuntime.resumeRun` made idempotent for
+  already-`running` input (autopilot pre-flips).
+
+### Added — Prompt-bundle cache (F3)
+
+- `prompt_bundles` table keyed by SHA-256 of
+  `(systemPrompt, sortedAllowedTools, model)`. Each bundle owns a
+  stable cwd + Claude session id under `<HARNESS_DATA_DIR>/prompt-bundles/`.
+- `RunAgentTurnOpts` gains `cwd?`, `resumeSessionId?`, `bundleKey?`.
+  `runAgentTurn` reuses the bundle's cwd (skips `mkdtemp`/`rm` when
+  stable) and records captured `task.session-id` events back via
+  `recordSessionId(bundleKey, sessionId)`.
+- `invokeSkill` looks up / upserts the bundle and threads
+  `cwd + resumeSessionId + bundleKey` through to `runAgentTurn`, so
+  repeated skill invocations hit Anthropic's prompt cache.
+- New `GET /api/prompt-bundles` + `DELETE /api/prompt-bundles/:key`
+  routes. New web route `/prompt-bundles` (sidebar entry, lucide
+  Database icon) lists cached bundles with reset action.
+- `prompt-bundle-evict` worker — daily 04:00 cron, 7-day TTL.
+
+### Added — Run-continuation summary (F4)
+
+- `run_summaries` table (one row per terminal run, FK-cascaded to
+  runs + projects).
+- `run-summary/summarizer.ts` — `buildTranscript(runId)` produces a
+  ≤24KB compact transcript from events; `summarizeRun(opts)` invokes
+  the existing `summarize-thread` skill, truncates to 8KB, persists
+  with heuristic mode detection (implement/plan/review). Idempotent
+  — `INSERT OR IGNORE` semantics + early-return on existing row.
+- `RunRuntime` accepts an optional `skillRegistry` dep. On terminal
+  outcome, fires a `void (async () => summarizeRun(...))()` IIFE
+  alongside the existing trajectory-store hook.
+- `run-summary-fallback` worker — 15-minute cron, catches runs that
+  terminated without a summary (e.g. server crash mid-hook).
+- `getLatestSummaryForProject(projectId)` injected into the planner's
+  `additionalContext` alongside ReasoningBank lessons, so a new plan
+  inherits state from the prior run.
+- `GET /api/insights/run-summaries[?projectId=...]` + a "Recent run
+  summaries" section in Insights.
+
+### Added — Max-turns retry (F5)
+
+- Defense-in-depth detection in `subprocess.ts`: primary via
+  stream-json `result.num_turns >= maxTurns`, fallback via stderr
+  pattern (`/max[- ]turns?\s*(exceeded|reached|exhausted)/i`).
+  Emits new `task.max-turns-exhausted` event variant alongside
+  `task.failed` with `error: 'max-turns-exhausted'`.
+- Walker captures the signal into `runErrorReason = 'max_turns'`
+  and propagates via `onRunState` (RunState gains
+  `errorReason?: string | null`).
+- `runs.error_reason / retry_count / next_retry_at` columns +
+  composite index. `persistRunPatch` computes `nextRetryAt` from
+  the graduated backoff `[2, 10, 30, 120]` minutes with ±25% jitter.
+- `retry-max-turns` worker — 2-minute cron, atomically claims via
+  `tryCheckoutRun('failed' → 'paused')`, bumps `retryCount` before
+  the resume attempt (crash safety), capped at 4 retries.
+- RunView surfaces an amber "Max-turns (N/4 retries, next at …)"
+  badge when `errorReason === 'max_turns'`.
+
+### Added — Promptfoo eval harness (F6)
+
+- New top-level `evals/` directory: `promptfoo.config.ts` (provider:
+  `anthropic:messages:claude-haiku-4-5-20251001`), one YAML case per
+  seed skill (`summarize-thread`, `deep-research`, `doctor`,
+  `audit-orphan-runs`, `auto-doc`) plus a `manager-directives.yaml`
+  case asserting correct `<<ACTION>>{...}<<END>>` formatting.
+- Root `pnpm eval` / `pnpm eval:view` scripts.
+- CI `evals` job — opt-in via `vars.RUN_EVALS == 'true'` repo variable
+  (secret-gating done inside the step since GitHub forbids
+  `secrets.*` in job-level `if:`).
+
+### Fixed
+
+- pnpm peer-dep duplication: promptfoo's transitive
+  `drizzle-orm@0.45.2` pulled `better-sqlite3@12.9.0` alongside our
+  app's `11.10.0`, causing pnpm to specialize our
+  `drizzle-orm@0.36.4` into two physical paths. TypeScript saw the
+  exports as distinct types → CI typecheck exploded with 738
+  cascading errors. Added `pnpm.overrides: { "better-sqlite3":
+  "^11.10.0" }` to collapse the resolution.
+
 ## 1.2.0 — Mission Control redesign
 
 Visual + structural overhaul. The dashboard adopts the Linear-cockpit
