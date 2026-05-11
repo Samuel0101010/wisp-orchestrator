@@ -542,6 +542,20 @@
     "avgTokens": "Ø Tokens / erfolgreichem Run (letzte {{count}})",
     "noData": "Noch keine abgeschlossenen Runs — starte das Team einmal, um diese Schätzung zu füllen."
   },
+  "status": {
+    "running": "Läuft",
+    "paused": "Pausiert",
+    "completed": "Abgeschlossen",
+    "failed": "Fehlgeschlagen",
+    "cancelled": "Abgebrochen",
+    "pending": "Ausstehend",
+    "ready": "Bereit",
+    "done": "Fertig",
+    "draft": "Entwurf",
+    "locked": "Gesperrt",
+    "success": "Erfolg",
+    "failure": "Fehler"
+  },
   "tooltips": {
     "newThread": "Neue Konversation",
     "sendMessage": "Nachricht senden (Strg+Eingabe)",

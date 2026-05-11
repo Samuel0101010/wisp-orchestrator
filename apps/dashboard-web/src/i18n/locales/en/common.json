@@ -542,6 +542,20 @@
     "avgTokens": "Avg tokens / successful run (last {{count}})",
     "noData": "No completed runs yet — run the team once to populate this estimate."
   },
+  "status": {
+    "running": "Running",
+    "paused": "Paused",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "pending": "Pending",
+    "ready": "Ready",
+    "done": "Done",
+    "draft": "Draft",
+    "locked": "Locked",
+    "success": "Success",
+    "failure": "Failure"
+  },
   "tooltips": {
     "newThread": "New conversation",
     "sendMessage": "Send message (Ctrl+Enter)",
