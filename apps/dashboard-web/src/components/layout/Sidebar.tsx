@@ -130,7 +130,7 @@ export function Sidebar() {
         <div className="flex flex-col">
           <span className="text-sm font-semibold">{t('navigation.appName')}</span>
           <Badge variant="secondary" className="mt-1 w-fit text-[10px]">
-            v1.4.0
+            v{__APP_VERSION__}
           </Badge>
         </div>
       </div>
@@ -156,7 +156,7 @@ export function Sidebar() {
           data-testid="sidebar-chat"
         >
           <MessagesSquare className="h-4 w-4" />
-          <span>Team Chat</span>
+          <span>{t('navigation.teamChat')}</span>
         </Link>
         <Link
           to="/agents"
@@ -167,7 +167,7 @@ export function Sidebar() {
           data-testid="sidebar-agents"
         >
           <Bot className="h-4 w-4" />
-          <span>Agents</span>
+          <span>{t('navigation.agents')}</span>
         </Link>
         <Link
           to="/skills"
@@ -178,7 +178,7 @@ export function Sidebar() {
           data-testid="sidebar-skills"
         >
           <Wrench className="h-4 w-4" />
-          <span>Skills</span>
+          <span>{t('navigation.skills')}</span>
         </Link>
         <Link
           to="/workers"
@@ -189,7 +189,7 @@ export function Sidebar() {
           data-testid="sidebar-workers"
         >
           <Activity className="h-4 w-4" />
-          <span>Workers</span>
+          <span>{t('navigation.workers')}</span>
         </Link>
         <Link
           to="/insights"
@@ -200,7 +200,7 @@ export function Sidebar() {
           data-testid="sidebar-insights"
         >
           <Sparkles className="h-4 w-4" />
-          <span>Insights</span>
+          <span>{t('navigation.insights')}</span>
         </Link>
         <Link
           to="/goap"
@@ -211,7 +211,7 @@ export function Sidebar() {
           data-testid="sidebar-goap"
         >
           <GitBranch className="h-4 w-4" />
-          <span>GOAP Planner</span>
+          <span>{t('navigation.goapPlanner')}</span>
         </Link>
         <Link
           to="/prompt-bundles"
@@ -222,7 +222,7 @@ export function Sidebar() {
           data-testid="sidebar-prompt-bundles"
         >
           <Database className="h-4 w-4" />
-          <span>Prompt Bundles</span>
+          <span>{t('navigation.promptBundles')}</span>
         </Link>
       </nav>
       <div className="flex items-center justify-between px-4 pt-4 pb-2">

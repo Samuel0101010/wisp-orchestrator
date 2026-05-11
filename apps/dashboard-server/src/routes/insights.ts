@@ -47,9 +47,12 @@ export const insightsRoutes: FastifyPluginAsync = async (app) => {
       }
       let planJson: unknown = null;
       try {
-        planJson = JSON.parse(row.planJson as unknown as string);
-      } catch {
-        /* keep null */
+        planJson = JSON.parse(row.planJson);
+      } catch (err) {
+        console.warn(
+          `[insights:trajectory] corrupt planJson for ${id}:`,
+          err instanceof Error ? err.message : err,
+        );
       }
       return { ...row, planJson };
     }),
@@ -57,10 +60,11 @@ export const insightsRoutes: FastifyPluginAsync = async (app) => {
 
   app.delete(
     '/api/insights/trajectories/:id',
-    wrap(async (req) => {
+    wrap(async (req, reply) => {
       const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
       db.delete(trajectories).where(eq(trajectories.id, id)).run();
-      return { id, deleted: true };
+      reply.code(204);
+      return null;
     }),
   );
 

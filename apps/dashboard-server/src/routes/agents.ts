@@ -24,21 +24,33 @@ interface RolesJson {
   roles: Array<{ agentId?: string; [k: string]: unknown }>;
 }
 
+/**
+ * Parse a teams.roles_json value, returning `null` on corruption. We log
+ * the failure so an admin can see it (silent skip masks real data bugs)
+ * but keep the same skip-on-fail behaviour at the call sites so one
+ * corrupted team row doesn't break a whole listing endpoint.
+ */
+function parseRolesJson(value: string | object, context: string): RolesJson | null {
+  try {
+    return (typeof value === 'string' ? JSON.parse(value) : value) as RolesJson;
+  } catch (err) {
+    console.warn(
+      `[agents:${context}] failed to parse teams.roles_json:`,
+      err instanceof Error ? err.message : err,
+    );
+    return null;
+  }
+}
+
 function isReferenced(agentId: string): boolean {
   const rows = sqlite
     .prepare<unknown[], { rolesJson: string | object }>(`SELECT roles_json AS rolesJson FROM teams`)
     .all();
   for (const r of rows) {
-    let json: RolesJson;
-    try {
-      json = (typeof r.rolesJson === 'string' ? JSON.parse(r.rolesJson) : r.rolesJson) as RolesJson;
-    } catch {
-      continue;
-    }
-    if (json && Array.isArray(json.roles)) {
-      for (const role of json.roles) {
-        if (role.agentId === agentId) return true;
-      }
+    const json = parseRolesJson(r.rolesJson, 'isReferenced');
+    if (!json || !Array.isArray(json.roles)) continue;
+    for (const role of json.roles) {
+      if (role.agentId === agentId) return true;
     }
   }
   return false;
@@ -157,14 +169,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
         const updateStmt = sqlite.prepare('UPDATE teams SET roles_json = ? WHERE id = ?');
         const tx = sqlite.transaction(() => {
           for (const r of rows) {
-            let json: RolesJson;
-            try {
-              json = (
-                typeof r.rolesJson === 'string' ? JSON.parse(r.rolesJson) : r.rolesJson
-              ) as RolesJson;
-            } catch {
-              continue;
-            }
+            const json = parseRolesJson(r.rolesJson, 'forceDelete');
             if (!json || !Array.isArray(json.roles)) continue;
             let dirty = false;
             const next = json.roles.map((role) => {
@@ -213,14 +218,7 @@ export const agentRoutes: FastifyPluginAsync = async (app) => {
       const usage: Array<{ teamId: string; projectId: string; projectName: string; role: string }> =
         [];
       for (const r of rows) {
-        let json: RolesJson;
-        try {
-          json = (
-            typeof r.rolesJson === 'string' ? JSON.parse(r.rolesJson) : r.rolesJson
-          ) as RolesJson;
-        } catch {
-          continue;
-        }
+        const json = parseRolesJson(r.rolesJson, 'usage');
         if (json && Array.isArray(json.roles)) {
           for (const role of json.roles) {
             if (role.agentId === id) {

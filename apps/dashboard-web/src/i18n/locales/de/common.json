@@ -4,6 +4,165 @@
     "english": "English",
     "german": "Deutsch"
   },
+  "errors": {
+    "title": "Etwas ist schiefgegangen",
+    "loadFailed": "Laden fehlgeschlagen",
+    "retryHint": "Versuch es nochmal oder lade die Seite neu."
+  },
+  "empty": {
+    "noData": "Noch keine Daten"
+  },
+  "workers": {
+    "title": "Workers",
+    "subtitle_one": "{{count}} Hintergrund-Worker registriert",
+    "subtitle_other": "{{count}} Hintergrund-Worker registriert",
+    "cols": {
+      "name": "Name",
+      "schedule": "Zeitplan",
+      "enabled": "Aktiv",
+      "id": "ID",
+      "started": "Gestartet",
+      "ended": "Beendet",
+      "status": "Status",
+      "result": "Ergebnis / Fehler"
+    },
+    "badge": {
+      "enabled": "aktiv",
+      "disabled": "deaktiviert"
+    },
+    "actions": {
+      "runNow": "Jetzt ausführen",
+      "running": "Läuft…"
+    },
+    "history": "Run-Historie",
+    "loading": "Lade Workers…",
+    "loadFailed": "Workers konnten nicht geladen werden",
+    "loadingRuns": "Lade Runs…",
+    "noRuns": "Noch keine Runs.",
+    "emptyTitle": "Keine Workers registriert",
+    "emptyDescription": "Cron-Jobs werden serverseitig registriert. Sobald aktiv erscheinen sie hier."
+  },
+  "skills": {
+    "title": "Skills",
+    "subtitle_one": "{{count}} Skill verfügbar",
+    "subtitle_other": "{{count}} Skills verfügbar",
+    "filter": {
+      "all": "Alle",
+      "seed": "Eingebaut",
+      "project": "Projekt",
+      "user": "User",
+      "plugin": "Plugin"
+    },
+    "model": "Modell",
+    "tools": "Erlaubte Tools",
+    "source": "Quelle",
+    "noTools": "keine Tools",
+    "loading": "Lade Skills…",
+    "loadFailed": "Skills konnten nicht geladen werden",
+    "emptyTitle": "Keine Skills gefunden",
+    "emptyDescription": "Lege SKILL.md-Dateien unter .claude/skills an oder installiere ein Plugin mit Skills.",
+    "reload": "Skills neu laden",
+    "reloading": "Lade neu…"
+  },
+  "promptBundles": {
+    "title": "Prompt-Bundle Cache",
+    "subtitle_one": "{{count}} gecachtes Bundle",
+    "subtitle_other": "{{count}} gecachte Bundles",
+    "explanation": "Jede Zeile ist ein stabiles Arbeitsverzeichnis + Claude-Session für eine einzigartige (System-Prompt, Tools, Model)-Kombination. Die Wiederverwendung hält den Server-Cache von Anthropic warm.",
+    "cols": {
+      "bundleKey": "Bundle-Key",
+      "model": "Modell",
+      "session": "Session",
+      "hits": "Hits",
+      "lastUsed": "Zuletzt genutzt"
+    },
+    "actions": {
+      "reset": "Zurücksetzen",
+      "resetting": "Setze zurück…"
+    },
+    "loading": "Lade Bundles…",
+    "loadFailed": "Bundles konnten nicht geladen werden",
+    "emptyTitle": "Noch keine Bundles im Cache",
+    "emptyDescription": "Rufe einen Skill auf oder schicke eine Chat-Nachricht, um den Cache zu füllen."
+  },
+  "insights": {
+    "title": "Insights",
+    "trajectoriesTitle": "Vergangene Trajectories",
+    "trajectoriesEmpty": "Noch keine Trajectories erfasst.",
+    "summariesTitle": "Letzte Run-Zusammenfassungen",
+    "summariesEmpty": "Noch keine Zusammenfassungen.",
+    "priorsTitle": "Model-Router Priors",
+    "priorsEmpty": "Noch keine Priors — werden gefüllt sobald Thompson-Sampling gelaufen ist.",
+    "cols": {
+      "ts": "Zeit",
+      "outcome": "Outcome",
+      "tokens": "Tokens",
+      "prompt": "Ziel",
+      "lessons": "Lessons",
+      "role": "Rolle",
+      "model": "Modell",
+      "phase": "Phase",
+      "mean": "Mittelwert",
+      "samples": "Samples"
+    }
+  },
+  "goap": {
+    "title": "GOAP-Planer",
+    "subtitle": "Goal-Oriented Action Planning. Definiere Start-Zustand, Ziel-Prädikate und verfügbare Aktionen; der Planer liefert eine Aktions-Sequenz.",
+    "fields": {
+      "start": "Start-Zustand (JSON)",
+      "goal": "Ziel-Prädikate (JSON)",
+      "actions": "Aktionen (JSON-Array)"
+    },
+    "actions": {
+      "plan": "Plan erstellen",
+      "planning": "Plane…"
+    },
+    "noResult": "Sende ein Problem ab, um den Plan zu sehen.",
+    "result": "Plan-Ergebnis"
+  },
+  "agents": {
+    "title": "Agents",
+    "subtitle_one": "{{count}} Agent in der Registry",
+    "subtitle_other": "{{count}} Agents in der Registry",
+    "subtitleLead": "Das Built-in-Dev-Team ist immer für Chats verfügbar. Lege eigene Agents für Spezial-Aufgaben oder projektbezogene Personas an.",
+    "sections": {
+      "builtin": "Built-in Team",
+      "builtinSub_one": "{{count}} Seed-Agent · immer im Chat verfügbar",
+      "builtinSub_other": "{{count}} Seed-Agents · immer im Chat verfügbar",
+      "your": "Deine Agents",
+      "yourSubEmpty": "Erstelle eine eigene Persona für Spezial-Tasks",
+      "yourSub_one": "{{count}} eigener Agent",
+      "yourSub_other": "{{count}} eigene Agents"
+    },
+    "actions": {
+      "new": "Neuer Agent",
+      "edit": "Bearbeiten",
+      "view": "Ansehen",
+      "delete": "Löschen",
+      "deleting": "Lösche…",
+      "saving": "Speichere…",
+      "cancel": "Abbrechen",
+      "createFirst": "Erstelle deinen ersten Agent"
+    },
+    "deleteConfirm": {
+      "title": "{{name}} löschen?",
+      "usedOn_one": "Dieser Agent wird in {{count}} Team verwendet. Beim Löschen wird er ausgehängt — das Team behält seine inline Konfiguration.",
+      "usedOn_other": "Dieser Agent wird in {{count}} Teams verwendet. Beim Löschen wird er ausgehängt — die Teams behalten ihre inline Konfiguration.",
+      "unused": "Dieser Agent wird in keinem Team verwendet. Chat-Threads werden gelöscht."
+    },
+    "card": {
+      "unused": "nicht benutzt",
+      "onTeams_one": "in {{count}} Team",
+      "onTeams_other": "in {{count}} Teams",
+      "tools_one": "{{count}} Tool",
+      "tools_other": "{{count}} Tools"
+    },
+    "loading": "Lade Agents…",
+    "loadFailed": "Agents konnten nicht geladen werden",
+    "emptyTitle": "Noch keine eigenen Agents",
+    "emptyDescription": "Lege deinen ersten Agent an, um Teams zu bauen."
+  },
   "buttons": {
     "save": "Speichern",
     "saving": "Speichern…",
@@ -41,7 +200,14 @@
     "noProjectsYet": "Noch keine Projekte",
     "recentRuns": "Letzte Runs",
     "today": "{{count}} heute",
-    "backToProject": "Zurück zum Projekt"
+    "backToProject": "Zurück zum Projekt",
+    "teamChat": "Team Chat",
+    "agents": "Agents",
+    "skills": "Skills",
+    "workers": "Workers",
+    "insights": "Insights",
+    "goapPlanner": "GOAP-Planer",
+    "promptBundles": "Prompt-Bundles"
   },
   "topBar": {
     "activeRun": "Aktiver Run",

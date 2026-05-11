@@ -3,7 +3,8 @@ date: 2026-05-07
 tags: [better-sqlite3, sqlite, concurrent-writes, memory-mcp, busy-timeout]
 files:
   - packages/memory-mcp/src/store.ts
-related: []
+related:
+  - 2026-05-11-pnpm-drizzle-peer-dep-duplication.md
 ---
 
 # better-sqlite3: concurrent writers throw SQLITE_BUSY immediately without busy_timeout

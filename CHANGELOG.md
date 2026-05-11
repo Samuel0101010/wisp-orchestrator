@@ -1,5 +1,81 @@
 # Changelog
 
+## 1.5.0 — Audit pass: backend hardening + UI primitives
+
+Wall-to-wall audit of the harness. Focus was on correctness, observability,
+and consistent UI primitives — not new features. ~9k LOC of dead prototype
+code removed; one real production bug fixed (caught by a live manager-run
+test).
+
+### Fixed — runtime
+
+- **MCP config path is now absolute** (`apps/dashboard-server/src/orchestrator/mcp-config.ts`,
+  `runtime.ts`). The previous code read `process.env.HARNESS_DATA_DIR ?? '.'`
+  directly, bypassing the Zod default in `env.ts`. When the env var was
+  unset the per-run config landed at `./mcp-configs/<runId>.json` —
+  relative to whatever cwd the server started in. Claude was then spawned
+  from the task's worktree cwd and ENOENT'd on the path. Every fresh
+  real run was failing on the first task. Switched all `HARNESS_DATA_DIR`
+  reads to `env.HARNESS_DATA_DIR` (post-Zod default) and resolve
+  `mcpConfigPath` to absolute up front. Snapshots dir + templates dir
+  got the same treatment.
+- **`worker-runs-prune` worker** (weekly, 30-day retention) prevents
+  unbounded growth of the `worker_runs` table.
+
+### Fixed — observability
+
+- **`agents.ts` corruption-skip catches now log**. The three places that
+  silently swallowed JSON.parse failures on a corrupt `teams.roles_json`
+  now warn with the call-site context (`isReferenced`, `forceDelete`,
+  `usage`). Same skip-on-fail behaviour at the call sites; the warning
+  surfaces the data bug instead of hiding it.
+- **`insights.ts:50` unsafe cast removed**. `JSON.parse(row.planJson as
+  unknown as string)` — `planJson` is already typed `string` by Drizzle.
+  Parse failures now log instead of silent fallback to `null`.
+- **`prompt-bundles` DELETE returns 204** (was implicit 200 with body).
+- **`insights/trajectories/:id` DELETE returns 204** (same).
+- **rmSync failure in `prompt-bundles` DELETE is logged**.
+
+### Fixed — skill discovery
+
+- **Loader frontmatter requirement relaxed**: only `name` and
+  `description` are required now; `model` defaults to `'sonnet'` and
+  `allowed-tools` defaults to `[]`. Files without any frontmatter at
+  all throw a typed `NotASkillError` so callers skip silently instead
+  of warning. Result: ~30 plugin/user skills that were being skipped
+  with a noisy warning at server boot (e.g. `chrome-devtools-mcp`,
+  `superpowers`, `firecrawl`, `mcp-server-dev`) are now discovered.
+  Concrete: 5 → 35 reachable skills on a representative dev machine.
+
+### Added — UI primitives
+
+- `Skeleton`, `SkeletonText`, `SkeletonRow` — animated bars to replace
+  bare `"Loading…"` text everywhere.
+- `EmptyState` — icon + title + body + action, used wherever a list
+  was previously a bare `"No data"` line.
+- `ErrorBanner` — inline error with retry, used as a fallback when a
+  query rejects instead of silently rendering `?? []`.
+
+### Changed — UI polish
+
+- **Sidebar version badge is dynamic** — reads `__APP_VERSION__`
+  injected at build time from `apps/dashboard-web/package.json`. No
+  more stale hardcoded strings drifting across releases.
+- **Sidebar nav labels are i18n** — Team Chat, Agents, Skills, Workers,
+  Insights, GOAP Planner, Prompt Bundles all use translation keys.
+- **Workers, Skills, PromptBundles, Insights, Goap, Agents** pages
+  rewritten with the new primitives + tables wrapped in
+  `overflow-x-auto` for mobile + full i18n on page chrome.
+- All 23 dead `/mc/v1`–`/mc/v20` + 3 `/mc` compare prototype routes
+  removed (~9k LOC). They were unlinked since v1.2.0 picked the
+  chosen variant for Home; many had partial dark-mode coverage.
+
+### Audit artifacts
+
+`audit-artifacts/` carries the inventory reports (API routes, frontend,
+backend internals) plus baseline screenshots of every page in dark and
+light mode. Kept in-tree for the v1.5.0 PR.
+
 ## 1.4.0 — Multi-source skills + refreshed avatars
 
 Two user-facing wins: the harness now uses **every** Claude Code skill you

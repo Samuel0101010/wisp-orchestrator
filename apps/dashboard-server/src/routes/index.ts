@@ -24,6 +24,7 @@ import {
   setRunSummaryFallbackRegistry,
 } from '../workers/handlers/run-summary-fallback.js';
 import { retryMaxTurns, setRetryMaxTurnsRuntime } from '../workers/handlers/retry-max-turns.js';
+import { workerRunsPrune } from '../workers/handlers/worker-runs-prune.js';
 import { createWorkersRouter } from './workers.js';
 import { tickAutopilot } from '../autopilot/runner.js';
 import { routerRoutes } from './router.js';
@@ -82,6 +83,12 @@ workerRegistry.register({
   cronSpec: '*/2 * * * *',
   enabled: true,
   handler: retryMaxTurns,
+});
+workerRegistry.register({
+  name: 'worker-runs-prune',
+  cronSpec: '0 5 * * 0',
+  enabled: true,
+  handler: workerRunsPrune,
 });
 
 export const workerDaemon = new WorkerDaemon(workerRegistry);

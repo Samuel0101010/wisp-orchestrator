@@ -15,7 +15,7 @@ import { existsSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadSkillFromFile } from './loader.js';
+import { loadSkillFromFile, NotASkillError } from './loader.js';
 import type { Skill, SkillSource } from './types.js';
 
 export interface DiscoveryOpts {
@@ -59,6 +59,7 @@ function loadSkillsFromRoot(root: string, source: SkillSource): Skill[] {
       const s = loadSkillFromFile(skillFile);
       out.push({ ...s, source });
     } catch (err) {
+      if (err instanceof NotASkillError) continue;
       console.warn(
         `[skills:discovery] skipped ${skillFile}:`,
         err instanceof Error ? err.message : err,
