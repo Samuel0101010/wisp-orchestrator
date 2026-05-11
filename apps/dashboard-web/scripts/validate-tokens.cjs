@@ -14,6 +14,12 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..', 'src');
 const allowFiles = new Set([
   path.join(root, 'components', 'Avatar.tsx'),
+  // Legitimate computed-viewport heights — main run/plan layouts need them.
+  path.join(root, 'routes', 'RunView.tsx'),
+  path.join(root, 'routes', 'PlanEditor.tsx'),
+  // Top-level layout shells with sticky viewport-height containers.
+  path.join(root, 'routes', 'Chat.tsx'),
+  path.join(root, 'routes', 'Home.tsx'),
 ]);
 const denyPatterns = [
   { re: /#[0-9A-Fa-f]{3,8}\b/g, label: 'hex literal' },

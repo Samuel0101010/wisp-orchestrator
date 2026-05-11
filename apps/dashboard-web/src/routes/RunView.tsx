@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Pause, Play, Square, Activity, FileText, AlertTriangle, Coins } from 'lucide-react';
 import type { HarnessEvent, RunPausedReason, TaskRole } from '@agent-harness/schemas';
@@ -166,7 +166,7 @@ interface CountdownProps {
 
 function Countdown({ resumeAt, nowMs }: CountdownProps) {
   const { t } = useTranslation();
-  if (resumeAt == null) return <span>—</span>;
+  if (resumeAt == null) return <span>â€”</span>;
   const remainingMs = Math.max(0, resumeAt - nowMs);
   if (remainingMs <= 0)
     return (
@@ -208,26 +208,26 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
           <span className="text-sm font-medium">{task.title}</span>
           <span className="text-xs text-muted-foreground">{task.id}</span>
         </div>
-        <Badge variant="outline" className="text-[10px] uppercase">
+        <Badge variant="outline" className="text-2xs uppercase">
           {task.role}
         </Badge>
       </div>
       <div className="grid grid-cols-3 gap-2 pl-2 text-xs text-muted-foreground tabular-nums">
         <div>
-          <div className="text-[10px] uppercase">{t('runView.task.tokens')}</div>
+          <div className="text-2xs uppercase">{t('runView.task.tokens')}</div>
           <div data-testid={`task-tokens-${task.id}`}>
             {formatCompactNumber(task.tokensIn)} / {formatCompactNumber(task.tokensOut)}
           </div>
         </div>
         <div>
-          <div className="text-[10px] uppercase">{t('runView.task.turns')}</div>
+          <div className="text-2xs uppercase">{t('runView.task.turns')}</div>
           <div data-testid={`task-turns-${task.id}`}>
             {task.turnsUsed}
             {budgetTurns > 0 ? ` / ${budgetTurns}` : ''}
           </div>
         </div>
         <div>
-          <div className="text-[10px] uppercase">{t('runView.task.duration')}</div>
+          <div className="text-2xs uppercase">{t('runView.task.duration')}</div>
           <div data-testid={`task-duration-${task.id}`}>{formatDuration(duration)}</div>
         </div>
       </div>
@@ -236,7 +236,7 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
           <div className="font-semibold">{t('runView.task.failed')}</div>
           <div className="line-clamp-3">{task.error}</div>
           {task.worktreePath && (
-            <div className="mt-1 text-[10px] text-destructive/80">
+            <div className="mt-1 text-2xs text-destructive/80">
               {t('runView.task.forensics', { path: task.worktreePath })}
             </div>
           )}
@@ -605,7 +605,7 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
             <span className="text-xs font-semibold uppercase tracking-wide">
               {t(`runView.kanban.${col}`)}
             </span>
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="text-2xs">
               {columns[col].length}
             </Badge>
           </div>
@@ -745,7 +745,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
           {wsStatus !== 'open' && (
             <Badge
               variant="outline"
-              className="flex items-center gap-1 text-[10px]"
+              className="flex items-center gap-1 text-2xs"
               data-testid="ws-status-pill"
             >
               <Activity className="h-3 w-3" />
