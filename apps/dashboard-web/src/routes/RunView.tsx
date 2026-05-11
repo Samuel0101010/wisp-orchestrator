@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRunEvents } from '@/api/ws';
 import { useTranslation } from 'react-i18next';
 import { BackToProject } from '@/components/BackToProject';
@@ -420,39 +421,54 @@ function RunHeaderActions({
         </Button>
       )}
       {status === 'running' && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => void handlePause()}
-          disabled={pause.isPending}
-          data-testid="run-pause-button"
-        >
-          <Pause className="mr-2 h-4 w-4" />
-          Pause
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handlePause()}
+              disabled={pause.isPending}
+              data-testid="run-pause-button"
+            >
+              <Pause className="mr-2 h-4 w-4" />
+              Pause
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('tooltips.pauseRun')}</TooltipContent>
+        </Tooltip>
       )}
       {status === 'paused' && (
-        <Button
-          size="sm"
-          variant="default"
-          onClick={() => void handleResume()}
-          disabled={resume.isPending || resumeBlocked}
-          data-testid="run-resume-button"
-        >
-          <Play className="mr-2 h-4 w-4" />
-          Resume
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => void handleResume()}
+              disabled={resume.isPending || resumeBlocked}
+              data-testid="run-resume-button"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              Resume
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('tooltips.resumeRun')}</TooltipContent>
+        </Tooltip>
       )}
-      <Button
-        size="sm"
-        variant="destructive"
-        onClick={() => setConfirmCancel(true)}
-        disabled={status === 'completed' || status === 'cancelled' || status === 'failed'}
-        data-testid="run-cancel-button"
-      >
-        <Square className="mr-2 h-4 w-4" />
-        Cancel
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setConfirmCancel(true)}
+            disabled={status === 'completed' || status === 'cancelled' || status === 'failed'}
+            data-testid="run-cancel-button"
+          >
+            <Square className="mr-2 h-4 w-4" />
+            Cancel
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('tooltips.cancelRun')}</TooltipContent>
+      </Tooltip>
       <Dialog open={confirmCancel} onOpenChange={setConfirmCancel}>
         <DialogContent data-testid="run-cancel-dialog">
           <DialogHeader>
@@ -484,6 +500,7 @@ interface RunPausedBannerProps {
 }
 
 function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBannerProps) {
+  const { t } = useTranslation();
   const resume = useResumeRun(runId);
   const handleResumeNow = async (): Promise<void> => {
     try {
@@ -509,15 +526,20 @@ function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBann
             Quota exhausted — automatic resume in <Countdown resumeAt={resumeAt} nowMs={nowMs} />
           </span>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => void handleResumeNow()}
-          disabled={resume.isPending}
-          data-testid="rate-limit-resume-now"
-        >
-          Resume now
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleResumeNow()}
+              disabled={resume.isPending}
+              data-testid="rate-limit-resume-now"
+            >
+              Resume now
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('tooltips.resumeRun')}</TooltipContent>
+        </Tooltip>
       </div>
     );
   }
@@ -530,15 +552,20 @@ function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBann
         <Pause className="h-4 w-4" />
         <span>Run paused by user.</span>
       </div>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => void handleResumeNow()}
-        disabled={resume.isPending}
-        data-testid="user-paused-resume"
-      >
-        Resume
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void handleResumeNow()}
+            disabled={resume.isPending}
+            data-testid="user-paused-resume"
+          >
+            Resume
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('tooltips.resumeRun')}</TooltipContent>
+      </Tooltip>
     </div>
   );
 }
