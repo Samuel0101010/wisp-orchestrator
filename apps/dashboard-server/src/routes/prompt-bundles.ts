@@ -39,11 +39,15 @@ export const promptBundlesRoutes: FastifyPluginAsync = async (app) => {
       }
       try {
         if (existsSync(row.cwd)) rmSync(row.cwd, { recursive: true, force: true });
-      } catch {
-        /* swallow */
+      } catch (err) {
+        console.warn(
+          `[prompt-bundles] failed to remove cwd ${row.cwd}:`,
+          err instanceof Error ? err.message : err,
+        );
       }
       db.delete(promptBundles).where(eq(promptBundles.bundleKey, key)).run();
-      return { deleted: true, bundleKey: key };
+      reply.code(204);
+      return null;
     }),
   );
 };
