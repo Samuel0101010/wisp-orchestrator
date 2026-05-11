@@ -68,6 +68,7 @@ export function GoapRoute() {
             <textarea
               value={value}
               onChange={(e) => set(e.target.value)}
+              aria-label={label}
               className="h-56 rounded-md border border-border bg-background p-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-ring"
               spellCheck={false}
             />
