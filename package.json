@@ -14,6 +14,7 @@
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
     "test:integration": "pnpm -r run test:integration",
+    "pretest:e2e": "pnpm --filter dashboard-web build && pnpm --filter dashboard-server build",
     "test:e2e": "pnpm --filter ./tests/e2e run test",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty",

@@ -74,7 +74,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `node "${dashboardServerEntry}"`,
+    command: `pnpm --filter dashboard-web build && pnpm --filter dashboard-server build && node "${dashboardServerEntry}"`,
     url: `${BASE_URL}/api/health`,
     timeout: 60_000,
     // Always start a fresh server so each invocation gets a fresh tmp
