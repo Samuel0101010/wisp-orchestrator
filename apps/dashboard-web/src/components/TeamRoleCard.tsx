@@ -1,7 +1,9 @@
-import { GripVertical } from 'lucide-react';
+import { ArrowDown, ArrowUp, GripVertical, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -75,6 +77,7 @@ export function TeamRoleCard({
   onTestPrompt,
   dragHandleProps,
 }: TeamRoleCardProps) {
+  const { t } = useTranslation();
   const promptLen = draft.systemPrompt.length;
   const promptShort = promptLen < SYSTEM_PROMPT_MIN;
   const promptOver = promptLen > SYSTEM_PROMPT_MAX;
@@ -112,35 +115,27 @@ export function TeamRoleCard({
             <Badge variant="secondary" data-testid={`badge-${draft.role}`}>
               {draft.model}
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
+            <IconButton
+              label={t('tooltips.moveRoleUp')}
+              icon={<ArrowUp className="h-4 w-4" />}
               onClick={onMoveUp}
               disabled={!canMoveUp || !onMoveUp}
-              title="Move up"
               data-testid={`move-up-${index}`}
-            >
-              ↑
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+            />
+            <IconButton
+              label={t('tooltips.moveRoleDown')}
+              icon={<ArrowDown className="h-4 w-4" />}
               onClick={onMoveDown}
               disabled={!canMoveDown || !onMoveDown}
-              title="Move down"
               data-testid={`move-down-${index}`}
-            >
-              ↓
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
+            />
+            <IconButton
+              label={t('tooltips.removeRole')}
+              icon={<X className="h-4 w-4" />}
               onClick={onRemove}
               disabled={!canRemove}
               data-testid={`remove-${draft.role}`}
-            >
-              Remove
-            </Button>
+            />
           </div>
         </div>
         <CardDescription>Configure the {displayTitle} agent.</CardDescription>

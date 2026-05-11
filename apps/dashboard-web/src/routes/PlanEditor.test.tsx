@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Plan } from '@agent-harness/schemas';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { PlanEditor } from './PlanEditor';
 
 // Replace the heavy React Flow canvas with a thin div-based stub. Tests only
@@ -131,11 +132,13 @@ function renderEditor(projectId = 'p1') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[`/projects/${projectId}/plan`]}>
-        <Routes>
-          <Route path="/projects/:projectId/plan" element={<PlanEditor />} />
-        </Routes>
-      </MemoryRouter>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[`/projects/${projectId}/plan`]}>
+          <Routes>
+            <Route path="/projects/:projectId/plan" element={<PlanEditor />} />
+          </Routes>
+        </MemoryRouter>
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }

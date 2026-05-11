@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FirstRunModal, hasAckedFirstRun } from '@/components/FirstRunModal';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -23,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ApiError } from '@/api/client';
 import {
   type PlanStatus,
@@ -206,6 +208,7 @@ interface PlanEditorBodyProps {
 }
 
 function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps) {
+  const { t } = useTranslation();
   const [localPlan, setLocalPlan] = useState<Plan>(planRow.dagJson);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [confirmRegen, setConfirmRegen] = useState(false);
@@ -310,13 +313,18 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            disabled={readOnly || generatePlan.isPending}
-            onClick={() => setConfirmRegen(true)}
-          >
-            Re-generate
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={readOnly || generatePlan.isPending}
+                onClick={() => setConfirmRegen(true)}
+              >
+                Re-generate
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('tooltips.regeneratePlan')}</TooltipContent>
+          </Tooltip>
           <Button
             variant="outline"
             disabled={!canSave || patchPlan.isPending}
@@ -326,18 +334,23 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           >
             {patchPlan.isPending ? 'Saving…' : 'Save'}
           </Button>
-          <Button
-            disabled={!canLockAndRun || lockPlan.isPending || startRun.isPending}
-            onClick={() => {
-              if (!hasAckedFirstRun()) {
-                setFirstRunOpen(true);
-              } else {
-                setConfirmLockRun(true);
-              }
-            }}
-          >
-            {lockPlan.isPending ? 'Locking…' : startRun.isPending ? 'Starting…' : lockAndRunLabel}
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                disabled={!canLockAndRun || lockPlan.isPending || startRun.isPending}
+                onClick={() => {
+                  if (!hasAckedFirstRun()) {
+                    setFirstRunOpen(true);
+                  } else {
+                    setConfirmLockRun(true);
+                  }
+                }}
+              >
+                {lockPlan.isPending ? 'Locking…' : startRun.isPending ? 'Starting…' : lockAndRunLabel}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('tooltips.lockAndRun')}</TooltipContent>
+          </Tooltip>
         </div>
       </div>
       {!valid && (
