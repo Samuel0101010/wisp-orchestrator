@@ -248,7 +248,7 @@
     "subtitle": "Konfiguriere die Agents für {{name}}.",
     "saveAsTemplateDialog": {
       "title": "Team als Vorlage speichern",
-      "description": "Speichere die aktuelle Team-Konfiguration als wiederverwendbare Vorlage für den Neues-Projekt-Dialog.",
+      "description": "Speichert diese Teamkonfiguration auf Festplatte unter deinem Daten-Verzeichnis. Du kannst sie später im Neues-Projekt-Dialog auswählen.",
       "id": "ID (kebab-case, ≥2 Zeichen)",
       "idPlaceholder": "mein-team",
       "name": "Name (≥2 Zeichen)",
@@ -257,6 +257,9 @@
       "descriptionPlaceholder": "Wofür ist dieses Team gut…"
     },
     "generateTitle": {
+      "noTeamUnsaved": "Rollen konfigurieren und Team zuerst speichern",
+      "saveFirst": "Team zuerst speichern, um einen Plan zu generieren",
+      "unsaved": "Ungespeicherte Änderungen — zuerst speichern",
       "noTeam": "Speichere zuerst das Team",
       "noProject": "Wähle zuerst ein Projekt",
       "noGoal": "Setze zuerst ein Ziel im Projekt",
@@ -269,7 +272,9 @@
       "templateSaved": "Vorlage gespeichert",
       "templateSaveFailed": "Vorlage speichern fehlgeschlagen",
       "templateApplied": "Vorlage angewendet",
-      "rolesLoaded": "{{count}} Rolle(n) geladen"
+      "rolesLoaded": "{{count}} Rolle(n) geladen",
+      "rolesLoaded_one": "{{count}} Rolle geladen",
+      "rolesLoaded_other": "{{count}} Rollen geladen"
     }
   },
   "teamRoleCard": {
@@ -289,7 +294,7 @@
       "systemPrompt": "System-Prompt"
     },
     "promptCount": {
-      "tooShort": "{{count}} Zeichen — zu kurz (min 40)",
+      "tooShort": "{{count}} Zeichen — zu kurz (min 50)",
       "ok": "{{count}} Zeichen",
       "warn": "{{count}} Zeichen — nahe am Limit (max 4000)",
       "over": "{{count}} Zeichen — über dem 4000-Zeichen-Limit"
@@ -531,16 +536,26 @@
   },
   "applyTemplate": {
     "title": "Vorlage anwenden",
+    "trigger": "Vorlage anwenden",
     "description": "Ersetzt das aktuelle Team-Draft durch die Vorlage.",
+    "loads": "Lädt die gewählte Vorlage in den aktuellen TeamBuilder-Entwurf.",
     "willOverwrite": " Dein aktuelles Draft wird überschrieben."
+  },
+  "teamJsonDialog": {
+    "trigger": "JSON anzeigen",
+    "title": "Team-Konfiguration (JSON)",
+    "description": "Wird an PUT /api/projects/:id/team gesendet. Nützlich zum Teilen oder Übertragen zwischen Geräten.",
+    "copy": "Kopieren",
+    "copied": "Kopiert!"
   },
   "costPanel": {
     "title": "Kosten- / Quota-Schätzung",
-    "description": "Abo-Quota-Schätzung basierend auf Team-Gewicht und den letzten Runs in diesem Projekt.",
+    "description": "Abo-Modus rechnet nicht pro Token; dies ist eine relative Gewichtsanzeige plus eine empirische Projektion aus den bisherigen Runs dieses Projekts.",
     "teamWeight": "Team-Gewicht (haiku=1, sonnet=4, opus=20)",
     "roles": "Rollen",
     "avgTokens": "Ø Tokens / erfolgreichem Run (letzte {{count}})",
-    "noData": "Noch keine abgeschlossenen Runs — starte das Team einmal, um diese Schätzung zu füllen."
+    "tokens": "Tokens",
+    "noData": "Noch keine erfolgreichen Runs in diesem Projekt — Projektion verfügbar, sobald mindestens ein Run abgeschlossen ist."
   },
   "status": {
     "running": "Läuft",

@@ -248,7 +248,7 @@
     "subtitle": "Configure the agents for {{name}}.",
     "saveAsTemplateDialog": {
       "title": "Save team as template",
-      "description": "Persist the current team config as a reusable template available in the New Project dialog.",
+      "description": "Stores this team configuration to disk under your data dir. You can pick it from the New Project dialog later.",
       "id": "id (kebab-case, ≥2 chars)",
       "idPlaceholder": "my-team",
       "name": "Name (≥2 chars)",
@@ -257,6 +257,9 @@
       "descriptionPlaceholder": "What this team is good for…"
     },
     "generateTitle": {
+      "noTeamUnsaved": "Configure roles and save the team first",
+      "saveFirst": "Save the team first to generate a plan",
+      "unsaved": "Unsaved changes — save first to generate a plan",
       "noTeam": "Save the team first",
       "noProject": "Select a project first",
       "noGoal": "Set a goal on the project first",
@@ -269,7 +272,9 @@
       "templateSaved": "Template saved",
       "templateSaveFailed": "Template save failed",
       "templateApplied": "Template applied",
-      "rolesLoaded": "{{count}} role(s) loaded"
+      "rolesLoaded": "{{count}} role(s) loaded",
+      "rolesLoaded_one": "{{count}} role loaded",
+      "rolesLoaded_other": "{{count}} roles loaded"
     }
   },
   "teamRoleCard": {
@@ -289,7 +294,7 @@
       "systemPrompt": "System prompt"
     },
     "promptCount": {
-      "tooShort": "{{count}} chars — too short (min 40)",
+      "tooShort": "{{count}} chars — too short (min 50)",
       "ok": "{{count}} chars",
       "warn": "{{count}} chars — close to limit (max 4000)",
       "over": "{{count}} chars — over the 4000 char max"
@@ -531,16 +536,26 @@
   },
   "applyTemplate": {
     "title": "Apply a template",
+    "trigger": "Apply Template",
     "description": "Replaces the current draft team with the template.",
+    "loads": "Loads the chosen template into the current TeamBuilder draft.",
     "willOverwrite": " Your current draft will be overwritten."
+  },
+  "teamJsonDialog": {
+    "trigger": "View JSON",
+    "title": "Team configuration (JSON)",
+    "description": "What gets sent to PUT /api/projects/:id/team. Useful for sharing a config or moving it between machines.",
+    "copy": "Copy",
+    "copied": "Copied!"
   },
   "costPanel": {
     "title": "Cost / quota estimate",
-    "description": "Subscription-quota estimate based on the team weight and the recent runs in this project.",
+    "description": "Subscription mode doesn't bill per-token; this is a relative-weight readout plus an empirical projection from this project's prior runs.",
     "teamWeight": "Team weight (haiku=1, sonnet=4, opus=20)",
     "roles": "Roles",
     "avgTokens": "Avg tokens / successful run (last {{count}})",
-    "noData": "No completed runs yet — run the team once to populate this estimate."
+    "tokens": "tokens",
+    "noData": "No prior successful runs in this project — projection unavailable until you ship at least one run."
   },
   "status": {
     "running": "Running",

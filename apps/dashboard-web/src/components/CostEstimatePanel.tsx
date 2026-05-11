@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Team } from '@agent-harness/schemas';
 import { MODEL_INFO } from '@/data/modelInfo';
 import { useProjectRuns } from '@/api/queries';
@@ -19,6 +20,7 @@ interface Props {
  * prior runs → mean tokens/role × team size.
  */
 export function CostEstimatePanel({ team, projectId }: Props) {
+  const { t } = useTranslation();
   const { data } = useProjectRuns(projectId);
   // Defensive: a misbehaving server (or a test mock) could return non-array
   // payloads. Normalize to an array before filter() to avoid crashing the
@@ -50,21 +52,20 @@ export function CostEstimatePanel({ team, projectId }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Cost / quota estimate</CardTitle>
+        <CardTitle className="text-base">{t('costPanel.title')}</CardTitle>
         <CardDescription>
-          Subscription mode doesn't bill per-token; this is a relative-weight readout plus an
-          empirical projection from this project's prior runs.
+          {t('costPanel.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Team weight (haiku=1, sonnet=4, opus=20)</span>
+          <span className="text-muted-foreground">{t('costPanel.teamWeight')}</span>
           <span className="font-medium" data-testid="cost-weight">
             {sumWeight} ({weightLabel})
           </span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Roles</span>
+          <span className="text-muted-foreground">{t('costPanel.roles')}</span>
           <span>
             {team.roles.map((r) => `${r.role}=${MODEL_INFO[r.model].costWeight}`).join(', ')}
           </span>
@@ -72,16 +73,15 @@ export function CostEstimatePanel({ team, projectId }: Props) {
         {avgTokens != null ? (
           <div className="flex items-center justify-between border-t pt-2">
             <span className="text-muted-foreground">
-              Avg tokens / successful run (last {completed.length})
+              {t('costPanel.avgTokens', { count: completed.length })}
             </span>
             <span className="font-medium" data-testid="cost-avg-tokens">
-              {avgTokens.toLocaleString()} tokens
+              {avgTokens.toLocaleString()} {t('costPanel.tokens')}
             </span>
           </div>
         ) : (
           <p className="text-xs text-muted-foreground">
-            No prior successful runs in this project — projection unavailable until you ship at
-            least one run.
+            {t('costPanel.noData')}
           </p>
         )}
       </CardContent>

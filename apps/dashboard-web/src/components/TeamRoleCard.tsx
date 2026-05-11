@@ -83,7 +83,7 @@ export function TeamRoleCard({
   const promptOver = promptLen > SYSTEM_PROMPT_MAX;
   const promptWarn = !promptShort && !promptOver && promptLen >= SYSTEM_PROMPT_WARN;
   const roleInvalid = draft.role !== '' && !isRoleNameValid(draft.role);
-  const displayTitle = draft.role || '(new role)';
+  const displayTitle = draft.role || t('teamRoleCard.newRole');
   const modelInfo = MODEL_INFO[draft.model];
 
   const lengthClass = promptOver
@@ -105,7 +105,7 @@ export function TeamRoleCard({
                 type="button"
                 {...dragHandleProps}
                 className="inline-flex h-9 w-7 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                title="Drag to reorder (or use arrows)"
+                title={t('teamRoleCard.drag')}
                 aria-label="Drag handle"
                 data-testid={`drag-handle-${index}`}
               >
@@ -138,26 +138,26 @@ export function TeamRoleCard({
             />
           </div>
         </div>
-        <CardDescription>Configure the {displayTitle} agent.</CardDescription>
+        <CardDescription>{t('teamRoleCard.describe', { name: displayTitle })}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`role-${index}`}>Role name</Label>
+          <Label htmlFor={`role-${index}`}>{t('teamRoleCard.fields.role')}</Label>
           <Input
             id={`role-${index}`}
             data-testid={`role-name-${index}`}
-            placeholder="kebab-case-name"
+            placeholder={t('teamRoleCard.fields.rolePlaceholder')}
             value={draft.role}
             onChange={(e) => onChange({ ...draft, role: e.target.value })}
             className={roleInvalid ? 'border-destructive' : undefined}
           />
           {roleInvalid && (
-            <p className="text-xs text-destructive">kebab-case identifier (a-z, 0-9, -)</p>
+            <p className="text-xs text-destructive">{t('teamRoleCard.fields.roleInvalid')}</p>
           )}
-          {isDuplicate && <p className="text-xs text-destructive">duplicate role name</p>}
+          {isDuplicate && <p className="text-xs text-destructive">{t('teamRoleCard.fields.roleDuplicate')}</p>}
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`model-${index}`}>Model</Label>
+          <Label htmlFor={`model-${index}`}>{t('teamRoleCard.fields.model')}</Label>
           <select
             id={`model-${index}`}
             value={draft.model}
@@ -176,9 +176,9 @@ export function TeamRoleCard({
           </p>
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`tools-${index}`}>Allowed tools</Label>
+          <Label htmlFor={`tools-${index}`}>{t('teamRoleCard.fields.tools')}</Label>
           <p className="text-xs text-muted-foreground">
-            Restrict what this agent can call. Leave empty to grant Claude Code defaults.
+            {t('teamRoleCard.fields.toolsHint')}
           </p>
           <ToolMultiSelect
             id={`tools-${index}`}
@@ -188,7 +188,7 @@ export function TeamRoleCard({
         </div>
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor={`prompt-${index}`}>System prompt</Label>
+            <Label htmlFor={`prompt-${index}`}>{t('teamRoleCard.fields.systemPrompt')}</Label>
             <SnippetMenu
               onInsert={(s) => {
                 const sep = draft.systemPrompt.length === 0 ? '' : '\n\n';
@@ -203,10 +203,13 @@ export function TeamRoleCard({
             onChange={(e) => onChange({ ...draft, systemPrompt: e.target.value })}
           />
           <p className={lengthClass} data-testid={`prompt-count-${draft.role}`}>
-            {promptLen} / {SYSTEM_PROMPT_MAX} characters
-            {promptShort ? ` (min ${SYSTEM_PROMPT_MIN})` : ''}
-            {promptOver ? ' — over limit, save will fail' : ''}
-            {promptWarn ? ' — approaching limit' : ''}
+            {promptOver
+              ? t('teamRoleCard.promptCount.over', { count: promptLen })
+              : promptShort
+                ? t('teamRoleCard.promptCount.tooShort', { count: promptLen })
+                : promptWarn
+                  ? t('teamRoleCard.promptCount.warn', { count: promptLen })
+                  : t('teamRoleCard.promptCount.ok', { count: promptLen })}
           </p>
         </div>
         {onTestPrompt && (
@@ -218,7 +221,7 @@ export function TeamRoleCard({
               onClick={onTestPrompt}
               data-testid={`test-prompt-${index}`}
             >
-              Test this prompt…
+              {t('teamRoleCard.testPrompt')}
             </Button>
           </div>
         )}

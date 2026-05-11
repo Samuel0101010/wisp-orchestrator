@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,7 @@ interface Props {
  * or debugging "what will get saved?" without scraping the network panel.
  */
 export function TeamJsonDialog({ team }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const json = JSON.stringify(team, null, 2);
@@ -38,15 +40,14 @@ export function TeamJsonDialog({ team }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" data-testid="view-json-trigger">
-          View JSON
+          {t('teamJsonDialog.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Team configuration (JSON)</DialogTitle>
+          <DialogTitle>{t('teamJsonDialog.title')}</DialogTitle>
           <DialogDescription>
-            What gets sent to PUT /api/projects/:id/team. Useful for sharing a config or moving it
-            between machines.
+            {t('teamJsonDialog.description')}
           </DialogDescription>
         </DialogHeader>
         <pre
@@ -57,9 +58,9 @@ export function TeamJsonDialog({ team }: Props) {
         </pre>
         <DialogFooter>
           <Button variant="outline" onClick={copy} data-testid="team-json-copy">
-            {copied ? 'Copied!' : 'Copy'}
+            {copied ? t('teamJsonDialog.copied') : t('teamJsonDialog.copy')}
           </Button>
-          <Button onClick={() => setOpen(false)}>Close</Button>
+          <Button onClick={() => setOpen(false)}>{t('buttons.close')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

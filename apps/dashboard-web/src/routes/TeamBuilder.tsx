@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext,
@@ -136,6 +137,7 @@ function teamsEqual(a: DraftAgent[], b: Team): boolean {
 }
 
 export function TeamBuilder() {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId?: string }>();
   const navigate = useNavigate();
   const projectQuery = useProject(projectId);
@@ -196,8 +198,8 @@ export function TeamBuilder() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Team Builder</CardTitle>
-          <CardDescription>Select a project to configure its team.</CardDescription>
+          <CardTitle>{t('teamBuilder.title')}</CardTitle>
+          <CardDescription>{t('teamBuilder.selectProject')}</CardDescription>
         </CardHeader>
         <CardContent />
       </Card>
@@ -207,7 +209,7 @@ export function TeamBuilder() {
   const handleSave = async (): Promise<void> => {
     try {
       await saveTeam.mutateAsync(draftToTeam(draft));
-      toast({ title: 'Team saved' });
+      toast({ title: t('teamBuilder.toasts.saved') });
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -215,7 +217,7 @@ export function TeamBuilder() {
             ? String((err.body as { message: unknown }).message)
             : err.message
           : (err as Error).message;
-      toast({ title: 'Save failed', description: msg, variant: 'destructive' });
+      toast({ title: t('teamBuilder.toasts.saveFailed'), description: msg, variant: 'destructive' });
     }
   };
 
@@ -230,7 +232,7 @@ export function TeamBuilder() {
             ? String((err.body as { message: unknown }).message)
             : err.message
           : (err as Error).message;
-      toast({ title: 'Plan generation failed', description: msg, variant: 'destructive' });
+      toast({ title: t('teamBuilder.toasts.planGenFailed'), description: msg, variant: 'destructive' });
     }
   };
 
@@ -243,7 +245,7 @@ export function TeamBuilder() {
         team: draftToTeam(draft),
         suggestedGoals: ['Use this template to seed your team configuration.'],
       });
-      toast({ title: 'Template saved', description: `id=${tplId.trim()}` });
+      toast({ title: t('teamBuilder.toasts.templateSaved'), description: `id=${tplId.trim()}` });
       setTplOpen(false);
       setTplId('');
       setTplName('');
@@ -255,7 +257,7 @@ export function TeamBuilder() {
             ? String((err.body as { message: unknown }).message)
             : err.message
           : (err as Error).message;
-      toast({ title: 'Template save failed', description: msg, variant: 'destructive' });
+      toast({ title: t('teamBuilder.toasts.templateSaveFailed'), description: msg, variant: 'destructive' });
     }
   };
 
@@ -287,16 +289,19 @@ export function TeamBuilder() {
     const next = teamToDraft(team);
     setDraft(next);
     setIds(next.map(() => generateRowId()));
-    toast({ title: 'Template applied', description: `${team.roles.length} role(s) loaded` });
+    toast({
+      title: t('teamBuilder.toasts.templateApplied'),
+      description: t('teamBuilder.toasts.rolesLoaded_other', { count: team.roles.length }),
+    });
   };
 
   const generateTitle =
     !teamExists && !valid
-      ? 'Configure roles and save the team first'
+      ? t('teamBuilder.generateTitle.noTeamUnsaved')
       : !teamExists
-        ? 'Save the team first to generate a plan'
+        ? t('teamBuilder.generateTitle.saveFirst')
         : dirty
-          ? 'Unsaved changes — save first to generate a plan'
+          ? t('teamBuilder.generateTitle.unsaved')
           : '';
 
   const canGenerate = teamExists && !dirty && valid;
@@ -307,10 +312,9 @@ export function TeamBuilder() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <BackToProject />
-        <h1 className="text-2xl font-semibold">Team Builder</h1>
+        <h1 className="text-2xl font-semibold">{t('teamBuilder.title')}</h1>
         <p className="text-sm text-muted-foreground">
-          Configure the agents for{' '}
-          <span className="font-medium text-foreground">{projectName}</span>.
+          {t('teamBuilder.subtitle', { name: projectName })}
         </p>
       </div>
       <CostEstimatePanel team={draftTeam} projectId={projectId} />
@@ -361,38 +365,37 @@ export function TeamBuilder() {
         <Dialog open={tplOpen} onOpenChange={setTplOpen}>
           <DialogTrigger asChild>
             <Button variant="outline" disabled={!valid}>
-              Save as Template
+              {t('buttons.saveAsTemplate')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Save team as template</DialogTitle>
+              <DialogTitle>{t('teamBuilder.saveAsTemplateDialog.title')}</DialogTitle>
               <DialogDescription>
-                Stores this team configuration to disk under your data dir. You can pick it from the
-                New Project dialog later.
+                {t('teamBuilder.saveAsTemplateDialog.description')}
               </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tpl-id">id (kebab-case, ≥2 chars)</Label>
+                <Label htmlFor="tpl-id">{t('teamBuilder.saveAsTemplateDialog.id')}</Label>
                 <Input
                   id="tpl-id"
                   value={tplId}
                   onChange={(e) => setTplId(e.target.value)}
-                  placeholder="my-team"
+                  placeholder={t('teamBuilder.saveAsTemplateDialog.idPlaceholder')}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tpl-name">Name (≥2 chars)</Label>
+                <Label htmlFor="tpl-name">{t('teamBuilder.saveAsTemplateDialog.name')}</Label>
                 <Input
                   id="tpl-name"
                   value={tplName}
                   onChange={(e) => setTplName(e.target.value)}
-                  placeholder="My Team"
+                  placeholder={t('teamBuilder.saveAsTemplateDialog.namePlaceholder')}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tpl-desc">Description (≥20 chars)</Label>
+                <Label htmlFor="tpl-desc">{t('teamBuilder.saveAsTemplateDialog.descriptionLabel')}</Label>
                 <Textarea
                   id="tpl-desc"
                   rows={3}
@@ -406,13 +409,13 @@ export function TeamBuilder() {
                 onClick={handleSaveAsTemplate}
                 disabled={!isTplValid || saveAsTemplate.isPending}
               >
-                {saveAsTemplate.isPending ? 'Saving…' : 'Save'}
+                {saveAsTemplate.isPending ? t('buttons.saving') : t('buttons.save')}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
         <Button onClick={handleSave} disabled={!valid || saveTeam.isPending}>
-          {saveTeam.isPending ? 'Saving…' : 'Save Team'}
+          {saveTeam.isPending ? t('buttons.saving') : t('buttons.saveTeam')}
         </Button>
         <Button
           variant="default"
@@ -421,7 +424,7 @@ export function TeamBuilder() {
           title={generateTitle || undefined}
           data-testid="generate-plan"
         >
-          {generatePlan.isPending ? 'Generating…' : 'Generate Plan'}
+          {generatePlan.isPending ? t('buttons.generating') : t('buttons.generatePlan')}
         </Button>
       </div>
       {(() => {
