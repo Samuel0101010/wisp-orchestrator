@@ -4,7 +4,6 @@ import { ArrowRight, ArrowUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
-import { statusLabel } from '@/lib/status-labels';
 import { fmtRel } from '@/lib/fmt-rel';
 import { cn } from '@/lib/utils';
 import type { GlobalRunRow } from '@/api/queries';

@@ -475,9 +475,7 @@ function RunHeaderActions({
         <DialogContent data-testid="run-cancel-dialog">
           <DialogHeader>
             <DialogTitle>{t('runView.cancelDialog.title')}</DialogTitle>
-            <DialogDescription>
-              {t('runView.cancelDialog.description')}
-            </DialogDescription>
+            <DialogDescription>{t('runView.cancelDialog.description')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmCancel(false)}>
@@ -721,7 +719,9 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
               {t('runView.backToPlan')}
             </Link>
           )}
-          <h1 className="text-lg font-semibold">{t('runView.runPrefix', { id: run.id.slice(0, 8) })}</h1>
+          <h1 className="text-lg font-semibold">
+            {t('runView.runPrefix', { id: run.id.slice(0, 8) })}
+          </h1>
           <Badge variant={statusBadgeVariant(run.status)} data-testid="run-status">
             {statusLabel(run.status, t)}
             {run.outcome ? ` (${statusLabel(run.outcome, t)})` : ''}
@@ -749,9 +749,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
               data-testid="ws-status-pill"
             >
               <Activity className="h-3 w-3" />
-              {wsStatus === 'closed' || wsStatus === 'error'
-                ? t('runView.reconnecting')
-                : wsStatus}
+              {wsStatus === 'closed' || wsStatus === 'error' ? t('runView.reconnecting') : wsStatus}
             </Badge>
           )}
         </div>

@@ -106,7 +106,9 @@ test.describe('Phase F1 smoke', () => {
     // "Lock & Run" button to actually start the run.
     await page.getByRole('button', { name: tt(lang, 'buttons.lockAndRun') }).click();
     // Dialog title is planEditor.lockDialog.title when plan is in draft status.
-    const confirmDialog = page.getByRole('dialog', { name: tt(lang, 'planEditor.lockDialog.title') });
+    const confirmDialog = page.getByRole('dialog', {
+      name: tt(lang, 'planEditor.lockDialog.title'),
+    });
     await expect(confirmDialog).toBeVisible();
     await confirmDialog.getByRole('button', { name: tt(lang, 'buttons.lockAndRun') }).click();
 

@@ -53,9 +53,7 @@ export function CostEstimatePanel({ team, projectId }: Props) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{t('costPanel.title')}</CardTitle>
-        <CardDescription>
-          {t('costPanel.description')}
-        </CardDescription>
+        <CardDescription>{t('costPanel.description')}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-2 text-sm">
         <div className="flex items-center justify-between">
@@ -80,9 +78,7 @@ export function CostEstimatePanel({ team, projectId }: Props) {
             </span>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">
-            {t('costPanel.noData')}
-          </p>
+          <p className="text-xs text-muted-foreground">{t('costPanel.noData')}</p>
         )}
       </CardContent>
     </Card>

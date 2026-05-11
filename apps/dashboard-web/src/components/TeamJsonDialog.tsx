@@ -46,9 +46,7 @@ export function TeamJsonDialog({ team }: Props) {
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{t('teamJsonDialog.title')}</DialogTitle>
-          <DialogDescription>
-            {t('teamJsonDialog.description')}
-          </DialogDescription>
+          <DialogDescription>{t('teamJsonDialog.description')}</DialogDescription>
         </DialogHeader>
         <pre
           className="max-h-[60vh] overflow-auto rounded-md border bg-muted p-3 text-xs"

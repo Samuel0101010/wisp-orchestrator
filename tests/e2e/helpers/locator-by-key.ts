@@ -16,7 +16,11 @@ function loadBundle(lang: 'en' | 'de'): Bundle {
 const cache = new Map<'en' | 'de', Bundle>();
 
 /** Resolve a dotted key like `buttons.saveTeam` against the locale's bundle. */
-export function tt(lang: 'en' | 'de', key: string, vars: Record<string, string | number> = {}): string {
+export function tt(
+  lang: 'en' | 'de',
+  key: string,
+  vars: Record<string, string | number> = {},
+): string {
   let bundle = cache.get(lang);
   if (!bundle) {
     bundle = loadBundle(lang);

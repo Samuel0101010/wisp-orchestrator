@@ -299,8 +299,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
   // back to start a run.
   const canLockAndRun =
     (planRow.status === 'draft' || planRow.status === 'locked') && !dirty && valid;
-  const lockAndRunLabel =
-    planRow.status === 'locked' ? t('buttons.run') : t('buttons.lockAndRun');
+  const lockAndRunLabel = planRow.status === 'locked' ? t('buttons.run') : t('buttons.lockAndRun');
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
@@ -392,9 +391,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
                 : t('planEditor.node.noNodeSelected')}
             </h2>
             <p className="text-xs text-muted-foreground">
-              {selectedNode
-                ? t('planEditor.node.instruction1')
-                : t('planEditor.node.selectHint')}
+              {selectedNode ? t('planEditor.node.instruction1') : t('planEditor.node.selectHint')}
             </p>
           </div>
           <div className="flex-1 overflow-auto p-3">

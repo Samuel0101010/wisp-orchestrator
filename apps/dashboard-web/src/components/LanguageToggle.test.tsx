@@ -11,20 +11,32 @@ describe('LanguageToggle', () => {
   });
 
   it('renders the current language code (EN by default)', () => {
-    render(<TooltipProvider><LanguageToggle /></TooltipProvider>);
+    render(
+      <TooltipProvider>
+        <LanguageToggle />
+      </TooltipProvider>,
+    );
     const toggle = screen.getByTestId('language-toggle');
     expect(toggle).toHaveTextContent('EN');
   });
 
   it('opens the menu and lists EN + DE options', () => {
-    render(<TooltipProvider><LanguageToggle /></TooltipProvider>);
+    render(
+      <TooltipProvider>
+        <LanguageToggle />
+      </TooltipProvider>,
+    );
     fireEvent.click(screen.getByTestId('language-toggle'));
     expect(screen.getByTestId('language-toggle-en')).toHaveTextContent('English');
     expect(screen.getByTestId('language-toggle-de')).toHaveTextContent('Deutsch');
   });
 
   it('switches to German on click and persists in localStorage', async () => {
-    render(<TooltipProvider><LanguageToggle /></TooltipProvider>);
+    render(
+      <TooltipProvider>
+        <LanguageToggle />
+      </TooltipProvider>,
+    );
     fireEvent.click(screen.getByTestId('language-toggle'));
     await act(async () => {
       fireEvent.click(screen.getByTestId('language-toggle-de'));
@@ -38,7 +50,11 @@ describe('LanguageToggle', () => {
     await act(async () => {
       await i18n.changeLanguage('de');
     });
-    render(<TooltipProvider><LanguageToggle /></TooltipProvider>);
+    render(
+      <TooltipProvider>
+        <LanguageToggle />
+      </TooltipProvider>,
+    );
     fireEvent.click(screen.getByTestId('language-toggle'));
     await act(async () => {
       fireEvent.click(screen.getByTestId('language-toggle-en'));

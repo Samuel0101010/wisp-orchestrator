@@ -154,7 +154,9 @@ export function TeamRoleCard({
           {roleInvalid && (
             <p className="text-xs text-destructive">{t('teamRoleCard.fields.roleInvalid')}</p>
           )}
-          {isDuplicate && <p className="text-xs text-destructive">{t('teamRoleCard.fields.roleDuplicate')}</p>}
+          {isDuplicate && (
+            <p className="text-xs text-destructive">{t('teamRoleCard.fields.roleDuplicate')}</p>
+          )}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`model-${index}`}>{t('teamRoleCard.fields.model')}</Label>
@@ -177,9 +179,7 @@ export function TeamRoleCard({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`tools-${index}`}>{t('teamRoleCard.fields.tools')}</Label>
-          <p className="text-xs text-muted-foreground">
-            {t('teamRoleCard.fields.toolsHint')}
-          </p>
+          <p className="text-xs text-muted-foreground">{t('teamRoleCard.fields.toolsHint')}</p>
           <ToolMultiSelect
             id={`tools-${index}`}
             value={draft.allowedTools}

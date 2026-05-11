@@ -420,7 +420,9 @@ function ThreadRow({
       onClick={onClick}
     >
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">{thread.title ?? t('chat.thread.untitled')}</div>
+        <div className="truncate text-sm font-medium">
+          {thread.title ?? t('chat.thread.untitled')}
+        </div>
         <div className="text-2xs text-muted-foreground">{fmtRel(thread.updatedAt, lang)}</div>
       </div>
       {hover && (
@@ -638,7 +640,9 @@ function MessageBlock({
             )}
         </div>
         <div className="rounded-2xl rounded-tl-sm bg-card px-4 py-2 text-sm shadow-sm ring-1 ring-border">
-          <div className="whitespace-pre-wrap">{message.content || t('chat.transcript.noResponse')}</div>
+          <div className="whitespace-pre-wrap">
+            {message.content || t('chat.transcript.noResponse')}
+          </div>
         </div>
         {actions.length > 0 && (
           <div className="mt-2 space-y-1">
@@ -688,7 +692,9 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     return (
       <div className={`rounded-lg border ${palette} p-3 text-xs`}>
         <div className="font-semibold">{t('chat.action.projectCreated', { name: r?.name })}</div>
-        <div className="text-muted-foreground">{t('chat.action.projectTeam', { count: r?.teamSize ?? 0 })}</div>
+        <div className="text-muted-foreground">
+          {t('chat.action.projectTeam', { count: r?.teamSize ?? 0 })}
+        </div>
         {r?.projectId && (
           <Link
             to={`/projects/${r.projectId}`}
@@ -736,9 +742,7 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     }
     if (r?.reason === 'no_plan_yet') {
       return (
-        <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-          {t('chat.action.noPlan')}
-        </div>
+        <div className={`rounded-lg border ${palette} p-3 text-xs`}>{t('chat.action.noPlan')}</div>
       );
     }
   }
@@ -856,7 +860,9 @@ function AddMemberDialog({
                   </div>
                 </div>
                 {already ? (
-                  <span className="text-2xs text-muted-foreground">{t('chat.addMember.alreadyIn')}</span>
+                  <span className="text-2xs text-muted-foreground">
+                    {t('chat.addMember.alreadyIn')}
+                  </span>
                 ) : (
                   <ChevronRight className="h-3 w-3 text-muted-foreground" />
                 )}

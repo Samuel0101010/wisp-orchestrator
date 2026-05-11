@@ -93,7 +93,10 @@ export function StatusDotBadge({
       <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', toneStyle.dot)}>
         {pulse && (
           <span
-            className={cn('absolute inset-0 -m-0.5 animate-ping rounded-full opacity-60', toneStyle.dot)}
+            className={cn(
+              'absolute inset-0 -m-0.5 animate-ping rounded-full opacity-60',
+              toneStyle.dot,
+            )}
             aria-hidden
           />
         )}

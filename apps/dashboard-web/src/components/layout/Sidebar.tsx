@@ -238,10 +238,7 @@ export function Sidebar() {
           }}
         >
           <DialogTrigger asChild>
-            <IconButton
-              icon={<Plus className="h-4 w-4" />}
-              label={t('tooltips.newProject')}
-            />
+            <IconButton icon={<Plus className="h-4 w-4" />} label={t('tooltips.newProject')} />
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>

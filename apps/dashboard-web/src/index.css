@@ -48,9 +48,9 @@
   --radius-sm: calc(var(--radius) - 4px);
 
   /* Primitive → Tailwind text size utilities */
-  --text-3xs: var(--font-size-3xs);     /* text-3xs  → 9px  */
-  --text-2xs: var(--font-size-2xs);     /* text-2xs  → 10px */
-  --text-xs2: var(--font-size-xs2);     /* text-xs2  → 11px */
+  --text-3xs: var(--font-size-3xs); /* text-3xs  → 9px  */
+  --text-2xs: var(--font-size-2xs); /* text-2xs  → 10px */
+  --text-xs2: var(--font-size-xs2); /* text-xs2  → 11px */
   --text-sm-tight: var(--font-size-sm-tight); /* text-sm-tight → 13px */
 
   /* Primitive → Tailwind letter-spacing utilities */

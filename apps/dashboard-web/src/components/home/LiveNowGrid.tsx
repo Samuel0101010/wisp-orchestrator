@@ -89,7 +89,9 @@ function LiveRunCard({ run, nowMs }: { run: GlobalRunRow; nowMs: number }) {
           <span className="tabular-nums text-foreground">{formatTokens(tokens)}</span>
           <span>{t('topBar.tokens')}</span>
         </span>
-        <span className="tabular-nums">{run.turnsTotal} {t('home.live.turns')}</span>
+        <span className="tabular-nums">
+          {run.turnsTotal} {t('home.live.turns')}
+        </span>
       </div>
     </Link>
   );

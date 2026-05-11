@@ -217,7 +217,11 @@ export function TeamBuilder() {
             ? String((err.body as { message: unknown }).message)
             : err.message
           : (err as Error).message;
-      toast({ title: t('teamBuilder.toasts.saveFailed'), description: msg, variant: 'destructive' });
+      toast({
+        title: t('teamBuilder.toasts.saveFailed'),
+        description: msg,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -232,7 +236,11 @@ export function TeamBuilder() {
             ? String((err.body as { message: unknown }).message)
             : err.message
           : (err as Error).message;
-      toast({ title: t('teamBuilder.toasts.planGenFailed'), description: msg, variant: 'destructive' });
+      toast({
+        title: t('teamBuilder.toasts.planGenFailed'),
+        description: msg,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -257,7 +265,11 @@ export function TeamBuilder() {
             ? String((err.body as { message: unknown }).message)
             : err.message
           : (err as Error).message;
-      toast({ title: t('teamBuilder.toasts.templateSaveFailed'), description: msg, variant: 'destructive' });
+      toast({
+        title: t('teamBuilder.toasts.templateSaveFailed'),
+        description: msg,
+        variant: 'destructive',
+      });
     }
   };
 
@@ -395,7 +407,9 @@ export function TeamBuilder() {
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="tpl-desc">{t('teamBuilder.saveAsTemplateDialog.descriptionLabel')}</Label>
+                <Label htmlFor="tpl-desc">
+                  {t('teamBuilder.saveAsTemplateDialog.descriptionLabel')}
+                </Label>
                 <Textarea
                   id="tpl-desc"
                   rows={3}
