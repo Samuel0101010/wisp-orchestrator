@@ -226,24 +226,24 @@ export function Home() {
         {/* Per-project rollup — NEW */}
         <section className="flex flex-col gap-3">
           <header className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">By project</h2>
+            <h2 className="text-sm font-semibold">{t('home.byProject.title')}</h2>
             <span className="text-xs text-muted-foreground tabular-nums">
-              {perProject.length} {perProject.length === 1 ? 'project' : 'projects'}
+              {t('home.byProject.count', { count: perProject.length })}
             </span>
           </header>
           {perProject.length === 0 ? (
             <div className="flex h-24 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-              No projects yet — create one from the sidebar.
+              {t('home.byProject.empty')}
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border bg-card">
               <div className="grid grid-cols-[1fr_72px_64px_84px_64px_56px_36px] items-center gap-3 border-b bg-muted/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                <span>Project</span>
-                <span className="text-right">Runs</span>
-                <span className="text-right">Live</span>
-                <span className="text-right">Tokens</span>
-                <span className="text-right">OK</span>
-                <span className="text-right">7d</span>
+                <span>{t('home.byProject.cols.project')}</span>
+                <span className="text-right">{t('home.byProject.cols.runs')}</span>
+                <span className="text-right">{t('home.byProject.cols.live')}</span>
+                <span className="text-right">{t('home.byProject.cols.tokens')}</span>
+                <span className="text-right">{t('home.byProject.cols.ok')}</span>
+                <span className="text-right">{t('home.byProject.cols.sevenDay')}</span>
                 <span aria-hidden />
               </div>
               <ul>

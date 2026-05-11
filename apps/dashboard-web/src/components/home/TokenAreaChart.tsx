@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 export interface TokenAreaChartProps {
   data: Array<{ day: string; tokens: number }>;
@@ -29,6 +30,7 @@ function formatTokens(n: number): string {
 
 /** Token throughput area chart. Themed via CSS vars so dark/light theme switches automatically. */
 export function TokenAreaChart({ data, height = 220 }: TokenAreaChartProps) {
+  const { t } = useTranslation();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
@@ -65,7 +67,7 @@ export function TokenAreaChart({ data, height = 220 }: TokenAreaChartProps) {
           labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
           itemStyle={{ color: 'hsl(var(--foreground))' }}
           labelFormatter={(label) => formatDay(String(label))}
-          formatter={(value) => [formatTokens(Number(value)), 'tokens']}
+          formatter={(value) => [formatTokens(Number(value)), t('home.charts.tokensTooltipLabel')]}
         />
         <Area
           type="monotone"

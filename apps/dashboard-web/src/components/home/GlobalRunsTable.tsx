@@ -4,6 +4,8 @@ import { ArrowRight, ArrowUpDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
+import { statusLabel } from '@/lib/status-labels';
+import { fmtRel } from '@/lib/fmt-rel';
 import { cn } from '@/lib/utils';
 import type { GlobalRunRow } from '@/api/queries';
 
@@ -41,27 +43,12 @@ function formatTokens(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
-function relativeTime(value: string | Date | null): string {
-  if (!value) return '—';
-  const d = typeof value === 'string' ? new Date(value) : value;
-  const ms = Date.now() - d.getTime();
-  if (!Number.isFinite(ms) || ms < 0) return '—';
-  const sec = Math.floor(ms / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  return `${day}d ago`;
-}
-
 export interface GlobalRunsTableProps {
   runs: GlobalRunRow[];
 }
 
 export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [sortKey, setSortKey] = useState<SortKey>('startedAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
@@ -140,7 +127,7 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
         className="flex h-32 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground"
         data-testid="global-runs-empty"
       >
-        No runs yet — create a project, generate a plan, lock & run.
+        {t('home.recentRuns.empty')}
       </div>
     );
   }
@@ -155,21 +142,21 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
                 scope="col"
                 className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
               >
-                Run
+                {t('home.recentRuns.cols.run')}
               </th>
-              <SortHeader k="project">Project</SortHeader>
+              <SortHeader k="project">{t('home.recentRuns.cols.project')}</SortHeader>
               <th
                 scope="col"
                 className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground"
               >
-                Status
+                {t('home.recentRuns.cols.status')}
               </th>
-              <SortHeader k="startedAt">Started</SortHeader>
+              <SortHeader k="startedAt">{t('home.recentRuns.cols.started')}</SortHeader>
               <SortHeader k="duration" align="right">
-                Duration
+                {t('home.recentRuns.cols.duration')}
               </SortHeader>
               <SortHeader k="tokens" align="right">
-                Tokens
+                {t('home.recentRuns.cols.tokens')}
               </SortHeader>
               <th scope="col" className="w-10 px-3 py-2" />
             </tr>
@@ -191,7 +178,7 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
                   <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
                 </td>
                 <td className="px-3 py-2 text-xs text-muted-foreground">
-                  {relativeTime(r.startedAt)}
+                  {r.startedAt ? fmtRel(r.startedAt, i18n.language) : '—'}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">
                   {formatDuration(durationMs(r))}
@@ -215,7 +202,7 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
         </table>
       </div>
       <div className="border-t bg-muted/20 px-3 py-1.5 text-[11px] text-muted-foreground">
-        Showing {sorted.length} runs · refreshes every 10s · {t('topBar.missionControl')}
+        {t('home.recentRuns.footer', { count: sorted.length })} · {t('topBar.missionControl')}
       </div>
     </div>
   );

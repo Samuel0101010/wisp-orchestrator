@@ -481,16 +481,55 @@
       "tokenThroughput": "Token-Durchsatz",
       "tokenThroughputDesc": "letzte 7 Tage · alle Projekte",
       "outcomes": "Run-Ergebnisse",
-      "outcomesDesc": "letzte 7 Tage"
+      "outcomesDesc": "letzte 7 Tage",
+      "tokensTooltipLabel": "Tokens"
     },
     "live": {
       "title": "Jetzt live",
       "active": "aktiv",
-      "empty": "Keine aktiven Runs — starte einen aus einem Projekt."
+      "empty": "Keine aktiven Runs — starte einen aus einem Projekt.",
+      "turns": "Turns"
+    },
+    "byProject": {
+      "title": "Nach Projekt",
+      "count_one": "{{count}} Projekt",
+      "count_other": "{{count}} Projekte",
+      "empty": "Noch keine Projekte — erstelle eines in der Seitenleiste.",
+      "cols": {
+        "project": "Projekt",
+        "runs": "Runs",
+        "live": "Live",
+        "tokens": "Tokens",
+        "ok": "OK",
+        "sevenDay": "7T"
+      }
+    },
+    "recentRuns": {
+      "title": "Letzte Runs",
+      "subtitle": "alle Projekte · sortierbar",
+      "empty": "Noch keine Runs — Projekt anlegen, Plan generieren, sperren & starten.",
+      "footer": "{{count}} Runs angezeigt · aktualisiert alle 10s",
+      "cols": {
+        "run": "Run",
+        "project": "Projekt",
+        "status": "Status",
+        "started": "Gestartet",
+        "duration": "Dauer",
+        "tokens": "Tokens"
+      }
     },
     "recent": {
       "title": "Letzte Runs",
       "subtitle": "alle Projekte · sortierbar"
+    },
+    "outcomeDonut": {
+      "empty": "Keine abgeschlossenen Runs im Zeitraum",
+      "labels": {
+        "success": "Erfolg",
+        "failure": "Fehlgeschlagen",
+        "cancelled": "Abgebrochen",
+        "unknown": "Ausstehend"
+      }
     }
   },
   "projectDetail": {
