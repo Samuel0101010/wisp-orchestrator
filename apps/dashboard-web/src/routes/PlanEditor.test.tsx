@@ -170,7 +170,7 @@ describe('PlanEditor', () => {
     expect(await screen.findByTestId('plan-node-a')).toBeInTheDocument();
     expect(screen.getByTestId('plan-node-b')).toBeInTheDocument();
     expect(screen.getByTestId('plan-node-c')).toBeInTheDocument();
-    expect(screen.getByTestId('plan-status')).toHaveTextContent('draft');
+    expect(screen.getByTestId('plan-status')).toHaveTextContent('Draft');
   });
 
   it('selecting a node opens the side panel', async () => {
@@ -244,7 +244,7 @@ describe('PlanEditor', () => {
       });
     };
     renderEditor();
-    expect(await screen.findByTestId('plan-status')).toHaveTextContent('locked');
+    expect(await screen.findByTestId('plan-status')).toHaveTextContent('Locked');
     fireEvent.click(screen.getByTestId('plan-node-a'));
     const promptField = await screen.findByLabelText('Prompt');
     expect(promptField).toBeDisabled();

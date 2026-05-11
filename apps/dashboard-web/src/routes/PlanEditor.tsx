@@ -38,6 +38,7 @@ import {
 import { PlanCanvas } from '@/components/plan/PlanCanvas';
 import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 import { BackToProject } from '@/components/BackToProject';
+import { statusLabel } from '@/lib/status-labels';
 
 const ROLES: Role[] = ['architect', 'developer', 'qa'];
 
@@ -72,6 +73,7 @@ interface NodeEditorProps {
 }
 
 function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
+  const { t } = useTranslation();
   const otherIds = plan.nodes.filter((n) => n.id !== node.id).map((n) => n.id);
 
   const updateNode = (mutate: (n: TaskNode) => TaskNode): void => {
@@ -98,14 +100,14 @@ function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <Label htmlFor="node-id">ID</Label>
+        <Label htmlFor="node-id">{t('planEditor.node.id')}</Label>
         <Input id="node-id" value={node.id} readOnly disabled />
       </div>
       <div>
-        <Label htmlFor="node-role">Role</Label>
+        <Label htmlFor="node-role">{t('planEditor.node.role')}</Label>
         <select
           id="node-role"
-          aria-label="Role"
+          aria-label={t('planEditor.node.role')}
           className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           value={node.role}
           disabled={readOnly}
@@ -122,7 +124,7 @@ function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
         </select>
       </div>
       <div>
-        <Label htmlFor="node-prompt">Prompt</Label>
+        <Label htmlFor="node-prompt">{t('planEditor.node.prompt')}</Label>
         <Textarea
           id="node-prompt"
           rows={6}
@@ -132,7 +134,7 @@ function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
         />
       </div>
       <div>
-        <Label htmlFor="node-maxturns">Max turns</Label>
+        <Label htmlFor="node-maxturns">{t('planEditor.node.maxTurns')}</Label>
         <Input
           id="node-maxturns"
           type="number"
@@ -149,9 +151,9 @@ function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
         />
       </div>
       <div>
-        <Label>Deps</Label>
+        <Label>{t('planEditor.node.deps')}</Label>
         {otherIds.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No other nodes to depend on.</p>
+          <p className="text-xs text-muted-foreground">{t('planEditor.node.noDeps')}</p>
         ) : (
           <div className="flex flex-col gap-1.5 rounded-md border border-input p-2">
             {otherIds.map((id) => {
@@ -172,7 +174,7 @@ function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
         )}
       </div>
       <div>
-        <Label>Success criteria</Label>
+        <Label>{t('planEditor.node.successCriteria')}</Label>
         <div className="flex flex-col gap-2">
           {(['build', 'test', 'lint', 'custom'] as const).map((key) => (
             <div key={key} className="flex flex-col gap-1">
@@ -241,10 +243,10 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
     if (!valid || !dirty) return;
     try {
       await patchPlan.mutateAsync(localPlan);
-      toast({ title: 'Plan saved' });
+      toast({ title: t('planEditor.toasts.saved') });
     } catch (err) {
       toast({
-        title: 'Save failed',
+        title: t('planEditor.toasts.saveFailed'),
         description: errorMessage(err),
         variant: 'destructive',
       });
@@ -258,14 +260,17 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
       if (planRow.status === 'draft') {
         const locked = await lockPlan.mutateAsync();
         planId = locked.id;
-        toast({ title: 'Plan locked' });
+        toast({ title: t('planEditor.toasts.locked') });
       }
       const { runId } = await startRun.mutateAsync({ planId });
-      toast({ title: 'Run started', description: `Run ${runId.slice(0, 8)}` });
+      toast({
+        title: t('planEditor.toasts.runStarted'),
+        description: t('planEditor.toasts.runStartedDesc', { id: runId.slice(0, 8) }),
+      });
       navigate(`/projects/${projectId}/run/${runId}`);
     } catch (err) {
       toast({
-        title: 'Lock & Run failed',
+        title: t('planEditor.toasts.lockFailed'),
         description: errorMessage(err),
         variant: 'destructive',
       });
@@ -276,10 +281,10 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
     setConfirmRegen(false);
     try {
       await generatePlan.mutateAsync();
-      toast({ title: 'Plan regenerated' });
+      toast({ title: t('planEditor.toasts.regenerated') });
     } catch (err) {
       toast({
-        title: 'Regenerate failed',
+        title: t('planEditor.toasts.regenFailed'),
         description: errorMessage(err),
         variant: 'destructive',
       });
@@ -294,7 +299,8 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
   // back to start a run.
   const canLockAndRun =
     (planRow.status === 'draft' || planRow.status === 'locked') && !dirty && valid;
-  const lockAndRunLabel = planRow.status === 'locked' ? 'Run' : 'Lock & Run';
+  const lockAndRunLabel =
+    planRow.status === 'locked' ? t('buttons.run') : t('buttons.lockAndRun');
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
@@ -303,12 +309,12 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold">{projectName}</h1>
           <Badge variant={statusBadgeVariant(planRow.status)} data-testid="plan-status">
-            {planRow.status}
+            {statusLabel(planRow.status, t)}
           </Badge>
           <PlanVersionBadge planId={planRow.id} />
           {dirty && (
             <span className="text-xs text-muted-foreground" data-testid="dirty-indicator">
-              unsaved changes
+              {t('planEditor.unsavedChanges')}
             </span>
           )}
         </div>
@@ -320,7 +326,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
                 disabled={readOnly || generatePlan.isPending}
                 onClick={() => setConfirmRegen(true)}
               >
-                Re-generate
+                {t('buttons.regenerate')}
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t('tooltips.regeneratePlan')}</TooltipContent>
@@ -332,7 +338,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
               void handleSave();
             }}
           >
-            {patchPlan.isPending ? 'Saving…' : 'Save'}
+            {patchPlan.isPending ? t('buttons.saving') : t('buttons.save')}
           </Button>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -346,7 +352,11 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
                   }
                 }}
               >
-                {lockPlan.isPending ? 'Locking…' : startRun.isPending ? 'Starting…' : lockAndRunLabel}
+                {lockPlan.isPending
+                  ? t('buttons.starting')
+                  : startRun.isPending
+                    ? t('buttons.starting')
+                    : lockAndRunLabel}
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t('tooltips.lockAndRun')}</TooltipContent>
@@ -358,7 +368,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
           data-testid="validation-banner"
         >
-          <p className="font-semibold">Plan has validation errors</p>
+          <p className="font-semibold">{t('planEditor.validationErrors')}</p>
           <ul className="ml-5 list-disc text-xs">
             {validationErrors.map((e) => (
               <li key={e}>{e}</li>
@@ -377,12 +387,14 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
         <aside className="flex w-[360px] shrink-0 flex-col overflow-hidden rounded-md border bg-card">
           <div className="border-b p-3">
             <h2 className="text-sm font-semibold">
-              {selectedNode ? `Edit node: ${selectedNode.id}` : 'No node selected'}
+              {selectedNode
+                ? t('planEditor.node.editTitle', { id: selectedNode.id })
+                : t('planEditor.node.noNodeSelected')}
             </h2>
             <p className="text-xs text-muted-foreground">
               {selectedNode
-                ? 'Edits stay local until you click Save.'
-                : 'Click a node in the canvas to edit it.'}
+                ? t('planEditor.node.instruction1')
+                : t('planEditor.node.selectHint')}
             </p>
           </div>
           <div className="flex-1 overflow-auto p-3">
@@ -394,7 +406,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
                 onChange={setLocalPlan}
               />
             ) : (
-              <p className="text-xs text-muted-foreground">Select a node to edit.</p>
+              <p className="text-xs text-muted-foreground">{t('planEditor.node.selectHint')}</p>
             )}
           </div>
         </aside>
@@ -410,17 +422,19 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {planRow.status === 'locked' ? 'Start run?' : 'Lock plan and start run?'}
+              {planRow.status === 'locked'
+                ? t('planEditor.lockDialog.runTitle')
+                : t('planEditor.lockDialog.title')}
             </DialogTitle>
             <DialogDescription>
               {planRow.status === 'locked'
-                ? 'Starts a run from the locked plan immediately. Tasks dispatch into git worktrees and begin executing. You can pause or cancel from the run view.'
-                : 'Locking makes the plan read-only and immediately starts a run. Tasks dispatch into git worktrees and begin executing. You can pause or cancel from the run view.'}
+                ? t('planEditor.lockDialog.runDescription')
+                : t('planEditor.lockDialog.description')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmLockRun(false)}>
-              Cancel
+              {t('buttons.cancel')}
             </Button>
             <Button
               onClick={() => {
@@ -428,7 +442,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
               }}
               disabled={lockPlan.isPending || startRun.isPending}
             >
-              {lockPlan.isPending || startRun.isPending ? 'Starting…' : lockAndRunLabel}
+              {lockPlan.isPending || startRun.isPending ? t('buttons.starting') : lockAndRunLabel}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -436,15 +450,12 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
       <Dialog open={confirmRegen} onOpenChange={setConfirmRegen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Re-generate plan?</DialogTitle>
-            <DialogDescription>
-              This replaces the current draft with a freshly generated plan. Unsaved edits will be
-              discarded.
-            </DialogDescription>
+            <DialogTitle>{t('planEditor.regenDialog.title')}</DialogTitle>
+            <DialogDescription>{t('planEditor.regenDialog.description')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmRegen(false)}>
-              Cancel
+              {t('buttons.cancel')}
             </Button>
             <Button
               onClick={() => {
@@ -452,7 +463,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
               }}
               disabled={generatePlan.isPending}
             >
-              {generatePlan.isPending ? 'Regenerating…' : 'Re-generate'}
+              {generatePlan.isPending ? t('buttons.regenerating') : t('buttons.regenerate')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -475,6 +486,7 @@ function errorMessage(err: unknown): string {
 }
 
 export function PlanEditor() {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId?: string }>();
   const projectQuery = useProject(projectId);
   const planQuery = useGeneratedPlan(projectId);
@@ -484,8 +496,8 @@ export function PlanEditor() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Plan Editor</CardTitle>
-          <CardDescription>Select a project to view its plan.</CardDescription>
+          <CardTitle>{t('planEditor.title')}</CardTitle>
+          <CardDescription>{t('planEditor.selectProject')}</CardDescription>
         </CardHeader>
         <CardContent />
       </Card>
@@ -513,8 +525,8 @@ export function PlanEditor() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Plan Editor</CardTitle>
-          <CardDescription>Failed to load plan.</CardDescription>
+          <CardTitle>{t('planEditor.title')}</CardTitle>
+          <CardDescription>{t('planEditor.loadFailed')}</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-destructive">{(planQuery.error as Error).message}</p>
@@ -527,10 +539,10 @@ export function PlanEditor() {
     const handleGenerate = async (): Promise<void> => {
       try {
         await generatePlan.mutateAsync();
-        toast({ title: 'Plan generated' });
+        toast({ title: t('planEditor.toasts.saved') });
       } catch (err) {
         toast({
-          title: 'Generate failed',
+          title: t('planEditor.toasts.regenFailed'),
           description: errorMessage(err),
           variant: 'destructive',
         });
@@ -539,8 +551,8 @@ export function PlanEditor() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No plan yet</CardTitle>
-          <CardDescription>Generate a plan from this project's team and goal.</CardDescription>
+          <CardTitle>{t('planEditor.noPlanYet')}</CardTitle>
+          <CardDescription>{t('planEditor.noPlanHint')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button
@@ -549,7 +561,7 @@ export function PlanEditor() {
             }}
             disabled={generatePlan.isPending}
           >
-            {generatePlan.isPending ? 'Generating…' : 'Generate Plan'}
+            {generatePlan.isPending ? t('buttons.generating') : t('buttons.generatePlan')}
           </Button>
         </CardContent>
       </Card>

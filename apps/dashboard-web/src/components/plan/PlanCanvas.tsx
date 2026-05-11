@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   Background,
   Controls,
@@ -33,6 +34,7 @@ function roleAccent(role: Role): string {
 
 function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
   const { taskNode, selected } = data;
+  const { t } = useTranslation();
   const accent = roleAccent(taskNode.role);
   const oneLine = taskNode.prompt.replace(/\s+/g, ' ').trim();
   return (
@@ -57,9 +59,9 @@ function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
           </span>
         </div>
         <p className="line-clamp-1 text-xs text-muted-foreground" title={taskNode.prompt}>
-          {oneLine || <span className="italic">(no prompt)</span>}
+          {oneLine || <span className="italic">{t('planEditor.canvas.noPrompt')}</span>}
         </p>
-        <span className="text-[10px] text-muted-foreground/80">edit</span>
+        <span className="text-[10px] text-muted-foreground/80">{t('planEditor.canvas.editHint')}</span>
       </div>
     </div>
   );
