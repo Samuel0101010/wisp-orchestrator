@@ -26,7 +26,6 @@ test.describe('a11y scan', () => {
       await page.getByRole('heading', { level: 1 }).first().waitFor();
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa'])
-        .disableRules(['color-contrast']) // re-enabled after Phase 3 token migration
         .analyze();
       const blocking = results.violations.filter(
         (v) => v.impact === 'serious' || v.impact === 'critical',
