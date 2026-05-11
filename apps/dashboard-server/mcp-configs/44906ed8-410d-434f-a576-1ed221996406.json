@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "agent-harness-memory": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "C:\\Users\\samue\\Agent Harness\\packages\\memory-mcp\\dist\\server.js"
+      ],
+      "env": {
+        "HARNESS_MEMORY_DB": "memory\\44906ed8-410d-434f-a576-1ed221996406.db"
+      }
+    }
+  }
+}

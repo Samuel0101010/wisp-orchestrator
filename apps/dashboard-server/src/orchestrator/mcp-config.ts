@@ -30,9 +30,13 @@ export function writeMemoryMcpConfig(args: WriteMemoryMcpConfigArgs): WriteMemor
   if (!RUN_ID_RE.test(args.runId)) {
     throw new Error(`writeMemoryMcpConfig: invalid runId ${JSON.stringify(args.runId)}`);
   }
-  const cfgDir = path.join(args.dataDir, 'mcp-configs');
+  // Resolve to absolute up front: the path is passed verbatim to `claude -p
+  // --mcp-config <path>` which runs from each task's worktree cwd, so a
+  // relative path would be looked up under the wrong root.
+  const dataDirAbs = path.resolve(args.dataDir);
+  const cfgDir = path.join(dataDirAbs, 'mcp-configs');
   mkdirSync(cfgDir, { recursive: true });
-  const memDir = path.join(args.dataDir, 'memory');
+  const memDir = path.join(dataDirAbs, 'memory');
   mkdirSync(memDir, { recursive: true });
   const dbPath = path.join(memDir, `${args.runId}.db`);
   const cfg = {
