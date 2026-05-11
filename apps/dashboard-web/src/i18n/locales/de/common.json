@@ -646,6 +646,109 @@
     "success": "Erfolg",
     "failure": "Fehler"
   },
+  "chat": {
+    "loading": "Lade Team…",
+    "notSeeded": "Team-Chat ist noch nicht eingerichtet.",
+    "notSeededBody": "Das Built-in-Dev-Team (Marcus + 9 Spezialisten) wird beim ersten Server-Start automatisch angelegt. Starte den Dashboard-Server neu und komm dann zurück.",
+    "openAgentsSettings": "Agents-Einstellungen öffnen",
+    "sidebar": {
+      "title": "Konversationen",
+      "empty": "Noch keine Konversationen.",
+      "startCta": "Mit dem Team starten"
+    },
+    "thread": {
+      "untitled": "Unbenannter Chat",
+      "deleteConfirm": "Diese Konversation löschen? Das kann nicht rückgängig gemacht werden.",
+      "deleteLabel": "Löschen"
+    },
+    "header": {
+      "defaultTitle": "Team-Chat mit Marcus",
+      "participants_one": "{{count}} Teilnehmer",
+      "participants_other": "{{count}} Teilnehmer",
+      "actions_one": "{{count}} Aktion",
+      "actions_other": "{{count}} Aktionen",
+      "compress": "Komprimieren"
+    },
+    "composer": {
+      "placeholder": "Nachricht an Marcus + Team — ⌘⏎ zum Senden. Tippe @ um jemanden zu erwähnen.",
+      "ariaLabel": "Nachricht verfassen"
+    },
+    "participants": {
+      "title": "Personen",
+      "empty": "Keine Konversation ausgewählt.",
+      "permanent": "Marcus bleibt in jeder Konversation. Füge Spezialisten hinzu oder erwähne sie mit @.",
+      "removeConfirm": "{{name}} aus dieser Konversation entfernen?",
+      "roleLead": "Lead"
+    },
+    "addMember": {
+      "title": "Zur Konversation hinzufügen",
+      "close": "Schließen",
+      "tabTeam": "Built-in Team",
+      "tabCustom": "Deine Agents",
+      "emptyCustom": "Noch keine eigenen Agents. Erstelle einen in den Agents-Einstellungen.",
+      "emptyTeam": "Keine Team-Mitglieder.",
+      "alreadyIn": "im Chat"
+    },
+    "greeter": {
+      "title": "Mit dem Team brainstormen",
+      "body": "Marcus (Projektmanager) leitet jede Konversation. Er kann Spezialisten hinzuziehen und dann ein Projekt erstellen und starten, sobald ihr euch auf eine Richtung geeinigt habt.",
+      "startButton": "Konversation starten",
+      "starterName": "Marcus",
+      "starterGreeting": "Hi! Erzähl mir, was du dir vorstellst — eine Feature-Idee, ein Bug-Hunt oder ein neues Projekt. Ich hole die Spezialisten dazu, die du brauchst.",
+      "tip": "Tipp: Tippe <code>@Lena</code>, um die Frontend-Lead direkt anzusprechen."
+    },
+    "transcript": {
+      "typing": "Manager schreibt…",
+      "noResponse": "(keine Antwort)",
+      "interrupted": "unterbrochen",
+      "timeout": "Timeout (180s)"
+    },
+    "action": {
+      "projectCreated": "Projekt erstellt · {{name}}",
+      "projectTeam": "Team aus {{count}} Personen. Bereit zum Planen & Starten.",
+      "openProject": "Projekt öffnen",
+      "memberAdded": "<strong>{{name}}</strong> zur Konversation hinzugefügt.",
+      "consulted": "<strong>{{name}}</strong> konsultiert. Antwort steht unten ↓",
+      "runStarted": "Run <code>{{id}}</code> gestartet.",
+      "noPlan": "Run noch nicht möglich — kein Plan. Öffne das Projekt, um einen zu generieren.",
+      "actionFailed": "Aktion fehlgeschlagen: {{kind}}",
+      "unknownError": "unbekannter Fehler",
+      "generic": "Aktion: {{kind}} · {{status}}"
+    }
+  },
+  "agentChat": {
+    "loading": "Lade Agents…",
+    "noAgents": "Noch keine Agents",
+    "noAgentsBody": "Erstelle deinen ersten Agent, um zu chatten.",
+    "manageAgents": "Agents verwalten →",
+    "noThreads": "keine Threads — schreibe unten, um einen zu starten.",
+    "startConversation": "Schreibe eine Nachricht unten, um die Konversation zu starten.",
+    "agentThinking": "{{name}} denkt nach…",
+    "composerLabel": "an @{{name}}",
+    "selectAgent": "Agent auswählen",
+    "cmdEnter": "Strg+Eingabe",
+    "placeholder": {
+      "reply": "antworten…",
+      "newThread": "neuen Thread mit @{{name}} starten",
+      "pickAgent": "oben einen Agent auswählen"
+    },
+    "threadMeta": {
+      "count_one": "{{count}} Nachricht in diesem Thread",
+      "count_other": "{{count}} Nachrichten in diesem Thread",
+      "delete": "Thread löschen",
+      "untitled": "Thread {{id}}"
+    },
+    "message": {
+      "you": "du"
+    }
+  },
+  "avatarPicker": {
+    "title": "Profilbild wählen",
+    "close": "Schließen",
+    "initialsTitle": "Initialen-Fallback",
+    "initialsLabel": "Initialen",
+    "footer": "Wähle ein Bild oder nutze den Initialen-Fallback. Das gleiche Bild kann für mehrere Agents verwendet werden."
+  },
   "tooltips": {
     "newThread": "Neue Konversation",
     "sendMessage": "Nachricht senden (Strg+Eingabe)",

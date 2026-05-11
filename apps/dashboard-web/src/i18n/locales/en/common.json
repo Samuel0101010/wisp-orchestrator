@@ -646,6 +646,109 @@
     "success": "Success",
     "failure": "Failure"
   },
+  "chat": {
+    "loading": "Loading team…",
+    "notSeeded": "Team chat is not seeded yet.",
+    "notSeededBody": "The built-in dev team (Marcus + 9 specialists) is installed automatically on first server boot. Restart the dashboard server, then return here.",
+    "openAgentsSettings": "Open Agents settings",
+    "sidebar": {
+      "title": "Conversations",
+      "empty": "No conversations yet.",
+      "startCta": "Start with the team"
+    },
+    "thread": {
+      "untitled": "Untitled chat",
+      "deleteConfirm": "Delete this conversation? This cannot be undone.",
+      "deleteLabel": "Delete"
+    },
+    "header": {
+      "defaultTitle": "Team chat with Marcus",
+      "participants_one": "{{count}} participant",
+      "participants_other": "{{count}} participants",
+      "actions_one": "{{count}} action",
+      "actions_other": "{{count}} actions",
+      "compress": "Compress"
+    },
+    "composer": {
+      "placeholder": "Message Marcus + team — ⌘⏎ to send. Type @ to mention a teammate.",
+      "ariaLabel": "Message composer"
+    },
+    "participants": {
+      "title": "People",
+      "empty": "No conversation selected.",
+      "permanent": "Marcus stays in every conversation. Add specialists to bring them into the chat — or @mention them inline.",
+      "removeConfirm": "Remove {{name}} from this conversation?",
+      "roleLead": "Lead"
+    },
+    "addMember": {
+      "title": "Add to conversation",
+      "close": "close",
+      "tabTeam": "Built-in team",
+      "tabCustom": "Your agents",
+      "emptyCustom": "No custom agents yet. Create one in Agents settings.",
+      "emptyTeam": "No team members.",
+      "alreadyIn": "in chat"
+    },
+    "greeter": {
+      "title": "Brainstorm with the team",
+      "body": "Marcus (Project Manager) chairs every conversation. He can pull specialists in, then create + start a project once you've agreed on direction.",
+      "startButton": "Start conversation",
+      "starterName": "Marcus",
+      "starterGreeting": "Hi! Tell me what you're thinking about — a feature idea, a bug to chase, or a fresh project. I'll loop in the specialists you need.",
+      "tip": "Tip: type <code>@Lena</code> to address the frontend lead directly."
+    },
+    "transcript": {
+      "typing": "Manager is typing…",
+      "noResponse": "(no response)",
+      "interrupted": "interrupted",
+      "timeout": "Timeout (180s)"
+    },
+    "action": {
+      "projectCreated": "Project created · {{name}}",
+      "projectTeam": "Team of {{count}}. Ready to plan & run.",
+      "openProject": "Open project",
+      "memberAdded": "Added <strong>{{name}}</strong> to the conversation.",
+      "consulted": "Consulted <strong>{{name}}</strong>. Reply posted below ↓",
+      "runStarted": "Started run <code>{{id}}</code>.",
+      "noPlan": "Cannot start run yet — no plan. Open the project to generate one.",
+      "actionFailed": "Action failed: {{kind}}",
+      "unknownError": "unknown error",
+      "generic": "Action: {{kind}} · {{status}}"
+    }
+  },
+  "agentChat": {
+    "loading": "Loading agents…",
+    "noAgents": "No agents yet",
+    "noAgentsBody": "Create your first agent to start chatting.",
+    "manageAgents": "Manage agents →",
+    "noThreads": "no threads — type below to start one.",
+    "startConversation": "Type a message below to start the conversation.",
+    "agentThinking": "{{name}} is thinking…",
+    "composerLabel": "to @{{name}}",
+    "selectAgent": "select an agent",
+    "cmdEnter": "cmd+enter",
+    "placeholder": {
+      "reply": "reply…",
+      "newThread": "start a new thread with @{{name}}",
+      "pickAgent": "pick an agent above"
+    },
+    "threadMeta": {
+      "count_one": "{{count}} message in this thread",
+      "count_other": "{{count}} messages in this thread",
+      "delete": "delete thread",
+      "untitled": "thread {{id}}"
+    },
+    "message": {
+      "you": "you"
+    }
+  },
+  "avatarPicker": {
+    "title": "Choose a profile picture",
+    "close": "close",
+    "initialsTitle": "Initials fallback",
+    "initialsLabel": "Initials",
+    "footer": "Pick a picture or use an initials fallback. The same picture can be reused across agents."
+  },
   "tooltips": {
     "newThread": "New conversation",
     "sendMessage": "Send message (Ctrl+Enter)",
