@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { eq, desc } from 'drizzle-orm';
 import { wrap } from './wrap.js';
 import { db } from '../db/index.js';
-import { trajectories, modelRouterPriors, modelRouterSamples } from '@agent-harness/schemas';
+import {
+  trajectories,
+  modelRouterPriors,
+  modelRouterSamples,
+  runSummaries,
+} from '@agent-harness/schemas';
 
 export const insightsRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -59,6 +64,23 @@ export const insightsRoutes: FastifyPluginAsync = async (app) => {
     }),
   );
 
+  app.get(
+    '/api/insights/run-summaries',
+    wrap(async (req) => {
+      const { projectId } = z.object({ projectId: z.string().optional() }).parse(req.query ?? {});
+      const rows = projectId
+        ? db
+            .select()
+            .from(runSummaries)
+            .where(eq(runSummaries.projectId, projectId))
+            .orderBy(desc(runSummaries.createdAt))
+            .limit(50)
+            .all()
+        : db.select().from(runSummaries).orderBy(desc(runSummaries.createdAt)).limit(50).all();
+      return rows;
+    }),
+  );
+
   // Re-expose router priors for the UI's combined Insights view
   app.get(
     '/api/insights/router-priors',
@@ -71,14 +93,21 @@ export const insightsRoutes: FastifyPluginAsync = async (app) => {
         const k = `${s.role}::${s.model}`;
         samplesByKey.set(k, (samplesByKey.get(k) ?? 0) + 1);
       }
-      return rows.map((r) => ({
-        role: r.role,
-        model: r.model,
-        alpha: r.alpha,
-        beta: r.beta,
-        mean: r.alpha / (r.alpha + r.beta),
-        samples: samplesByKey.get(`${r.role}::${r.model}`) ?? 0,
-      }));
+      return rows.map((r) => {
+        const phaseMatch = r.role.match(/-(orchestration|substantive)$/);
+        const phase = phaseMatch ? phaseMatch[1] : 'unspecified';
+        const baseRole = phaseMatch ? r.role.slice(0, -phaseMatch[0].length) : r.role;
+        return {
+          role: r.role,
+          baseRole,
+          phase,
+          model: r.model,
+          alpha: r.alpha,
+          beta: r.beta,
+          mean: r.alpha / (r.alpha + r.beta),
+          samples: samplesByKey.get(`${r.role}::${r.model}`) ?? 0,
+        };
+      });
     }),
   );
 };

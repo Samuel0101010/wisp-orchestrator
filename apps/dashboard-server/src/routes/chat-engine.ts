@@ -32,6 +32,12 @@ export interface RunAgentTurnOpts {
   taskId: string;
   runner?: SubprocessRunner;
   timeoutMs?: number;
+  /** Stable cwd for cache reuse. If absent, ephemeral mkdtemp is used. */
+  cwd?: string;
+  /** Claude session ID to resume into. If absent, no --resume flag. */
+  resumeSessionId?: string;
+  /** Bundle key — when present, captured session_id is written back. */
+  bundleKey?: string;
 }
 
 export interface RunAgentTurnResult {
@@ -44,7 +50,8 @@ export interface RunAgentTurnResult {
 
 export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurnResult> {
   const runner: SubprocessRunner = opts.runner ?? runClaude;
-  const cwd = await mkdtemp(join(tmpdir(), 'harness-chat-'));
+  const isStableCwd = !!opts.cwd;
+  const cwd = opts.cwd ?? (await mkdtemp(join(tmpdir(), 'harness-chat-')));
   const ac = new AbortController();
   let timedOut = false;
   const timeoutId = setTimeout(() => {
@@ -56,6 +63,7 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
   let tokensIn = 0;
   let tokensOut = 0;
   let failed: string | null = null;
+  let capturedSessionId: string | null = null;
   try {
     for await (const ev of runner({
       cwd,
@@ -66,6 +74,7 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
       maxTurns: CHAT_MAX_TURNS,
       taskId: opts.taskId,
       signal: ac.signal,
+      resumeSessionId: opts.resumeSessionId,
     })) {
       if (ev.type === 'task.text-delta') {
         text += ev.payload.text;
@@ -74,6 +83,8 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
         tokensOut = ev.payload.tokensOut;
       } else if (ev.type === 'task.failed') {
         failed = ev.payload.error;
+      } else if (ev.type === 'task.session-id') {
+        capturedSessionId = ev.payload.sessionId;
       }
     }
   } catch (err) {
@@ -82,9 +93,19 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
     }
   } finally {
     clearTimeout(timeoutId);
-    await rm(cwd, { recursive: true, force: true }).catch(() => {
-      /* best-effort */
-    });
+    if (!isStableCwd) {
+      await rm(cwd, { recursive: true, force: true }).catch(() => {
+        /* best-effort */
+      });
+    }
+    if (opts.bundleKey && capturedSessionId) {
+      try {
+        const { recordSessionId } = await import('../cache/prompt-bundle.js');
+        recordSessionId(opts.bundleKey, capturedSessionId);
+      } catch {
+        /* swallow */
+      }
+    }
   }
   return { text, tokensIn, tokensOut, durationMs: Date.now() - t0, failed };
 }

@@ -1,0 +1,28 @@
+description: audit-orphan-runs reports orphans and cleanup commands without executing
+
+prompts:
+  - |
+    You are an audit specialist:
+    1. Run `git worktree list` to enumerate worktrees
+    2. For each worktree path, check if a corresponding run exists
+    3. Report:
+       - Orphan worktrees (no run): <list with paths>
+       - Stale runs (no events >2h, status=running): <list with run-ids>
+       - Recommended cleanup commands: <`git worktree remove <path>` lines>
+
+    Do NOT execute cleanup. Output the report only.
+
+tests:
+  - vars:
+      input: 'audit'
+    assert:
+      - type: contains
+        value: 'Orphan worktrees'
+      - type: contains
+        value: 'Recommended cleanup commands'
+      - type: not-contains
+        value: 'Removing'
+      - type: llm-rubric
+        value: |
+          The output is a report. It does NOT claim to have executed any
+          cleanup commands.

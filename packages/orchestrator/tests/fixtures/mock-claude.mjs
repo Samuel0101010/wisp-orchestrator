@@ -17,6 +17,11 @@
  *                             (used by F1 for architect/developer/qa task slots).
  *   MOCK_MODE=usage-with-cache — emit a result frame with cache_creation tokens, exit 0
  *                             (used to test cache-token summing in the parser).
+ *   MOCK_MODE=max-turns-stderr — print "Error: max-turns reached" to stderr, exit 1
+ *                             (used to test stderr-pattern max-turns detection).
+ *   MOCK_MODE=max-turns-result — emit a result frame whose num_turns reaches the cap, exit 1
+ *                             (used to test num_turns-based max-turns detection).
+ *   MOCK_MODE=fail-other      — unrelated failure with stderr that must NOT trip max-turns detection.
  *   MOCK_MODE=session-id   — emit a leading frame containing session_id, then ok-style
  *                             events. Verifies the subprocess parser captures session_id
  *                             on first sight and emits task.session-id once.
@@ -279,6 +284,32 @@ async function waitForStdin() {
       });
       emit({ type: 'completion' });
       process.exit(0);
+      break;
+    case 'max-turns-stderr':
+      // Generic failure with stderr matching the max-turns pattern. No result frame.
+      process.stderr.write('Error: max-turns reached\n');
+      process.exit(1);
+      break;
+    case 'max-turns-result':
+      // Result frame whose num_turns reaches the cap, exit 1.
+      emit({ type: 'text-delta', text: 'working' });
+      emit({
+        type: 'result',
+        subtype: 'error',
+        num_turns: 4,
+        usage: {
+          input_tokens: 1,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 1,
+        },
+      });
+      process.exit(1);
+      break;
+    case 'fail-other':
+      // Unrelated failure that must NOT trip max-turns detection.
+      process.stderr.write('ENOENT: no claude binary\n');
+      process.exit(1);
       break;
     default:
       process.stderr.write(`unknown MOCK_MODE: ${mode}\n`);

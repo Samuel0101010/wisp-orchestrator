@@ -38,6 +38,8 @@ export interface RunClaudeOpts {
 
 const STDERR_TAIL_BYTES = 4096;
 
+const MAX_TURNS_STDERR_PATTERN = /max[- ]turns?\s*(exceeded|reached|exhausted)/i;
+
 export function buildArgs(opts: RunClaudeOpts): string[] {
   const args = [
     '-p',
@@ -264,6 +266,7 @@ export class ClaudeSubprocess {
 
     let stderrTail = '';
     let rateLimitDetected: RateLimitHit | null = null;
+    let observedTurns = 0;
 
     const handleText = (text: string, isStderr: boolean): void => {
       // Record stderr tail for failure reporting.
@@ -330,6 +333,10 @@ export class ClaudeSubprocess {
               payload: { taskId: opts.taskId, sessionId: sid },
             });
           }
+        }
+        if (parsed && typeof parsed === 'object' && 'num_turns' in parsed) {
+          const n = (parsed as { num_turns: unknown }).num_turns;
+          if (typeof n === 'number' && Number.isFinite(n)) observedTurns = n;
         }
         for (const ev of mapCliEvent(parsed, opts.taskId)) push(ev);
       }
@@ -406,10 +413,31 @@ export class ClaudeSubprocess {
       }
 
       const tail = stderrTail.trim() || `exit code ${code ?? 'null'}`;
-      yield {
-        type: 'task.failed',
-        payload: { taskId: opts.taskId, error: tail },
-      };
+
+      const maxTurnsOpt = opts.maxTurns;
+      const stderrSuggestsMaxTurns = MAX_TURNS_STDERR_PATTERN.test(stderrTail);
+      const turnsAtCap = observedTurns > 0 && observedTurns >= maxTurnsOpt;
+      const isMaxTurns = stderrSuggestsMaxTurns || turnsAtCap;
+
+      if (isMaxTurns) {
+        yield {
+          type: 'task.max-turns-exhausted',
+          payload: {
+            taskId: opts.taskId,
+            turnsUsed: observedTurns,
+            maxTurns: maxTurnsOpt,
+          },
+        };
+        yield {
+          type: 'task.failed',
+          payload: { taskId: opts.taskId, error: 'max-turns-exhausted' },
+        };
+      } else {
+        yield {
+          type: 'task.failed',
+          payload: { taskId: opts.taskId, error: tail },
+        };
+      }
     } finally {
       if (opts.signal) opts.signal.removeEventListener('abort', onAbort);
     }

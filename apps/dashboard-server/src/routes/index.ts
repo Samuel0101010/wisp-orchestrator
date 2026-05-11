@@ -4,7 +4,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { healthRoutes } from './health.js';
 import { projectRoutes } from './projects.js';
 import { planRoutes } from './plans.js';
-import { runRoutes } from './runs.js';
+import { runRoutes, setRuntimeSkillRegistry, getDefaultRuntime } from './runs.js';
 import { teamTemplatesRoutes } from './team-templates.js';
 import { planChainRoutes } from './plan-chain.js';
 import { probePromptRoutes } from './probe-prompt.js';
@@ -18,12 +18,19 @@ import { auditOrphanRuns } from '../workers/handlers/audit-orphan-runs.js';
 import { autoDoc } from '../workers/handlers/auto-doc.js';
 import { inventoryRefresh } from '../workers/handlers/inventory-refresh.js';
 import { consolidateMemory } from '../workers/handlers/consolidate-memory.js';
+import { promptBundleEvict } from '../workers/handlers/prompt-bundle-evict.js';
+import {
+  runSummaryFallback,
+  setRunSummaryFallbackRegistry,
+} from '../workers/handlers/run-summary-fallback.js';
+import { retryMaxTurns, setRetryMaxTurnsRuntime } from '../workers/handlers/retry-max-turns.js';
 import { createWorkersRouter } from './workers.js';
 import { tickAutopilot } from '../autopilot/runner.js';
 import { routerRoutes } from './router.js';
 import { insightsRoutes } from './insights.js';
 import { goapRoutes } from './goap.js';
 import { createHooksRouter } from './hooks.js';
+import { promptBundlesRoutes } from './prompt-bundles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -58,22 +65,49 @@ workerRegistry.register({
   enabled: true,
   handler: tickAutopilot,
 });
+workerRegistry.register({
+  name: 'prompt-bundle-evict',
+  cronSpec: '0 4 * * *',
+  enabled: true,
+  handler: promptBundleEvict,
+});
+workerRegistry.register({
+  name: 'run-summary-fallback',
+  cronSpec: '*/15 * * * *',
+  enabled: true,
+  handler: runSummaryFallback,
+});
+workerRegistry.register({
+  name: 'retry-max-turns',
+  cronSpec: '*/2 * * * *',
+  enabled: true,
+  handler: retryMaxTurns,
+});
 
 export const workerDaemon = new WorkerDaemon(workerRegistry);
 
 export const registerRoutes: FastifyPluginAsync = async (app) => {
+  // Initialize skill registry FIRST and wire it into the default runtime
+  // before any route that could trigger runtime construction (runRoutes
+  // resolves the default runtime when its plugin function runs).
+  const skillsRoot = process.env.HARNESS_SKILLS_DIR ?? resolve(__dirname, '../skills/seed');
+  const skillRegistry = new SkillRegistry(skillsRoot);
+  skillRegistry.init();
+  setRuntimeSkillRegistry(skillRegistry);
+  setRunSummaryFallbackRegistry(skillRegistry);
+
   await app.register(healthRoutes);
   await app.register(projectRoutes);
   await app.register(planRoutes);
   await app.register(runRoutes);
+  // Wire the default runtime into the retry-max-turns worker. Must come AFTER
+  // runRoutes registers (which constructs the default runtime), so that the
+  // singleton is fully initialized before the worker references it.
+  setRetryMaxTurnsRuntime(getDefaultRuntime());
   await app.register(teamTemplatesRoutes);
   await app.register(planChainRoutes);
   await app.register(probePromptRoutes());
   await app.register(agentRoutes);
-
-  const skillsRoot = process.env.HARNESS_SKILLS_DIR ?? resolve(__dirname, '../skills/seed');
-  const skillRegistry = new SkillRegistry(skillsRoot);
-  skillRegistry.init();
 
   await app.register(createSkillsRouter({ registry: skillRegistry }));
   await app.register(createChatRouter({ skillRegistry }));
@@ -82,4 +116,5 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(insightsRoutes);
   await app.register(goapRoutes);
   await app.register(createHooksRouter);
+  await app.register(promptBundlesRoutes);
 };

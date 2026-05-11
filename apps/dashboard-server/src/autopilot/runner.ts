@@ -2,6 +2,7 @@ import { db } from '../db/index.js';
 import { runs } from '@agent-harness/schemas';
 import { eq, and } from 'drizzle-orm';
 import { checkAutopilotBudget } from './budget.js';
+import { tryCheckoutRun, releaseCheckout } from '../checkout/atomic-checkout.js';
 
 export interface AutopilotTickResult {
   resumed: string[];
@@ -32,6 +33,12 @@ export async function tickAutopilot(): Promise<AutopilotTickResult> {
       halted.push(run.id);
       continue;
     }
+    // Atomically claim this paused run before resuming. If another tick
+    // (or a manual /resume) beat us to it, skip silently — they'll handle it.
+    const checkout = tryCheckoutRun(run.id, 'paused', 'running');
+    if (!checkout.ok) {
+      continue;
+    }
     try {
       // Defer-import to avoid circular import: routes/runs.ts already imports many things
       const { getDefaultRuntime } = await import('../routes/runs.js');
@@ -45,6 +52,8 @@ export async function tickAutopilot(): Promise<AutopilotTickResult> {
     } catch (err) {
       console.error('[autopilot-tick] failed to resume', run.id, err);
       halted.push(run.id);
+    } finally {
+      releaseCheckout(run.id, checkout.token);
     }
   }
   return { resumed, halted };
