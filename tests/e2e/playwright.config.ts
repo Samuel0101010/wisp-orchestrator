@@ -63,8 +63,14 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: 'chromium-en',
+      use: { ...devices['Desktop Chrome'], locale: 'en-US' },
+      metadata: { lang: 'en' as const },
+    },
+    {
+      name: 'chromium-de',
+      use: { ...devices['Desktop Chrome'], locale: 'de-DE' },
+      metadata: { lang: 'de' as const },
     },
   ],
   webServer: {
