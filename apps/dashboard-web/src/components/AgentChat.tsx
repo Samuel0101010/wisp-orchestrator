@@ -20,7 +20,6 @@ export interface AgentChatProps {
   compact?: boolean;
 }
 
-
 export function AgentChat({ projectId = null, compact = false }: AgentChatProps) {
   const { t, i18n } = useTranslation();
   const agents = useAgents();
@@ -168,6 +167,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
           </Link>
         </div>
         <select
+          aria-label={t('agentChat.selectAgent')}
           value={selectedAgentId ?? ''}
           onChange={(e) => {
             setSelectedAgentId(e.target.value || null);
@@ -241,7 +241,9 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
         {sendMessage.isPending && (
           <div className="flex items-center gap-2 self-start rounded-md bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
             <Loader2 className="h-3 w-3 animate-spin" />
-            {t('agentChat.agentThinking', { name: selectedAgent ? `@${selectedAgent.name}` : 'agent' })}
+            {t('agentChat.agentThinking', {
+              name: selectedAgent ? `@${selectedAgent.name}` : 'agent',
+            })}
           </div>
         )}
         {error && (

@@ -50,7 +50,9 @@ test.describe('Phase F1 smoke', () => {
     await expect(page.getByText(tt(lang, 'newProject.title'), { exact: true })).toBeVisible();
 
     await page.getByLabel(tt(lang, 'newProject.fields.name')).fill('smoke-todo');
-    await page.getByLabel(tt(lang, 'newProject.fields.goal')).fill('Build a TypeScript CLI todo app');
+    await page
+      .getByLabel(tt(lang, 'newProject.fields.goal'))
+      .fill('Build a TypeScript CLI todo app');
     await page.getByLabel(tt(lang, 'newProject.fields.repoPath')).fill(REPO_PATH);
 
     await page.getByRole('button', { name: tt(lang, 'buttons.create') }).click();
@@ -62,7 +64,9 @@ test.describe('Phase F1 smoke', () => {
     if (!projectId) throw new Error(`could not extract projectId from URL: ${url}`);
 
     // "Team Builder" appears in both breadcrumbs and page heading; pin to the H1.
-    await expect(page.getByRole('heading', { name: tt(lang, 'teamBuilder.title'), level: 1 })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: tt(lang, 'teamBuilder.title'), level: 1 }),
+    ).toBeVisible();
     // Three role cards visible — we use the model badges as a stable signal.
     await expect(page.getByTestId('badge-architect')).toBeVisible();
     await expect(page.getByTestId('badge-developer')).toBeVisible();
@@ -73,7 +77,9 @@ test.describe('Phase F1 smoke', () => {
     // Toast renders both a visible title and a screen-reader status node, so
     // assert at least one match using `.first()` rather than the (strict-mode)
     // bare locator.
-    await expect(page.getByText(tt(lang, 'teamBuilder.toasts.saved')).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(tt(lang, 'teamBuilder.toasts.saved')).first()).toBeVisible({
+      timeout: 10_000,
+    });
 
     // After Save, the team exists and the Generate Plan button appears.
     await expect(page.getByRole('button', { name: tt(lang, 'buttons.generatePlan') })).toBeVisible({
@@ -96,10 +102,8 @@ test.describe('Phase F1 smoke', () => {
     // Step 6: Lock & Run — opens a confirm dialog, then click the dialog's
     // "Lock & Run" button to actually start the run.
     await page.getByRole('button', { name: tt(lang, 'buttons.lockAndRun') }).click();
-    // NOTE: dialog aria-name "/Lock plan and start run/i" has no matching i18n key
-    // (closest: planEditor.lockDialog.title = "Lock & Run this plan?"). Left as
-    // hardcoded regex — will need a new key in Phase 2.
-    const confirmDialog = page.getByRole('dialog', { name: /Lock plan and start run/i });
+    // Dialog title is planEditor.lockDialog.title when plan is in draft status.
+    const confirmDialog = page.getByRole('dialog', { name: tt(lang, 'planEditor.lockDialog.title') });
     await expect(confirmDialog).toBeVisible();
     await confirmDialog.getByRole('button', { name: tt(lang, 'buttons.lockAndRun') }).click();
 
