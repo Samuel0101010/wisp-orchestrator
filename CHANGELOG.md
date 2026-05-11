@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.4.0 — Multi-source skills + refreshed avatars
+
+Two user-facing wins: the harness now uses **every** Claude Code skill you
+already have (project-local, user-global, plugin-bundled), and the 10
+seed-agent + 20 generic profile pictures got a clean new generation.
+
+### Added — Multi-source skill discovery (#38)
+
+- New `apps/dashboard-server/src/skills/discovery.ts` walks all four
+  conventional Claude Code skill locations and merges them into one
+  registry:
+  1. Built-in seed (`apps/dashboard-server/src/skills/seed/`) — ships
+     with the harness.
+  2. Project-local (`<projectRoot>/.claude/skills/`).
+  3. User-global (`~/.claude/skills/`).
+  4. Plugin cache (`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/skills/`).
+- Plugins with multiple cached versions side-by-side (e.g. `superpowers`
+  5.0.7 + 5.1.0 + content-hash entries) contribute only their
+  lexically-greatest version — a good-enough proxy for "newest".
+- **First-loaded wins** on name collisions, processed in the priority
+  order above so built-ins and project-scoped skills shadow user-global
+  and plugin-bundled ones. Shadowed skills are tracked in
+  `DiscoveryStats` for diagnostics but not exposed via the API.
+- Each skill carries a `source` tag — `'seed' | 'project' | 'user' |
+  'plugin:<name>'` — surfaced by `GET /api/skills`.
+- `/skills` web route gains coloured per-source badges (blue=seed,
+  emerald=project, amber=user, fuchsia=plugin) plus filter pills with
+  live counts.
+- `SkillRegistry` constructor accepts three init shapes:
+  `rootDir: string` (back-compat), `{ skills: Skill[] }` (explicit
+  list), `{ discoveryOpts }` (full multi-source discovery).
+- Legacy `HARNESS_SKILLS_DIR` env var still works as a single-root
+  escape hatch. New `HARNESS_PROJECT_ROOT` env var overrides
+  `process.cwd()` for project-local discovery.
+
+### Added — Refreshed agent portraits
+
+- All 10 seed-agent profile pictures (Marcus, Lena, Diego, Aiko, Sven,
+  Priya, Maya, Elena, Javier, Noah) regenerated with Higgsfield Soul V2
+  — consistent studio aesthetic, soft natural daylight, light grey
+  backdrop, persona-matched outfits and expressions.
+- 20-image generic avatar pool for user-created custom agents
+  regenerated alongside the seeds, with a broader demographic mix so the
+  pool fits any role.
+
 ## 1.3.0 — Paperclip-port (6 features)
 
 Ports six high-leverage ideas from the paperclip analysis into the
