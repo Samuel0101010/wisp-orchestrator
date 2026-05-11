@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bot, Edit2, Plus, Trash2, ImageIcon, Users, ShieldCheck, Sparkles } from 'lucide-react';
 import {
   useAgents,
@@ -23,6 +24,8 @@ import {
 import type { Agent, CreateAgentInput, UpdateAgentInput } from '@agent-harness/schemas';
 import { Avatar } from '@/components/Avatar';
 import { AvatarPicker } from '@/components/AvatarPicker';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorBanner } from '@/components/ui/error-banner';
 
 const MODELS = ['opus', 'sonnet', 'haiku'] as const;
 const DEFAULT_TOOLS = [
@@ -48,6 +51,7 @@ function fmtRel(d: Date | string | number): string {
 }
 
 export function AgentsRoute() {
+  const { t } = useTranslation();
   const agents = useAgents();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -57,27 +61,45 @@ export function AgentsRoute() {
 
   return (
     <div className="flex flex-col gap-8">
-      <header className="flex items-end justify-between">
+      <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Agents</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            The built-in dev team is always here for chat. Add your own agents for one-off
-            specialties or project-specific personas.
+          <h1 className="text-2xl font-semibold tracking-tight">{t('agents.title')}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            {t('agents.subtitleLead')}
           </p>
         </div>
         <button
           onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 rounded-md border bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />
-          New agent
+          {t('agents.actions.new')}
         </button>
       </header>
 
       {agents.isLoading && (
-        <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-          Loading agents…
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="space-y-3 rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+              <Skeleton className="h-3 w-3/4" />
+            </div>
+          ))}
         </div>
+      )}
+
+      {agents.error && (
+        <ErrorBanner
+          title={t('agents.loadFailed')}
+          message={t('errors.retryHint')}
+          onRetry={() => agents.refetch()}
+        />
       )}
 
       {/* Section: Built-in team */}
@@ -85,8 +107,8 @@ export function AgentsRoute() {
         <section>
           <SectionHeading
             icon={<ShieldCheck className="h-4 w-4 text-info" />}
-            title="Built-in team"
-            sub={`${seedAgents.length} seed agents · always available in chat`}
+            title={t('agents.sections.builtin')}
+            sub={t('agents.sections.builtinSub', { count: seedAgents.length })}
           />
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
             {seedAgents.map((a) => (
@@ -100,22 +122,22 @@ export function AgentsRoute() {
       <section>
         <SectionHeading
           icon={<Sparkles className="h-4 w-4 text-foreground" />}
-          title="Your agents"
+          title={t('agents.sections.your')}
           sub={
             userAgents.length > 0
-              ? `${userAgents.length} custom agent${userAgents.length === 1 ? '' : 's'}`
-              : 'Build a custom persona for one-off tasks'
+              ? t('agents.sections.yourSub', { count: userAgents.length })
+              : t('agents.sections.yourSubEmpty')
           }
         />
         {userAgents.length === 0 && !agents.isLoading ? (
-          <div className="mt-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-10 text-center text-sm text-muted-foreground">
+          <div className="mt-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/40 py-10 text-center text-sm text-muted-foreground">
             <Bot className="h-6 w-6 opacity-60" />
-            <span>No custom agents yet.</span>
+            <span>{t('agents.emptyTitle')}</span>
             <button
               onClick={() => setCreating(true)}
-              className="rounded-md border bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Create your first agent
+              {t('agents.actions.createFirst')}
             </button>
           </div>
         ) : (
@@ -162,13 +184,14 @@ function AgentCard({
   onEdit: () => void;
   isSeed?: boolean;
 }) {
+  const { t } = useTranslation();
   const usage = useAgentUsage(agent.id);
   const refCount = usage.data?.usage.length ?? 0;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const del = useDeleteAgent();
 
   return (
-    <div className="group flex h-full flex-col rounded-xl border bg-card p-4 shadow-sm transition-colors hover:border-info/30">
+    <div className="group flex h-full flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-info/30">
       <div className="flex items-start gap-3">
         <Avatar
           name={agent.name}
@@ -197,28 +220,31 @@ function AgentCard({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Users className="h-3 w-3" />
-          {refCount > 0 ? `on ${refCount} team${refCount === 1 ? '' : 's'}` : 'unused'}
+          {refCount > 0
+            ? t('agents.card.onTeams', { count: refCount })
+            : t('agents.card.unused')}
         </span>
-        <span className="font-mono">{agent.allowedTools.length} tools</span>
+        <span className="font-mono">{t('agents.card.tools', { count: agent.allowedTools.length })}</span>
         <span className="ml-auto font-mono">
           {fmtRel(agent.updatedAt as Date | string | number)}
         </span>
       </div>
 
-      <div className="mt-4 flex items-center gap-1 border-t pt-3 opacity-60 transition-opacity group-hover:opacity-100">
+      <div className="mt-4 flex items-center gap-1 border-t border-border pt-3 opacity-60 transition-opacity group-hover:opacity-100">
         <button
           onClick={onEdit}
-          className="flex flex-1 items-center justify-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
-          title={isSeed ? 'View / tweak persona' : 'Edit'}
+          className="flex flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-muted"
+          title={isSeed ? t('agents.actions.view') : t('agents.actions.edit')}
         >
           <Edit2 className="h-3 w-3" />
-          {isSeed ? 'View' : 'Edit'}
+          {isSeed ? t('agents.actions.view') : t('agents.actions.edit')}
         </button>
         {!isSeed && (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="rounded-md border px-2 py-1 text-xs text-muted-foreground hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
-            title="Delete"
+            className="rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition-colors hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
+            title={t('agents.actions.delete')}
+            aria-label={t('agents.actions.delete')}
           >
             <Trash2 className="h-3 w-3" />
           </button>
@@ -229,23 +255,27 @@ function AgentCard({
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
           onClick={() => setConfirmDelete(false)}
+          role="dialog"
+          aria-modal="true"
         >
           <div
-            className="w-full max-w-md rounded-lg border bg-card p-5 shadow-lg"
+            className="w-full max-w-md rounded-lg border border-border bg-card p-5 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold">Delete {agent.name}?</h3>
+            <h3 className="text-base font-semibold">
+              {t('agents.deleteConfirm.title', { name: agent.name })}
+            </h3>
             <p className="mt-2 text-sm text-muted-foreground">
               {refCount > 0
-                ? `This agent is used on ${refCount} team${refCount === 1 ? '' : 's'}. Deleting will unlink it — the team's role keeps its inline config.`
-                : 'This agent is not used on any team. Chat threads will be removed.'}
+                ? t('agents.deleteConfirm.usedOn', { count: refCount })
+                : t('agents.deleteConfirm.unused')}
             </p>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+                className="rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted"
               >
-                Cancel
+                {t('agents.actions.cancel')}
               </button>
               <button
                 onClick={async () => {
@@ -257,9 +287,9 @@ function AgentCard({
                   }
                 }}
                 disabled={del.isPending}
-                className="rounded-md bg-destructive px-3 py-1.5 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
+                className="rounded-md bg-destructive px-3 py-1.5 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {del.isPending ? 'Deleting…' : 'Delete'}
+                {del.isPending ? t('agents.actions.deleting') : t('agents.actions.delete')}
               </button>
             </div>
           </div>

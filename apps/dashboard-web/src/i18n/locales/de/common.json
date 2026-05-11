@@ -126,16 +126,42 @@
     "title": "Agents",
     "subtitle_one": "{{count}} Agent in der Registry",
     "subtitle_other": "{{count}} Agents in der Registry",
+    "subtitleLead": "Das Built-in-Dev-Team ist immer für Chats verfügbar. Lege eigene Agents für Spezial-Aufgaben oder projektbezogene Personas an.",
+    "sections": {
+      "builtin": "Built-in Team",
+      "builtinSub_one": "{{count}} Seed-Agent · immer im Chat verfügbar",
+      "builtinSub_other": "{{count}} Seed-Agents · immer im Chat verfügbar",
+      "your": "Deine Agents",
+      "yourSubEmpty": "Erstelle eine eigene Persona für Spezial-Tasks",
+      "yourSub_one": "{{count}} eigener Agent",
+      "yourSub_other": "{{count}} eigene Agents"
+    },
     "actions": {
       "new": "Neuer Agent",
       "edit": "Bearbeiten",
+      "view": "Ansehen",
       "delete": "Löschen",
+      "deleting": "Lösche…",
       "saving": "Speichere…",
-      "deleting": "Lösche…"
+      "cancel": "Abbrechen",
+      "createFirst": "Erstelle deinen ersten Agent"
+    },
+    "deleteConfirm": {
+      "title": "{{name}} löschen?",
+      "usedOn_one": "Dieser Agent wird in {{count}} Team verwendet. Beim Löschen wird er ausgehängt — das Team behält seine inline Konfiguration.",
+      "usedOn_other": "Dieser Agent wird in {{count}} Teams verwendet. Beim Löschen wird er ausgehängt — die Teams behalten ihre inline Konfiguration.",
+      "unused": "Dieser Agent wird in keinem Team verwendet. Chat-Threads werden gelöscht."
+    },
+    "card": {
+      "unused": "nicht benutzt",
+      "onTeams_one": "in {{count}} Team",
+      "onTeams_other": "in {{count}} Teams",
+      "tools_one": "{{count}} Tool",
+      "tools_other": "{{count}} Tools"
     },
     "loading": "Lade Agents…",
     "loadFailed": "Agents konnten nicht geladen werden",
-    "emptyTitle": "Noch keine Agents",
+    "emptyTitle": "Noch keine eigenen Agents",
     "emptyDescription": "Lege deinen ersten Agent an, um Teams zu bauen."
   },
   "buttons": {

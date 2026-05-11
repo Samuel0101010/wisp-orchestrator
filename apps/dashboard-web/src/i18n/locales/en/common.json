@@ -125,16 +125,42 @@
     "title": "Agents",
     "subtitle_one": "{{count}} agent in registry",
     "subtitle_other": "{{count}} agents in registry",
+    "subtitleLead": "The built-in dev team is always here for chat. Add your own agents for one-off specialties or project-specific personas.",
+    "sections": {
+      "builtin": "Built-in team",
+      "builtinSub_one": "{{count}} seed agent · always available in chat",
+      "builtinSub_other": "{{count}} seed agents · always available in chat",
+      "your": "Your agents",
+      "yourSubEmpty": "Build a custom persona for one-off tasks",
+      "yourSub_one": "{{count}} custom agent",
+      "yourSub_other": "{{count}} custom agents"
+    },
     "actions": {
       "new": "New agent",
       "edit": "Edit",
+      "view": "View",
       "delete": "Delete",
+      "deleting": "Deleting…",
       "saving": "Saving…",
-      "deleting": "Deleting…"
+      "cancel": "Cancel",
+      "createFirst": "Create your first agent"
+    },
+    "deleteConfirm": {
+      "title": "Delete {{name}}?",
+      "usedOn_one": "This agent is used on {{count}} team. Deleting will unlink it — the team's role keeps its inline config.",
+      "usedOn_other": "This agent is used on {{count}} teams. Deleting will unlink it — the team's role keeps its inline config.",
+      "unused": "This agent is not used on any team. Chat threads will be removed."
+    },
+    "card": {
+      "unused": "unused",
+      "onTeams_one": "on {{count}} team",
+      "onTeams_other": "on {{count}} teams",
+      "tools_one": "{{count}} tool",
+      "tools_other": "{{count}} tools"
     },
     "loading": "Loading agents…",
     "loadFailed": "Failed to load agents",
-    "emptyTitle": "No agents yet",
+    "emptyTitle": "No custom agents yet",
     "emptyDescription": "Create your first agent to start building teams."
   },
   "buttons": {
