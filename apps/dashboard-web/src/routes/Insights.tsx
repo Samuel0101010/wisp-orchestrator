@@ -1,6 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch } from '@/api/client';
 import { useRunSummaries } from '@/api/queries';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorBanner } from '@/components/ui/error-banner';
 
 interface TrajectoryRow {
   id: string;
@@ -22,7 +25,18 @@ interface PriorRow {
   samples: number;
 }
 
+function LoadingRows({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className="h-4 w-full" />
+      ))}
+    </div>
+  );
+}
+
 export function InsightsRoute() {
+  const { t } = useTranslation();
   const trajQ = useQuery<TrajectoryRow[]>({
     queryKey: ['insights', 'trajectories'],
     queryFn: () => apiFetch('/api/insights/trajectories'),
@@ -36,63 +50,79 @@ export function InsightsRoute() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-semibold">Insights</h1>
-        <p className="text-sm text-muted-foreground">Past trajectories and model router priors.</p>
+        <h1 className="text-2xl font-semibold">{t('insights.title')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t('insights.trajectoriesTitle')} · {t('insights.summariesTitle')} ·{' '}
+          {t('insights.priorsTitle')}
+        </p>
       </header>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Past trajectories</h2>
+        <h2 className="text-lg font-semibold">{t('insights.trajectoriesTitle')}</h2>
         {trajQ.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : trajQ.data?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No trajectories yet. Complete a run to record one.
-          </p>
+          <LoadingRows />
+        ) : trajQ.error ? (
+          <ErrorBanner onRetry={() => trajQ.refetch()} />
+        ) : (trajQ.data?.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted-foreground">{t('insights.trajectoriesEmpty')}</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th>When</th>
-                <th>Outcome</th>
-                <th>Prompt</th>
-                <th>Tokens</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trajQ.data?.map((t) => (
-                <tr key={t.id} className="border-t border-border">
-                  <td className="py-1 pr-3">{new Date(t.createdAt).toLocaleString()}</td>
-                  <td className="py-1 pr-3">
-                    <span
-                      className={t.outcome === 'success' ? 'text-emerald-500' : 'text-destructive'}
-                    >
-                      {t.outcome}
-                    </span>
-                  </td>
-                  <td className="py-1 pr-3 truncate max-w-md">{t.prompt}</td>
-                  <td className="py-1 pr-3 font-mono">{t.tokensTotal}</td>
+          <div className="overflow-x-auto rounded-md border border-border">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2">{t('insights.cols.ts')}</th>
+                  <th className="px-3 py-2">{t('insights.cols.outcome')}</th>
+                  <th className="px-3 py-2">{t('insights.cols.prompt')}</th>
+                  <th className="px-3 py-2">{t('insights.cols.tokens')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {trajQ.data?.map((traj) => (
+                  <tr key={traj.id} className="border-t border-border">
+                    <td className="px-3 py-1.5 text-xs">
+                      {new Date(traj.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-1.5">
+                      <span
+                        className={
+                          traj.outcome === 'success'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-destructive'
+                        }
+                      >
+                        {traj.outcome}
+                      </span>
+                    </td>
+                    <td className="max-w-md truncate px-3 py-1.5">{traj.prompt}</td>
+                    <td className="px-3 py-1.5 font-mono tabular-nums">{traj.tokensTotal}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Recent run summaries</h2>
+        <h2 className="text-lg font-semibold">{t('insights.summariesTitle')}</h2>
         {summariesQ.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <LoadingRows />
+        ) : summariesQ.error ? (
+          <ErrorBanner onRetry={() => summariesQ.refetch()} />
         ) : (summariesQ.data?.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted-foreground">No summaries yet.</p>
+          <p className="text-sm text-muted-foreground">{t('insights.summariesEmpty')}</p>
         ) : (
           <ul className="space-y-2">
             {summariesQ.data?.map((s) => (
-              <li key={s.runId} className="rounded border border-border bg-card p-3 text-sm">
+              <li
+                key={s.runId}
+                className="rounded-md border border-border bg-card p-3 text-sm shadow-sm"
+              >
                 <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                   <span>{new Date(s.createdAt).toLocaleString()}</span>
                   <span className="font-mono">{s.runId.slice(0, 8)}</span>
                 </div>
-                <pre className="whitespace-pre-wrap font-sans">{s.summaryMd}</pre>
+                <pre className="whitespace-pre-wrap font-sans leading-relaxed">{s.summaryMd}</pre>
               </li>
             ))}
           </ul>
@@ -100,38 +130,42 @@ export function InsightsRoute() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Model router priors</h2>
+        <h2 className="text-lg font-semibold">{t('insights.priorsTitle')}</h2>
         {priorsQ.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
-        ) : priorsQ.data?.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No samples yet.</p>
+          <LoadingRows />
+        ) : priorsQ.error ? (
+          <ErrorBanner onRetry={() => priorsQ.refetch()} />
+        ) : (priorsQ.data?.length ?? 0) === 0 ? (
+          <p className="text-sm text-muted-foreground">{t('insights.priorsEmpty')}</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th>Role</th>
-                <th>Phase</th>
-                <th>Model</th>
-                <th>α</th>
-                <th>β</th>
-                <th>Mean</th>
-                <th>Samples</th>
-              </tr>
-            </thead>
-            <tbody>
-              {priorsQ.data?.map((p) => (
-                <tr key={`${p.role}-${p.model}`} className="border-t border-border">
-                  <td className="py-1 pr-3 font-mono">{p.role}</td>
-                  <td className="py-1 pr-3 font-mono">{p.phase}</td>
-                  <td className="py-1 pr-3 font-mono">{p.model}</td>
-                  <td className="py-1 pr-3">{p.alpha.toFixed(2)}</td>
-                  <td className="py-1 pr-3">{p.beta.toFixed(2)}</td>
-                  <td className="py-1 pr-3">{p.mean.toFixed(3)}</td>
-                  <td className="py-1 pr-3">{p.samples}</td>
+          <div className="overflow-x-auto rounded-md border border-border">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2">{t('insights.cols.role')}</th>
+                  <th className="px-3 py-2">{t('insights.cols.phase')}</th>
+                  <th className="px-3 py-2">{t('insights.cols.model')}</th>
+                  <th className="px-3 py-2">α</th>
+                  <th className="px-3 py-2">β</th>
+                  <th className="px-3 py-2">{t('insights.cols.mean')}</th>
+                  <th className="px-3 py-2">{t('insights.cols.samples')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {priorsQ.data?.map((p) => (
+                  <tr key={`${p.role}-${p.model}`} className="border-t border-border">
+                    <td className="px-3 py-1.5 font-mono">{p.role}</td>
+                    <td className="px-3 py-1.5 font-mono text-xs">{p.phase}</td>
+                    <td className="px-3 py-1.5 font-mono">{p.model}</td>
+                    <td className="px-3 py-1.5 tabular-nums">{p.alpha.toFixed(2)}</td>
+                    <td className="px-3 py-1.5 tabular-nums">{p.beta.toFixed(2)}</td>
+                    <td className="px-3 py-1.5 tabular-nums">{p.mean.toFixed(3)}</td>
+                    <td className="px-3 py-1.5 tabular-nums">{p.samples}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>

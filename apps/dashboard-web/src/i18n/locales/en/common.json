@@ -4,6 +4,139 @@
     "english": "English",
     "german": "Deutsch"
   },
+  "errors": {
+    "title": "Something went wrong",
+    "loadFailed": "Failed to load",
+    "retryHint": "Try again or reload the page."
+  },
+  "empty": {
+    "noData": "No data yet"
+  },
+  "workers": {
+    "title": "Workers",
+    "subtitle_one": "{{count}} background worker registered",
+    "subtitle_other": "{{count}} background workers registered",
+    "cols": {
+      "name": "Name",
+      "schedule": "Schedule",
+      "enabled": "Enabled",
+      "id": "ID",
+      "started": "Started",
+      "ended": "Ended",
+      "status": "Status",
+      "result": "Result / Error"
+    },
+    "badge": {
+      "enabled": "enabled",
+      "disabled": "disabled"
+    },
+    "actions": {
+      "runNow": "Run now",
+      "running": "Running…"
+    },
+    "history": "Run history",
+    "loading": "Loading workers…",
+    "loadFailed": "Failed to load workers",
+    "loadingRuns": "Loading runs…",
+    "noRuns": "No runs yet.",
+    "emptyTitle": "No workers registered",
+    "emptyDescription": "Background jobs (cron) are registered server-side. Once enabled they show up here."
+  },
+  "skills": {
+    "title": "Skills",
+    "subtitle_one": "{{count}} skill available",
+    "subtitle_other": "{{count}} skills available",
+    "filter": {
+      "all": "All",
+      "seed": "Built-in",
+      "project": "Project",
+      "user": "User",
+      "plugin": "Plugin"
+    },
+    "model": "Model",
+    "tools": "Allowed tools",
+    "source": "Source",
+    "noTools": "no tools",
+    "loading": "Loading skills…",
+    "loadFailed": "Failed to load skills",
+    "emptyTitle": "No skills discovered",
+    "emptyDescription": "Add SKILL.md files under .claude/skills or install a plugin that ships skills.",
+    "reload": "Reload skills",
+    "reloading": "Reloading…"
+  },
+  "promptBundles": {
+    "title": "Prompt-Bundle Cache",
+    "subtitle_one": "{{count}} cached bundle",
+    "subtitle_other": "{{count}} cached bundles",
+    "explanation": "Each row is a stable working directory + Claude session for a unique (system-prompt, tools, model) combination. Reusing them keeps Anthropic's server-side prompt cache warm.",
+    "cols": {
+      "bundleKey": "Bundle key",
+      "model": "Model",
+      "session": "Session",
+      "hits": "Hits",
+      "lastUsed": "Last used"
+    },
+    "actions": {
+      "reset": "Reset",
+      "resetting": "Resetting…"
+    },
+    "loading": "Loading bundles…",
+    "loadFailed": "Failed to load bundles",
+    "emptyTitle": "No bundles cached yet",
+    "emptyDescription": "Invoke a skill or send a chat message to populate the cache."
+  },
+  "insights": {
+    "title": "Insights",
+    "trajectoriesTitle": "Past trajectories",
+    "trajectoriesEmpty": "No trajectories captured yet.",
+    "summariesTitle": "Recent run summaries",
+    "summariesEmpty": "No run summaries yet.",
+    "priorsTitle": "Model router priors",
+    "priorsEmpty": "No priors yet — they accrue once Thompson sampling has run.",
+    "cols": {
+      "ts": "Time",
+      "outcome": "Outcome",
+      "tokens": "Tokens",
+      "prompt": "Goal",
+      "lessons": "Lessons",
+      "role": "Role",
+      "model": "Model",
+      "phase": "Phase",
+      "mean": "Mean",
+      "samples": "Samples"
+    }
+  },
+  "goap": {
+    "title": "GOAP Planner",
+    "subtitle": "Goal-oriented action planning. Define start state, goal predicates, and available actions; the planner returns a sequence of actions.",
+    "fields": {
+      "start": "Start state (JSON)",
+      "goal": "Goal predicates (JSON)",
+      "actions": "Actions (JSON array)"
+    },
+    "actions": {
+      "plan": "Plan",
+      "planning": "Planning…"
+    },
+    "noResult": "Submit a problem to see the plan.",
+    "result": "Plan result"
+  },
+  "agents": {
+    "title": "Agents",
+    "subtitle_one": "{{count}} agent in registry",
+    "subtitle_other": "{{count}} agents in registry",
+    "actions": {
+      "new": "New agent",
+      "edit": "Edit",
+      "delete": "Delete",
+      "saving": "Saving…",
+      "deleting": "Deleting…"
+    },
+    "loading": "Loading agents…",
+    "loadFailed": "Failed to load agents",
+    "emptyTitle": "No agents yet",
+    "emptyDescription": "Create your first agent to start building teams."
+  },
   "buttons": {
     "save": "Save",
     "saving": "Saving…",
@@ -41,7 +174,14 @@
     "noProjectsYet": "No projects yet",
     "recentRuns": "Recent runs",
     "today": "{{count}} today",
-    "backToProject": "Back to project"
+    "backToProject": "Back to project",
+    "teamChat": "Team Chat",
+    "agents": "Agents",
+    "skills": "Skills",
+    "workers": "Workers",
+    "insights": "Insights",
+    "goapPlanner": "GOAP Planner",
+    "promptBundles": "Prompt Bundles"
   },
   "topBar": {
     "activeRun": "Active run",

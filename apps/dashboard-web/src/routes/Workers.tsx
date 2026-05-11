@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Activity } from 'lucide-react';
 import {
   useWorkers,
   useWorkerRuns,
@@ -6,11 +8,14 @@ import {
   type WorkerSummary,
   type WorkerRunRow,
 } from '@/api/queries';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorBanner } from '@/components/ui/error-banner';
 
 function statusColor(status: WorkerRunRow['status']): string {
-  if (status === 'ok') return 'text-green-600 dark:text-green-400';
+  if (status === 'ok') return 'text-emerald-600 dark:text-emerald-400';
   if (status === 'failed') return 'text-destructive';
-  return 'text-yellow-600 dark:text-yellow-400';
+  return 'text-amber-600 dark:text-amber-400';
 }
 
 function fmtTs(ts: number | string | null | undefined): string {
@@ -21,125 +26,176 @@ function fmtTs(ts: number | string | null | undefined): string {
 }
 
 function RunsPanel({ name }: { name: string }) {
+  const { t } = useTranslation();
   const runsQ = useWorkerRuns(name);
-  if (runsQ.isLoading) return <div className="text-sm text-muted-foreground">Loading runs…</div>;
+  if (runsQ.isLoading) {
+    return (
+      <div className="space-y-2" aria-label={t('workers.loadingRuns')}>
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-2/3" />
+      </div>
+    );
+  }
   const rows = runsQ.data ?? [];
-  if (rows.length === 0) return <div className="text-sm text-muted-foreground">No runs yet.</div>;
+  if (rows.length === 0) {
+    return <p className="text-sm text-muted-foreground">{t('workers.noRuns')}</p>;
+  }
   return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-border text-left text-xs text-muted-foreground">
-          <th className="pb-1 pr-4">ID</th>
-          <th className="pb-1 pr-4">Started</th>
-          <th className="pb-1 pr-4">Ended</th>
-          <th className="pb-1 pr-4">Status</th>
-          <th className="pb-1">Result / Error</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.id} className="border-b border-border last:border-0">
-            <td className="py-1.5 pr-4 font-mono text-xs text-muted-foreground">
-              {r.id.slice(0, 8)}
-            </td>
-            <td className="py-1.5 pr-4 text-xs">{fmtTs(r.startedAt)}</td>
-            <td className="py-1.5 pr-4 text-xs">{fmtTs(r.endedAt)}</td>
-            <td className={`py-1.5 pr-4 text-xs font-medium ${statusColor(r.status)}`}>
-              {r.status}
-            </td>
-            <td className="py-1.5 font-mono text-xs text-muted-foreground">
-              {r.errorReason ? (
-                <span className="text-destructive">{r.errorReason}</span>
-              ) : r.resultJson != null ? (
-                <span>{JSON.stringify(r.resultJson).slice(0, 120)}</span>
-              ) : (
-                '—'
-              )}
-            </td>
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[520px] text-sm">
+        <thead>
+          <tr className="border-b border-border text-left text-xs text-muted-foreground">
+            <th className="pb-1 pr-4">{t('workers.cols.id')}</th>
+            <th className="pb-1 pr-4">{t('workers.cols.started')}</th>
+            <th className="pb-1 pr-4">{t('workers.cols.ended')}</th>
+            <th className="pb-1 pr-4">{t('workers.cols.status')}</th>
+            <th className="pb-1">{t('workers.cols.result')}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-b border-border last:border-0">
+              <td className="py-1.5 pr-4 font-mono text-xs text-muted-foreground">
+                {r.id.slice(0, 8)}
+              </td>
+              <td className="py-1.5 pr-4 text-xs">{fmtTs(r.startedAt)}</td>
+              <td className="py-1.5 pr-4 text-xs">{fmtTs(r.endedAt)}</td>
+              <td className={`py-1.5 pr-4 text-xs font-medium ${statusColor(r.status)}`}>
+                {r.status}
+              </td>
+              <td className="py-1.5 font-mono text-xs text-muted-foreground">
+                {r.errorReason ? (
+                  <span className="text-destructive">{r.errorReason}</span>
+                ) : r.resultJson != null ? (
+                  <span>{JSON.stringify(r.resultJson).slice(0, 120)}</span>
+                ) : (
+                  '—'
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
 export function WorkersRoute() {
+  const { t } = useTranslation();
   const workersQ = useWorkers();
   const runWorker = useRunWorker();
   const [selected, setSelected] = useState<string | null>(null);
 
-  if (workersQ.isLoading) return <div className="text-muted-foreground">Loading workers…</div>;
-  if (workersQ.error) return <div className="text-destructive">Failed to load workers</div>;
+  if (workersQ.isLoading) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('workers.title')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('workers.loading')}</p>
+        </header>
+        <div className="space-y-2 rounded-md border border-border p-4">
+          <Skeleton className="h-5 w-full" />
+          <Skeleton className="h-5 w-5/6" />
+          <Skeleton className="h-5 w-4/5" />
+        </div>
+      </div>
+    );
+  }
+  if (workersQ.error) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('workers.title')}</h1>
+        </header>
+        <ErrorBanner
+          title={t('workers.loadFailed')}
+          message={t('errors.retryHint')}
+          onRetry={() => workersQ.refetch()}
+        />
+      </div>
+    );
+  }
   const workers = workersQ.data ?? [];
 
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Workers</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('workers.title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {workers.length} background worker{workers.length === 1 ? '' : 's'} registered
+          {t('workers.subtitle', { count: workers.length })}
         </p>
       </header>
 
-      <div className="rounded border border-border">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
-              <th className="px-4 py-2">Name</th>
-              <th className="px-4 py-2">Schedule</th>
-              <th className="px-4 py-2">Enabled</th>
-              <th className="px-4 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {workers.map((w: WorkerSummary) => (
-              <tr
-                key={w.name}
-                className={
-                  'cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-accent/40 ' +
-                  (selected === w.name ? 'bg-accent/60' : '')
-                }
-                onClick={() => setSelected(selected === w.name ? null : w.name)}
-              >
-                <td className="px-4 py-2.5 font-mono font-semibold">{w.name}</td>
-                <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                  {w.cronSpec}
-                </td>
-                <td className="px-4 py-2.5">
-                  <span
-                    className={
-                      'rounded px-2 py-0.5 text-xs font-medium ' +
-                      (w.enabled
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-secondary text-secondary-foreground')
-                    }
-                  >
-                    {w.enabled ? 'enabled' : 'disabled'}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5 text-right">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      runWorker.mutate(w.name);
-                      setSelected(w.name);
-                    }}
-                    disabled={runWorker.isPending}
-                    className="rounded border border-border bg-card px-3 py-1 text-xs hover:bg-accent disabled:opacity-50"
-                  >
-                    {runWorker.isPending && runWorker.variables === w.name ? 'Running…' : 'Run now'}
-                  </button>
-                </td>
+      {workers.length === 0 ? (
+        <EmptyState
+          icon={<Activity className="h-6 w-6" />}
+          title={t('workers.emptyTitle')}
+          description={t('workers.emptyDescription')}
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-md border border-border">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/40 text-left text-xs text-muted-foreground">
+                <th className="px-4 py-2">{t('workers.cols.name')}</th>
+                <th className="px-4 py-2">{t('workers.cols.schedule')}</th>
+                <th className="px-4 py-2">{t('workers.cols.enabled')}</th>
+                <th className="px-4 py-2" />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {workers.map((w: WorkerSummary) => (
+                <tr
+                  key={w.name}
+                  className={
+                    'cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-accent/40 ' +
+                    (selected === w.name ? 'bg-accent/60' : '')
+                  }
+                  onClick={() => setSelected(selected === w.name ? null : w.name)}
+                >
+                  <td className="px-4 py-2.5 font-mono font-semibold">{w.name}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                    {w.cronSpec}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <span
+                      className={
+                        'rounded px-2 py-0.5 text-xs font-medium ' +
+                        (w.enabled
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          : 'bg-secondary text-secondary-foreground')
+                      }
+                    >
+                      {w.enabled ? t('workers.badge.enabled') : t('workers.badge.disabled')}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        runWorker.mutate(w.name);
+                        setSelected(w.name);
+                      }}
+                      disabled={runWorker.isPending && runWorker.variables === w.name}
+                      className="rounded border border-border bg-card px-3 py-1 text-xs hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {runWorker.isPending && runWorker.variables === w.name
+                        ? t('workers.actions.running')
+                        : t('workers.actions.runNow')}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {selected && (
-        <div className="space-y-3 rounded border border-border bg-card p-4">
+        <div className="space-y-3 rounded-md border border-border bg-card p-4">
           <h2 className="text-sm font-semibold">
-            Run history — <span className="font-mono">{selected}</span>
+            {t('workers.history')} — <span className="font-mono">{selected}</span>
           </h2>
           <RunsPanel name={selected} />
         </div>
