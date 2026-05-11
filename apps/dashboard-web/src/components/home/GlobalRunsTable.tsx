@@ -201,7 +201,7 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
           </tbody>
         </table>
       </div>
-      <div className="border-t bg-muted/20 px-3 py-1.5 text-[11px] text-muted-foreground">
+      <div className="border-t bg-muted/20 px-3 py-1.5 text-xs2 text-muted-foreground">
         {t('home.recentRuns.footer', { count: sorted.length })} · {t('topBar.missionControl')}
       </div>
     </div>

@@ -139,7 +139,7 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
                 System prompt (sent as `--system-prompt`)
               </p>
               <pre
-                className="mt-1 max-h-32 overflow-auto rounded-md border bg-muted p-2 text-[11px]"
+                className="mt-1 max-h-32 overflow-auto rounded-md border bg-muted p-2 text-xs2"
                 data-testid="composed-preview-system"
               >
                 {role?.systemPrompt ?? ''}
@@ -150,7 +150,7 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
                 Composed task prompt (piped to stdin)
               </p>
               <pre
-                className="mt-1 max-h-[55vh] overflow-auto rounded-md border bg-muted p-2 text-[11px]"
+                className="mt-1 max-h-[55vh] overflow-auto rounded-md border bg-muted p-2 text-xs2"
                 data-testid="composed-preview-task"
               >
                 {composed}

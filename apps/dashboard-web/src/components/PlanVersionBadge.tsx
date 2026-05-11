@@ -29,7 +29,7 @@ export function PlanVersionBadge({ planId }: Props) {
   return (
     <Badge
       variant="outline"
-      className="text-[10px] uppercase"
+      className="text-2xs uppercase"
       title={t('planEditor.versionBadge.title', { summary, version })}
       data-testid="plan-version-badge"
     >

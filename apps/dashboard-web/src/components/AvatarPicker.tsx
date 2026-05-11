@@ -53,7 +53,7 @@ export function AvatarPicker({ open, selected, name, onSelect, onClose }: Avatar
             title={t('avatarPicker.initialsTitle')}
           >
             <Avatar name={name} avatarUrl={null} size={56} decorative />
-            <span className="text-[10px] text-muted-foreground">{t('avatarPicker.initialsLabel')}</span>
+            <span className="text-2xs text-muted-foreground">{t('avatarPicker.initialsLabel')}</span>
           </button>
           {GENERIC.map((g) => {
             const active = selected === g.url;
@@ -75,7 +75,7 @@ export function AvatarPicker({ open, selected, name, onSelect, onClose }: Avatar
             );
           })}
         </div>
-        <footer className="border-t px-5 py-3 text-[11px] text-muted-foreground">
+        <footer className="border-t px-5 py-3 text-xs2 text-muted-foreground">
           {t('avatarPicker.footer')}
         </footer>
       </div>

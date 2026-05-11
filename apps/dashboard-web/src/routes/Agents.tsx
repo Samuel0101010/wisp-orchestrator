@@ -200,11 +200,11 @@ function AgentCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <h3 className="truncate text-sm font-semibold">{agent.name}</h3>
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="font-mono text-2xs uppercase tracking-wider text-muted-foreground">
               {agent.model}
             </span>
             {isSeed && (
-              <span className="rounded-full bg-info/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-info">
+              <span className="rounded-full bg-info/15 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider text-info">
                 seed
               </span>
             )}
@@ -215,7 +215,7 @@ function AgentCard({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Users className="h-3 w-3" />
           {refCount > 0 ? t('agents.card.onTeams', { count: refCount }) : t('agents.card.unused')}
@@ -470,7 +470,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
               className="mt-1 w-full resize-y rounded-md border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-info"
             />
             <div
-              className={`mt-1 text-[10px] ${systemPrompt.length > 8000 ? 'text-destructive' : 'text-muted-foreground'}`}
+              className={`mt-1 text-2xs ${systemPrompt.length > 8000 ? 'text-destructive' : 'text-muted-foreground'}`}
             >
               {systemPrompt.length} / 8000 chars
             </div>
@@ -487,7 +487,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                   <button
                     key={t}
                     onClick={() => toggleTool(t)}
-                    className={`rounded-full border px-2.5 py-0.5 font-mono text-[10px] tracking-tight ${on ? 'border-info bg-info/15 text-info-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`rounded-full border px-2.5 py-0.5 font-mono text-2xs tracking-tight ${on ? 'border-info bg-info/15 text-info-foreground' : 'text-muted-foreground hover:text-foreground'}`}
                   >
                     {t}
                   </button>

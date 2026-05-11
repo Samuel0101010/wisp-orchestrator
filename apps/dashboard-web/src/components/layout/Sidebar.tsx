@@ -130,7 +130,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between p-4">
         <div className="flex flex-col">
           <span className="text-sm font-semibold">{t('navigation.appName')}</span>
-          <Badge variant="secondary" className="mt-1 w-fit text-[10px]">
+          <Badge variant="secondary" className="mt-1 w-fit text-2xs">
             v{__APP_VERSION__}
           </Badge>
         </div>
@@ -329,7 +329,7 @@ export function Sidebar() {
                   return (
                     <Badge
                       variant={count >= 5 ? 'destructive' : 'secondary'}
-                      className={status ? 'ml-1 text-[9px]' : 'ml-auto text-[9px]'}
+                      className={status ? 'ml-1 text-3xs' : 'ml-auto text-3xs'}
                       data-testid={`sidebar-daily-count-${p.id}`}
                     >
                       {t('navigation.today', { count })}
@@ -353,7 +353,7 @@ function RecentRuns({ projectId }: { projectId: string }) {
   const top = runs.data.slice(0, 3);
   return (
     <div className="ml-7 mr-2 flex flex-col gap-0.5 py-1" data-testid={`recent-runs-${projectId}`}>
-      <span className="px-2 py-1 text-[10px] uppercase text-muted-foreground">
+      <span className="px-2 py-1 text-2xs uppercase text-muted-foreground">
         {t('navigation.recentRuns')}
       </span>
       {top.map((r) => (

@@ -81,7 +81,7 @@ export function StatusDotBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
+        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-2xs font-medium uppercase tracking-wide',
         'bg-transparent ring-1 ring-inset',
         toneStyle.text,
         toneStyle.ring,

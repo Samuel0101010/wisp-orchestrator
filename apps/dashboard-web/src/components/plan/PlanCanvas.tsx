@@ -52,7 +52,7 @@ function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">{taskNode.id}</span>
           <span
-            className="rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+            className="rounded px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide"
             style={{ background: accent, color: 'white' }}
           >
             {taskNode.role}
@@ -61,7 +61,7 @@ function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
         <p className="line-clamp-1 text-xs text-muted-foreground" title={taskNode.prompt}>
           {oneLine || <span className="italic">{t('planEditor.canvas.noPrompt')}</span>}
         </p>
-        <span className="text-[10px] text-muted-foreground/80">{t('planEditor.canvas.editHint')}</span>
+        <span className="text-2xs text-muted-foreground/80">{t('planEditor.canvas.editHint')}</span>
       </div>
     </div>
   );

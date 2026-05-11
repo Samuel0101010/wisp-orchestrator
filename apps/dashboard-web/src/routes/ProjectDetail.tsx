@@ -150,11 +150,11 @@ export function ProjectDetail() {
               <p className="text-xs text-muted-foreground">{t('projectDetail.summary.noTeam')}</p>
             ) : (
               <div className="flex flex-wrap gap-1">
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-2xs">
                   {t('projectDetail.summary.rolesCount', { count: roleCount })}
                 </Badge>
                 {team.data?.roles.slice(0, 5).map((role) => (
-                  <Badge key={role.role} variant="outline" className="text-[10px]">
+                  <Badge key={role.role} variant="outline" className="text-2xs">
                     {role.role}
                   </Badge>
                 ))}
@@ -231,7 +231,7 @@ export function ProjectDetail() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead className="border-b text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                <thead className="border-b text-left text-2xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-2 py-2 font-medium">{t('projectDetail.runs.table.id')}</th>
                     <th className="px-2 py-2 font-medium">
@@ -371,7 +371,7 @@ function GoalCard({ projectId, goal }: GoalCardProps) {
               data-testid="goal-edit-textarea"
               autoFocus
             />
-            <p className="text-[10px] text-muted-foreground">{t('projectDetail.goalEdit.hint')}</p>
+            <p className="text-2xs text-muted-foreground">{t('projectDetail.goalEdit.hint')}</p>
             <div className="flex gap-2">
               <Button
                 type="button"

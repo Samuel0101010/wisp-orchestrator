@@ -237,7 +237,7 @@ export function Home() {
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border bg-card">
-              <div className="grid grid-cols-[1fr_72px_64px_84px_64px_56px_36px] items-center gap-3 border-b bg-muted/40 px-4 py-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="grid grid-cols-[1fr_72px_64px_84px_64px_56px_36px] items-center gap-3 border-b bg-muted/40 px-4 py-2 text-xs2 font-medium uppercase tracking-wider text-muted-foreground">
                 <span>{t('home.byProject.cols.project')}</span>
                 <span className="text-right">{t('home.byProject.cols.runs')}</span>
                 <span className="text-right">{t('home.byProject.cols.live')}</span>
@@ -314,14 +314,14 @@ export function Home() {
         <section className="border-t border-dashed border-border/60 pt-3">
           <button
             onClick={() => setShowVariants((v) => !v)}
-            className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70 hover:text-foreground"
+            className="font-mono text-xs2 uppercase tracking-widest text-muted-foreground/70 hover:text-foreground"
           >
             {showVariants ? '↓ hide' : '→ show'} layout experiments (20 variants)
           </button>
           {showVariants && (
-            <div className="mt-2 flex flex-col gap-1 font-mono text-[11px] tracking-tight text-muted-foreground">
+            <div className="mt-2 flex flex-col gap-1 font-mono text-xs2 tracking-tight text-muted-foreground">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">
+                <span className="uppercase tracking-widest text-muted-foreground/80">
                   Set A · 1—8
                 </span>
                 <Link
@@ -346,7 +346,7 @@ export function Home() {
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">
+                <span className="uppercase tracking-widest text-muted-foreground/80">
                   Set B · 9—14
                 </span>
                 <Link
@@ -369,7 +369,7 @@ export function Home() {
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-[0.18em] text-muted-foreground/80">
+                <span className="uppercase tracking-widest text-muted-foreground/80">
                   Set C · 15—20
                 </span>
                 <Link

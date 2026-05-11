@@ -38,7 +38,7 @@ export function TopBar() {
         icon={
           <>
             <Search className="h-3.5 w-3.5" />
-            <kbd className="hidden rounded border bg-muted px-1 py-0 text-[10px] sm:inline">⌘K</kbd>
+            <kbd className="hidden rounded border bg-muted px-1 py-0 text-2xs sm:inline">⌘K</kbd>
           </>
         }
         size="sm"
