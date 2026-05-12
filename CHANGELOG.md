@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased — v1.6.1
+
+### TODO — color-contrast follow-up
+
+`axe-core`'s `color-contrast` rule is currently disabled in
+`tests/e2e/a11y.spec.ts` with a `TODO(v1.6.1)` marker. The base palette
+nudges in v1.6.0 (Task 3.7) covered the main token pairs, but the
+opacity-reduced variants — `text-muted-foreground/60` against dark
+card backgrounds, and similar `/40` / `/50` modifiers — still fall
+short of WCAG-AA (4.5:1 for normal text). Resolution path:
+
+- Audit every `text-muted-foreground/{N}` usage in the dashboard.
+- For each: either bump the underlying token's base lightness so the
+  reduced-opacity variant still clears 4.5:1, or replace the opacity
+  modifier with a dedicated token (e.g. `text-muted-foreground-soft`)
+  that has its own AA-passing value per theme.
+- Remove `.disableRules(['color-contrast'])` from `a11y.spec.ts` and
+  confirm the e2e a11y suite stays green in both en and de locales.
+
 ## 1.6.0 — i18n + design tokens + tooltip coverage
 
 Audit follow-up sweeping the three items deferred from v1.5.0: full i18n
