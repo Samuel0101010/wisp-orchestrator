@@ -1,5 +1,87 @@
 # Changelog
 
+## 1.6.0 — i18n + design tokens + tooltip coverage
+
+Audit follow-up sweeping the three items deferred from v1.5.0: full i18n
+migration of the five complex pages, ui-ux-pro-max design-token migration
+with a primitive layer, and tooltip + a11y coverage on every interactive
+button.
+
+### Phase 1 — Tooltips + a11y
+
+- New `IconButton` wrapper (`apps/dashboard-web/src/components/ui/icon-button.tsx`)
+  combines Radix Tooltip + Button + required `aria-label` into one component
+  — makes a11y the path of least resistance for icon-only triggers.
+- Tooltips wired up on every icon button across Sidebar, TopBar, LanguageToggle,
+  ThemeToggle, Chat (new-thread, send, add-member, remove-member), RunView
+  (pause, resume, cancel, resume-now), TeamRoleCard (move-up, move-down,
+  remove), PlanEditor (regenerate, lock & run).
+- Fixed missing aria-label on `Chat.tsx` new-thread + send buttons,
+  `Goap.tsx` textareas, and `AgentChat.tsx` agent-selector `<select>`.
+- New e2e spec `tooltips.spec.ts` enforces every visible button has an
+  accessible name on every page in both en + de.
+
+### Phase 2 — i18n migration of 5 complex pages
+
+- Migrated Chat (869 LOC), Home (407 LOC), RunView (870 LOC),
+  TeamBuilder (443 LOC), PlanEditor (553 LOC) and their sub-components
+  (AgentChat, Avatar, AvatarPicker, GlobalRunsTable, KpiTile,
+  LiveNowGrid, OutcomeDonut, TokenAreaChart, TeamRoleCard,
+  ApplyTemplateDialog, TeamJsonDialog, CostEstimatePanel, FirstRunModal,
+  PlanCanvas, PlanVersionBadge, RunStore, AutopilotToggle, StatusDotBadge).
+- ~180 new translation keys added to both `en/common.json` and
+  `de/common.json` with top-level key parity enforced.
+- Shared helpers in `apps/dashboard-web/src/lib/`:
+  - `fmt-rel.ts` — `fmtRel(date, lang)` using `Intl.RelativeTimeFormat`
+    for locale-aware "5 minutes ago" / "vor 5 Minuten".
+  - `status-labels.ts` — `statusLabel(status, t)` maps status enum to
+    translated label via the shared `status.*` namespace.
+- `StatusDotBadge` now i18n-aware by default; every consumer gets
+  translated status strings for free.
+
+### Phase 3 — Design-token migration
+
+- New `apps/dashboard-web/src/styles/tokens-primitive.css` — Layer 1
+  raw values (color scales, spacing, type scale including `text-3xs`/`text-2xs`/
+  `text-xs2`/`text-sm-tight` for the 9/10/11/13px sub-xs sizes that the
+  dashboard's dense badges legitimately need, shadow scale, z-index scale,
+  letter-spacing scale).
+- New `apps/dashboard-web/src/styles/tokens-component.css` — Layer 3
+  component-specific aliases (button, input, card, dialog).
+- New Tailwind utilities wired through `@theme`: `text-3xs`, `text-2xs`,
+  `text-xs2`, `text-sm-tight`, `tracking-widest`.
+- All 82 arbitrary Tailwind values (`text-[Npx]`, `tracking-[…]`, etc.) eliminated.
+- One hex literal (`#67e8f9` placeholder in Agents.tsx color dialog) moved
+  to the i18n bundle as `agents.dialog.colorPlaceholder`.
+- New `apps/dashboard-web/scripts/validate-tokens.cjs` validator + companion
+  `validate-tokens.test.cjs` lock-down test caps the `h-[calc(…)]` allowlist
+  size. Wired as `pnpm tokens:check` and into `.github/workflows/ci.yml`.
+- WCAG-AA color-contrast token nudges to `--muted-foreground`, `--info`,
+  `--warning-foreground` in both light and dark themes (most contrast pairs
+  now pass AA; the remaining ones — `text-muted-foreground/60` and similar
+  opacity-reduced variants — are deferred to v1.6.1 with a TODO in the
+  a11y spec).
+
+### Test infrastructure
+
+- New `tests/e2e/helpers/`:
+  - `set-lang.ts` — pre-seed `agent-harness-lang` in localStorage so the
+    SPA boots straight into the chosen locale.
+  - `locator-by-key.ts` — `tt(lang, key, vars?)` resolves dotted i18n
+    keys against the on-disk bundle without going through a running app.
+- `tests/e2e/playwright.config.ts` now runs every spec in two projects:
+  `chromium-en` (locale `en-US`) and `chromium-de` (locale `de-DE`).
+- New e2e specs: `a11y.spec.ts` (axe-core scan), `i18n.spec.ts` (per-page
+  heading match), `tooltips.spec.ts` (every button has an accessible name).
+- `pretest:e2e` rebuilds dashboard-web + dashboard-server before every
+  local e2e run so tests never run against a stale bundle.
+- Added `@axe-core/playwright` as a dev dep on the e2e package.
+
+### Notable removals
+
+- Local `fmtRel` stubs in `Chat.tsx`, `AgentChat.tsx`, `Agents.tsx` —
+  replaced with the shared i18n-aware helper.
+
 ## 1.5.0 — Audit pass: backend hardening + UI primitives
 
 Wall-to-wall audit of the harness. Focus was on correctness, observability,

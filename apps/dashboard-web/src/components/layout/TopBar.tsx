@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pause, Coins, Activity, Search } from 'lucide-react';
 import { useMatch } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Separator } from '@/components/ui/separator';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -33,8 +33,14 @@ export function TopBar() {
   // Right-hand cluster — same on all pages. ⌘K trigger + Theme + Language.
   const rightCluster = (
     <div className="ml-auto flex items-center gap-2">
-      <Button
-        variant="ghost"
+      <IconButton
+        label={t('tooltips.openCommandPalette')}
+        icon={
+          <>
+            <Search className="h-3.5 w-3.5" />
+            <kbd className="hidden rounded border bg-muted px-1 py-0 text-2xs sm:inline">⌘K</kbd>
+          </>
+        }
         size="sm"
         className="h-8 gap-1.5 px-2 text-xs text-muted-foreground"
         onClick={() => {
@@ -45,12 +51,8 @@ export function TopBar() {
           });
           window.dispatchEvent(evt);
         }}
-        aria-label={t('topBar.openCommandPalette')}
         data-testid="topbar-cmdk-trigger"
-      >
-        <Search className="h-3.5 w-3.5" />
-        <kbd className="hidden rounded border bg-muted px-1 py-0 text-[10px] sm:inline">⌘K</kbd>
-      </Button>
+      />
       <Separator orientation="vertical" className="h-6" />
       <ThemeToggle />
       <Separator orientation="vertical" className="h-6" />

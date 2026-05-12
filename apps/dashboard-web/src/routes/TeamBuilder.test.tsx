@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { TeamBuilder } from './TeamBuilder';
 
 const originalFetch = globalThis.fetch;
@@ -33,13 +34,15 @@ function renderAt(path: string, routePath = '/projects/:projectId/teams') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path={routePath} element={<TeamBuilder />} />
-          <Route path="/" element={<TeamBuilder />} />
-          <Route path="/projects/:projectId/plan" element={<div>Plan Page</div>} />
-        </Routes>
-      </MemoryRouter>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path={routePath} element={<TeamBuilder />} />
+            <Route path="/" element={<TeamBuilder />} />
+            <Route path="/projects/:projectId/plan" element={<div>Plan Page</div>} />
+          </Routes>
+        </MemoryRouter>
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }

@@ -1,4 +1,5 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { useTranslation } from 'react-i18next';
 
 export interface OutcomeDonutProps {
   counts: { success?: number; failure?: number; cancelled?: number; unknown?: number };
@@ -12,16 +13,15 @@ const TONES = {
   unknown: 'hsl(var(--warning))',
 } as const;
 
-const LABELS: Record<keyof typeof TONES, string> = {
-  success: 'Success',
-  failure: 'Failed',
-  cancelled: 'Cancelled',
-  unknown: 'Pending',
-};
-
 export function OutcomeDonut({ counts, height = 220 }: OutcomeDonutProps) {
+  const { t } = useTranslation();
   const data = (Object.keys(TONES) as Array<keyof typeof TONES>)
-    .map((k) => ({ key: k, label: LABELS[k], value: counts[k] ?? 0, color: TONES[k] }))
+    .map((k) => ({
+      key: k,
+      label: t(`home.outcomeDonut.labels.${k}`),
+      value: counts[k] ?? 0,
+      color: TONES[k],
+    }))
     .filter((d) => d.value > 0);
   const total = data.reduce((sum, d) => sum + d.value, 0);
 
@@ -31,7 +31,7 @@ export function OutcomeDonut({ counts, height = 220 }: OutcomeDonutProps) {
         className="flex items-center justify-center text-xs text-muted-foreground"
         style={{ height }}
       >
-        No completed runs in window
+        {t('home.outcomeDonut.empty')}
       </div>
     );
   }

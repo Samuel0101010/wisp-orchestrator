@@ -87,13 +87,13 @@ function TemplateCard({ template, selected, onSelect }: CardProps) {
       >
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">{template.name}</span>
-          <Badge variant="secondary" className="text-[10px]">
+          <Badge variant="secondary" className="text-2xs">
             {t('templatePicker.rolesCount', { count: template.team.roles.length })}
           </Badge>
           {template.complexity && (
             <Badge
               variant="secondary"
-              className={`text-[10px] ${COMPLEXITY_TONE[template.complexity]}`}
+              className={`text-2xs ${COMPLEXITY_TONE[template.complexity]}`}
               title={t('templatePicker.complexity.label')}
             >
               <Layers className="mr-1 inline h-3 w-3" />
@@ -101,7 +101,7 @@ function TemplateCard({ template, selected, onSelect }: CardProps) {
             </Badge>
           )}
           {template.expectedDurationMinutes !== undefined && (
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-2xs">
               <Clock className="mr-1 inline h-3 w-3" />
               {t('templatePicker.duration', { minutes: template.expectedDurationMinutes })}
             </Badge>
@@ -116,7 +116,7 @@ function TemplateCard({ template, selected, onSelect }: CardProps) {
             e.stopPropagation();
             setExpanded((v) => !v);
           }}
-          className="flex w-full items-center justify-center gap-1 border-t px-3 py-1 text-[10px] uppercase text-muted-foreground hover:bg-accent"
+          className="flex w-full items-center justify-center gap-1 border-t px-3 py-1 text-2xs uppercase text-muted-foreground hover:bg-accent"
           data-testid={`template-expand-${template.id}`}
         >
           {expanded ? (
@@ -162,7 +162,7 @@ function Section({
 }) {
   return (
     <div>
-      <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="mb-1 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
         {title}
       </div>
       <ul

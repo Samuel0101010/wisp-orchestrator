@@ -40,6 +40,9 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      - name: Validate design tokens
+        run: pnpm --filter dashboard-web tokens:check
+
       - name: Test (unit)
         run: pnpm --filter "./packages/**" --filter "./apps/**" --filter "./tests/compliance" run test
 

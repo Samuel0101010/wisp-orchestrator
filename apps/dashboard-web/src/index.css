@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import './styles/tokens-primitive.css';
+@import './styles/tokens-component.css';
 @plugin 'tailwindcss-animate';
 
 /* Tell Tailwind v4 to honour `class="dark"` for dark variants. */
@@ -44,6 +46,15 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  /* Primitive → Tailwind text size utilities */
+  --text-3xs: var(--font-size-3xs); /* text-3xs  → 9px  */
+  --text-2xs: var(--font-size-2xs); /* text-2xs  → 10px */
+  --text-xs2: var(--font-size-xs2); /* text-xs2  → 11px */
+  --text-sm-tight: var(--font-size-sm-tight); /* text-sm-tight → 13px */
+
+  /* Primitive → Tailwind letter-spacing utilities */
+  --tracking-widest: var(--tracking-widest);
 }
 
 :root {
@@ -58,7 +69,7 @@
   --secondary: 210 40% 96.1%;
   --secondary-foreground: 222.2 47.4% 11.2%;
   --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted-foreground: 215 16% 38%;
   --accent: 210 40% 96.1%;
   --accent-foreground: 222.2 47.4% 11.2%;
   --destructive: 0 84.2% 60.2%;
@@ -66,8 +77,8 @@
   --success: 142 71% 38%;
   --success-foreground: 0 0% 100%;
   --warning: 38 92% 45%;
-  --warning-foreground: 222 47% 11%;
-  --info: 217 91% 55%;
+  --warning-foreground: 222 47% 7%;
+  --info: 217 91% 45%;
   --info-foreground: 0 0% 100%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
@@ -101,7 +112,7 @@
   --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted-foreground: 215 20% 72%;
   --accent: 217.2 32.6% 17.5%;
   --accent-foreground: 210 40% 98%;
   --destructive: 0 70% 55%;
@@ -110,7 +121,7 @@
   --success-foreground: 222 47% 6%;
   --warning: 38 95% 60%;
   --warning-foreground: 222 47% 6%;
-  --info: 217 91% 65%;
+  --info: 217 91% 70%;
   --info-foreground: 222 47% 6%;
   --border: 217 32% 18%;
   --input: 217.2 32.6% 17.5%;

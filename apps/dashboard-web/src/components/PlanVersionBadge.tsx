@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { usePlanVersionChain } from '@/api/queries';
 
@@ -14,6 +15,7 @@ interface Props {
  * first replan, etc.
  */
 export function PlanVersionBadge({ planId }: Props) {
+  const { t } = useTranslation();
   const { data: chain = [] } = usePlanVersionChain(planId);
   if (chain.length <= 1) return null;
   // Chain is newest-first; the requested plan is index 0. Version is total length.
@@ -27,11 +29,11 @@ export function PlanVersionBadge({ planId }: Props) {
   return (
     <Badge
       variant="outline"
-      className="text-[10px] uppercase"
-      title={`Replan chain (oldest → newest): ${summary} → v${version} (this plan)`}
+      className="text-2xs uppercase"
+      title={t('planEditor.versionBadge.title', { summary, version })}
       data-testid="plan-version-badge"
     >
-      v{version} (replanned)
+      {t('planEditor.versionBadge.label', { version })}
     </Badge>
   );
 }

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Languages } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
+import { IconButton } from '@/components/ui/icon-button';
 
 const LABELS: Record<SupportedLanguage, { native: string; flag: string }> = {
   en: { native: 'English', flag: '🇬🇧' },
@@ -35,17 +36,19 @@ export function LanguageToggle() {
 
   return (
     <div ref={ref} className="relative">
-      <button
-        type="button"
+      <IconButton
+        label={t('tooltips.languageToggle')}
+        icon={
+          <>
+            <Languages className="h-3.5 w-3.5" />
+            <span className="font-medium">{current.toUpperCase()}</span>
+          </>
+        }
+        size="sm"
+        className="h-auto gap-1.5 rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        aria-label={t('language.label')}
-        title={t('language.label')}
         data-testid="language-toggle"
-      >
-        <Languages className="h-3.5 w-3.5" />
-        <span className="font-medium">{current.toUpperCase()}</span>
-      </button>
+      />
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-md border bg-popover p-1 shadow-md">
           {SUPPORTED_LANGUAGES.map((lang) => (

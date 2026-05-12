@@ -82,7 +82,7 @@ export function CommandPalette() {
             data-testid="command-palette-input"
             autoFocus
           />
-          <kbd className="hidden rounded border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline">
+          <kbd className="hidden rounded border bg-muted px-1.5 py-0.5 text-2xs text-muted-foreground sm:inline">
             ESC
           </kbd>
         </div>
@@ -162,7 +162,7 @@ export function CommandPalette() {
           )}
         </Command.List>
 
-        <div className="flex items-center justify-between border-t bg-muted/30 px-3 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+        <div className="flex items-center justify-between border-t bg-muted/30 px-3 py-1.5 text-2xs uppercase tracking-wider text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <kbd className="rounded border bg-background px-1">↑</kbd>
             <kbd className="rounded border bg-background px-1">↓</kbd>
@@ -213,7 +213,7 @@ function PaletteItem({
       </div>
       {trailing}
       {shortcut && (
-        <kbd className="rounded border bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground">
+        <kbd className="rounded border bg-muted px-1.5 py-0.5 text-2xs uppercase text-muted-foreground">
           {shortcut}
         </kbd>
       )}
