@@ -15,9 +15,11 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
+import { StatusPill } from '@/components/ui/status-pill';
+import { Logomark } from '@/components/Logomark';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
   DialogContent,
@@ -127,12 +129,13 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
-      <div className="flex items-center justify-between p-4">
+      <div className="flex items-center gap-2.5 p-4">
+        <Logomark className="h-6 w-6 text-foreground" />
         <div className="flex flex-col">
-          <span className="text-sm font-semibold">{t('navigation.appName')}</span>
-          <Badge variant="secondary" className="mt-1 w-fit text-2xs">
+          <span className="text-sm font-semibold tracking-tight">{t('navigation.appName')}</span>
+          <span className="text-2xs font-mono tabular-nums text-muted-foreground/70">
             v{__APP_VERSION__}
-          </Badge>
+          </span>
         </div>
       </div>
       <Separator />
@@ -304,36 +307,66 @@ export function Sidebar() {
         {projects.map((p) => {
           const active = params.projectId === p.id;
           const status = active ? activePlan.data?.status : undefined;
+          const count = dailyCounts.data?.byProject[p.id] ?? 0;
+          const lastModified = p.createdAt
+            ? new Date(p.createdAt).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })
+            : null;
           return (
             <div key={p.id} className="flex flex-col">
-              <Link
-                to={`/projects/${p.id}`}
-                className={
-                  'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-                  (active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-                }
-              >
-                <FolderOpen className="h-4 w-4" />
-                <span className="truncate">{p.name}</span>
-                {status && (
-                  <span className="ml-auto" data-testid={`sidebar-plan-status-${p.id}`}>
-                    <StatusDotBadge status={status} />
-                  </span>
-                )}
-                {(() => {
-                  const count = dailyCounts.data?.byProject[p.id] ?? 0;
-                  if (count === 0) return null;
-                  return (
-                    <Badge
-                      variant={count >= 5 ? 'destructive' : 'secondary'}
-                      className={status ? 'ml-1 text-3xs' : 'ml-auto text-3xs'}
-                      data-testid={`sidebar-daily-count-${p.id}`}
-                    >
-                      {t('navigation.today', { count })}
-                    </Badge>
-                  );
-                })()}
-              </Link>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to={`/projects/${p.id}`}
+                    className={
+                      'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
+                      (active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
+                    }
+                  >
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <FolderOpen className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{p.name}</span>
+                    </div>
+                    {status &&
+                      (status === 'locked' ? (
+                        <span className="ml-auto" data-testid={`sidebar-plan-status-${p.id}`}>
+                          <StatusPill variant="outline" tone="neutral">
+                            LOCKED
+                          </StatusPill>
+                        </span>
+                      ) : (
+                        <span className="ml-auto" data-testid={`sidebar-plan-status-${p.id}`}>
+                          <StatusDotBadge status={status} />
+                        </span>
+                      ))}
+                    {count > 0 && (
+                      <span
+                        className={status ? 'ml-1' : 'ml-auto'}
+                        data-testid={`sidebar-daily-count-${p.id}`}
+                      >
+                        <StatusPill
+                          variant={count >= 5 ? 'solid' : 'soft'}
+                          tone={count >= 5 ? 'destructive' : 'neutral'}
+                        >
+                          {t('navigation.today', { count })}
+                        </StatusPill>
+                      </span>
+                    )}
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  {p.name}
+                  {lastModified && (
+                    <>
+                      <br />
+                      <span className="text-muted-foreground">{lastModified}</span>
+                    </>
+                  )}
+                </TooltipContent>
+              </Tooltip>
               {active && <RecentRuns projectId={p.id} />}
             </div>
           );

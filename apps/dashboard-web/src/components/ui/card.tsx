@@ -1,11 +1,21 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
+const CARD_TRANSITION: React.CSSProperties = {
+  transition:
+    'box-shadow var(--duration-base) var(--ease-smooth), border-color var(--duration-base) var(--ease-smooth)',
+};
+
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+  ({ className, style, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn('rounded-lg border bg-card text-card-foreground shadow-sm', className)}
+      data-card=""
+      className={cn(
+        'rounded-lg border bg-card text-card-foreground hover:shadow-sm dark:border-transparent',
+        className,
+      )}
+      style={{ ...CARD_TRANSITION, ...style }}
       {...props}
     />
   ),

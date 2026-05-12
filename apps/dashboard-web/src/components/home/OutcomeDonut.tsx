@@ -36,6 +36,40 @@ export function OutcomeDonut({ counts, height = 220 }: OutcomeDonutProps) {
     );
   }
 
+  // Stat-row 0-state: too few runs to read a donut, or one slice dominates.
+  const dominant = data.reduce((max, d) => (d.value > max.value ? d : max), data[0]!);
+  const dominantPct = dominant.value / total;
+  if (total <= 5 || dominantPct > 0.9) {
+    return (
+      <div
+        className="flex items-center text-sm"
+        style={{ minHeight: height }}
+        data-testid="outcome-stat-row"
+      >
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="inline-flex items-center gap-1.5">
+            <span
+              className="size-2 rounded-full"
+              style={{ background: dominant.color }}
+              aria-hidden
+            />
+            <span className="font-medium">{dominant.label}</span>
+          </span>
+          <span className="text-muted-foreground" aria-hidden>
+            ·
+          </span>
+          <span className="text-muted-foreground tabular-nums">
+            {t('home.outcomeDonut.statRow', '{{count}} of {{total}} ({{pct}}%)', {
+              count: dominant.value,
+              total,
+              pct: Math.round(dominantPct * 100),
+            })}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full items-center gap-6">
       <div style={{ width: '50%', height }}>

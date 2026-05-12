@@ -1,15 +1,13 @@
 ﻿/**
- * Full-page chat â€” Microsoft-Teams-style 3-pane layout.
+ * Full-page chat — Microsoft-Teams-style 3-pane layout.
  *
- *   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”
- *   â”‚        â”‚              messages              â”‚        â”‚
- *   â”‚ thread â”‚  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ â”‚ people â”‚
- *   â”‚  list  â”‚              composer              â”‚  list  â”‚
- *   â””â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+ *   Left pane: thread list (260px wide).
+ *   Center pane: transcript above a composer.
+ *   Right pane: participants (280px wide).
  *
  * The center transcript shows multi-author chat: each assistant message has
  * an avatar + author name; user messages are right-aligned. Inline cards
- * surface manager directive results (e.g. "Created project X â€” open").
+ * surface manager directive results (e.g. "Created project X — open").
  *
  * Threads are scoped to whichever agent the user picked from the manager-led
  * "New chat with team" entry point. By default the manager (seedKey='manager')
@@ -30,8 +28,13 @@ import {
   ArrowRight,
   ChevronRight,
   X,
+  CheckCircle2,
+  Info,
+  XCircle,
+  Wrench,
 } from 'lucide-react';
 import { fmtRel } from '@/lib/fmt-rel';
+import { cn } from '@/lib/utils';
 import {
   type ChatActionRow,
   type ThreadParticipantSummary,
@@ -179,7 +182,7 @@ export function ChatRoute() {
 
   return (
     <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-[260px_1fr_280px] overflow-hidden">
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ LEFT: Thread list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* LEFT: Thread list */}
       <aside className="flex h-full flex-col border-r bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-sm font-semibold">{t('chat.sidebar.title')}</span>
@@ -222,7 +225,7 @@ export function ChatRoute() {
         </div>
       </aside>
 
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ CENTER: Transcript â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* CENTER: Transcript */}
       <section className="flex h-full min-w-0 flex-col">
         <header className="flex items-center justify-between border-b px-5 py-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -319,7 +322,7 @@ export function ChatRoute() {
         )}
       </section>
 
-      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ RIGHT: Participants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* RIGHT: Participants */}
       <aside className="flex h-full flex-col border-l bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
@@ -601,7 +604,7 @@ function MessageBlock({
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[72%] rounded-2xl rounded-br-sm bg-info/10 px-4 py-2 text-sm">
+        <div className="max-w-[72%] rounded-2xl rounded-tr-md bg-info/10 px-4 py-2 text-sm">
           <div className="whitespace-pre-wrap">{message.content}</div>
           <div className="mt-1 text-right text-2xs text-muted-foreground">
             {fmtTime(message.createdAt, lang)}
@@ -639,7 +642,7 @@ function MessageBlock({
               </span>
             )}
         </div>
-        <div className="rounded-2xl rounded-tl-sm bg-card px-4 py-2 text-sm shadow-sm ring-1 ring-border">
+        <div className="px-0.5 py-1 text-sm text-foreground">
           <div className="whitespace-pre-wrap">
             {message.content || t('chat.transcript.noResponse')}
           </div>
@@ -677,28 +680,46 @@ function AuthorAvatar({
 
 // ---- Action card ----
 
+// Lucide icon prefix for receipts. Color-only signal fails the
+// "color is not the only cue" a11y heuristic — every receipt also carries an icon.
+function ReceiptIcon({ tone }: { tone: 'success' | 'info' | 'destructive' }) {
+  if (tone === 'destructive') {
+    return <XCircle className="size-3.5 shrink-0 text-destructive" aria-hidden />;
+  }
+  if (tone === 'info') {
+    return <Info className="size-3.5 shrink-0 text-info" aria-hidden />;
+  }
+  return <CheckCircle2 className="size-3.5 shrink-0 text-success" aria-hidden />;
+}
+
 function ActionCard({ action }: { action: ChatActionRow }) {
   const { t } = useTranslation();
   const status = action.status;
+  const tone: 'success' | 'info' | 'destructive' =
+    status === 'ok' ? 'success' : status === 'failed' ? 'destructive' : 'info';
   const palette =
-    status === 'ok'
+    tone === 'success'
       ? 'border-success/40 bg-success/5'
-      : status === 'failed'
+      : tone === 'destructive'
         ? 'border-destructive/40 bg-destructive/5'
         : 'border-info/40 bg-info/5';
+  const cardClass = cn('rounded-lg border p-3 text-xs', palette);
 
   if (action.kind === 'create_project' && status === 'ok') {
     const r = action.resultJson as { projectId: string; name: string; teamSize: number } | null;
     return (
-      <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-        <div className="font-semibold">{t('chat.action.projectCreated', { name: r?.name })}</div>
-        <div className="text-muted-foreground">
+      <div className={cardClass}>
+        <div className="flex items-center gap-1.5 font-semibold">
+          <ReceiptIcon tone="success" />
+          {t('chat.action.projectCreated', { name: r?.name })}
+        </div>
+        <div className="mt-0.5 pl-5 text-muted-foreground">
           {t('chat.action.projectTeam', { count: r?.teamSize ?? 0 })}
         </div>
         {r?.projectId && (
           <Link
             to={`/projects/${r.projectId}`}
-            className="mt-1 inline-flex items-center gap-1 text-info hover:underline"
+            className="mt-1 ml-5 inline-flex items-center gap-1 text-info hover:underline"
           >
             {t('chat.action.openProject')} <ArrowRight className="h-3 w-3" />
           </Link>
@@ -709,40 +730,57 @@ function ActionCard({ action }: { action: ChatActionRow }) {
   if (action.kind === 'add_member' && status === 'ok') {
     const r = action.resultJson as { name?: string } | null;
     return (
-      <div
-        className={`rounded-lg border ${palette} p-3 text-xs`}
-        dangerouslySetInnerHTML={{
-          __html: t('chat.action.memberAdded', { name: r?.name ?? 'member' }),
-        }}
-      />
+      <div className={cardClass}>
+        <div className="flex items-center gap-1.5">
+          <ReceiptIcon tone="success" />
+          <span
+            dangerouslySetInnerHTML={{
+              __html: t('chat.action.memberAdded', { name: r?.name ?? 'member' }),
+            }}
+          />
+        </div>
+      </div>
     );
   }
   if (action.kind === 'consult' && status === 'ok') {
     const r = action.resultJson as { consultedName?: string } | null;
     return (
-      <div
-        className={`rounded-lg border ${palette} p-3 text-xs`}
-        dangerouslySetInnerHTML={{
-          __html: t('chat.action.consulted', { name: r?.consultedName ?? 'specialist' }),
-        }}
-      />
+      <div className={cardClass}>
+        <div className="flex items-center gap-1.5">
+          <ReceiptIcon tone="success" />
+          <span
+            dangerouslySetInnerHTML={{
+              __html: t('chat.action.consulted', { name: r?.consultedName ?? 'specialist' }),
+            }}
+          />
+        </div>
+      </div>
     );
   }
   if (action.kind === 'start_run') {
     const r = action.resultJson as { runId?: string; reason?: string } | null;
     if (status === 'ok' && r?.runId) {
       return (
-        <div
-          className={`rounded-lg border ${palette} p-3 text-xs font-mono`}
-          dangerouslySetInnerHTML={{
-            __html: t('chat.action.runStarted', { id: r.runId.slice(0, 8) }),
-          }}
-        />
+        <div className={cardClass}>
+          <div className="flex items-center gap-1.5 font-mono">
+            <ReceiptIcon tone="success" />
+            <span
+              dangerouslySetInnerHTML={{
+                __html: t('chat.action.runStarted', { id: r.runId.slice(0, 8) }),
+              }}
+            />
+          </div>
+        </div>
       );
     }
     if (r?.reason === 'no_plan_yet') {
       return (
-        <div className={`rounded-lg border ${palette} p-3 text-xs`}>{t('chat.action.noPlan')}</div>
+        <div className={cardClass}>
+          <div className="flex items-center gap-1.5">
+            <ReceiptIcon tone="info" />
+            <span>{t('chat.action.noPlan')}</span>
+          </div>
+        </div>
       );
     }
   }
@@ -756,31 +794,40 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     const payload = action.payloadJson as { name?: string } | null;
     const tokens = (r?.tokensIn ?? 0) + (r?.tokensOut ?? 0);
     return (
-      <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-        <span className="mr-2 inline-flex items-center gap-1 text-muted-foreground">
-          ðŸ”§ invoked skill
-        </span>
-        <span className="font-mono font-semibold">
-          {r?.skillName ?? payload?.name ?? 'unknown'}
-        </span>
-        <span className="ml-2 text-muted-foreground">
-          ({tokens} tokens, {r?.durationMs ?? 0}ms)
-        </span>
+      <div className={cardClass}>
+        <div className="flex items-center gap-1.5">
+          <Wrench className="size-3.5 shrink-0 text-success" aria-hidden />
+          <span className="text-muted-foreground">invoked skill</span>
+          <span className="font-mono font-semibold">
+            {r?.skillName ?? payload?.name ?? 'unknown'}
+          </span>
+          <span className="text-muted-foreground">
+            ({tokens} tokens, {r?.durationMs ?? 0}ms)
+          </span>
+        </div>
       </div>
     );
   }
   if (status === 'failed') {
     const r = action.resultJson as { error?: string } | null;
     return (
-      <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-        <div className="font-semibold">{t('chat.action.actionFailed', { kind: action.kind })}</div>
-        <div className="text-muted-foreground">{r?.error ?? t('chat.action.unknownError')}</div>
+      <div className={cardClass}>
+        <div className="flex items-center gap-1.5 font-semibold">
+          <ReceiptIcon tone="destructive" />
+          {t('chat.action.actionFailed', { kind: action.kind })}
+        </div>
+        <div className="mt-0.5 pl-5 text-muted-foreground">
+          {r?.error ?? t('chat.action.unknownError')}
+        </div>
       </div>
     );
   }
   return (
-    <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-      {t('chat.action.generic', { kind: action.kind, status })}
+    <div className={cardClass}>
+      <div className="flex items-center gap-1.5">
+        <ReceiptIcon tone={tone} />
+        <span>{t('chat.action.generic', { kind: action.kind, status })}</span>
+      </div>
     </div>
   );
 }

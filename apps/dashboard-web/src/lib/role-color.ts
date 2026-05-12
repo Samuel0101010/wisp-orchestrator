@@ -36,7 +36,7 @@ function hashRole(role: string): number {
   return Math.abs(h);
 }
 
-function roleHslTriplet(role: string): string {
+export function roleHslTriplet(role: string): string {
   const canonical = CANONICAL[role];
   if (canonical) return canonical;
   const idx = hashRole(role) % FALLBACK_PALETTE.length;
@@ -49,4 +49,23 @@ export function roleHsl(role: string): string {
 
 export function roleStripeStyle(role: string): { background: string } {
   return { background: roleHsl(role) };
+}
+
+/**
+ * Returns inline style for a low-chroma tinted role pill — readable in both
+ * themes. Uses opacity-modulated saturated color: the semi-transparent bg
+ * lets the theme background (light card / dark card) bleed through, so the
+ * pill adapts automatically without per-theme overrides.
+ */
+export function rolePillStyle(role: string): {
+  background: string;
+  color: string;
+  borderColor: string;
+} {
+  const triplet = roleHslTriplet(role);
+  return {
+    background: `hsl(${triplet} / 0.12)`,
+    color: `hsl(${triplet})`,
+    borderColor: `hsl(${triplet} / 0.25)`,
+  };
 }

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Activity, CheckCircle2, Clock, Coins, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Sparkles } from 'lucide-react';
 import { useGlobalRuns, useProjects, useRunsSummary } from '@/api/queries';
 import type { GlobalRunRow } from '@/api/queries';
-import { KpiTile } from '@/components/home/KpiTile';
+import { cn } from '@/lib/utils';
 import { TokenAreaChart } from '@/components/home/TokenAreaChart';
 import { OutcomeDonut } from '@/components/home/OutcomeDonut';
 import { LiveNowGrid } from '@/components/home/LiveNowGrid';
@@ -147,54 +147,88 @@ export function Home() {
           </p>
         </header>
 
-        {/* KPI tiles — aggregate across all projects */}
-        <section
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
-          aria-label={t('home.kpiSection', 'Key metrics')}
-        >
-          <KpiTile
-            label={t('home.kpis.activeRuns', 'Active runs')}
-            value={summary.data?.activeCount ?? 0}
-            icon={<Activity className="h-4 w-4" />}
-            tone="info"
-            caption={t('home.kpis.activeCaption', 'currently running or paused')}
-            data-testid="kpi-active-runs"
-          />
-          <KpiTile
-            label={t('home.kpis.tokensWindow', 'Tokens · 7 days')}
-            value={summary.data?.totalTokens ?? 0}
-            format={formatTokensCompact}
-            icon={<Coins className="h-4 w-4" />}
-            tone="success"
-            caption={t('home.kpis.totalRunsCaption', '{{count}} runs in window', {
-              count: summary.data?.totalRuns ?? 0,
-            })}
-            data-testid="kpi-tokens"
-          />
-          <KpiTile
-            label={t('home.kpis.successRate', 'Success rate · 7 days')}
-            value={successPercent}
-            format={(n) => `${Math.round(n)}%`}
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            tone={
-              successPercent >= 80 ? 'success' : successPercent >= 50 ? 'warning' : 'destructive'
-            }
-            caption={t('home.kpis.successCaption', '{{ok}}/{{total}} successful', {
-              ok: outcomeCounts.success ?? 0,
-              total: summary.data?.totalRuns ?? 0,
-            })}
-            data-testid="kpi-success-rate"
-          />
-          <KpiTile
-            label={t('home.kpis.avgDuration', 'Avg duration · 7 days')}
-            value={summary.data?.avgDurationMs ?? 0}
-            format={formatDuration}
-            icon={<Clock className="h-4 w-4" />}
-            tone="muted"
-            caption={t('home.kpis.avgCaption', 'across completed runs')}
-            data-testid="kpi-avg-duration"
-          />
-        </section>
+        {/* Metric strip — aggregate across all projects */}
+        {(() => {
+          const activeRuns = summary.data?.activeCount ?? 0;
+          const metrics: Array<{
+            key: string;
+            label: string;
+            value: string;
+            caption?: string;
+            headline?: boolean;
+            testId: string;
+          }> = [
+            {
+              key: 'active',
+              label: t('home.kpis.activeRuns', 'Active runs'),
+              value: String(activeRuns),
+              caption: t('home.kpis.activeCaption', 'currently running or paused'),
+              headline: true,
+              testId: 'kpi-active-runs',
+            },
+            {
+              key: 'tokens',
+              label: t('home.kpis.tokensWindow', 'Tokens · 7 days'),
+              value: formatTokensCompact(summary.data?.totalTokens ?? 0),
+              caption: t('home.kpis.totalRunsCaption', '{{count}} runs in window', {
+                count: summary.data?.totalRuns ?? 0,
+              }),
+              testId: 'kpi-tokens',
+            },
+            {
+              key: 'success',
+              label: t('home.kpis.successRate', 'Success rate · 7 days'),
+              value: `${Math.round(successPercent)}%`,
+              caption: t('home.kpis.successCaption', '{{ok}}/{{total}} successful', {
+                ok: outcomeCounts.success ?? 0,
+                total: summary.data?.totalRuns ?? 0,
+              }),
+              testId: 'kpi-success-rate',
+            },
+            {
+              key: 'duration',
+              label: t('home.kpis.avgDuration', 'Avg duration · 7 days'),
+              value: formatDuration(summary.data?.avgDurationMs ?? 0),
+              caption: t('home.kpis.avgCaption', 'across completed runs'),
+              testId: 'kpi-avg-duration',
+            },
+          ];
+          return (
+            <section
+              className={cn('-mx-2 border-y', activeRuns > 0 && 'bg-success/5')}
+              aria-label={t('home.kpiSection', 'Key metrics')}
+              data-testid="home-metric-strip"
+            >
+              <div className="grid grid-cols-2 divide-x divide-y xl:grid-cols-4 xl:divide-y-0">
+                {metrics.map((m) => (
+                  <div key={m.key} className="flex flex-col gap-1 px-6 py-4" data-testid={m.testId}>
+                    <span className="text-2xs uppercase tracking-widest text-muted-foreground">
+                      {m.label}
+                    </span>
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className={cn(
+                          'tabular-nums font-semibold leading-none',
+                          m.headline ? 'text-3xl' : 'text-2xl',
+                        )}
+                      >
+                        {m.value}
+                      </span>
+                      {m.key === 'active' && activeRuns > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-success">
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </div>
+                    {m.caption && (
+                      <span className="text-xs text-muted-foreground">{m.caption}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })()}
 
         {/* Charts row — token throughput + outcome donut */}
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">

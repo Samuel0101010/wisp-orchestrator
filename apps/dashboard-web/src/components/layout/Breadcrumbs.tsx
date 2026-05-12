@@ -1,9 +1,10 @@
 import { Fragment } from 'react';
 import { Link, useMatch } from 'react-router-dom';
-import { ChevronRight, LayoutGrid } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useProject } from '@/api/queries';
 import { cn } from '@/lib/utils';
+import { Logomark } from '@/components/Logomark';
 
 interface Crumb {
   to?: string;
@@ -29,7 +30,7 @@ export function Breadcrumbs({ className }: { className?: string }) {
     {
       to: '/',
       label: t('topBar.missionControl'),
-      icon: <LayoutGrid className="h-3.5 w-3.5" />,
+      icon: <Logomark className="h-4 w-4 text-foreground" />,
     },
   ];
 
@@ -60,11 +61,11 @@ export function Breadcrumbs({ className }: { className?: string }) {
         const isLast = i === crumbs.length - 1;
         return (
           <Fragment key={i}>
-            {i > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50" aria-hidden />}
+            {i > 0 && <ChevronRight className="size-3.5 text-muted-foreground/40" aria-hidden />}
             {c.to && !isLast ? (
               <Link
                 to={c.to}
-                className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                className="inline-flex items-center gap-1.5 font-medium text-muted-foreground hover:text-foreground"
               >
                 {c.icon}
                 {c.label}
@@ -73,7 +74,7 @@ export function Breadcrumbs({ className }: { className?: string }) {
               <span
                 className={cn(
                   'inline-flex items-center gap-1.5',
-                  isLast ? 'font-medium text-foreground' : 'text-muted-foreground',
+                  isLast ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground',
                 )}
               >
                 {c.icon}

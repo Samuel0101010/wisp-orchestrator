@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { GitBranch } from 'lucide-react';
 import { usePlanGoap, type GoapAction } from '@/api/queries';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const EXAMPLE = {
   initial: '{}',
@@ -102,7 +104,13 @@ export function GoapRoute() {
       </div>
 
       {!planM.data && !planM.isPending && !parseError && (
-        <p className="text-sm text-muted-foreground">{t('goap.noResult')}</p>
+        <div className="rounded-md border border-dashed border-border/40">
+          <EmptyState
+            icon={<GitBranch />}
+            title={t('goap.empty.title')}
+            description={t('goap.empty.description')}
+          />
+        </div>
       )}
 
       {planM.data && (
