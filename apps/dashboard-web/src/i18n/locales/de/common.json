@@ -95,7 +95,7 @@
     "priorsEmpty": "Noch keine Priors — werden gefüllt sobald Thompson-Sampling gelaufen ist.",
     "cols": {
       "ts": "Zeit",
-      "outcome": "Outcome",
+      "outcome": "Ergebnis",
       "tokens": "Tokens",
       "prompt": "Ziel",
       "lessons": "Lessons",
@@ -116,10 +116,30 @@
     },
     "actions": {
       "plan": "Plan erstellen",
-      "planning": "Plane…"
+      "planning": "Plane…",
+      "loadExample": "Beispiel laden"
     },
     "noResult": "Sende ein Problem ab, um den Plan zu sehen.",
     "result": "Plan-Ergebnis"
+  },
+  "toolMultiSelect": {
+    "noneSelected": "Keine Tools ausgewählt (Agent erhält Defaults)",
+    "selected_one": "{{count}} Tool ausgewählt",
+    "selected_other": "{{count}} Tools ausgewählt",
+    "pick": "Tools auswählen",
+    "hide": "Tools verbergen"
+  },
+  "modelInfo": {
+    "costClass": {
+      "cheap": "günstig",
+      "standard": "Standard",
+      "expensive": "teuer"
+    },
+    "notes": {
+      "haiku": "Schnell und günstig. Gut für QA-Gates, einfache Datei-Edits und Prompt-Proben.",
+      "sonnet": "Ausgewogen. Standard für Entwicklungsarbeit.",
+      "opus": "Höchste Qualität. Für Architektur und komplexes Reasoning."
+    }
   },
   "agents": {
     "title": "Agents",

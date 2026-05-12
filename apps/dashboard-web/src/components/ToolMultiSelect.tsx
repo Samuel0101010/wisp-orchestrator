@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ALL_CATALOG_TOOL_NAMES, TOOL_CATALOG } from '@/data/toolCatalog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ interface Props {
  * instead of discovering them only at runtime.
  */
 export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(initialOpen);
   const [customInput, setCustomInput] = useState('');
 
@@ -49,8 +51,8 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted-foreground">
           {value.length === 0
-            ? 'No tools selected (agent gets defaults)'
-            : `${value.length} tool${value.length === 1 ? '' : 's'} selected`}
+            ? t('toolMultiSelect.noneSelected')
+            : t('toolMultiSelect.selected', { count: value.length })}
         </span>
         <div className="ml-auto">
           <Button
@@ -60,7 +62,7 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
             onClick={() => setOpen((o) => !o)}
             data-testid="tool-multiselect-toggle"
           >
-            {open ? 'Hide tools' : 'Pick tools'}
+            {open ? t('toolMultiSelect.hide') : t('toolMultiSelect.pick')}
           </Button>
         </div>
       </div>

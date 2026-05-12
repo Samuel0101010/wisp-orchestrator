@@ -11,7 +11,8 @@ import ReactFlow, {
   useNodesState,
 } from 'reactflow';
 import dagre from 'dagre';
-import type { Plan, Role, TaskNode } from '@agent-harness/schemas';
+import type { Plan, TaskNode } from '@agent-harness/schemas';
+import { roleHsl } from '@/lib/role-color';
 import 'reactflow/dist/style.css';
 
 interface PlanCanvasProps {
@@ -28,14 +29,10 @@ interface PlanNodeData {
 const NODE_WIDTH = 220;
 const NODE_HEIGHT = 110;
 
-function roleAccent(role: Role): string {
-  return `hsl(var(--role-${role}))`;
-}
-
 function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
   const { taskNode, selected } = data;
   const { t } = useTranslation();
-  const accent = roleAccent(taskNode.role);
+  const accent = roleHsl(taskNode.role);
   const oneLine = taskNode.prompt.replace(/\s+/g, ' ').trim();
   return (
     <div

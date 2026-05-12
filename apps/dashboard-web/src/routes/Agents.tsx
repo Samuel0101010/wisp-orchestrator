@@ -26,6 +26,7 @@ import { Avatar } from '@/components/Avatar';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
+import { fmtRel } from '@/lib/fmt-rel';
 
 const MODELS = ['opus', 'sonnet', 'haiku'] as const;
 const DEFAULT_TOOLS = [
@@ -40,15 +41,6 @@ const DEFAULT_TOOLS = [
   'WebSearch',
   'TodoWrite',
 ];
-
-function fmtRel(d: Date | string | number): string {
-  const t = typeof d === 'number' ? d : typeof d === 'string' ? new Date(d).getTime() : d.getTime();
-  const dt = Date.now() - t;
-  if (dt < 60_000) return `${Math.floor(dt / 1000)}s ago`;
-  if (dt < 3_600_000) return `${Math.floor(dt / 60_000)}m ago`;
-  if (dt < 86_400_000) return `${Math.floor(dt / 3_600_000)}h ago`;
-  return `${Math.floor(dt / 86_400_000)}d ago`;
-}
 
 export function AgentsRoute() {
   const { t } = useTranslation();
@@ -182,7 +174,7 @@ function AgentCard({
   onEdit: () => void;
   isSeed?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const usage = useAgentUsage(agent.id);
   const refCount = usage.data?.usage.length ?? 0;
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -224,7 +216,7 @@ function AgentCard({
           {t('agents.card.tools', { count: agent.allowedTools.length })}
         </span>
         <span className="ml-auto font-mono">
-          {fmtRel(agent.updatedAt as Date | string | number)}
+          {fmtRel(agent.updatedAt as Date | string | number, i18n.language)}
         </span>
       </div>
 
@@ -445,7 +437,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                     <button
                       key={m}
                       onClick={() => setModel(m)}
-                      className={`flex-1 rounded-md border px-2 py-1.5 text-sm font-medium ${model === m ? 'border-info bg-info/10 text-info-foreground' : 'hover:bg-muted'}`}
+                      className={`flex-1 rounded-md border px-2 py-1.5 text-sm font-medium ${model === m ? 'border-info bg-info/10 text-info' : 'hover:bg-muted'}`}
                     >
                       {m}
                     </button>
@@ -488,7 +480,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                   <button
                     key={t}
                     onClick={() => toggleTool(t)}
-                    className={`rounded-full border px-2.5 py-0.5 font-mono text-2xs tracking-tight ${on ? 'border-info bg-info/15 text-info-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                    className={`rounded-full border px-2.5 py-0.5 font-mono text-2xs tracking-tight ${on ? 'border-info bg-info/15 text-info' : 'text-muted-foreground hover:text-foreground'}`}
                   >
                     {t}
                   </button>

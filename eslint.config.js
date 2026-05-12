@@ -13,6 +13,7 @@ export default [
       '**/coverage/**',
       '.claude/skills/**',
       '**/*.cjs',
+      'audit-artifacts/**',
     ],
   },
   js.configs.recommended,

@@ -1,0 +1,468 @@
+{
+  "notes": [],
+  "project": {
+    "id": "28577a95-6c48-420f-814a-9e1fdb4d36b0",
+    "name": "csv-to-json-cli",
+    "goal": "Build a small CLI tool that converts CSV to JSON with tests",
+    "repoPath": "C:/tmp/csv-to-json",
+    "createdAt": "2026-05-11T17:32:39.166Z"
+  },
+  "run": {
+    "id": "008bd6f3-88aa-4fb3-a24d-5f50976786fc",
+    "planId": "1cca4b77-d155-4b4e-9dc2-a285345e9bcf",
+    "startedAt": "2026-05-11T17:52:46.669Z",
+    "endedAt": "2026-05-11T17:53:49.289Z",
+    "outcome": "failure",
+    "status": "failed",
+    "checkoutToken": null,
+    "budgetMinutes": 60,
+    "budgetTurns": 300,
+    "maxParallel": 2,
+    "tokensInTotal": 7073,
+    "tokensOutTotal": 2646,
+    "turnsTotal": 5,
+    "pausedReason": null,
+    "resumeAt": null,
+    "autopilotMode": false,
+    "autopilotBudgetMinutes": null,
+    "autopilotBudgetTokens": null,
+    "autopilotStartedAt": null,
+    "errorReason": null,
+    "retryCount": 0,
+    "nextRetryAt": null
+  },
+  "results": [
+    {
+      "slugName": "home",
+      "route": "/",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-home-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "home",
+      "route": "/",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-home-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "home",
+      "route": "/",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-home-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "home",
+      "route": "/",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-home-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "chat",
+      "route": "/chat",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-chat-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "chat",
+      "route": "/chat",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-chat-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "chat",
+      "route": "/chat",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-chat-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "chat",
+      "route": "/chat",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-chat-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "agents",
+      "route": "/agents",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-agents-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "agents",
+      "route": "/agents",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-agents-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "agents",
+      "route": "/agents",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-agents-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "agents",
+      "route": "/agents",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-agents-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "skills",
+      "route": "/skills",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-skills-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "skills",
+      "route": "/skills",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-skills-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "skills",
+      "route": "/skills",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-skills-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "skills",
+      "route": "/skills",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-skills-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "workers",
+      "route": "/workers",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-workers-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "workers",
+      "route": "/workers",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-workers-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "workers",
+      "route": "/workers",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-workers-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "workers",
+      "route": "/workers",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-workers-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "insights",
+      "route": "/insights",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-insights-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "insights",
+      "route": "/insights",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-insights-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "insights",
+      "route": "/insights",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-insights-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "insights",
+      "route": "/insights",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-insights-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "goap",
+      "route": "/goap",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-goap-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "goap",
+      "route": "/goap",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-goap-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "goap",
+      "route": "/goap",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-goap-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "goap",
+      "route": "/goap",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-goap-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "prompt-bundles",
+      "route": "/prompt-bundles",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-prompt-bundles-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "prompt-bundles",
+      "route": "/prompt-bundles",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-prompt-bundles-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "prompt-bundles",
+      "route": "/prompt-bundles",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-prompt-bundles-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "prompt-bundles",
+      "route": "/prompt-bundles",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-prompt-bundles-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-teams",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/teams",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-teams-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-teams",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/teams",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-teams-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-teams",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/teams",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-teams-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-teams",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/teams",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-teams-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-plan",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/plan",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-plan-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-plan",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/plan",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-plan-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-plan",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/plan",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-plan-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-plan",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/plan",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-plan-light-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-run-runid",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/run/008bd6f3-88aa-4fb3-a24d-5f50976786fc",
+      "theme": "dark",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-run-runid-dark-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-run-runid",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/run/008bd6f3-88aa-4fb3-a24d-5f50976786fc",
+      "theme": "dark",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-run-runid-dark-de.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-run-runid",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/run/008bd6f3-88aa-4fb3-a24d-5f50976786fc",
+      "theme": "light",
+      "lang": "en",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-run-runid-light-en.png",
+      "status": "ok",
+      "errors": []
+    },
+    {
+      "slugName": "projects-id-run-runid",
+      "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/run/008bd6f3-88aa-4fb3-a24d-5f50976786fc",
+      "theme": "light",
+      "lang": "de",
+      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-run-runid-light-de.png",
+      "status": "ok",
+      "errors": []
+    }
+  ]
+}

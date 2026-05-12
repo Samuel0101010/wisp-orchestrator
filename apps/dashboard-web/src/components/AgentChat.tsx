@@ -163,7 +163,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
             to="/agents"
             className="font-mono text-2xs text-muted-foreground hover:text-foreground"
           >
-            manage â†’
+            manage →
           </Link>
         </div>
         <select
@@ -177,7 +177,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
         >
           {agents.data.map((a) => (
             <option key={a.id} value={a.id}>
-              @{a.name} Â· {a.model}
+              @{a.name} · {a.model}
             </option>
           ))}
         </select>
@@ -187,7 +187,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
       <div className="border-b border-border/60 px-3 py-2">
         <div className="mb-1 flex items-baseline justify-between">
           <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-            threads Â· {threads.data?.length ?? 0}
+            threads · {threads.data?.length ?? 0}
           </span>
           <button
             onClick={startNewThread}
@@ -224,7 +224,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
         {selectedAgent && (
           <div className="rounded-md border border-dashed border-border/60 bg-muted/30 p-2 text-xs2 text-muted-foreground">
             <span className="font-medium">@{selectedAgent.name}</span>
-            {selectedAgent.description && <> Â· {selectedAgent.description}</>}
+            {selectedAgent.description && <> · {selectedAgent.description}</>}
             <div className="mt-0.5 line-clamp-2 font-mono text-2xs opacity-70">
               {selectedAgent.systemPrompt.slice(0, 140)}
               {selectedAgent.systemPrompt.length > 140 ? 'â€¦' : ''}
@@ -326,7 +326,7 @@ function ThreadRow({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-baseline justify-between gap-2 rounded px-2 py-1 text-left text-xs ${active ? 'bg-info/15 text-info-foreground' : 'hover:bg-muted'}`}
+      className={`flex w-full items-baseline justify-between gap-2 rounded px-2 py-1 text-left text-xs ${active ? 'bg-info/15 text-info' : 'hover:bg-muted'}`}
     >
       <span className="truncate flex-1">
         {thread.title ?? t('agentChat.threadMeta.untitled', { id: thread.id.slice(0, 6) })}
@@ -377,10 +377,10 @@ function MessageBubble({
       <div className="flex items-center gap-2 px-1 font-mono text-2xs text-muted-foreground">
         <span>{isUser ? t('agentChat.message.you') : `@${agent?.name ?? 'agent'}`}</span>
         {message.tokensIn != null && message.tokensOut != null && (
-          <span>Â· {message.tokensIn + message.tokensOut} tok</span>
+          <span>· {message.tokensIn + message.tokensOut} tok</span>
         )}
         {message.durationMs != null && message.durationMs > 0 && (
-          <span>Â· {(message.durationMs / 1000).toFixed(1)}s</span>
+          <span>· {(message.durationMs / 1000).toFixed(1)}s</span>
         )}
       </div>
     </div>
