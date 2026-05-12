@@ -23,7 +23,11 @@ function Shell() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar />
-        <main className="flex-1 overflow-auto">
+        <main
+          className="flex-1 overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+          tabIndex={0}
+          aria-label="Main content"
+        >
           <div className="mx-auto w-full max-w-screen-2xl p-6">
             <Outlet />
           </div>

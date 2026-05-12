@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
+import { Sparkles, FileText, Activity } from 'lucide-react';
 import { apiFetch } from '@/api/client';
 import { useRunSummaries } from '@/api/queries';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface TrajectoryRow {
   id: string;
@@ -64,9 +66,20 @@ export function InsightsRoute() {
         ) : trajQ.error ? (
           <ErrorBanner onRetry={() => trajQ.refetch()} />
         ) : (trajQ.data?.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('insights.trajectoriesEmpty')}</p>
+          <div className="rounded-md border border-dashed border-border/40">
+            <EmptyState
+              icon={<Sparkles />}
+              title={t('insights.trajectories.empty.title')}
+              description={t('insights.trajectories.empty.description')}
+            />
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-md border border-border">
+          <div
+            className="overflow-x-auto rounded-md border border-border"
+            tabIndex={0}
+            role="region"
+            aria-label={t('insights.trajectoriesTitle')}
+          >
             <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
@@ -79,7 +92,7 @@ export function InsightsRoute() {
               <tbody>
                 {trajQ.data?.map((traj) => (
                   <tr key={traj.id} className="border-t border-border">
-                    <td className="px-3 py-1.5 text-xs">
+                    <td className="px-3 py-1.5 text-xs tabular-nums">
                       {new Date(traj.createdAt).toLocaleString()}
                     </td>
                     <td className="px-3 py-1.5">
@@ -110,7 +123,13 @@ export function InsightsRoute() {
         ) : summariesQ.error ? (
           <ErrorBanner onRetry={() => summariesQ.refetch()} />
         ) : (summariesQ.data?.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('insights.summariesEmpty')}</p>
+          <div className="rounded-md border border-dashed border-border/40">
+            <EmptyState
+              icon={<FileText />}
+              title={t('insights.runSummaries.empty.title')}
+              description={t('insights.runSummaries.empty.description')}
+            />
+          </div>
         ) : (
           <ul className="space-y-2">
             {summariesQ.data?.map((s) => (
@@ -136,9 +155,20 @@ export function InsightsRoute() {
         ) : priorsQ.error ? (
           <ErrorBanner onRetry={() => priorsQ.refetch()} />
         ) : (priorsQ.data?.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted-foreground">{t('insights.priorsEmpty')}</p>
+          <div className="rounded-md border border-dashed border-border/40">
+            <EmptyState
+              icon={<Activity />}
+              title={t('insights.routerPriors.empty.title')}
+              description={t('insights.routerPriors.empty.description')}
+            />
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-md border border-border">
+          <div
+            className="overflow-x-auto rounded-md border border-border"
+            tabIndex={0}
+            role="region"
+            aria-label={t('insights.priorsTitle')}
+          >
             <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>

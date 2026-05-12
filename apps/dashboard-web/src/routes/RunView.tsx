@@ -1,10 +1,24 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Pause, Play, Square, Activity, FileText, AlertTriangle, Coins } from 'lucide-react';
+import {
+  Pause,
+  Play,
+  Square,
+  Activity,
+  FileText,
+  AlertTriangle,
+  Clock,
+  ShieldCheck,
+  CheckCircle2,
+  XCircle,
+} from 'lucide-react';
+import { clsx } from 'clsx';
 import type { HarnessEvent, RunPausedReason } from '@agent-harness/schemas';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusPill, type StatusPillTone } from '@/components/ui/status-pill';
+import { EmptyState } from '@/components/ui/empty-state';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +51,7 @@ import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 import { AutopilotToggle } from '@/components/AutopilotToggle';
 import type { TFunction } from 'i18next';
 import { statusLabel } from '@/lib/status-labels';
-import { roleStripeStyle } from '@/lib/role-color';
+import { roleHsl } from '@/lib/role-color';
 
 const COLUMN_ORDER: TaskColumn[] = ['pending', 'running', 'verifying', 'done', 'failed'];
 
@@ -57,10 +71,47 @@ function formatDuration(ms: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function progressColor(percent: number): string {
-  if (percent >= 100) return 'bg-destructive';
-  if (percent >= 80) return 'bg-amber-500';
-  return 'bg-primary';
+type ResourceTone = 'info' | 'warning' | 'success' | 'destructive';
+
+function pickTone(percent: number, base: ResourceTone): ResourceTone {
+  if (percent >= 100) return 'destructive';
+  if (percent >= 80) return 'warning';
+  return base;
+}
+
+interface ResourceSegmentProps {
+  label: string;
+  value: string;
+  of: string;
+  pct: number;
+  tone: ResourceTone;
+  testId?: string;
+}
+
+function ResourceSegment({ label, value, of, pct, tone, testId }: ResourceSegmentProps) {
+  const fillTone =
+    tone === 'destructive'
+      ? 'bg-destructive'
+      : tone === 'warning'
+        ? 'bg-warning'
+        : tone === 'success'
+          ? 'bg-success'
+          : 'bg-info';
+  return (
+    <div className="flex flex-col gap-1 px-4 py-2" data-testid={testId}>
+      <span className="text-2xs uppercase tracking-widest text-muted-foreground">{label}</span>
+      <div className="flex items-baseline gap-1.5">
+        <span className="font-mono text-sm font-semibold tabular-nums">{value}</span>
+        <span className="text-2xs text-muted-foreground tabular-nums">{`/ ${of}`}</span>
+      </div>
+      <div className="h-1 overflow-hidden rounded-full bg-muted/60">
+        <div
+          className={clsx('h-full rounded-full transition-all', fillTone)}
+          style={{ width: `${Math.min(100, Math.max(0, pct * 100))}%` }}
+        />
+      </div>
+    </div>
+  );
 }
 
 interface ResourceBarProps {
@@ -90,64 +141,45 @@ function ResourceBar(props: ResourceBarProps) {
     tokensOut,
   } = props;
   const { t } = useTranslation();
+  const poolPct = maxParallel > 0 ? runningCount / maxParallel : 0;
   return (
-    <div
-      className="grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-4"
-      data-testid="resource-bar"
-    >
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">{t('runView.resourceBar.time')}</span>
-          <span
-            className="tabular-nums text-foreground"
-            data-testid="resource-time"
-          >{`${formatDuration(elapsedMs)} / ${formatDuration(budgetMs)}`}</span>
-        </div>
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
-          <div
-            className={`h-full transition-all ${progressColor(percentTime)}`}
-            style={{ width: `${Math.min(100, percentTime)}%` }}
-          />
-        </div>
+    <div data-testid="resource-bar">
+      <div className="grid grid-cols-3 divide-x rounded-md border bg-card">
+        <ResourceSegment
+          label={t('runView.resourceBar.time')}
+          value={formatDuration(elapsedMs)}
+          of={formatDuration(budgetMs)}
+          pct={percentTime / 100}
+          tone={pickTone(percentTime, 'info')}
+          testId="resource-time"
+        />
+        <ResourceSegment
+          label={t('runView.resourceBar.turns')}
+          value={String(turnsTotal)}
+          of={String(budgetTurns)}
+          pct={percentTurns / 100}
+          tone={pickTone(percentTurns, 'info')}
+          testId="resource-turns"
+        />
+        <ResourceSegment
+          label={t('runView.resourceBar.pool')}
+          value={String(runningCount)}
+          of={String(maxParallel)}
+          pct={poolPct}
+          tone="success"
+          testId="resource-pool"
+        />
       </div>
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">{t('runView.resourceBar.turns')}</span>
-          <span
-            className="tabular-nums text-foreground"
-            data-testid="resource-turns"
-          >{`${turnsTotal} / ${budgetTurns}`}</span>
-        </div>
-        <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
-          <div
-            className={`h-full transition-all ${progressColor(percentTurns)}`}
-            style={{ width: `${Math.min(100, percentTurns)}%` }}
-          />
-        </div>
-      </div>
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">{t('runView.resourceBar.pool')}</span>
-          <span className="tabular-nums">{`${runningCount} / ${maxParallel}`}</span>
-        </div>
-        <div className="flex gap-1" aria-label="pool-meter">
-          {Array.from({ length: Math.max(maxParallel, 1) }).map((_, i) => (
-            <span
-              key={i}
-              className={
-                'h-2 flex-1 rounded-full ' + (i < runningCount ? 'bg-primary' : 'bg-secondary')
-              }
-            />
-          ))}
-        </div>
-      </div>
-      <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
-        <Coins className="h-3 w-3" />
-        <span className="tabular-nums" data-testid="resource-tokens">
-          {t('runView.resourceBar.tokensInOut', {
-            in: formatCompactNumber(tokensIn),
-            out: formatCompactNumber(tokensOut),
-          })}
+      <div
+        className="mt-1 flex justify-end gap-2 text-2xs text-muted-foreground"
+        data-testid="resource-tokens"
+      >
+        <span className="font-mono tabular-nums">
+          {t('runView.resourceBar.tokensIn', { in: formatCompactNumber(tokensIn) })}
+        </span>
+        <span aria-hidden>·</span>
+        <span className="font-mono tabular-nums">
+          {t('runView.resourceBar.tokensOut', { out: formatCompactNumber(tokensOut) })}
         </span>
       </div>
     </div>
@@ -161,7 +193,7 @@ interface CountdownProps {
 
 function Countdown({ resumeAt, nowMs }: CountdownProps) {
   const { t } = useTranslation();
-  if (resumeAt == null) return <span>â€”</span>;
+  if (resumeAt == null) return <span>—</span>;
   const remainingMs = Math.max(0, resumeAt - nowMs);
   if (remainingMs <= 0)
     return (
@@ -187,31 +219,60 @@ interface TaskCardProps {
   onOpenTail: () => void;
 }
 
+function taskStatusTone(status: string): StatusPillTone {
+  switch (status) {
+    case 'running':
+    case 'verifying':
+      return 'info';
+    case 'done':
+    case 'completed':
+    case 'success':
+      return 'success';
+    case 'failed':
+      return 'destructive';
+    case 'paused':
+      return 'warning';
+    default:
+      return 'neutral';
+  }
+}
+
 function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
   const { t } = useTranslation();
   const liveDuration = task.liveRunning && task.startedAtMs ? nowMs - task.startedAtMs : 0;
   const duration = Math.max(task.durationMs, liveDuration);
+  const tone = taskStatusTone(task.status);
+  const live = task.status === 'running';
   return (
     <div
-      className="relative flex flex-col gap-2 overflow-hidden rounded-md border bg-card p-3"
+      className={clsx(
+        'group relative flex flex-col gap-2 overflow-hidden rounded-md border bg-card p-3',
+        task.status === 'running' && 'ring-1 ring-info/40',
+        task.status === 'failed' && 'ring-1 ring-destructive/40',
+      )}
       data-testid={`task-card-${task.id}`}
       data-status={task.status}
     >
-      <div
-        className="absolute left-0 top-0 h-full w-1"
-        style={roleStripeStyle(task.role)}
-        aria-hidden
-      />
-      <div className="flex items-center justify-between pl-2">
-        <div className="flex flex-col">
-          <span className="text-sm font-medium">{task.title}</span>
-          <span className="text-xs text-muted-foreground">{task.id}</span>
-        </div>
-        <Badge variant="outline" className="text-2xs uppercase">
-          {task.role}
-        </Badge>
+      <div className="flex items-center justify-between">
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            className="size-1.5 rounded-full"
+            style={{ background: roleHsl(task.role) }}
+            aria-hidden
+          />
+          <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+            {task.role}
+          </span>
+        </span>
+        <StatusPill variant="soft" tone={tone} live={live}>
+          {statusLabel(task.status, t)}
+        </StatusPill>
       </div>
-      <div className="grid grid-cols-3 gap-2 pl-2 text-xs text-muted-foreground tabular-nums">
+      <div className="flex flex-col">
+        <span className="text-sm font-medium">{task.title}</span>
+        <span className="text-xs text-muted-foreground">{task.id}</span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground tabular-nums">
         <div>
           <div className="text-2xs uppercase">{t('runView.task.tokens')}</div>
           <div data-testid={`task-tokens-${task.id}`}>
@@ -231,7 +292,7 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
         </div>
       </div>
       {task.error && (
-        <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-2 pl-3 text-xs text-destructive">
+        <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
           <div className="font-semibold">{t('runView.task.failed')}</div>
           <div className="line-clamp-3">{task.error}</div>
           {task.worktreePath && (
@@ -241,7 +302,7 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
           )}
         </div>
       )}
-      <div className="flex items-center justify-between pl-2">
+      <div className="flex items-center justify-between">
         <Button
           variant="ghost"
           size="sm"
@@ -576,6 +637,14 @@ interface KanbanProps {
   onOpenTail: (taskId: string) => void;
 }
 
+const COLUMN_EMPTY_ICON: Record<TaskColumn, ReactNode> = {
+  pending: <Clock />,
+  running: <Activity />,
+  verifying: <ShieldCheck />,
+  done: <CheckCircle2 />,
+  failed: <XCircle />,
+};
+
 function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
   const { t } = useTranslation();
   const columns = useMemo(() => {
@@ -617,9 +686,11 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
               />
             ))}
             {columns[col].length === 0 && (
-              <div className="px-2 py-3 text-center text-xs text-muted-foreground">
-                {t('runView.kanban.empty')}
-              </div>
+              <EmptyState
+                size="column"
+                icon={COLUMN_EMPTY_ICON[col]}
+                title={t(`runView.kanban.empty.${col}`)}
+              />
             )}
           </div>
         </div>
@@ -628,19 +699,25 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
   );
 }
 
-function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+function runStatusTone(status: string): StatusPillTone {
   switch (status) {
     case 'running':
-      return 'default';
-    case 'paused':
-      return 'secondary';
+    case 'verifying':
+      return 'info';
     case 'completed':
-      return 'outline';
+    case 'done':
+    case 'success':
+      return 'success';
     case 'failed':
-    case 'cancelled':
       return 'destructive';
+    case 'paused':
+      return 'warning';
+    case 'cancelled':
+    case 'pending':
+    case 'draft':
+      return 'neutral';
     default:
-      return 'secondary';
+      return 'neutral';
   }
 }
 
@@ -721,10 +798,16 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
           <h1 className="text-lg font-semibold">
             {t('runView.runPrefix', { id: run.id.slice(0, 8) })}
           </h1>
-          <Badge variant={statusBadgeVariant(run.status)} data-testid="run-status">
-            {statusLabel(run.status, t)}
-            {run.outcome ? ` (${statusLabel(run.outcome, t)})` : ''}
-          </Badge>
+          <span data-testid="run-status" className="inline-flex">
+            <StatusPill
+              variant="solid"
+              tone={runStatusTone(run.status)}
+              live={run.status === 'running'}
+            >
+              {statusLabel(run.status, t)}
+              {run.outcome ? ` (${statusLabel(run.outcome, t)})` : ''}
+            </StatusPill>
+          </span>
           {snapshot.run.errorReason === 'max_turns' && (
             <span
               className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400"

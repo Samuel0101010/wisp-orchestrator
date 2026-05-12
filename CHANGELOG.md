@@ -1,5 +1,128 @@
 # Changelog
 
+## 1.7.0 — Design polish pass: foundation components, surface refactors, motion
+
+End-to-end design refinement driven by `ui-ux-pro-max` + `impeccable` critique
+of every route in light + dark. Eliminated the three "absolute-ban" patterns
+(left side-stripes, hero-metric template, generic version badge) and the
+"AI slop" tells that kept the dashboard reading as a template instead of
+a Linear-class product. Eight commits worth of changes, batched.
+
+### Added — foundation components
+
+- **`<StatusPill>`** (`components/ui/status-pill.tsx`) — single status pill
+  with three variants (`solid` / `soft` / `outline`) × five tones (neutral,
+  info, success, warning, destructive), optional pulsing live dot, optional
+  leading icon. Consolidates ~7 scattered status-badge call sites across
+  Workers/Skills/RunView/ProjectDetail/Sidebar. All UPPERCASE 11px,
+  `rounded-full`, `tracking-wider`.
+- **`<EmptyState>`** (`components/ui/empty-state.tsx`) — reusable empty state
+  with `page` and `column` sizes. Page-size: 64px icon + heading + helper +
+  CTA. Column-size: 32px icon + compact title. Used by Goap, Insights
+  (3 subsections), RunView kanban (5 columns).
+- **`<Logomark>`** + `assets/logomark.svg` — geometric segmented-hex
+  identity mark, `currentColor` single-path. Replaces the placeholder
+  shadcn `Badge` in the sidebar header and grows into the breadcrumb home
+  crumb at 16px.
+- **`lib/role-color.ts` `rolePillStyle(role)`** — extends the role-color
+  palette with a `{ background, color, borderColor }` triplet using
+  opacity-modulated saturated color so role pills adapt to theme background
+  via composition (no per-theme override).
+
+### Changed — surface refactors
+
+- **Sidebar brand block**: logomark + wordmark with mono `tabular-nums`
+  version below — replaces the placeholder Badge pill.
+- **Sidebar project list**: rows truncate cleanly via `flex min-w-0 flex-1`,
+  `LOCKED` shows as an outline StatusPill, daily-count uses solid /
+  destructive StatusPill at threshold ≥5 else soft / neutral. Whole row
+  wrapped in a Radix Tooltip with project name + createdAt.
+- **Breadcrumbs**: intermediate crumbs `text-muted-foreground font-medium`,
+  final crumb `text-foreground font-semibold`. Home crumb uses the
+  logomark at 16px instead of a generic LayoutGrid icon. Lucide
+  `ChevronRight size-3.5` separator.
+- **Home Mission Control**: removed the 4-card KPI hero. New
+  `home-metric-strip` is a single inline `grid-cols-4 divide-x` band —
+  active-runs is the headline (`text-3xl`), others `text-2xl`, all
+  `tabular-nums`. Soft `bg-success/5` lights up the strip when runs are
+  live.
+- **OutcomeDonut**: when total ≤5 OR a single outcome dominates >90%, the
+  donut is replaced by a stat row (`<dot> Failed · 3 of 3 (100%)`) — the
+  chart only renders when a distribution actually exists.
+- **RunView task cards**: removed the role-color left side-stripe and the
+  `pl-2` overrides that existed to clear it. Role moves to a top-of-card
+  token (`<dot> + UPPERCASE label`). Cards gain a subtle `ring-1 ring-info/40`
+  while running, `ring-destructive/40` when failed. Per-card status uses a
+  soft StatusPill (`live` when running).
+- **RunView resource bar**: 3 stacked progress bars + separate token line
+  consolidated into a single horizontal 3-segment bar — TIME / TURNS / POOL
+  each as eyebrow + tabular value + thin colored fill. Token I/O caption
+  right-aligned beneath.
+- **RunView header status**: solid StatusPill with live dot during
+  running/verifying.
+- **RunView kanban empty columns**: replaced "empty" text with EmptyState
+  (column size) per column (Clock / Activity / ShieldCheck / CheckCircle2 /
+  XCircle).
+- **PlanCanvas nodes**: dropped the 4px colored top stripe. Role chip is
+  now a low-chroma tinted pill via `rolePillStyle()` — saturated text on
+  pale tint, theme-adaptive.
+- **PlanCanvas background**: `BackgroundVariant.Dots` `gap={24} size={1}
+  color="hsl(var(--border))"` — subtle but visible dot grid.
+- **PlanCanvas controls**: custom 3-button IconButton stack
+  (`ZoomIn / ZoomOut / Maximize2`) bottom-right with the standard card
+  surface — replaces the default ReactFlow `<Controls />` glyph trio.
+- **Chat bubbles**: user bubble pinned with `rounded-2xl rounded-tr-md`,
+  assistant bubble has no fill (plain text on background),
+  receipt cards now lead with a lucide icon (`CheckCircle2 / Info /
+  XCircle`) tied to action status — color is no longer the only
+  signal.
+- **Cards** (`components/ui/card.tsx`): dark mode drops the visible border
+  for an inset 1px ring at 50% (rises to 70% on hover) + faint drop
+  shadow, anchoring cards instead of letting them float on the dark
+  surface. Light mode keeps the border at rest and adds `shadow-sm` on
+  hover. All transitions use `--duration-base var(--ease-smooth)`.
+- **Button motion**: replaced `transition-colors` with explicit
+  `background-color`/`color` on `--duration-quick` and `box-shadow` on
+  `--duration-base`, both `--ease-smooth`. The "Linear-style" feel only
+  arrives when the motion tokens are actually wired.
+- **Data legibility**: `tabular-nums` added to Insights trajectories time
+  column, Workers history started/ended cells, GlobalRunsTable started
+  column. Workers cron expressions become `font-mono text-xs2
+  tracking-wide` so they read as data rather than prose.
+- **Empty states on data pages**: Goap result area, Insights three
+  subsections (trajectories, run-summaries, router-priors), each
+  wrapped in `border border-dashed border-border/40 rounded-md` so the
+  empty surface signals intent.
+
+### Fixed — a11y + encoding
+
+- `<main>` scrollable region now has `tabIndex={0}` + `aria-label="Main
+  content"` — axe `scrollable-region-focusable` rule passes in both
+  locales on the previously-overflowing Insights page.
+- Insights `overflow-x-auto` table wrappers have `tabIndex={0}` +
+  `role="region"` + `aria-label` per table.
+- Mojibake reintroduced by subagent edits hit four files across the run
+  (em-dash `—`, ellipsis `…`, middle dot `·`, arrow `→`, plus
+  box-drawing characters in JSDoc). Detection regex extended to
+  `Â·|â†|â€|â”|â–|â—|ðŸ|Ã[…]`. ASCII-art JSDoc in `Chat.tsx` replaced
+  with plain prose to permanently remove the corruption vector for
+  box-drawing chars.
+
+### Numbers
+
+- 461 unit tests passing (+19 new from Wave A: StatusPill + EmptyState +
+  Logomark; +0 net from refactors).
+- 16/16 a11y e2e tests passing (Insights regression fixed).
+- 50+ smoke/tooltip/i18n e2e tests passing in both en and de.
+- Static gates green: typecheck, lint, prettier, tokens:check, build.
+- Bundle size unchanged at 1.44 MB minified / 432 kB gzip.
+
+### Not done (deferred to v1.7.1+)
+
+- Bundle code-splitting (1.44 MB minified is past Vite's 500 kB warning).
+- Re-enable `axe-core` `color-contrast` rule in `tests/e2e/a11y.spec.ts`
+  — still requires the opacity-modifier audit deferred since v1.6.0.
+
 ## 1.6.1 — QA sweep: visual, contrast, role-color, i18n DE
 
 Multi-agent QA pass after v1.6.0 ship. Four parallel test agents (unit/e2e,

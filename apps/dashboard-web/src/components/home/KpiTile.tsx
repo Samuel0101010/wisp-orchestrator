@@ -16,18 +16,18 @@ export interface KpiTileProps {
   deltaPolarity?: 'auto' | 'higher-is-better' | 'lower-is-better';
   /** Icon shown top-right. */
   icon?: ReactNode;
-  /** Soft accent band on the left side (uses semantic tone). */
+  /** Semantic tone for the icon chip (no left side-stripe). */
   tone?: 'info' | 'success' | 'warning' | 'destructive' | 'muted';
   className?: string;
   'data-testid'?: string;
 }
 
-const toneToBg: Record<NonNullable<KpiTileProps['tone']>, string> = {
-  info: 'before:bg-info',
-  success: 'before:bg-success',
-  warning: 'before:bg-warning',
-  destructive: 'before:bg-destructive',
-  muted: 'before:bg-muted-foreground/40',
+const toneToChip: Record<NonNullable<KpiTileProps['tone']>, string> = {
+  info: 'bg-info/10 text-info',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+  destructive: 'bg-destructive/10 text-destructive',
+  muted: 'bg-muted text-muted-foreground',
 };
 
 export function KpiTile({
@@ -50,8 +50,6 @@ export function KpiTile({
     <div
       className={cn(
         'relative overflow-hidden rounded-lg border bg-card p-5 transition-shadow hover:shadow-sm',
-        'before:absolute before:left-0 before:top-0 before:h-full before:w-0.5 before:opacity-70',
-        toneToBg[tone],
         className,
       )}
       data-testid={rest['data-testid']}
@@ -60,7 +58,16 @@ export function KpiTile({
         <span className="text-xs2 font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
-        {icon && <span className="text-muted-foreground">{icon}</span>}
+        {icon && (
+          <span
+            className={cn(
+              'inline-flex h-7 w-7 items-center justify-center rounded-md',
+              toneToChip[tone],
+            )}
+          >
+            {icon}
+          </span>
+        )}
       </div>
       <div className="mt-2 flex items-baseline gap-2">
         <AnimatedCounter

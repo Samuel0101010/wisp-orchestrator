@@ -176,7 +176,7 @@ export function GlobalRunsTable({ runs }: GlobalRunsTableProps) {
                 <td className="px-3 py-2">
                   <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
                 </td>
-                <td className="px-3 py-2 text-xs text-muted-foreground">
+                <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
                   {r.startedAt ? fmtRel(r.startedAt, i18n.language) : '—'}
                 </td>
                 <td className="px-3 py-2 text-right tabular-nums">

@@ -89,10 +89,28 @@
     "title": "Insights",
     "trajectoriesTitle": "Past trajectories",
     "trajectoriesEmpty": "No trajectories captured yet.",
+    "trajectories": {
+      "empty": {
+        "title": "No trajectories captured yet",
+        "description": "Each completed run records a trajectory with the prompt, outcome, and lessons learned. They appear here as runs finish."
+      }
+    },
     "summariesTitle": "Recent run summaries",
     "summariesEmpty": "No run summaries yet.",
+    "runSummaries": {
+      "empty": {
+        "title": "No run summaries yet",
+        "description": "Once runs complete, a short Markdown summary is generated and appears here."
+      }
+    },
     "priorsTitle": "Model router priors",
     "priorsEmpty": "No priors yet — they accrue once Thompson sampling has run.",
+    "routerPriors": {
+      "empty": {
+        "title": "No router priors yet",
+        "description": "Priors accrue once Thompson sampling has run across enough role/model combinations."
+      }
+    },
     "cols": {
       "ts": "Time",
       "outcome": "Outcome",
@@ -120,7 +138,11 @@
       "loadExample": "Load example"
     },
     "noResult": "Submit a problem to see the plan.",
-    "result": "Plan result"
+    "result": "Plan result",
+    "empty": {
+      "title": "GOAP planner ready",
+      "description": "Enter an initial state, goal, and actions on the left to compute a plan."
+    }
   },
   "toolMultiSelect": {
     "noneSelected": "No tools selected (agent gets defaults)",
@@ -360,7 +382,12 @@
     },
     "canvas": {
       "noPrompt": "(no prompt)",
-      "editHint": "edit"
+      "editHint": "edit",
+      "controls": {
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "fitView": "Fit to screen"
+      }
     },
     "versionBadge": {
       "label": "v{{version}} (replanned)",
@@ -394,7 +421,9 @@
       "time": "Time",
       "turns": "Turns",
       "pool": "Pool",
-      "tokensInOut": "{{in}} in · {{out}} out"
+      "tokensInOut": "{{in}} in · {{out}} out",
+      "tokensIn": "{{in}} in",
+      "tokensOut": "{{out}} out"
     },
     "autopilot": {
       "label": "Autopilot",
@@ -409,7 +438,13 @@
       "verifying": "VERIFYING",
       "done": "DONE",
       "failed": "FAILED",
-      "empty": "empty"
+      "empty": {
+        "pending": "No pending tasks",
+        "running": "Nothing running",
+        "verifying": "No verification queued",
+        "done": "No completed tasks yet",
+        "failed": "No failures"
+      }
     },
     "task": {
       "tokens": "Tokens",
@@ -572,6 +607,7 @@
     },
     "outcomeDonut": {
       "empty": "No completed runs in window",
+      "statRow": "{{count}} of {{total}} ({{pct}}%)",
       "labels": {
         "success": "Success",
         "failure": "Failed",

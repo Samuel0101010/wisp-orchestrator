@@ -156,6 +156,20 @@ body {
   -webkit-backdrop-filter: blur(12px) saturate(180%);
 }
 
+/* Dark-theme card surface: invisible border replaced by 50% inset ring + small drop shadow.
+   Hover state strengthens the ring and adds a soft lifted shadow. Anchors dark cards visually. */
+.dark [data-card] {
+  border-color: transparent;
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--border) / 0.5),
+    0 1px 2px 0 hsl(0 0% 0% / 0.3);
+}
+.dark [data-card]:hover {
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--border) / 0.7),
+    0 4px 12px -2px hsl(0 0% 0% / 0.35);
+}
+
 /* CSS-only border beam for active run cards — single conic-gradient sweep, ~3s loop, respects reduced-motion. */
 @property --beam-angle {
   syntax: '<angle>';

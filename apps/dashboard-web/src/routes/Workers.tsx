@@ -59,8 +59,8 @@ function RunsPanel({ name }: { name: string }) {
               <td className="py-1.5 pr-4 font-mono text-xs text-muted-foreground">
                 {r.id.slice(0, 8)}
               </td>
-              <td className="py-1.5 pr-4 text-xs">{fmtTs(r.startedAt)}</td>
-              <td className="py-1.5 pr-4 text-xs">{fmtTs(r.endedAt)}</td>
+              <td className="py-1.5 pr-4 text-xs tabular-nums">{fmtTs(r.startedAt)}</td>
+              <td className="py-1.5 pr-4 text-xs tabular-nums">{fmtTs(r.endedAt)}</td>
               <td className={`py-1.5 pr-4 text-xs font-medium ${statusColor(r.status)}`}>
                 {r.status}
               </td>
@@ -155,7 +155,7 @@ export function WorkersRoute() {
                   onClick={() => setSelected(selected === w.name ? null : w.name)}
                 >
                   <td className="px-4 py-2.5 font-mono font-semibold">{w.name}</td>
-                  <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                  <td className="px-4 py-2.5 font-mono text-xs2 tracking-wide text-muted-foreground">
                     {w.cronSpec}
                   </td>
                   <td className="px-4 py-2.5">

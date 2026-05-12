@@ -2,17 +2,20 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   Background,
-  Controls,
+  BackgroundVariant,
   type Edge as RFEdge,
   type Node as RFNode,
   type NodeProps,
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from 'reactflow';
 import dagre from 'dagre';
+import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 import type { Plan, TaskNode } from '@agent-harness/schemas';
-import { roleHsl } from '@/lib/role-color';
+import { rolePillStyle } from '@/lib/role-color';
+import { IconButton } from '@/components/ui/icon-button';
 import 'reactflow/dist/style.css';
 
 interface PlanCanvasProps {
@@ -32,7 +35,6 @@ const NODE_HEIGHT = 110;
 function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
   const { taskNode, selected } = data;
   const { t } = useTranslation();
-  const accent = roleHsl(taskNode.role);
   const oneLine = taskNode.prompt.replace(/\s+/g, ' ').trim();
   return (
     <div
@@ -44,13 +46,12 @@ function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
       }
       style={{ width: NODE_WIDTH }}
     >
-      <div style={{ background: accent, height: 4 }} />
       <div className="flex flex-col gap-1 p-3">
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">{taskNode.id}</span>
           <span
-            className="rounded px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wide"
-            style={{ background: accent, color: 'white' }}
+            className="rounded-full border px-2 py-0.5 text-2xs font-medium uppercase tracking-wider"
+            style={rolePillStyle(taskNode.role)}
           >
             {taskNode.role}
           </span>
@@ -146,9 +147,39 @@ function PlanCanvasInner({ plan, selectedNodeId, onSelectNode }: PlanCanvasProps
       fitView
       proOptions={{ hideAttribution: true }}
     >
-      <Background gap={16} />
-      <Controls showInteractive={false} />
+      <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="hsl(var(--border))" />
+      <CustomControls />
     </ReactFlow>
+  );
+}
+
+function CustomControls() {
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const { t } = useTranslation();
+  return (
+    <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1 rounded-md border bg-card p-1 shadow-sm">
+      <IconButton
+        icon={<ZoomIn className="h-4 w-4" />}
+        label={t('planEditor.canvas.controls.zoomIn')}
+        onClick={() => zoomIn()}
+        variant="ghost"
+        size="icon"
+      />
+      <IconButton
+        icon={<ZoomOut className="h-4 w-4" />}
+        label={t('planEditor.canvas.controls.zoomOut')}
+        onClick={() => zoomOut()}
+        variant="ghost"
+        size="icon"
+      />
+      <IconButton
+        icon={<Maximize2 className="h-4 w-4" />}
+        label={t('planEditor.canvas.controls.fitView')}
+        onClick={() => fitView()}
+        variant="ghost"
+        size="icon"
+      />
+    </div>
   );
 }
 

@@ -14,7 +14,7 @@ import type { Agent, AgentThread } from '@agent-harness/schemas';
 import { fmtRel } from '@/lib/fmt-rel';
 
 export interface AgentChatProps {
-  /** Optional project context â€” when set, threads are created with this projectId. */
+  /** Optional project context — when set, threads are created with this projectId. */
   projectId?: string | null;
   /** Compact variant (used in narrow rails). Pass `false` on full pages. */
   compact?: boolean;
@@ -153,7 +153,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Header â€” agent picker */}
+      {/* Header — agent picker */}
       <header className="flex flex-col gap-2 border-b border-border/60 px-3 py-2">
         <div className="flex items-baseline justify-between">
           <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
@@ -227,7 +227,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
             {selectedAgent.description && <> · {selectedAgent.description}</>}
             <div className="mt-0.5 line-clamp-2 font-mono text-2xs opacity-70">
               {selectedAgent.systemPrompt.slice(0, 140)}
-              {selectedAgent.systemPrompt.length > 140 ? 'â€¦' : ''}
+              {selectedAgent.systemPrompt.length > 140 ? '…' : ''}
             </div>
           </div>
         )}

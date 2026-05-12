@@ -182,8 +182,9 @@ describe('RunView', () => {
       expect(screen.getByTestId('task-tokens-t-pending')).toHaveTextContent('500 / 200'),
     );
     expect(screen.getByTestId('task-turns-t-pending')).toHaveTextContent('3');
-    // Resource bar reflects total turns.
-    expect(screen.getByTestId('resource-turns')).toHaveTextContent(/8 \/ 100/); // 5 + 3
+    // Resource bar reflects total turns (5 + 3 = 8 of 100 budget).
+    expect(screen.getByTestId('resource-turns')).toHaveTextContent(/8/);
+    expect(screen.getByTestId('resource-turns')).toHaveTextContent(/100/);
   });
 
   it('Pause button calls /pause and Cancel opens the confirm dialog', async () => {
