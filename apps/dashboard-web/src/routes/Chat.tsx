@@ -1,15 +1,15 @@
-/**
- * Full-page chat — Microsoft-Teams-style 3-pane layout.
+﻿/**
+ * Full-page chat â€” Microsoft-Teams-style 3-pane layout.
  *
- *   ┌────────┬───────────────────────────────────┬────────┐
- *   │        │              messages              │        │
- *   │ thread │  ──────────────────────────────── │ people │
- *   │  list  │              composer              │  list  │
- *   └────────┴───────────────────────────────────┴────────┘
+ *   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”
+ *   â”‚        â”‚              messages              â”‚        â”‚
+ *   â”‚ thread â”‚  â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ â”‚ people â”‚
+ *   â”‚  list  â”‚              composer              â”‚  list  â”‚
+ *   â””â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”˜
  *
  * The center transcript shows multi-author chat: each assistant message has
  * an avatar + author name; user messages are right-aligned. Inline cards
- * surface manager directive results (e.g. "Created project X — open").
+ * surface manager directive results (e.g. "Created project X â€” open").
  *
  * Threads are scoped to whichever agent the user picked from the manager-led
  * "New chat with team" entry point. By default the manager (seedKey='manager')
@@ -18,6 +18,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Loader2,
   MessageSquarePlus,
@@ -30,6 +31,7 @@ import {
   ChevronRight,
   X,
 } from 'lucide-react';
+import { fmtRel } from '@/lib/fmt-rel';
 import {
   type ChatActionRow,
   type ThreadParticipantSummary,
@@ -47,22 +49,16 @@ import {
 import type { Agent, AgentMessage, AgentThread } from '@agent-harness/schemas';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-function fmtRel(d: Date | string | number): string {
+function fmtTime(d: Date | string | number, lang: string): string {
   const t = typeof d === 'number' ? d : typeof d === 'string' ? new Date(d).getTime() : d.getTime();
-  const dt = Date.now() - t;
-  if (dt < 60_000) return `${Math.floor(dt / 1000)}s`;
-  if (dt < 3_600_000) return `${Math.floor(dt / 60_000)}m`;
-  if (dt < 86_400_000) return `${Math.floor(dt / 3_600_000)}h`;
-  return `${Math.floor(dt / 86_400_000)}d`;
-}
-
-function fmtTime(d: Date | string | number): string {
-  const t = typeof d === 'number' ? d : typeof d === 'string' ? new Date(d).getTime() : d.getTime();
-  return new Date(t).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return new Date(t).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
 }
 
 export function ChatRoute() {
+  const { t, i18n } = useTranslation();
   const agents = useAgents();
   const manager = useMemo<Agent | null>(
     () => agents.data?.find((a) => a.seedKey === 'manager') ?? null,
@@ -159,7 +155,7 @@ export function ChatRoute() {
   if (agents.isLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center text-sm text-muted-foreground">
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading team…
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('chat.loading')}
       </div>
     );
   }
@@ -167,13 +163,10 @@ export function ChatRoute() {
     return (
       <div className="flex h-[80vh] flex-col items-center justify-center gap-3 text-center">
         <Sparkles className="h-7 w-7 text-info" />
-        <div className="text-base font-semibold">Team chat is not seeded yet.</div>
-        <p className="max-w-md text-sm text-muted-foreground">
-          The built-in dev team (Marcus + 9 specialists) is installed automatically on first server
-          boot. Restart the dashboard server, then return here.
-        </p>
+        <div className="text-base font-semibold">{t('chat.notSeeded')}</div>
+        <p className="max-w-md text-sm text-muted-foreground">{t('chat.notSeededBody')}</p>
         <Link to="/agents" className="text-sm underline">
-          Open Agents settings
+          {t('chat.openAgentsSettings')}
         </Link>
       </div>
     );
@@ -186,42 +179,40 @@ export function ChatRoute() {
 
   return (
     <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-[260px_1fr_280px] overflow-hidden">
-      {/* ──────────── LEFT: Thread list ──────────── */}
+      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ LEFT: Thread list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <aside className="flex h-full flex-col border-r bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <span className="text-sm font-semibold">Conversations</span>
-          <Button
-            variant="ghost"
-            size="icon"
+          <span className="text-sm font-semibold">{t('chat.sidebar.title')}</span>
+          <IconButton
+            icon={<MessageSquarePlus className="h-4 w-4" />}
+            label={t('tooltips.newThread')}
             onClick={startNewThread}
             disabled={createThread.isPending}
-            title="New conversation"
-          >
-            <MessageSquarePlus className="h-4 w-4" />
-          </Button>
+          />
         </div>
         <div className="flex-1 overflow-y-auto py-1">
           {threadList.length === 0 && (
             <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-              No conversations yet.
+              {t('chat.sidebar.empty')}
               <button
                 onClick={startNewThread}
                 className="mt-2 block w-full rounded-md border bg-info/10 py-1.5 text-info"
               >
-                Start with the team
+                {t('chat.sidebar.startCta')}
               </button>
             </div>
           )}
-          {threadList.map((t) => (
+          {threadList.map((thread) => (
             <ThreadRow
-              key={t.id}
-              thread={t}
-              active={selectedThreadId === t.id}
-              onClick={() => setSelectedThreadId(t.id)}
+              key={thread.id}
+              thread={thread}
+              active={selectedThreadId === thread.id}
+              lang={i18n.language}
+              onClick={() => setSelectedThreadId(thread.id)}
               onDelete={async () => {
-                if (selectedThreadId === t.id) setSelectedThreadId(null);
+                if (selectedThreadId === thread.id) setSelectedThreadId(null);
                 try {
-                  await deleteThread.mutateAsync({ threadId: t.id, agentId: manager.id });
+                  await deleteThread.mutateAsync({ threadId: thread.id, agentId: manager.id });
                 } catch (err) {
                   setError(err instanceof Error ? err.message : String(err));
                 }
@@ -231,46 +222,46 @@ export function ChatRoute() {
         </div>
       </aside>
 
-      {/* ──────────── CENTER: Transcript ──────────── */}
+      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ CENTER: Transcript â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="flex h-full min-w-0 flex-col">
         <header className="flex items-center justify-between border-b px-5 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Avatar name={manager.name} avatarUrl={manager.avatarUrl ?? null} size={36} />
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold">
-                {detail.data?.thread.title ?? 'Team chat with Marcus'}
+                {detail.data?.thread.title ?? t('chat.header.defaultTitle')}
               </div>
-              <div className="text-[11px] text-muted-foreground">
-                {participants.length} {participants.length === 1 ? 'participant' : 'participants'}
+              <div className="text-xs2 text-muted-foreground">
+                {t('chat.header.participants', { count: participants.length })}
                 {detail.data?.actions && detail.data.actions.length > 0 && (
-                  <> · {detail.data.actions.length} actions</>
+                  <> Â· {t('chat.header.actions', { count: detail.data.actions.length })}</>
                 )}
               </div>
             </div>
           </div>
           {selectedThreadId && (
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!selectedThreadId || compress.isPending || messageList.length < 4}
-                onClick={async () => {
-                  if (!selectedThreadId) return;
-                  try {
-                    await compress.mutateAsync({ threadId: selectedThreadId });
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : String(err));
-                  }
-                }}
-                title={
-                  messageList.length < 4
-                    ? 'Need at least 4 messages to compress'
-                    : 'Summarise this conversation into one message'
-                }
-              >
-                {compress.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
-                Compress
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={!selectedThreadId || compress.isPending || messageList.length < 4}
+                    onClick={async () => {
+                      if (!selectedThreadId) return;
+                      try {
+                        await compress.mutateAsync({ threadId: selectedThreadId });
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : String(err));
+                      }
+                    }}
+                  >
+                    {compress.isPending ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                    {t('chat.header.compress')}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('tooltips.compressThread')}</TooltipContent>
+              </Tooltip>
             </div>
           )}
         </header>
@@ -302,53 +293,51 @@ export function ChatRoute() {
             )}
             <div className="flex items-end gap-2 rounded-xl border bg-background p-2 shadow-sm">
               <textarea
-                aria-label="Message composer"
+                aria-label={t('chat.composer.ariaLabel')}
                 value={composer}
                 onChange={(e) => setComposer(e.target.value)}
                 onKeyDown={handleKey}
-                placeholder={`Message Marcus + team — ⌘⏎ to send. Type @ to mention a teammate.`}
+                placeholder={t('chat.composer.placeholder')}
                 rows={1}
                 className="max-h-32 flex-1 resize-none bg-transparent text-sm outline-none"
               />
-              <Button
-                size="icon"
+              <IconButton
+                icon={
+                  sendMessage.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )
+                }
+                label={t('tooltips.sendMessage')}
+                variant="default"
                 onClick={send}
                 disabled={!composer.trim() || sendMessage.isPending}
-                title="Send (⌘⏎)"
-              >
-                {sendMessage.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
+              />
             </div>
           </div>
         )}
       </section>
 
-      {/* ──────────── RIGHT: Participants ──────────── */}
+      {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ RIGHT: Participants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <aside className="flex h-full flex-col border-l bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
-            <Users className="h-4 w-4" /> People
+            <Users className="h-4 w-4" /> {t('chat.participants.title')}
           </div>
           {selectedThreadId && (
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Add member"
+            <IconButton
+              icon={<Plus className="h-4 w-4" />}
+              label={t('tooltips.addMember')}
               onClick={() => setShowAddMember(true)}
               disabled={!selectedThreadId}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            />
           )}
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {participants.length === 0 && (
             <div className="px-4 py-6 text-center text-xs text-muted-foreground">
-              No conversation selected.
+              {t('chat.participants.empty')}
             </div>
           )}
           {participants.map((p) => {
@@ -376,9 +365,8 @@ export function ChatRoute() {
             );
           })}
         </div>
-        <div className="border-t p-3 text-[11px] text-muted-foreground">
-          Marcus stays in every conversation. Add specialists to bring them into the chat — or
-          @mention them inline.
+        <div className="border-t p-3 text-xs2 text-muted-foreground">
+          {t('chat.participants.permanent')}
         </div>
       </aside>
 
@@ -410,14 +398,17 @@ export function ChatRoute() {
 function ThreadRow({
   thread,
   active,
+  lang,
   onClick,
   onDelete,
 }: {
   thread: AgentThread;
   active: boolean;
+  lang: string;
   onClick: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const [hover, setHover] = useState(false);
   return (
     <div
@@ -429,19 +420,21 @@ function ThreadRow({
       onClick={onClick}
     >
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium">{thread.title ?? 'Untitled chat'}</div>
-        <div className="text-[10px] text-muted-foreground">{fmtRel(thread.updatedAt)} ago</div>
+        <div className="truncate text-sm font-medium">
+          {thread.title ?? t('chat.thread.untitled')}
+        </div>
+        <div className="text-2xs text-muted-foreground">{fmtRel(thread.updatedAt, lang)}</div>
       </div>
       {hover && (
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (confirm('Delete this conversation? This cannot be undone.')) {
+            if (confirm(t('chat.thread.deleteConfirm'))) {
               onDelete();
             }
           }}
           className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-          title="Delete"
+          title={t('chat.thread.deleteLabel')}
         >
           <Trash2 className="h-3 w-3" />
         </button>
@@ -461,6 +454,7 @@ function ParticipantRow({
   agent: Agent | null;
   onRemove: (() => Promise<void>) | null;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="group flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent">
       <Avatar
@@ -471,25 +465,24 @@ function ParticipantRow({
       />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{participant.name}</div>
-        <div className="truncate text-[11px] text-muted-foreground">{agent?.description ?? ''}</div>
+        <div className="truncate text-xs2 text-muted-foreground">{agent?.description ?? ''}</div>
       </div>
       {participant.role === 'manager' && (
-        <span className="rounded-full bg-info/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-info">
-          Lead
+        <span className="rounded-full bg-info/15 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider text-info">
+          {t('chat.participants.roleLead')}
         </span>
       )}
       {onRemove && (
-        <button
+        <IconButton
+          icon={<X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />}
+          label={t('tooltips.removeMember')}
+          className="opacity-0 transition-opacity group-hover:opacity-100"
           onClick={() => {
-            if (confirm(`Remove ${participant.name} from this conversation?`)) {
+            if (confirm(t('chat.participants.removeConfirm', { name: participant.name }))) {
               void onRemove();
             }
           }}
-          className="opacity-0 transition-opacity group-hover:opacity-100"
-          title="Remove from chat"
-        >
-          <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-        </button>
+        />
       )}
     </div>
   );
@@ -498,36 +491,32 @@ function ParticipantRow({
 // ---- Empty state ----
 
 function EmptyTranscript({ onStart }: { onStart: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 py-12 text-center">
       <Sparkles className="h-10 w-10 text-info" />
-      <div className="text-lg font-semibold">Brainstorm with the team</div>
-      <p className="max-w-md text-sm text-muted-foreground">
-        Marcus (Project Manager) chairs every conversation. He can pull specialists in, then create
-        + start a project once you've agreed on direction.
-      </p>
+      <div className="text-lg font-semibold">{t('chat.greeter.title')}</div>
+      <p className="max-w-md text-sm text-muted-foreground">{t('chat.greeter.body')}</p>
       <Button onClick={onStart}>
-        <MessageSquarePlus className="mr-2 h-4 w-4" /> Start conversation
+        <MessageSquarePlus className="mr-2 h-4 w-4" /> {t('chat.greeter.startButton')}
       </Button>
     </div>
   );
 }
 
 function ConversationStarter({ manager }: { manager: Agent }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-xl border-2 border-dashed bg-muted/30 p-6">
       <div className="flex items-start gap-4">
         <Avatar name={manager.name} avatarUrl={manager.avatarUrl ?? null} size={48} />
         <div className="space-y-2 text-sm">
-          <div className="font-semibold">Marcus</div>
-          <p className="text-muted-foreground">
-            Hi! Tell me what you're thinking about — a feature idea, a bug to chase, or a fresh
-            project. I'll loop in the specialists you need.
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Tip: type <code className="rounded bg-muted px-1">@Lena</code> to address the frontend
-            lead directly.
-          </p>
+          <div className="font-semibold">{t('chat.greeter.starterName')}</div>
+          <p className="text-muted-foreground">{t('chat.greeter.starterGreeting')}</p>
+          <p
+            className="text-xs text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1"
+            dangerouslySetInnerHTML={{ __html: t('chat.greeter.tip') }}
+          />
         </div>
       </div>
     </div>
@@ -549,7 +538,8 @@ function Transcript({
   manager: Agent;
   isPending: boolean;
 }) {
-  // Build a map: messageId → actions[] so we can render action cards below
+  const { t, i18n } = useTranslation();
+  // Build a map: messageId â†’ actions[] so we can render action cards below
   // their parent manager message.
   const actionsByMessage = useMemo(() => {
     const map = new Map<string, ChatActionRow[]>();
@@ -571,12 +561,13 @@ function Transcript({
           participants={participants}
           manager={manager}
           actions={actionsByMessage.get(m.id) ?? []}
+          lang={i18n.language}
         />
       ))}
       {isPending && (
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <Loader2 className="h-3 w-3 animate-spin" />
-          Manager is typing…
+          {t('chat.transcript.typing')}
         </div>
       )}
     </div>
@@ -588,12 +579,15 @@ function MessageBlock({
   participants,
   manager,
   actions,
+  lang,
 }: {
   message: AgentMessage;
   participants: ThreadParticipantSummary[];
   manager: Agent;
   actions: ChatActionRow[];
+  lang: string;
 }) {
+  const { t } = useTranslation();
   const isUser = message.role === 'user';
   const author = !isUser
     ? (participants.find((p) => p.agentId === message.authorAgentId) ?? {
@@ -609,8 +603,8 @@ function MessageBlock({
       <div className="flex justify-end">
         <div className="max-w-[72%] rounded-2xl rounded-br-sm bg-info/10 px-4 py-2 text-sm">
           <div className="whitespace-pre-wrap">{message.content}</div>
-          <div className="mt-1 text-right text-[10px] text-muted-foreground">
-            {fmtTime(message.createdAt)}
+          <div className="mt-1 text-right text-2xs text-muted-foreground">
+            {fmtTime(message.createdAt, lang)}
           </div>
         </div>
       </div>
@@ -626,27 +620,29 @@ function MessageBlock({
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-baseline gap-2">
           <span className="text-sm font-semibold">{authorName}</span>
-          <span className="text-[10px] text-muted-foreground">{fmtTime(message.createdAt)}</span>
+          <span className="text-2xs text-muted-foreground">{fmtTime(message.createdAt, lang)}</span>
           {message.errorReason === 'pending' && (
-            <span className="rounded bg-warning/20 px-1 text-[9px] uppercase text-warning">
-              interrupted
+            <span className="rounded bg-warning/20 px-1 text-3xs uppercase text-warning">
+              {t('chat.transcript.interrupted')}
             </span>
           )}
           {message.errorReason === 'timeout' && (
-            <span className="rounded bg-destructive/20 px-1 text-[9px] font-semibold text-destructive">
-              Timeout (180s)
+            <span className="rounded bg-destructive/20 px-1 text-3xs font-semibold text-destructive">
+              {t('chat.transcript.timeout')}
             </span>
           )}
           {message.errorReason &&
             message.errorReason !== 'pending' &&
             message.errorReason !== 'timeout' && (
-              <span className="rounded bg-destructive/20 px-1 text-[9px] uppercase text-destructive">
+              <span className="rounded bg-destructive/20 px-1 text-3xs uppercase text-destructive">
                 {message.errorReason}
               </span>
             )}
         </div>
         <div className="rounded-2xl rounded-tl-sm bg-card px-4 py-2 text-sm shadow-sm ring-1 ring-border">
-          <div className="whitespace-pre-wrap">{message.content || '(no response)'}</div>
+          <div className="whitespace-pre-wrap">
+            {message.content || t('chat.transcript.noResponse')}
+          </div>
         </div>
         {actions.length > 0 && (
           <div className="mt-2 space-y-1">
@@ -682,6 +678,7 @@ function AuthorAvatar({
 // ---- Action card ----
 
 function ActionCard({ action }: { action: ChatActionRow }) {
+  const { t } = useTranslation();
   const status = action.status;
   const palette =
     status === 'ok'
@@ -694,14 +691,16 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     const r = action.resultJson as { projectId: string; name: string; teamSize: number } | null;
     return (
       <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-        <div className="font-semibold">Project created · {r?.name}</div>
-        <div className="text-muted-foreground">Team of {r?.teamSize}. Ready to plan & run.</div>
+        <div className="font-semibold">{t('chat.action.projectCreated', { name: r?.name })}</div>
+        <div className="text-muted-foreground">
+          {t('chat.action.projectTeam', { count: r?.teamSize ?? 0 })}
+        </div>
         {r?.projectId && (
           <Link
             to={`/projects/${r.projectId}`}
             className="mt-1 inline-flex items-center gap-1 text-info hover:underline"
           >
-            Open project <ArrowRight className="h-3 w-3" />
+            {t('chat.action.openProject')} <ArrowRight className="h-3 w-3" />
           </Link>
         )}
       </div>
@@ -710,33 +709,40 @@ function ActionCard({ action }: { action: ChatActionRow }) {
   if (action.kind === 'add_member' && status === 'ok') {
     const r = action.resultJson as { name?: string } | null;
     return (
-      <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-        Added <strong>{r?.name ?? 'member'}</strong> to the conversation.
-      </div>
+      <div
+        className={`rounded-lg border ${palette} p-3 text-xs`}
+        dangerouslySetInnerHTML={{
+          __html: t('chat.action.memberAdded', { name: r?.name ?? 'member' }),
+        }}
+      />
     );
   }
   if (action.kind === 'consult' && status === 'ok') {
     const r = action.resultJson as { consultedName?: string } | null;
     return (
-      <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-        Consulted <strong>{r?.consultedName ?? 'specialist'}</strong>. Reply posted below ↓
-      </div>
+      <div
+        className={`rounded-lg border ${palette} p-3 text-xs`}
+        dangerouslySetInnerHTML={{
+          __html: t('chat.action.consulted', { name: r?.consultedName ?? 'specialist' }),
+        }}
+      />
     );
   }
   if (action.kind === 'start_run') {
     const r = action.resultJson as { runId?: string; reason?: string } | null;
     if (status === 'ok' && r?.runId) {
       return (
-        <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-          Started run <code className="font-mono">{r.runId.slice(0, 8)}</code>.
-        </div>
+        <div
+          className={`rounded-lg border ${palette} p-3 text-xs font-mono`}
+          dangerouslySetInnerHTML={{
+            __html: t('chat.action.runStarted', { id: r.runId.slice(0, 8) }),
+          }}
+        />
       );
     }
     if (r?.reason === 'no_plan_yet') {
       return (
-        <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-          Cannot start run yet — no plan. Open the project to generate one.
-        </div>
+        <div className={`rounded-lg border ${palette} p-3 text-xs`}>{t('chat.action.noPlan')}</div>
       );
     }
   }
@@ -752,7 +758,7 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     return (
       <div className={`rounded-lg border ${palette} p-3 text-xs`}>
         <span className="mr-2 inline-flex items-center gap-1 text-muted-foreground">
-          🔧 invoked skill
+          ðŸ”§ invoked skill
         </span>
         <span className="font-mono font-semibold">
           {r?.skillName ?? payload?.name ?? 'unknown'}
@@ -767,14 +773,14 @@ function ActionCard({ action }: { action: ChatActionRow }) {
     const r = action.resultJson as { error?: string } | null;
     return (
       <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-        <div className="font-semibold">Action failed: {action.kind}</div>
-        <div className="text-muted-foreground">{r?.error ?? 'unknown error'}</div>
+        <div className="font-semibold">{t('chat.action.actionFailed', { kind: action.kind })}</div>
+        <div className="text-muted-foreground">{r?.error ?? t('chat.action.unknownError')}</div>
       </div>
     );
   }
   return (
     <div className={`rounded-lg border ${palette} p-3 text-xs`}>
-      Action: {action.kind} · {status}
+      {t('chat.action.generic', { kind: action.kind, status })}
     </div>
   );
 }
@@ -794,6 +800,7 @@ function AddMemberDialog({
   onPick: (agentId: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'team' | 'custom'>('team');
   const list = tab === 'team' ? team : customAgents;
   return (
@@ -803,12 +810,12 @@ function AddMemberDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-baseline justify-between border-b px-5 py-3">
-          <h3 className="text-base font-semibold">Add to conversation</h3>
+          <h3 className="text-base font-semibold">{t('chat.addMember.title')}</h3>
           <button
             onClick={onClose}
             className="font-mono text-xs text-muted-foreground hover:text-foreground"
           >
-            close
+            {t('chat.addMember.close')}
           </button>
         </header>
         <div className="flex border-b text-xs">
@@ -816,21 +823,19 @@ function AddMemberDialog({
             onClick={() => setTab('team')}
             className={`flex-1 px-4 py-2 ${tab === 'team' ? 'border-b-2 border-info font-medium' : 'text-muted-foreground'}`}
           >
-            Built-in team
+            {t('chat.addMember.tabTeam')}
           </button>
           <button
             onClick={() => setTab('custom')}
             className={`flex-1 px-4 py-2 ${tab === 'custom' ? 'border-b-2 border-info font-medium' : 'text-muted-foreground'}`}
           >
-            Your agents
+            {t('chat.addMember.tabCustom')}
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-2">
           {list.length === 0 && (
             <div className="px-4 py-8 text-center text-xs text-muted-foreground">
-              {tab === 'custom'
-                ? 'No custom agents yet. Create one in Agents settings.'
-                : 'No team members.'}
+              {tab === 'custom' ? t('chat.addMember.emptyCustom') : t('chat.addMember.emptyTeam')}
             </div>
           )}
           {list.map((a) => {
@@ -850,12 +855,14 @@ function AddMemberDialog({
                 />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{a.name}</div>
-                  <div className="truncate text-[11px] text-muted-foreground">
+                  <div className="truncate text-xs2 text-muted-foreground">
                     {a.description ?? ''}
                   </div>
                 </div>
                 {already ? (
-                  <span className="text-[10px] text-muted-foreground">in chat</span>
+                  <span className="text-2xs text-muted-foreground">
+                    {t('chat.addMember.alreadyIn')}
+                  </span>
                 ) : (
                   <ChevronRight className="h-3 w-3 text-muted-foreground" />
                 )}

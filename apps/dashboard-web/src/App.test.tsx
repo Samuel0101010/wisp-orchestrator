@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { App } from './App';
 
 const originalFetch = globalThis.fetch;
@@ -38,9 +39,11 @@ function renderAt(path: string) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <App />
+        </MemoryRouter>
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }

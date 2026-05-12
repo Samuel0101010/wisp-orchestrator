@@ -5,6 +5,7 @@
  * The preset filenames are produced by scripts/download-avatars.mjs:
  *   /avatars/generic-01.jpg … /avatars/generic-20.jpg
  */
+import { useTranslation } from 'react-i18next';
 import { Avatar } from './Avatar';
 
 const GENERIC = Array.from({ length: 20 }, (_, i) => ({
@@ -21,6 +22,7 @@ export interface AvatarPickerProps {
 }
 
 export function AvatarPicker({ open, selected, name, onSelect, onClose }: AvatarPickerProps) {
+  const { t } = useTranslation();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center bg-black/60 p-4" onClick={onClose}>
@@ -29,12 +31,12 @@ export function AvatarPicker({ open, selected, name, onSelect, onClose }: Avatar
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-baseline justify-between border-b px-5 py-3">
-          <h3 className="text-base font-semibold">Choose a profile picture</h3>
+          <h3 className="text-base font-semibold">{t('avatarPicker.title')}</h3>
           <button
             onClick={onClose}
             className="font-mono text-xs text-muted-foreground hover:text-foreground"
           >
-            close
+            {t('avatarPicker.close')}
           </button>
         </header>
         <div className="grid grid-cols-6 gap-3 overflow-auto p-5">
@@ -48,10 +50,12 @@ export function AvatarPicker({ open, selected, name, onSelect, onClose }: Avatar
             className={`group flex flex-col items-center gap-1 rounded-lg p-2 transition-colors hover:bg-accent ${
               !selected ? 'bg-accent ring-2 ring-info' : ''
             }`}
-            title="Initials fallback"
+            title={t('avatarPicker.initialsTitle')}
           >
             <Avatar name={name} avatarUrl={null} size={56} decorative />
-            <span className="text-[10px] text-muted-foreground">Initials</span>
+            <span className="text-2xs text-muted-foreground">
+              {t('avatarPicker.initialsLabel')}
+            </span>
           </button>
           {GENERIC.map((g) => {
             const active = selected === g.url;
@@ -73,8 +77,8 @@ export function AvatarPicker({ open, selected, name, onSelect, onClose }: Avatar
             );
           })}
         </div>
-        <footer className="border-t px-5 py-3 text-[11px] text-muted-foreground">
-          Pick a picture or use an initials fallback. The same picture can be reused across agents.
+        <footer className="border-t px-5 py-3 text-xs2 text-muted-foreground">
+          {t('avatarPicker.footer')}
         </footer>
       </div>
     </div>

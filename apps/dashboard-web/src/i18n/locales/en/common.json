@@ -158,6 +158,9 @@
       "tools_one": "{{count}} tool",
       "tools_other": "{{count}} tools"
     },
+    "dialog": {
+      "colorPlaceholder": "e.g. #67e8f9"
+    },
     "loading": "Loading agents…",
     "loadFailed": "Failed to load agents",
     "emptyTitle": "No custom agents yet",
@@ -174,6 +177,7 @@
     "retry": "Retry",
     "back": "Back",
     "loading": "Loading…",
+    "run": "Run",
     "lockAndRun": "Lock & Run",
     "lockAndRunDisabled": "Plan is locked",
     "starting": "Starting…",
@@ -248,7 +252,7 @@
     "subtitle": "Configure the agents for {{name}}.",
     "saveAsTemplateDialog": {
       "title": "Save team as template",
-      "description": "Persist the current team config as a reusable template available in the New Project dialog.",
+      "description": "Stores this team configuration to disk under your data dir. You can pick it from the New Project dialog later.",
       "id": "id (kebab-case, ≥2 chars)",
       "idPlaceholder": "my-team",
       "name": "Name (≥2 chars)",
@@ -257,6 +261,9 @@
       "descriptionPlaceholder": "What this team is good for…"
     },
     "generateTitle": {
+      "noTeamUnsaved": "Configure roles and save the team first",
+      "saveFirst": "Save the team first to generate a plan",
+      "unsaved": "Unsaved changes — save first to generate a plan",
       "noTeam": "Save the team first",
       "noProject": "Select a project first",
       "noGoal": "Set a goal on the project first",
@@ -269,7 +276,9 @@
       "templateSaved": "Template saved",
       "templateSaveFailed": "Template save failed",
       "templateApplied": "Template applied",
-      "rolesLoaded": "{{count}} role(s) loaded"
+      "rolesLoaded": "{{count}} role(s) loaded",
+      "rolesLoaded_one": "{{count}} role loaded",
+      "rolesLoaded_other": "{{count}} roles loaded"
     }
   },
   "teamRoleCard": {
@@ -289,7 +298,7 @@
       "systemPrompt": "System prompt"
     },
     "promptCount": {
-      "tooShort": "{{count}} chars — too short (min 40)",
+      "tooShort": "{{count}} chars — too short (min 50)",
       "ok": "{{count}} chars",
       "warn": "{{count}} chars — close to limit (max 4000)",
       "over": "{{count}} chars — over the 4000 char max"
@@ -321,11 +330,21 @@
     "lockDialog": {
       "title": "Lock & Run this plan?",
       "titleHasUnsaved": "Save unsaved changes and Lock & Run?",
-      "description": "Locking prevents further edits and immediately starts a run with the current plan. The architect, developer, and QA agents will spawn against your repo. You can pause or cancel from the run view."
+      "description": "Locking prevents further edits and immediately starts a run with the current plan. The architect, developer, and QA agents will spawn against your repo. You can pause or cancel from the run view.",
+      "runTitle": "Start run?",
+      "runDescription": "Starts a run from the locked plan immediately. Tasks dispatch into git worktrees and begin executing. You can pause or cancel from the run view."
     },
     "regenDialog": {
       "title": "Regenerate plan?",
       "description": "This replaces the current draft with a freshly generated plan from the team and goal."
+    },
+    "canvas": {
+      "noPrompt": "(no prompt)",
+      "editHint": "edit"
+    },
+    "versionBadge": {
+      "label": "v{{version}} (replanned)",
+      "title": "Replan chain (oldest → newest): {{summary}} → v{{version}} (this plan)"
     },
     "toasts": {
       "saved": "Plan saved",
@@ -345,13 +364,31 @@
     "loadFailedDesc": "The server returned an error or the run id is invalid.",
     "notFound": "Run not found",
     "notFoundDesc": "This run does not exist or has been deleted.",
+    "loadFailedBody": "The dashboard server returned an error while fetching this run. The run may still be running on the backend — try retrying.",
     "backToPlan": "← Plan",
+    "runPrefix": "Run {{id}}",
+    "reconnecting": "Reconnecting…",
+    "maxTurnsRetry": "Max-turns ({{count}}/4 retries{{next}})",
+    "maxTurnsNext": ", next at {{time}}",
+    "resourceBar": {
+      "time": "Time",
+      "turns": "Turns",
+      "pool": "Pool",
+      "tokensInOut": "{{in}} in · {{out}} out"
+    },
+    "autopilot": {
+      "label": "Autopilot",
+      "budgetMinPlaceholder": "budget min",
+      "budgetTokensPlaceholder": "budget tokens",
+      "save": "Save",
+      "saving": "Saving…"
+    },
     "kanban": {
-      "pending": "Pending",
-      "running": "Running",
-      "verifying": "Verifying",
-      "done": "Done",
-      "failed": "Failed",
+      "pending": "PENDING",
+      "running": "RUNNING",
+      "verifying": "VERIFYING",
+      "done": "DONE",
+      "failed": "FAILED",
       "empty": "empty"
     },
     "task": {
@@ -367,13 +404,20 @@
       "noOutput": "No output yet."
     },
     "controls": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "cancel": "Cancel",
       "probingResume": "Probing for resume…",
       "quotaExhausted": "Quota exhausted — automatic resume in {{countdown}}",
-      "pausedByUser": "Run paused by user."
+      "quotaExhaustedPrefix": "Quota exhausted — automatic resume in",
+      "pausedByUser": "Run paused by user.",
+      "resumeNow": "Resume now"
     },
     "cancelDialog": {
       "title": "Cancel run?",
-      "description": "The run will be marked cancelled. In-flight subprocesses receive SIGTERM. Branches and the events log are preserved for forensics."
+      "description": "This stops the walker and marks the run as cancelled. In-flight subprocesses may take a moment to terminate.",
+      "keepRunning": "Keep running",
+      "cancelRun": "Cancel run"
     },
     "toasts": {
       "paused": "Run paused",
@@ -465,16 +509,55 @@
       "tokenThroughput": "Token throughput",
       "tokenThroughputDesc": "last 7 days · all projects",
       "outcomes": "Run outcomes",
-      "outcomesDesc": "last 7 days"
+      "outcomesDesc": "last 7 days",
+      "tokensTooltipLabel": "tokens"
     },
     "live": {
       "title": "Live now",
       "active": "active",
-      "empty": "No active runs — kick one off from a project."
+      "empty": "No active runs — kick one off from a project.",
+      "turns": "turns"
+    },
+    "byProject": {
+      "title": "By project",
+      "count_one": "{{count}} project",
+      "count_other": "{{count}} projects",
+      "empty": "No projects yet — create one from the sidebar.",
+      "cols": {
+        "project": "Project",
+        "runs": "Runs",
+        "live": "Live",
+        "tokens": "Tokens",
+        "ok": "OK",
+        "sevenDay": "7d"
+      }
+    },
+    "recentRuns": {
+      "title": "Recent runs",
+      "subtitle": "all projects · sortable",
+      "empty": "No runs yet — create a project, generate a plan, lock & run.",
+      "footer": "Showing {{count}} runs · refreshes every 10s",
+      "cols": {
+        "run": "Run",
+        "project": "Project",
+        "status": "Status",
+        "started": "Started",
+        "duration": "Duration",
+        "tokens": "Tokens"
+      }
     },
     "recent": {
       "title": "Recent runs",
       "subtitle": "all projects · sortable"
+    },
+    "outcomeDonut": {
+      "empty": "No completed runs in window",
+      "labels": {
+        "success": "Success",
+        "failure": "Failed",
+        "cancelled": "Cancelled",
+        "unknown": "Pending"
+      }
     }
   },
   "projectDetail": {
@@ -531,15 +614,178 @@
   },
   "applyTemplate": {
     "title": "Apply a template",
+    "trigger": "Apply Template",
     "description": "Replaces the current draft team with the template.",
+    "loads": "Loads the chosen template into the current TeamBuilder draft.",
     "willOverwrite": " Your current draft will be overwritten."
+  },
+  "teamJsonDialog": {
+    "trigger": "View JSON",
+    "title": "Team configuration (JSON)",
+    "description": "What gets sent to PUT /api/projects/:id/team. Useful for sharing a config or moving it between machines.",
+    "copy": "Copy",
+    "copied": "Copied!"
   },
   "costPanel": {
     "title": "Cost / quota estimate",
-    "description": "Subscription-quota estimate based on the team weight and the recent runs in this project.",
+    "description": "Subscription mode doesn't bill per-token; this is a relative-weight readout plus an empirical projection from this project's prior runs.",
     "teamWeight": "Team weight (haiku=1, sonnet=4, opus=20)",
     "roles": "Roles",
     "avgTokens": "Avg tokens / successful run (last {{count}})",
-    "noData": "No completed runs yet — run the team once to populate this estimate."
+    "tokens": "tokens",
+    "noData": "No prior successful runs in this project — projection unavailable until you ship at least one run."
+  },
+  "status": {
+    "running": "Running",
+    "paused": "Paused",
+    "completed": "Completed",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "pending": "Pending",
+    "ready": "Ready",
+    "done": "Done",
+    "draft": "Draft",
+    "locked": "Locked",
+    "success": "Success",
+    "failure": "Failure"
+  },
+  "chat": {
+    "loading": "Loading team…",
+    "notSeeded": "Team chat is not seeded yet.",
+    "notSeededBody": "The built-in dev team (Marcus + 9 specialists) is installed automatically on first server boot. Restart the dashboard server, then return here.",
+    "openAgentsSettings": "Open Agents settings",
+    "sidebar": {
+      "title": "Conversations",
+      "empty": "No conversations yet.",
+      "startCta": "Start with the team"
+    },
+    "thread": {
+      "untitled": "Untitled chat",
+      "deleteConfirm": "Delete this conversation? This cannot be undone.",
+      "deleteLabel": "Delete"
+    },
+    "header": {
+      "defaultTitle": "Team chat with Marcus",
+      "participants_one": "{{count}} participant",
+      "participants_other": "{{count}} participants",
+      "actions_one": "{{count}} action",
+      "actions_other": "{{count}} actions",
+      "compress": "Compress"
+    },
+    "composer": {
+      "placeholder": "Message Marcus + team — ⌘⏎ to send. Type @ to mention a teammate.",
+      "ariaLabel": "Message composer"
+    },
+    "participants": {
+      "title": "People",
+      "empty": "No conversation selected.",
+      "permanent": "Marcus stays in every conversation. Add specialists to bring them into the chat — or @mention them inline.",
+      "removeConfirm": "Remove {{name}} from this conversation?",
+      "roleLead": "Lead"
+    },
+    "addMember": {
+      "title": "Add to conversation",
+      "close": "close",
+      "tabTeam": "Built-in team",
+      "tabCustom": "Your agents",
+      "emptyCustom": "No custom agents yet. Create one in Agents settings.",
+      "emptyTeam": "No team members.",
+      "alreadyIn": "in chat"
+    },
+    "greeter": {
+      "title": "Brainstorm with the team",
+      "body": "Marcus (Project Manager) chairs every conversation. He can pull specialists in, then create + start a project once you've agreed on direction.",
+      "startButton": "Start conversation",
+      "starterName": "Marcus",
+      "starterGreeting": "Hi! Tell me what you're thinking about — a feature idea, a bug to chase, or a fresh project. I'll loop in the specialists you need.",
+      "tip": "Tip: type <code>@Lena</code> to address the frontend lead directly."
+    },
+    "transcript": {
+      "typing": "Manager is typing…",
+      "noResponse": "(no response)",
+      "interrupted": "interrupted",
+      "timeout": "Timeout (180s)"
+    },
+    "action": {
+      "projectCreated": "Project created · {{name}}",
+      "projectTeam": "Team of {{count}}. Ready to plan & run.",
+      "openProject": "Open project",
+      "memberAdded": "Added <strong>{{name}}</strong> to the conversation.",
+      "consulted": "Consulted <strong>{{name}}</strong>. Reply posted below ↓",
+      "runStarted": "Started run <code>{{id}}</code>.",
+      "noPlan": "Cannot start run yet — no plan. Open the project to generate one.",
+      "actionFailed": "Action failed: {{kind}}",
+      "unknownError": "unknown error",
+      "generic": "Action: {{kind}} · {{status}}"
+    }
+  },
+  "agentChat": {
+    "loading": "Loading agents…",
+    "noAgents": "No agents yet",
+    "noAgentsBody": "Create your first agent to start chatting.",
+    "manageAgents": "Manage agents →",
+    "noThreads": "no threads — type below to start one.",
+    "startConversation": "Type a message below to start the conversation.",
+    "agentThinking": "{{name}} is thinking…",
+    "composerLabel": "to @{{name}}",
+    "selectAgent": "select an agent",
+    "cmdEnter": "cmd+enter",
+    "placeholder": {
+      "reply": "reply…",
+      "newThread": "start a new thread with @{{name}}",
+      "pickAgent": "pick an agent above"
+    },
+    "threadMeta": {
+      "count_one": "{{count}} message in this thread",
+      "count_other": "{{count}} messages in this thread",
+      "delete": "delete thread",
+      "untitled": "thread {{id}}"
+    },
+    "message": {
+      "you": "you"
+    }
+  },
+  "avatarPicker": {
+    "title": "Choose a profile picture",
+    "close": "close",
+    "initialsTitle": "Initials fallback",
+    "initialsLabel": "Initials",
+    "footer": "Pick a picture or use an initials fallback. The same picture can be reused across agents."
+  },
+  "tooltips": {
+    "newThread": "New conversation",
+    "sendMessage": "Send message (Ctrl+Enter)",
+    "compressThread": "Compress thread into a summary",
+    "addMember": "Add a specialist to this thread",
+    "removeMember": "Remove this participant",
+    "newProject": "Create a new project",
+    "openCommandPalette": "Open command palette (Cmd+K)",
+    "themeLight": "Switch to light theme",
+    "themeDark": "Switch to dark theme",
+    "languageToggle": "Change language",
+    "autopilotEnable": "Enable autopilot — resume paused runs automatically",
+    "autopilotDisable": "Disable autopilot",
+    "pauseRun": "Pause the run",
+    "resumeRun": "Resume the run",
+    "cancelRun": "Cancel and clean up the run",
+    "replayCheckpoint": "Re-open the last checkpoint snapshot",
+    "lockAndRun": "Lock the plan and start a run",
+    "regeneratePlan": "Re-generate the plan from current team + goal",
+    "applyTemplate": "Apply a team template",
+    "saveAsTemplate": "Save current team as a reusable template",
+    "moveRoleUp": "Move role up",
+    "moveRoleDown": "Move role down",
+    "removeRole": "Remove this role",
+    "editAgent": "Edit agent persona",
+    "deleteAgent": "Delete this agent",
+    "viewAgent": "View built-in agent (read-only)",
+    "statusRunning": "Running — actively executing",
+    "statusPaused": "Paused — awaiting resume",
+    "statusCompleted": "Completed",
+    "statusFailed": "Failed — check the log",
+    "statusCancelled": "Cancelled",
+    "statusPending": "Pending — waiting on a dependency",
+    "reloadSkills": "Reload skills from disk",
+    "resetBundle": "Reset cached bundle (next call will re-warm)"
   }
 }

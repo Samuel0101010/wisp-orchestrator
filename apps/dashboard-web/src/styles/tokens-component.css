@@ -1,0 +1,29 @@
+/**
+ * Layer 3 — Component tokens.
+ * Component-specific aliases for fine-tuning without touching semantic layer.
+ */
+:root {
+  /* Button */
+  --button-padding-x: var(--space-3);
+  --button-padding-y: var(--space-2);
+  --button-radius: var(--radius-md);
+  --button-shadow-default: none;
+  --button-shadow-hover: var(--shadow-xs);
+
+  /* Input */
+  --input-bg: hsl(var(--background));
+  --input-border: hsl(var(--input));
+  --input-focus-ring: hsl(var(--ring));
+  --input-radius: var(--radius-md);
+
+  /* Card */
+  --card-padding: var(--space-4);
+  --card-radius: var(--radius-lg);
+  --card-shadow: var(--shadow-sm);
+  --card-shadow-hover: var(--shadow-md);
+
+  /* Dialog */
+  --dialog-padding: var(--space-6);
+  --dialog-max-w: 32rem;
+  --dialog-radius: var(--radius-lg);
+}

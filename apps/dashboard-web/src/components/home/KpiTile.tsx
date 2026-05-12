@@ -57,7 +57,7 @@ export function KpiTile({
       data-testid={rest['data-testid']}
     >
       <div className="flex items-start justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs2 font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
         {icon && <span className="text-muted-foreground">{icon}</span>}

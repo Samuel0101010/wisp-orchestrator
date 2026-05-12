@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Plan } from '@agent-harness/schemas';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { PlanEditor } from './PlanEditor';
 
 // Replace the heavy React Flow canvas with a thin div-based stub. Tests only
@@ -131,11 +132,13 @@ function renderEditor(projectId = 'p1') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[`/projects/${projectId}/plan`]}>
-        <Routes>
-          <Route path="/projects/:projectId/plan" element={<PlanEditor />} />
-        </Routes>
-      </MemoryRouter>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[`/projects/${projectId}/plan`]}>
+          <Routes>
+            <Route path="/projects/:projectId/plan" element={<PlanEditor />} />
+          </Routes>
+        </MemoryRouter>
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }
@@ -167,7 +170,7 @@ describe('PlanEditor', () => {
     expect(await screen.findByTestId('plan-node-a')).toBeInTheDocument();
     expect(screen.getByTestId('plan-node-b')).toBeInTheDocument();
     expect(screen.getByTestId('plan-node-c')).toBeInTheDocument();
-    expect(screen.getByTestId('plan-status')).toHaveTextContent('draft');
+    expect(screen.getByTestId('plan-status')).toHaveTextContent('Draft');
   });
 
   it('selecting a node opens the side panel', async () => {
@@ -241,7 +244,7 @@ describe('PlanEditor', () => {
       });
     };
     renderEditor();
-    expect(await screen.findByTestId('plan-status')).toHaveTextContent('locked');
+    expect(await screen.findByTestId('plan-status')).toHaveTextContent('Locked');
     fireEvent.click(screen.getByTestId('plan-node-a'));
     const promptField = await screen.findByLabelText('Prompt');
     expect(promptField).toBeDisabled();

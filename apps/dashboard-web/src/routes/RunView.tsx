@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Pause, Play, Square, Activity, FileText, AlertTriangle, Coins } from 'lucide-react';
 import type { HarnessEvent, RunPausedReason, TaskRole } from '@agent-harness/schemas';
@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRunEvents } from '@/api/ws';
 import { useTranslation } from 'react-i18next';
 import { BackToProject } from '@/components/BackToProject';
@@ -34,15 +35,10 @@ import {
 } from '@/store/run';
 import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 import { AutopilotToggle } from '@/components/AutopilotToggle';
+import type { TFunction } from 'i18next';
+import { statusLabel } from '@/lib/status-labels';
 
 const COLUMN_ORDER: TaskColumn[] = ['pending', 'running', 'verifying', 'done', 'failed'];
-const COLUMN_LABELS: Record<TaskColumn, string> = {
-  pending: 'Pending',
-  running: 'Running',
-  verifying: 'Verifying',
-  done: 'Done',
-  failed: 'Failed',
-};
 
 const ROLE_STRIPE: Record<TaskRole, string> = {
   architect: 'bg-violet-500',
@@ -98,6 +94,7 @@ function ResourceBar(props: ResourceBarProps) {
     tokensIn,
     tokensOut,
   } = props;
+  const { t } = useTranslation();
   return (
     <div
       className="grid grid-cols-1 gap-3 rounded-md border bg-card p-3 md:grid-cols-4"
@@ -105,7 +102,7 @@ function ResourceBar(props: ResourceBarProps) {
     >
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Time</span>
+          <span className="text-muted-foreground">{t('runView.resourceBar.time')}</span>
           <span
             className="tabular-nums text-foreground"
             data-testid="resource-time"
@@ -120,7 +117,7 @@ function ResourceBar(props: ResourceBarProps) {
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Turns</span>
+          <span className="text-muted-foreground">{t('runView.resourceBar.turns')}</span>
           <span
             className="tabular-nums text-foreground"
             data-testid="resource-turns"
@@ -135,7 +132,7 @@ function ResourceBar(props: ResourceBarProps) {
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">Pool</span>
+          <span className="text-muted-foreground">{t('runView.resourceBar.pool')}</span>
           <span className="tabular-nums">{`${runningCount} / ${maxParallel}`}</span>
         </div>
         <div className="flex gap-1" aria-label="pool-meter">
@@ -152,7 +149,10 @@ function ResourceBar(props: ResourceBarProps) {
       <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
         <Coins className="h-3 w-3" />
         <span className="tabular-nums" data-testid="resource-tokens">
-          {formatCompactNumber(tokensIn)} in · {formatCompactNumber(tokensOut)} out
+          {t('runView.resourceBar.tokensInOut', {
+            in: formatCompactNumber(tokensIn),
+            out: formatCompactNumber(tokensOut),
+          })}
         </span>
       </div>
     </div>
@@ -165,12 +165,13 @@ interface CountdownProps {
 }
 
 function Countdown({ resumeAt, nowMs }: CountdownProps) {
-  if (resumeAt == null) return <span>—</span>;
+  const { t } = useTranslation();
+  if (resumeAt == null) return <span>â€”</span>;
   const remainingMs = Math.max(0, resumeAt - nowMs);
   if (remainingMs <= 0)
     return (
       <span data-testid="countdown-elapsed" className="font-mono">
-        Probing for resume…
+        {t('runView.controls.probingResume')}
       </span>
     );
   const totalSec = Math.floor(remainingMs / 1000);
@@ -192,6 +193,7 @@ interface TaskCardProps {
 }
 
 function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
+  const { t } = useTranslation();
   const liveDuration = task.liveRunning && task.startedAtMs ? nowMs - task.startedAtMs : 0;
   const duration = Math.max(task.durationMs, liveDuration);
   return (
@@ -206,36 +208,36 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
           <span className="text-sm font-medium">{task.title}</span>
           <span className="text-xs text-muted-foreground">{task.id}</span>
         </div>
-        <Badge variant="outline" className="text-[10px] uppercase">
+        <Badge variant="outline" className="text-2xs uppercase">
           {task.role}
         </Badge>
       </div>
       <div className="grid grid-cols-3 gap-2 pl-2 text-xs text-muted-foreground tabular-nums">
         <div>
-          <div className="text-[10px] uppercase">Tokens</div>
+          <div className="text-2xs uppercase">{t('runView.task.tokens')}</div>
           <div data-testid={`task-tokens-${task.id}`}>
             {formatCompactNumber(task.tokensIn)} / {formatCompactNumber(task.tokensOut)}
           </div>
         </div>
         <div>
-          <div className="text-[10px] uppercase">Turns</div>
+          <div className="text-2xs uppercase">{t('runView.task.turns')}</div>
           <div data-testid={`task-turns-${task.id}`}>
             {task.turnsUsed}
             {budgetTurns > 0 ? ` / ${budgetTurns}` : ''}
           </div>
         </div>
         <div>
-          <div className="text-[10px] uppercase">Duration</div>
+          <div className="text-2xs uppercase">{t('runView.task.duration')}</div>
           <div data-testid={`task-duration-${task.id}`}>{formatDuration(duration)}</div>
         </div>
       </div>
       {task.error && (
         <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-2 pl-3 text-xs text-destructive">
-          <div className="font-semibold">Failed</div>
+          <div className="font-semibold">{t('runView.task.failed')}</div>
           <div className="line-clamp-3">{task.error}</div>
           {task.worktreePath && (
-            <div className="mt-1 text-[10px] text-destructive/80">
-              Forensics: {task.worktreePath}
+            <div className="mt-1 text-2xs text-destructive/80">
+              {t('runView.task.forensics', { path: task.worktreePath })}
             </div>
           )}
         </div>
@@ -249,7 +251,7 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
           data-testid={`task-tail-button-${task.id}`}
         >
           <FileText className="mr-1 h-3 w-3" />
-          Live tail
+          {t('runView.task.liveTail')}
         </Button>
       </div>
     </div>
@@ -262,6 +264,7 @@ interface LiveTailSheetProps {
 }
 
 function LiveTailSheet({ task, onClose }: LiveTailSheetProps) {
+  const { t } = useTranslation();
   const [pinTop, setPinTop] = useState(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
@@ -279,15 +282,15 @@ function LiveTailSheet({ task, onClose }: LiveTailSheetProps) {
         data-testid={task ? `task-tail-${task.id}` : 'task-tail'}
       >
         <DialogHeader>
-          <DialogTitle>Live tail — {task?.title ?? ''}</DialogTitle>
+          <DialogTitle>{t('runView.task.liveTailFor', { title: task?.title ?? '' })}</DialogTitle>
           <DialogDescription>
-            Last {task?.deltas.length ?? 0} text deltas (cap 200 per task).
+            {t('runView.task.tailHint', { count: task?.deltas.length ?? 0 })}
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center justify-end gap-2">
           <label className="flex items-center gap-1 text-xs">
             <input type="checkbox" checked={pinTop} onChange={(e) => setPinTop(e.target.checked)} />
-            Pin scroll to top
+            {t('runView.task.pinScroll')}
           </label>
         </div>
         <div
@@ -296,7 +299,7 @@ function LiveTailSheet({ task, onClose }: LiveTailSheetProps) {
           data-testid="task-tail-scroller"
         >
           {task?.deltas.length === 0 ? (
-            <div className="text-muted-foreground">No output yet.</div>
+            <div className="text-muted-foreground">{t('runView.task.noOutput')}</div>
           ) : (
             task?.deltas.map((d, i) => (
               <div key={i} className="whitespace-pre-wrap">
@@ -363,11 +366,11 @@ function RunHeaderActions({
   const handlePause = async (): Promise<void> => {
     try {
       await pause.mutateAsync();
-      toast({ title: 'Run paused' });
+      toast({ title: t('runView.toasts.paused') });
       onAfterAction();
     } catch (err) {
       toast({
-        title: 'Pause failed',
+        title: t('runView.toasts.pauseFailed'),
         description: (err as Error).message,
         variant: 'destructive',
       });
@@ -377,11 +380,11 @@ function RunHeaderActions({
   const handleResume = async (): Promise<void> => {
     try {
       await resume.mutateAsync();
-      toast({ title: 'Run resumed' });
+      toast({ title: t('runView.toasts.resumed') });
       onAfterAction();
     } catch (err) {
       toast({
-        title: 'Resume failed',
+        title: t('runView.toasts.resumeFailed'),
         description: (err as Error).message,
         variant: 'destructive',
       });
@@ -392,11 +395,11 @@ function RunHeaderActions({
     setConfirmCancel(false);
     try {
       await cancel.mutateAsync();
-      toast({ title: 'Run cancelled' });
+      toast({ title: t('runView.toasts.cancelled') });
       onAfterAction();
     } catch (err) {
       toast({
-        title: 'Cancel failed',
+        title: t('runView.toasts.cancelFailed'),
         description: (err as Error).message,
         variant: 'destructive',
       });
@@ -420,54 +423,66 @@ function RunHeaderActions({
         </Button>
       )}
       {status === 'running' && (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => void handlePause()}
-          disabled={pause.isPending}
-          data-testid="run-pause-button"
-        >
-          <Pause className="mr-2 h-4 w-4" />
-          Pause
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handlePause()}
+              disabled={pause.isPending}
+              data-testid="run-pause-button"
+            >
+              <Pause className="mr-2 h-4 w-4" />
+              {t('runView.controls.pause')}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('tooltips.pauseRun')}</TooltipContent>
+        </Tooltip>
       )}
       {status === 'paused' && (
-        <Button
-          size="sm"
-          variant="default"
-          onClick={() => void handleResume()}
-          disabled={resume.isPending || resumeBlocked}
-          data-testid="run-resume-button"
-        >
-          <Play className="mr-2 h-4 w-4" />
-          Resume
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => void handleResume()}
+              disabled={resume.isPending || resumeBlocked}
+              data-testid="run-resume-button"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              {t('runView.controls.resume')}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('tooltips.resumeRun')}</TooltipContent>
+        </Tooltip>
       )}
-      <Button
-        size="sm"
-        variant="destructive"
-        onClick={() => setConfirmCancel(true)}
-        disabled={status === 'completed' || status === 'cancelled' || status === 'failed'}
-        data-testid="run-cancel-button"
-      >
-        <Square className="mr-2 h-4 w-4" />
-        Cancel
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => setConfirmCancel(true)}
+            disabled={status === 'completed' || status === 'cancelled' || status === 'failed'}
+            data-testid="run-cancel-button"
+          >
+            <Square className="mr-2 h-4 w-4" />
+            {t('runView.controls.cancel')}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('tooltips.cancelRun')}</TooltipContent>
+      </Tooltip>
       <Dialog open={confirmCancel} onOpenChange={setConfirmCancel}>
         <DialogContent data-testid="run-cancel-dialog">
           <DialogHeader>
-            <DialogTitle>Cancel run?</DialogTitle>
-            <DialogDescription>
-              This stops the walker and marks the run as cancelled. In-flight subprocesses may take
-              a moment to terminate.
-            </DialogDescription>
+            <DialogTitle>{t('runView.cancelDialog.title')}</DialogTitle>
+            <DialogDescription>{t('runView.cancelDialog.description')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmCancel(false)}>
-              Keep running
+              {t('runView.cancelDialog.keepRunning')}
             </Button>
             <Button variant="destructive" onClick={() => void handleCancel()}>
-              Cancel run
+              {t('runView.cancelDialog.cancelRun')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -484,14 +499,15 @@ interface RunPausedBannerProps {
 }
 
 function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBannerProps) {
+  const { t } = useTranslation();
   const resume = useResumeRun(runId);
   const handleResumeNow = async (): Promise<void> => {
     try {
       await resume.mutateAsync();
-      toast({ title: 'Run resumed' });
+      toast({ title: t('runView.toasts.resumed') });
     } catch (err) {
       toast({
-        title: 'Resume failed',
+        title: t('runView.toasts.resumeFailed'),
         description: (err as Error).message,
         variant: 'destructive',
       });
@@ -506,18 +522,24 @@ function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBann
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" />
           <span>
-            Quota exhausted — automatic resume in <Countdown resumeAt={resumeAt} nowMs={nowMs} />
+            {t('runView.controls.quotaExhaustedPrefix')}{' '}
+            <Countdown resumeAt={resumeAt} nowMs={nowMs} />
           </span>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => void handleResumeNow()}
-          disabled={resume.isPending}
-          data-testid="rate-limit-resume-now"
-        >
-          Resume now
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleResumeNow()}
+              disabled={resume.isPending}
+              data-testid="rate-limit-resume-now"
+            >
+              {t('runView.controls.resumeNow')}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('tooltips.resumeRun')}</TooltipContent>
+        </Tooltip>
       </div>
     );
   }
@@ -528,17 +550,22 @@ function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBann
     >
       <div className="flex items-center gap-2">
         <Pause className="h-4 w-4" />
-        <span>Run paused by user.</span>
+        <span>{t('runView.controls.pausedByUser')}</span>
       </div>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => void handleResumeNow()}
-        disabled={resume.isPending}
-        data-testid="user-paused-resume"
-      >
-        Resume
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void handleResumeNow()}
+            disabled={resume.isPending}
+            data-testid="user-paused-resume"
+          >
+            {t('runView.controls.resume')}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{t('tooltips.resumeRun')}</TooltipContent>
+      </Tooltip>
     </div>
   );
 }
@@ -551,6 +578,7 @@ interface KanbanProps {
 }
 
 function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
+  const { t } = useTranslation();
   const columns = useMemo(() => {
     const buckets: Record<TaskColumn, TaskCardModel[]> = {
       pending: [],
@@ -559,7 +587,7 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
       done: [],
       failed: [],
     };
-    for (const t of tasks) buckets[columnFor(t)].push(t);
+    for (const task of tasks) buckets[columnFor(task)].push(task);
     return buckets;
   }, [tasks]);
 
@@ -573,9 +601,9 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
         >
           <div className="flex items-center justify-between border-b px-3 py-2">
             <span className="text-xs font-semibold uppercase tracking-wide">
-              {COLUMN_LABELS[col]}
+              {t(`runView.kanban.${col}`)}
             </span>
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="text-2xs">
               {columns[col].length}
             </Badge>
           </div>
@@ -590,7 +618,9 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
               />
             ))}
             {columns[col].length === 0 && (
-              <div className="px-2 py-3 text-center text-xs text-muted-foreground">empty</div>
+              <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                {t('runView.kanban.empty')}
+              </div>
             )}
           </div>
         </div>
@@ -623,6 +653,7 @@ interface RunViewBodyProps {
 }
 
 function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) {
+  const { t } = useTranslation();
   const hydrate = useRunStore((s) => s.hydrate);
   const applyEvent = useRunStore((s) => s.applyEvent);
   const tickClock = useRunStore((s) => s.tickClock);
@@ -652,11 +683,11 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
       const ev = events[i];
       if (ev) {
         applyEvent(ev);
-        toastForEvent(ev);
+        toastForEvent(ev, t);
       }
     }
     lastAppliedRef.current = events.length;
-  }, [events, applyEvent]);
+  }, [events, applyEvent, t]);
 
   // Tick once per second so durations and the rate-limit countdown advance.
   useEffect(() => {
@@ -685,35 +716,40 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
               to={`/projects/${projectId}/plan`}
               className="text-xs text-muted-foreground hover:underline"
             >
-              ← Plan
+              {t('runView.backToPlan')}
             </Link>
           )}
-          <h1 className="text-lg font-semibold">Run {run.id.slice(0, 8)}</h1>
+          <h1 className="text-lg font-semibold">
+            {t('runView.runPrefix', { id: run.id.slice(0, 8) })}
+          </h1>
           <Badge variant={statusBadgeVariant(run.status)} data-testid="run-status">
-            {run.status}
-            {run.outcome ? ` (${run.outcome})` : ''}
+            {statusLabel(run.status, t)}
+            {run.outcome ? ` (${statusLabel(run.outcome, t)})` : ''}
           </Badge>
           {snapshot.run.errorReason === 'max_turns' && (
             <span
               className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400"
               data-testid="max-turns-badge"
             >
-              Max-turns ({snapshot.run.retryCount}/4 retries
-              {snapshot.run.nextRetryAt
-                ? `, next at ${new Date(snapshot.run.nextRetryAt).toLocaleTimeString()}`
-                : ''}
-              )
+              {t('runView.maxTurnsRetry', {
+                count: snapshot.run.retryCount,
+                next: snapshot.run.nextRetryAt
+                  ? t('runView.maxTurnsNext', {
+                      time: new Date(snapshot.run.nextRetryAt).toLocaleTimeString(),
+                    })
+                  : '',
+              })}
             </span>
           )}
           <PlanVersionBadge planId={run.planId} />
           {wsStatus !== 'open' && (
             <Badge
               variant="outline"
-              className="flex items-center gap-1 text-[10px]"
+              className="flex items-center gap-1 text-2xs"
               data-testid="ws-status-pill"
             >
               <Activity className="h-3 w-3" />
-              {wsStatus === 'closed' || wsStatus === 'error' ? 'Reconnecting…' : wsStatus}
+              {wsStatus === 'closed' || wsStatus === 'error' ? t('runView.reconnecting') : wsStatus}
             </Badge>
           )}
         </div>
@@ -770,21 +806,24 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
   );
 }
 
-function toastForEvent(ev: HarnessEvent): void {
+function toastForEvent(ev: HarnessEvent, t: TFunction): void {
   if (ev.type === 'resource.warning') {
     toast({
-      title: `${Math.round(ev.payload.percent)}% of ${ev.payload.kind} budget`,
-      description: 'Approaching the configured budget for this run.',
+      title: t('runView.toasts.budgetWarning', {
+        percent: Math.round(ev.payload.percent),
+        kind: ev.payload.kind,
+      }),
+      description: t('runView.toasts.budgetWarningDesc'),
     });
   } else if (ev.type === 'resource.exceeded') {
     toast({
-      title: `${ev.payload.kind} budget exceeded`,
-      description: 'The run is being cancelled.',
+      title: t('runView.toasts.budgetExceeded', { kind: ev.payload.kind }),
+      description: t('runView.toasts.budgetExceededDesc'),
       variant: 'destructive',
     });
   } else if (ev.type === 'rate-limit.hit') {
     toast({
-      title: 'Rate limit hit',
+      title: t('runView.toasts.rateLimitHit'),
       description: ev.payload.source,
       variant: 'destructive',
     });
@@ -794,14 +833,15 @@ function toastForEvent(ev: HarnessEvent): void {
 export function RunView() {
   const { runId, projectId } = useParams<{ runId?: string; projectId?: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const runQuery = useRun(runId);
 
   if (!runId) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Run View</CardTitle>
-          <CardDescription>No run id supplied.</CardDescription>
+          <CardTitle>{t('runView.title')}</CardTitle>
+          <CardDescription>{t('runView.noRunId')}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -824,18 +864,15 @@ export function RunView() {
     return (
       <Card data-testid="run-error">
         <CardHeader>
-          <CardTitle>Could not load run</CardTitle>
-          <CardDescription>
-            The dashboard server returned an error while fetching this run. The run may still be
-            running on the backend — try retrying.
-          </CardDescription>
+          <CardTitle>{t('runView.loadFailed')}</CardTitle>
+          <CardDescription>{t('runView.loadFailedBody')}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">{message}</pre>
           <div className="flex gap-2">
-            <Button onClick={() => void runQuery.refetch()}>Retry</Button>
+            <Button onClick={() => void runQuery.refetch()}>{t('buttons.retry')}</Button>
             <Button variant="outline" onClick={() => navigate(-1)}>
-              ← Back
+              {t('buttons.back')}
             </Button>
           </div>
         </CardContent>
@@ -847,12 +884,12 @@ export function RunView() {
     return (
       <Card data-testid="run-not-found">
         <CardHeader>
-          <CardTitle>Run not found</CardTitle>
-          <CardDescription>This run does not exist or has been deleted.</CardDescription>
+          <CardTitle>{t('runView.notFound')}</CardTitle>
+          <CardDescription>{t('runView.notFoundDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="outline" onClick={() => navigate(-1)}>
-            ← Back
+            {t('buttons.back')}
           </Button>
         </CardContent>
       </Card>

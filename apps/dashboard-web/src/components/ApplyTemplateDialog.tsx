@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ interface Props {
  * overwrites whatever the user was editing.
  */
 export function ApplyTemplateDialog({ onApply, hasContent }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: templates = [] } = useTemplates();
@@ -49,24 +51,24 @@ export function ApplyTemplateDialog({ onApply, hasContent }: Props) {
     >
       <DialogTrigger asChild>
         <Button variant="outline" data-testid="apply-template-trigger">
-          Apply Template
+          {t('applyTemplate.trigger')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Apply a template</DialogTitle>
+          <DialogTitle>{t('applyTemplate.title')}</DialogTitle>
           <DialogDescription>
-            Loads the chosen template into the current TeamBuilder draft.
-            {hasContent ? ' Your current draft will be overwritten.' : ''}
+            {t('applyTemplate.loads')}
+            {hasContent ? t('applyTemplate.willOverwrite') : ''}
           </DialogDescription>
         </DialogHeader>
         <TemplatePicker selectedId={selectedId} onSelect={setSelectedId} />
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Cancel
+            {t('buttons.cancel')}
           </Button>
           <Button onClick={handleApply} disabled={!picked} data-testid="apply-template-confirm">
-            {picked ? `Apply ${picked.name}` : 'Apply'}
+            {picked ? t('buttons.apply', { name: picked.name }) : t('buttons.applyTemplate')}
           </Button>
         </DialogFooter>
       </DialogContent>

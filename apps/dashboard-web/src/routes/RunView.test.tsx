@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { HarnessEvent, Run, Task } from '@agent-harness/schemas';
 import { RunView } from './RunView';
 import { useRunStore } from '@/store/run';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 // ---------- mock the WS hook so the test owns the event stream ----------
 let pushEvent: ((ev: HarnessEvent) => void) | null = null;
@@ -129,11 +130,13 @@ function renderRunView(path = '/projects/p1/run/run-1') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="/projects/:projectId/run/:runId" element={<RunView />} />
-        </Routes>
-      </MemoryRouter>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="/projects/:projectId/run/:runId" element={<RunView />} />
+          </Routes>
+        </MemoryRouter>
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }

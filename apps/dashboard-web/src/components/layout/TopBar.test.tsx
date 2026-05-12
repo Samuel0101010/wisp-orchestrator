@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import type { ReactNode } from 'react';
 import { TopBar } from './TopBar';
 import { useRunStore } from '@/store/run';
@@ -14,7 +15,11 @@ vi.mock('@/api/client', () => ({
 
 function withProviders(ui: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{ui}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={qc}>
+      <TooltipProvider>{ui}</TooltipProvider>
+    </QueryClientProvider>
+  );
 }
 
 function buildRun(): Run {
@@ -85,7 +90,7 @@ describe('TopBar', () => {
       ),
     );
     expect(screen.getByTestId('topbar-run-active')).toBeInTheDocument();
-    expect(screen.getByTestId('topbar-run-status')).toHaveTextContent('running');
+    expect(screen.getByTestId('topbar-run-status')).toHaveTextContent('Running');
     expect(screen.getByTestId('topbar-time-bar')).toBeInTheDocument();
     expect(screen.getByTestId('topbar-turns-bar')).toBeInTheDocument();
     // 200 + 50 = 250 tokens.
