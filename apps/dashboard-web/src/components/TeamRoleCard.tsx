@@ -98,8 +98,10 @@ export function TeamRoleCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="truncate">{displayTitle}</CardTitle>
-          <div className="flex items-center gap-1">
+          <CardTitle className="min-w-0 flex-1 truncate sm:overflow-visible sm:whitespace-normal">
+            {displayTitle}
+          </CardTitle>
+          <div className="flex shrink-0 items-center gap-1">
             {dragHandleProps && (
               <button
                 type="button"
@@ -169,12 +171,12 @@ export function TeamRoleCard({
           >
             {MODEL_LIST.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.name.toLowerCase()} — {m.costClass}
+                {m.name.toLowerCase()} — {t(`modelInfo.costClass.${m.costClass}`)}
               </option>
             ))}
           </select>
           <p className="text-xs text-muted-foreground" data-testid={`model-hint-${index}`}>
-            {modelInfo.notes}
+            {t(`modelInfo.notes.${draft.model}`, { defaultValue: modelInfo.notes })}
           </p>
         </div>
         <div className="flex flex-col gap-1.5">

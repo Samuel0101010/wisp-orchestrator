@@ -92,7 +92,7 @@ export function GoapRoute() {
           }}
           className="rounded-md border border-border px-4 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
         >
-          Load example
+          {t('goap.actions.loadExample')}
         </button>
         {parseError && (
           <span className="text-sm text-destructive" role="alert">

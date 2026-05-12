@@ -116,10 +116,30 @@
     },
     "actions": {
       "plan": "Plan",
-      "planning": "Planning…"
+      "planning": "Planning…",
+      "loadExample": "Load example"
     },
     "noResult": "Submit a problem to see the plan.",
     "result": "Plan result"
+  },
+  "toolMultiSelect": {
+    "noneSelected": "No tools selected (agent gets defaults)",
+    "selected_one": "{{count}} tool selected",
+    "selected_other": "{{count}} tools selected",
+    "pick": "Pick tools",
+    "hide": "Hide tools"
+  },
+  "modelInfo": {
+    "costClass": {
+      "cheap": "cheap",
+      "standard": "standard",
+      "expensive": "expensive"
+    },
+    "notes": {
+      "haiku": "Fast and cheap. Good for QA gates, simple file edits, and prompt probes.",
+      "sonnet": "Balanced. Default for development work.",
+      "opus": "Highest quality. Use for architecture and complex reasoning."
+    }
   },
   "agents": {
     "title": "Agents",

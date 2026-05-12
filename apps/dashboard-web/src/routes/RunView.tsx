@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Pause, Play, Square, Activity, FileText, AlertTriangle, Coins } from 'lucide-react';
-import type { HarnessEvent, RunPausedReason, TaskRole } from '@agent-harness/schemas';
+import type { HarnessEvent, RunPausedReason } from '@agent-harness/schemas';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,14 +37,9 @@ import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 import { AutopilotToggle } from '@/components/AutopilotToggle';
 import type { TFunction } from 'i18next';
 import { statusLabel } from '@/lib/status-labels';
+import { roleStripeStyle } from '@/lib/role-color';
 
 const COLUMN_ORDER: TaskColumn[] = ['pending', 'running', 'verifying', 'done', 'failed'];
-
-const ROLE_STRIPE: Record<TaskRole, string> = {
-  architect: 'bg-violet-500',
-  developer: 'bg-sky-500',
-  qa: 'bg-emerald-500',
-};
 
 function formatCompactNumber(n: number): string {
   if (n < 1000) return String(n);
@@ -202,7 +197,11 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
       data-testid={`task-card-${task.id}`}
       data-status={task.status}
     >
-      <div className={`absolute left-0 top-0 h-full w-1 ${ROLE_STRIPE[task.role]}`} aria-hidden />
+      <div
+        className="absolute left-0 top-0 h-full w-1"
+        style={roleStripeStyle(task.role)}
+        aria-hidden
+      />
       <div className="flex items-center justify-between pl-2">
         <div className="flex flex-col">
           <span className="text-sm font-medium">{task.title}</span>

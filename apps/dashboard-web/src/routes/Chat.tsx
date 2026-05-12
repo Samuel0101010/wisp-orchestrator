@@ -234,7 +234,7 @@ export function ChatRoute() {
               <div className="text-xs2 text-muted-foreground">
                 {t('chat.header.participants', { count: participants.length })}
                 {detail.data?.actions && detail.data.actions.length > 0 && (
-                  <> Â· {t('chat.header.actions', { count: detail.data.actions.length })}</>
+                  <> · {t('chat.header.actions', { count: detail.data.actions.length })}</>
                 )}
               </div>
             </div>
@@ -539,7 +539,7 @@ function Transcript({
   isPending: boolean;
 }) {
   const { t, i18n } = useTranslation();
-  // Build a map: messageId â†’ actions[] so we can render action cards below
+  // Build a map: messageId → actions[] so we can render action cards below
   // their parent manager message.
   const actionsByMessage = useMemo(() => {
     const map = new Map<string, ChatActionRow[]>();

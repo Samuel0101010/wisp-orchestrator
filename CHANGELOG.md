@@ -1,23 +1,78 @@
 # Changelog
 
-## Unreleased — v1.6.1
+## 1.6.1 — QA sweep: visual, contrast, role-color, i18n DE
 
-### TODO — color-contrast follow-up
+Multi-agent QA pass after v1.6.0 ship. Four parallel test agents (unit/e2e,
+static, API, visual screenshots × 48 variants) surfaced one P1 visual bug,
+one P1 contrast bug, and a handful of P2 contrast + i18n + truncation
+issues. All fixed and verified with re-screenshots in light + dark × en + de.
 
-`axe-core`'s `color-contrast` rule is currently disabled in
-`tests/e2e/a11y.spec.ts` with a `TODO(v1.6.1)` marker. The base palette
-nudges in v1.6.0 (Task 3.7) covered the main token pairs, but the
-opacity-reduced variants — `text-muted-foreground/60` against dark
-card backgrounds, and similar `/40` / `/50` modifiers — still fall
-short of WCAG-AA (4.5:1 for normal text). Resolution path:
+### Fixed
 
-- Audit every `text-muted-foreground/{N}` usage in the dashboard.
-- For each: either bump the underlying token's base lightness so the
-  reduced-opacity variant still clears 4.5:1, or replace the opacity
-  modifier with a dedicated token (e.g. `text-muted-foreground-soft`)
-  that has its own AA-passing value per theme.
-- Remove `.disableRules(['color-contrast'])` from `a11y.spec.ts` and
-  confirm the e2e a11y suite stays green in both en and de locales.
+- **Mojibake** (`Â·`, `â†↗`) in `Chat.tsx` and `AgentChat.tsx` — 9 stray
+  double-encoded characters introduced during the v1.6.0 i18n migration.
+  All cleaned back to `·` and `→`.
+- **Plan-canvas role badges & node stripes invisible in light theme**
+  for any role outside the hardcoded `architect | developer | qa` set
+  (real plans use `backend-dev`, `qa-engineer`, etc.). Root cause: code
+  read `hsl(var(--role-${role}))` for arbitrary strings — undefined
+  variable → no fill. Replaced with deterministic JS palette
+  `apps/dashboard-web/src/lib/role-color.ts`: canonical roles get
+  curated colors, unknown roles hash to a stable 8-color fallback.
+  RunView's hardcoded `ROLE_STRIPE` map gone; both surfaces now use
+  the same `roleHsl()` / `roleStripeStyle()` helpers.
+- **Translucent-tint + white-text contrast bug** in three places (Agents
+  dialog model selector, Agents dialog Allowed Tools pills, AgentChat
+  active thread row): `bg-info/15` paired with `text-info-foreground`
+  rendered white-on-pale-blue → invisible in light theme. Swapped to
+  `text-info` (saturated color) which reads cleanly on both light and
+  dark tints.
+- **Destructive token nudge** — `--destructive` light lightness 60% → 48%
+  so white-on-destructive (Cancel button, FAILED badges, delete dialogs)
+  passes WCAG-AA. Cascades to every destructive surface.
+- **Team-Builder role-card title truncation** — `<CardTitle>` had
+  `truncate` without `flex-1 min-w-0`, so titles like `backend-dev`
+  collapsed to `backe...`. Now `min-w-0 flex-1 truncate sm:overflow-visible
+  sm:whitespace-normal` — truncates only at very narrow viewports.
+- **i18n DE gaps**: `OUTCOME` → `Ergebnis`, `Load example` → `Beispiel
+  laden`, `Pick tools` → `Tools auswählen`, model costClass + notes
+  helper text now translated, `Agents.tsx` `fmtRel` replaced with the
+  locale-aware `lib/fmt-rel.ts` so "23h ago" → "vor 23 Stunden".
+  Bundle parity: 609/609 keys.
+- **Prettier**: `docs/INVENTORY.json` reformatted.
+- **Lint hygiene**: `audit-artifacts/**` added to eslint ignores
+  (page.evaluate scripts have legitimate `localStorage` references that
+  ESLint can't analyze).
+
+### Tests
+
+- New `tests/e2e/wave3.spec.ts` — extended e2e coverage:
+  - Chat: full thread create → send → reply → participants → add-member
+    dialog → persist across navigation.
+  - Project happy-path: create → save team → generate plan → lock & run
+    → DONE with all task cards reaching their terminal columns.
+  - Both run only on `chromium-en` (i18n covered elsewhere).
+- Wave 4 + final verification artifacts under
+  `audit-artifacts/screenshots/v1.6.0-wave4-*.png` (48 shots),
+  `v1.6.0-final-{plan,run}-{light,dark}-{en,de}.png` (8 shots), and
+  `v1.6.1-agent-dialog-{light,dark}.png`.
+
+### Numbers
+
+- 442 unit tests passing (unchanged baseline).
+- 52 e2e tests passing + 2 expected skips (wave3 DE).
+- All static checks green (typecheck / lint / format / tokens).
+- Bundle: 1.44 MB minified, 432 kB gzip (unchanged; chunk-split deferred).
+
+### Deferred to v1.6.2
+
+- **Color-contrast follow-up**: `axe-core`'s `color-contrast` rule
+  still disabled in `tests/e2e/a11y.spec.ts`. The base-palette nudges
+  covered solid pairs, but opacity modifiers like `text-muted-foreground/60`
+  on dark card backgrounds still fall below 4.5:1. Resolution path:
+  audit every `/{N}` opacity usage, either bump the base token or
+  introduce a dedicated `text-muted-foreground-soft` token with its
+  own AA-passing value per theme, then re-enable the rule.
 
 ## 1.6.0 — i18n + design tokens + tooltip coverage
 
