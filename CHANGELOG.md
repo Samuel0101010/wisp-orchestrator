@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.7.2 — Hotfix: chat error-pill contrast in dark mode
+
+CI hotfix for v1.7.1. Re-enabling axe `color-contrast` (v1.7.1, §6.A) exposed
+one missing case that didn't repro locally: the three small inline error
+tags in `routes/Chat.tsx` (warning + 2 destructive variants) used
+`text-{tone}` on `bg-{tone}/20`, which is structurally low-contrast (3.91:1
+in dark mode) because the foreground and background share hue/luminance.
+
+The pill only renders when a chat message has `errorReason` set — locally
+the test env has `claude` on PATH so the spawn never fails; CI ran into
+`ENOENT` and rendered the pill, surfacing the violation.
+
+### Fixed
+
+- `routes/Chat.tsx` error pills: tone-tinted background retained for
+  semantic signal, but the text switches to `text-foreground` so contrast
+  clears AA in both themes (≥9.6:1 in dark, ≥14:1 in light).
+
 ## 1.7.1 — Punch-list close: a11y full-AA, code-split, encoding guardrail
 
 End-to-end hygiene pass closing every item on the v1.7.0 §6 punch list. No
