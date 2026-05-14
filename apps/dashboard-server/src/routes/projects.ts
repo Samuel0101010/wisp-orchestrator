@@ -1,4 +1,7 @@
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -80,6 +83,74 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
       await db.update(projects).set(updates).where(eq(projects.id, params.id)).run();
       const updated = await db.select().from(projects).where(eq(projects.id, params.id)).get();
       return updated ?? existing;
+    }),
+  );
+
+  // Idempotent: `git init -b main` + initial commit so the orchestrator's
+  // `git worktree add` can succeed. Returns 200/`alreadyInitialized: true`
+  // when the repo is already initialized; 201/`alreadyInitialized: false`
+  // when this call did the work. Refuses if the directory itself is missing
+  // — we don't create arbitrary directories on the user's filesystem.
+  app.post(
+    '/api/projects/:id/init-repo',
+    wrap(async (req, reply) => {
+      const params = z.object({ id: z.string() }).parse(req.params);
+      const project = await db.select().from(projects).where(eq(projects.id, params.id)).get();
+      if (!project) {
+        reply.code(404);
+        return { error: 'project not found' };
+      }
+      const repoPath = project.repoPath;
+      if (!fs.existsSync(repoPath)) {
+        reply.code(400);
+        return {
+          error: 'repo_path_missing',
+          repoPath,
+          hint: 'Create the directory first or update the project repoPath.',
+        };
+      }
+      if (fs.existsSync(path.join(repoPath, '.git'))) {
+        return { ok: true, alreadyInitialized: true, repoPath };
+      }
+
+      const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+      const git = (...args: string[]): string =>
+        execFileSync('git', args, { cwd: repoPath, env, stdio: 'pipe' }).toString();
+      try {
+        git('init', '-b', 'main');
+        // Set local user.email/name only if not already configured globally —
+        // git commit refuses without them. Use a neutral identity so commits
+        // are obviously harness-authored rather than impersonating the user.
+        try {
+          execFileSync('git', ['config', '--get', 'user.email'], {
+            cwd: repoPath,
+            env,
+            stdio: 'pipe',
+          });
+        } catch {
+          git('config', 'user.email', 'harness@local');
+          git('config', 'user.name', 'Agent Harness');
+        }
+        // Disable signing for the bootstrap commit so it works regardless of
+        // user's global signing config.
+        git('config', 'commit.gpgsign', 'false');
+        const readme = path.join(repoPath, 'README.md');
+        if (!fs.existsSync(readme)) {
+          fs.writeFileSync(readme, `# ${project.name}\n\n${project.goal}\n`, 'utf8');
+        }
+        git('add', '-A');
+        git('commit', '-m', 'initial commit');
+        const head = git('rev-parse', 'HEAD').trim();
+        reply.code(201);
+        return { ok: true, alreadyInitialized: false, repoPath, head };
+      } catch (err) {
+        reply.code(500);
+        return {
+          error: 'git_init_failed',
+          repoPath,
+          message: err instanceof Error ? err.message : String(err),
+        };
+      }
     }),
   );
 

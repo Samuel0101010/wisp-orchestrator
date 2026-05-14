@@ -423,7 +423,16 @@
       "runStartedDesc": "Run {{id}}",
       "lockFailed": "Lock & Run failed",
       "regenerated": "Plan regenerated",
-      "regenFailed": "Regenerate failed"
+      "regenFailed": "Regenerate failed",
+      "repoInitialized": "Repository initialized",
+      "repoAlreadyInitialized": "Repository already initialized",
+      "repoInitFailed": "Repository initialization failed"
+    },
+    "repoInit": {
+      "title": "This project's directory isn't a git repository yet.",
+      "body": "Agents work in isolated git worktrees. Initialize a fresh git repo and an initial commit, then we'll retry Lock & Run automatically. Directory:",
+      "initialize": "Initialize repo",
+      "initializing": "Initializing…"
     }
   },
   "runView": {

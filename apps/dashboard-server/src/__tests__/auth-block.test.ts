@@ -1,5 +1,9 @@
 import './setup.js';
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
@@ -20,12 +24,38 @@ async function buildApp(): Promise<FastifyInstance> {
   return app;
 }
 
+// Real temp git repo so the run-start preflight check (`repo_not_initialized`)
+// doesn't short-circuit before the auth probe is consulted.
+const tempRepos: string[] = [];
+function makeTempGitRepo(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-auth-test-'));
+  const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+  const git = (...args: string[]): void => {
+    execFileSync('git', args, { cwd: dir, env, stdio: 'pipe' });
+  };
+  git('init', '-b', 'main');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+  git('config', 'commit.gpgsign', 'false');
+  fs.writeFileSync(path.join(dir, 'README.md'), '# test\n');
+  git('add', 'README.md');
+  git('commit', '-m', 'initial commit');
+  tempRepos.push(dir);
+  return dir;
+}
+
 async function seedLockedPlan(): Promise<{ planId: string; projectId: string }> {
   const projectId = randomUUID();
   const planId = randomUUID();
   await db
     .insert(projects)
-    .values({ id: projectId, name: 'p', goal: 'g', repoPath: '/tmp/r', createdAt: new Date() })
+    .values({
+      id: projectId,
+      name: 'p',
+      goal: 'g',
+      repoPath: makeTempGitRepo(),
+      createdAt: new Date(),
+    })
     .run();
   const validPlan = {
     goal: 'g',
@@ -59,6 +89,13 @@ beforeAll(() => {
 
 afterAll(() => {
   sqlite.close();
+  for (const dir of tempRepos.splice(0)) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* Windows occasionally holds locks on .git; harmless test artifact. */
+    }
+  }
 });
 
 describe('POST /api/runs — auth probe gate', () => {

@@ -1,5 +1,56 @@
 # Changelog
 
+## 1.7.4 — Repo-not-initialized recovery: preflight + one-click init
+
+Real-world bug: the user locked + started a plan against `C:/.../Wertzeit-ST-App`
+which existed as an empty directory but was not a git repo. The first
+`git worktree add` failed with a cryptic `fatal: not a git repository`, every
+downstream task cancel-cascaded, and the run died in ~50 ms with no useful
+surface in the UI.
+
+### Added
+
+- **Run-start preflight** (`apps/dashboard-server/src/routes/runs.ts`).
+  Before invoking the runtime, `POST /api/runs` now resolves the project from
+  the plan and checks `<repoPath>/.git`. On miss it returns
+  `HTTP 400 { error: 'repo_not_initialized', projectId, repoPath, repoPathExists, hint }`
+  so the client can offer a structured recovery instead of an opaque
+  "Lock & Run failed" toast. New unit test
+  (`apps/dashboard-server/src/__tests__/runs.test.ts`) asserts the
+  preflight short-circuits before `runtime.startRun` is called.
+- **Idempotent init-repo endpoint** `POST /api/projects/:id/init-repo`
+  (`apps/dashboard-server/src/routes/projects.ts`). Runs `git init -b main`,
+  sets a neutral committer identity if missing, disables signing for the
+  bootstrap commit, creates a README from the project's name + goal, and
+  commits. Returns `200 { alreadyInitialized: true }` on a repo that is
+  already a git repo. Refuses with `400 repo_path_missing` if the directory
+  itself does not exist — we don't create arbitrary directories on the
+  user's filesystem. 4 new unit tests cover happy / idempotent / missing-dir
+  / unknown-project paths.
+- **Recovery banner** in PlanEditor
+  (`apps/dashboard-web/src/routes/PlanEditor.tsx`). On the `repo_not_initialized`
+  error path, the UI replaces the failure toast with an inline banner that
+  shows the repoPath plus an "Initialize repo" button. On click, calls the
+  new endpoint via `useInitProjectRepo` and re-triggers Lock & Run in the
+  same handler, so the user goes from broken state to running run in one
+  click. Strings localized in en + de.
+
+### Fixed
+
+- The existing run-route tests previously hid behind fake runtimes and
+  fictional `/tmp/r` paths that the preflight would now reject. Test
+  fixtures (`runs.test.ts`, `auth-block.test.ts`) updated to create real
+  temp git repos in `os.tmpdir()` so the preflight is exercised honestly
+  rather than bypassed.
+
+### Verification
+
+| Gate | Result |
+| --- | --- |
+| Unit + compliance tests | 467 passing (+5) |
+| Init-repo endpoint (live) | 201 first call, 200 idempotent, `.git` on disk |
+| typecheck / lint / format:check / tokens:check / encoding:check | clean |
+
 ## 1.7.3 — Live-test pass: chat scroll, experiments removal, modal i18n
 
 Found by actually using the dashboard (not just running tests). The user hit

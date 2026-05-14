@@ -30,6 +30,7 @@ import {
   type PlanStatus,
   useGeneratePlan,
   useGeneratedPlan,
+  useInitProjectRepo,
   useLockPlan,
   usePatchPlan,
   useProject,
@@ -216,10 +217,19 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
   const [confirmRegen, setConfirmRegen] = useState(false);
   const [confirmLockRun, setConfirmLockRun] = useState(false);
   const [firstRunOpen, setFirstRunOpen] = useState(false);
+  /**
+   * Set when the server's run-start preflight reports `repo_not_initialized`.
+   * Triggers an inline banner with an Initialize-repo button that, on success,
+   * re-tries the original Lock & Run sequence so the user only clicks once.
+   */
+  const [repoNotInit, setRepoNotInit] = useState<{ repoPath: string; lockedPlanId: string } | null>(
+    null,
+  );
   const patchPlan = usePatchPlan(planRow.id, projectId);
   const lockPlan = useLockPlan(planRow.id, projectId);
   const generatePlan = useGeneratePlan(projectId);
   const startRun = useStartRun();
+  const initRepo = useInitProjectRepo();
   const navigate = useNavigate();
 
   // Re-hydrate local state if the server plan changes (e.g. after regenerate).
@@ -255,6 +265,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
 
   const handleLockAndRun = async (): Promise<void> => {
     setConfirmLockRun(false);
+    setRepoNotInit(null);
     try {
       let planId = planRow.id;
       if (planRow.status === 'draft') {
@@ -269,8 +280,45 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
       });
       navigate(`/projects/${projectId}/run/${runId}`);
     } catch (err) {
+      // Preflight: project's repoPath isn't a git repo. Surface a recovery
+      // banner rather than just a generic failure toast — the user can fix
+      // this in one click via the Initialize button.
+      if (err instanceof ApiError && err.status === 400) {
+        const body = err.body as
+          | { error?: string; repoPath?: string; repoPathExists?: boolean }
+          | undefined;
+        if (body?.error === 'repo_not_initialized' && body.repoPath) {
+          // Plan may have just been locked by the lock-step above; capture the
+          // current planRow.id (lock-step mutates server state, not local, so
+          // re-locking would be a no-op).
+          setRepoNotInit({ repoPath: body.repoPath, lockedPlanId: planRow.id });
+          return;
+        }
+      }
       toast({
         title: t('planEditor.toasts.lockFailed'),
+        description: errorMessage(err),
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleInitRepo = async (): Promise<void> => {
+    if (!repoNotInit) return;
+    try {
+      const res = await initRepo.mutateAsync(projectId);
+      toast({
+        title: res.alreadyInitialized
+          ? t('planEditor.toasts.repoAlreadyInitialized')
+          : t('planEditor.toasts.repoInitialized'),
+      });
+      setRepoNotInit(null);
+      // Retry the run-start automatically — the lock step is idempotent on a
+      // locked plan, so we hit the runtime fresh.
+      await handleLockAndRun();
+    } catch (err) {
+      toast({
+        title: t('planEditor.toasts.repoInitFailed'),
         description: errorMessage(err),
         variant: 'destructive',
       });
@@ -304,6 +352,44 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
       <BackToProject />
+      {repoNotInit && (
+        <div
+          data-testid="repo-not-initialized-banner"
+          className="flex flex-col gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0">
+            <div className="font-medium text-destructive">{t('planEditor.repoInit.title')}</div>
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              {t('planEditor.repoInit.body')}{' '}
+              <code className="rounded bg-muted px-1 py-0.5 font-mono text-2xs">
+                {repoNotInit.repoPath}
+              </code>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRepoNotInit(null)}
+              disabled={initRepo.isPending}
+            >
+              {t('buttons.cancel')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                void handleInitRepo();
+              }}
+              disabled={initRepo.isPending}
+              data-testid="repo-init-button"
+            >
+              {initRepo.isPending
+                ? t('planEditor.repoInit.initializing')
+                : t('planEditor.repoInit.initialize')}
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold">{projectName}</h1>
