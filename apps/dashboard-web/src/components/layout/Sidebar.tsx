@@ -295,7 +295,10 @@ export function Sidebar() {
           </DialogContent>
         </Dialog>
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 px-2 pb-4" aria-label="projects">
+      <nav
+        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-4"
+        aria-label="projects"
+      >
         {isLoading && (
           <span className="px-3 py-2 text-xs text-muted-foreground">{t('buttons.loading')}</span>
         )}

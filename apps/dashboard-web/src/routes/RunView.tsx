@@ -272,25 +272,30 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
         <span className="text-sm font-medium">{task.title}</span>
         <span className="text-xs text-muted-foreground">{task.id}</span>
       </div>
-      <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground tabular-nums">
-        <div>
-          <div className="text-2xs uppercase">{t('runView.task.tokens')}</div>
-          <div data-testid={`task-tokens-${task.id}`}>
+      {/* Metric rows. Stacked label-value pairs so they read cleanly in
+          narrow kanban columns (~125px content width on 1440px viewports)
+          where the earlier 3-column grid overlapped tags + values. */}
+      <dl className="flex flex-col gap-0.5 text-xs text-muted-foreground tabular-nums">
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="text-2xs uppercase">{t('runView.task.tokens')}</dt>
+          <dd className="font-mono" data-testid={`task-tokens-${task.id}`}>
             {formatCompactNumber(task.tokensIn)} / {formatCompactNumber(task.tokensOut)}
-          </div>
+          </dd>
         </div>
-        <div>
-          <div className="text-2xs uppercase">{t('runView.task.turns')}</div>
-          <div data-testid={`task-turns-${task.id}`}>
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="text-2xs uppercase">{t('runView.task.turns')}</dt>
+          <dd className="font-mono" data-testid={`task-turns-${task.id}`}>
             {task.turnsUsed}
             {budgetTurns > 0 ? ` / ${budgetTurns}` : ''}
-          </div>
+          </dd>
         </div>
-        <div>
-          <div className="text-2xs uppercase">{t('runView.task.duration')}</div>
-          <div data-testid={`task-duration-${task.id}`}>{formatDuration(duration)}</div>
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="text-2xs uppercase">{t('runView.task.duration')}</dt>
+          <dd className="font-mono" data-testid={`task-duration-${task.id}`}>
+            {formatDuration(duration)}
+          </dd>
         </div>
-      </div>
+      </dl>
       {task.error && (
         <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
           <div className="font-semibold">{t('runView.task.failed')}</div>
@@ -783,7 +788,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
   const budgetMs = run.budgetMinutes * 60_000;
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] flex-col gap-3" data-testid="run-view">
+    <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-3 pb-6" data-testid="run-view">
       <BackToProject />
       <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
         <div className="flex items-center gap-3">
@@ -805,7 +810,9 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
               live={run.status === 'running'}
             >
               {statusLabel(run.status, t)}
-              {run.outcome ? ` (${statusLabel(run.outcome, t)})` : ''}
+              {/* Outcome echoes status verbatim for cancelled/failed runs.
+                  Only show it when it adds new information. */}
+              {run.outcome && run.outcome !== run.status ? ` (${statusLabel(run.outcome, t)})` : ''}
             </StatusPill>
           </span>
           {snapshot.run.errorReason === 'max_turns' && (

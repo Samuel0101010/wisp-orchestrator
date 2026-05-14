@@ -461,7 +461,8 @@
       "budgetMinPlaceholder": "budget min",
       "budgetTokensPlaceholder": "budget tokens",
       "save": "Save",
-      "saving": "Saving…"
+      "saving": "Saving…",
+      "saved": "Saved"
     },
     "kanban": {
       "pending": "PENDING",
