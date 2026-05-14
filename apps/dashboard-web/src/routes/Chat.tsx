@@ -624,20 +624,23 @@ function MessageBlock({
         <div className="mb-0.5 flex items-baseline gap-2">
           <span className="text-sm font-semibold">{authorName}</span>
           <span className="text-2xs text-muted-foreground">{fmtTime(message.createdAt, lang)}</span>
+          {/* Error tags: tone-tinted bg carries the semantic signal; foreground
+              text (not text-{tone}) is required for AA contrast on tinted
+              surfaces in both themes — see footgun in handoff.md §7. */}
           {message.errorReason === 'pending' && (
-            <span className="rounded bg-warning/20 px-1 text-3xs uppercase text-warning">
+            <span className="rounded bg-warning/20 px-1 text-3xs uppercase text-foreground">
               {t('chat.transcript.interrupted')}
             </span>
           )}
           {message.errorReason === 'timeout' && (
-            <span className="rounded bg-destructive/20 px-1 text-3xs font-semibold text-destructive">
+            <span className="rounded bg-destructive/20 px-1 text-3xs font-semibold text-foreground">
               {t('chat.transcript.timeout')}
             </span>
           )}
           {message.errorReason &&
             message.errorReason !== 'pending' &&
             message.errorReason !== 'timeout' && (
-              <span className="rounded bg-destructive/20 px-1 text-3xs uppercase text-destructive">
+              <span className="rounded bg-destructive/20 px-1 text-3xs uppercase text-foreground">
                 {message.errorReason}
               </span>
             )}
