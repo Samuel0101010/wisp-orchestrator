@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pause, Coins, Activity, Search } from 'lucide-react';
+import { Coins, Activity, Search } from 'lucide-react';
 import { useMatch } from 'react-router-dom';
 import { IconButton } from '@/components/ui/icon-button';
 import { Separator } from '@/components/ui/separator';
@@ -97,10 +97,6 @@ export function TopBar() {
         data-testid="topbar-run-status"
       />
       <Separator orientation="vertical" className="h-6" />
-      <button type="button" disabled className="text-xs text-muted-foreground">
-        <Pause className="mr-2 inline h-4 w-4" />
-        {t('buttons.pauseRun')}
-      </button>
       <div className="flex flex-1 items-center gap-4 text-xs">
         <div className="flex flex-1 items-center gap-2">
           <span className="w-12 text-muted-foreground">{t('topBar.time')}</span>

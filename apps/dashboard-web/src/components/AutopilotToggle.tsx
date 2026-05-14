@@ -1,32 +1,87 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Check } from 'lucide-react';
 import { useToggleAutopilot } from '@/api/queries';
 
+interface AutopilotToggleProps {
+  runId: string;
+  initialEnabled: boolean;
+  initialBudgetMinutes: number | null;
+  initialBudgetTokens: number | null;
+}
+
+/**
+ * Autopilot + budget controls with a "saved" indicator.
+ *
+ * The button cycles through three states:
+ *   - dirty       → enabled button labelled "Speichern" / "Save"
+ *   - saving      → disabled, "Speichern…"
+ *   - saved/clean → disabled, "Gespeichert" with a check icon
+ *
+ * `last-saved` snapshot tracks the values that were persisted server-side
+ * the most recent successful save. Any local edit makes the form dirty
+ * again, the save button re-enables, and on a fresh successful save the
+ * snapshot moves forward.
+ */
 export function AutopilotToggle({
   runId,
   initialEnabled,
   initialBudgetMinutes,
   initialBudgetTokens,
-}: {
-  runId: string;
-  initialEnabled: boolean;
-  initialBudgetMinutes: number | null;
-  initialBudgetTokens: number | null;
-}) {
+}: AutopilotToggleProps) {
   const { t } = useTranslation();
   const [enabled, setEnabled] = useState(initialEnabled);
   const [budgetMin, setBudgetMin] = useState<string>(initialBudgetMinutes?.toString() ?? '');
   const [budgetTok, setBudgetTok] = useState<string>(initialBudgetTokens?.toString() ?? '');
+  const [saved, setSaved] = useState({
+    enabled: initialEnabled,
+    budgetMin: initialBudgetMinutes?.toString() ?? '',
+    budgetTok: initialBudgetTokens?.toString() ?? '',
+  });
   const toggle = useToggleAutopilot();
 
-  const save = () => {
-    toggle.mutate({
-      runId,
-      enabled,
-      budgetMinutes: budgetMin ? Number(budgetMin) : undefined,
-      budgetTokens: budgetTok ? Number(budgetTok) : undefined,
+  // If the snapshot from the server changes (e.g. another tab updated, or the
+  // /api/runs/:id refetch refreshes) and the user hasn't edited locally yet,
+  // adopt the new values as the saved baseline.
+  useEffect(() => {
+    setEnabled(initialEnabled);
+    setBudgetMin(initialBudgetMinutes?.toString() ?? '');
+    setBudgetTok(initialBudgetTokens?.toString() ?? '');
+    setSaved({
+      enabled: initialEnabled,
+      budgetMin: initialBudgetMinutes?.toString() ?? '',
+      budgetTok: initialBudgetTokens?.toString() ?? '',
     });
+  }, [initialEnabled, initialBudgetMinutes, initialBudgetTokens]);
+
+  const dirty =
+    enabled !== saved.enabled || budgetMin !== saved.budgetMin || budgetTok !== saved.budgetTok;
+
+  const save = (): void => {
+    toggle.mutate(
+      {
+        runId,
+        enabled,
+        budgetMinutes: budgetMin ? Number(budgetMin) : undefined,
+        budgetTokens: budgetTok ? Number(budgetTok) : undefined,
+      },
+      {
+        onSuccess: () => {
+          setSaved({ enabled, budgetMin, budgetTok });
+        },
+      },
+    );
   };
+
+  let buttonLabel: string;
+  if (toggle.isPending) {
+    buttonLabel = t('runView.autopilot.saving');
+  } else if (dirty) {
+    buttonLabel = t('runView.autopilot.save');
+  } else {
+    buttonLabel = t('runView.autopilot.saved');
+  }
+  const buttonDisabled = toggle.isPending || !dirty;
 
   return (
     <div className="flex items-center gap-3 rounded border border-border bg-card p-3 text-sm">
@@ -42,6 +97,7 @@ export function AutopilotToggle({
         value={budgetMin}
         onChange={(e) => setBudgetMin(e.target.value)}
         disabled={!enabled}
+        aria-label={t('runView.autopilot.budgetMinPlaceholder')}
       />
       <input
         type="number"
@@ -51,13 +107,17 @@ export function AutopilotToggle({
         value={budgetTok}
         onChange={(e) => setBudgetTok(e.target.value)}
         disabled={!enabled}
+        aria-label={t('runView.autopilot.budgetTokensPlaceholder')}
       />
       <button
         onClick={save}
-        disabled={toggle.isPending}
-        className="rounded bg-primary px-3 py-1 text-primary-foreground hover:opacity-90 disabled:opacity-50"
+        disabled={buttonDisabled}
+        data-testid="autopilot-save"
+        data-dirty={dirty}
+        className="inline-flex items-center gap-1.5 rounded bg-primary px-3 py-1 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-60"
       >
-        {toggle.isPending ? t('runView.autopilot.saving') : t('runView.autopilot.save')}
+        {!toggle.isPending && !dirty && <Check className="h-3.5 w-3.5" />}
+        {buttonLabel}
       </button>
     </div>
   );

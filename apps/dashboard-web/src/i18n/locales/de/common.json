@@ -461,7 +461,8 @@
       "budgetMinPlaceholder": "Budget Min",
       "budgetTokensPlaceholder": "Budget Tokens",
       "save": "Speichern",
-      "saving": "Speichere…"
+      "saving": "Speichere…",
+      "saved": "Gespeichert"
     },
     "kanban": {
       "pending": "AUSSTEHEND",

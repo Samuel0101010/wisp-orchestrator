@@ -1,5 +1,51 @@
 # Changelog
 
+## 1.7.5 — RunView UX pass: sidebar scroll, vertical scroll, saved indicator, task-card metrics
+
+User-driven hands-on pass on `/projects/:id/run/:runId` with the Chrome MCP.
+Live-verified every fix in a real browser before claiming done.
+
+### Fixed
+
+- **Sidebar projects nav was unscrollable**. The list was capped at the
+  visible viewport with no `overflow-y` — only the first 1–2 projects ever
+  showed. Added `min-h-0 overflow-y-auto` to the projects `<nav>` so the
+  list scrolls when it exceeds available height.
+- **RunView had a fixed `h-[calc(100vh-7rem)]`** that clipped everything
+  below the kanban (autopilot panel, error tasks) on shorter viewports.
+  Switched to `min-h-[calc(100vh-7rem)] pb-6` so the page can grow and the
+  main scroll-container of the shell takes over when needed.
+- **Run-header double label** (`ABGEBROCHEN (ABGEBROCHEN)`). The status
+  pill rendered both `status` and `outcome` even when they were identical
+  (cancelled/cancelled, failed/failed). Now only adds the parenthetical
+  when outcome carries new information.
+- **TopBar showed a permanently-disabled "Run pausieren" button** on the
+  run-active path. Removed — pause/resume already lives in
+  `RunHeaderActions` inside the run card, where it's contextual to the
+  run's state. Also removed the orphaned `Pause` icon import.
+- **TaskCard 3-column metric grid overlapped** in narrow kanban columns
+  (~125px content width). TOKEN / TURNS / DAUER labels and values
+  collided. Replaced with a vertically stacked `<dl>` of label-value
+  rows that read cleanly at any column width.
+
+### Added
+
+- **Saved-indicator on AutopilotToggle** (`apps/dashboard-web/src/components/AutopilotToggle.tsx`).
+  Tracks a last-saved snapshot. Button cycles `Speichern → Speichere… →
+  Gespeichert ✓` and disables itself in the clean state. Any field edit
+  re-enables it. `runView.autopilot.saved` i18n key added in en + de.
+
+### Verified live
+
+| Surface | Before | After |
+| --- | --- | --- |
+| Sidebar | 1 project visible, no scrollbar | 778 px content scrolls in 53 px viewport; `preflight-test` reachable |
+| RunView | clipped at kanban, no scroll | full page scrolls, n14 / n15 task cards visible |
+| Run header | `ABGEBROCHEN (ABGEBROCHEN)` | `ABGEBROCHEN` once |
+| TopBar | disabled "Run pausieren" stub | clean Zeit / Turns / Tokens row |
+| Autopilot | no save state | toggle → Speichern; save → Gespeichert ✓; edit → Speichern |
+| TaskCard | TOKEN/BURNS/DAUER overlap | clean stacked label-value rows |
+
 ## 1.7.4 — Repo-not-initialized recovery: preflight + one-click init
 
 Real-world bug: the user locked + started a plan against `C:/.../Wertzeit-ST-App`
