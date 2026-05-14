@@ -1232,6 +1232,177 @@ describe('Walker — QA-driven replan (M5)', () => {
 
 // ---------- helpers ----------
 
+describe('Walker — dep-merge auto-resolver', () => {
+  it('spawns a resolver subprocess on dep-merge conflict and continues the task when it succeeds', async () => {
+    // n1 + n2 are parallel, n3 merges them both. mergeBranches reports a
+    // conflict on the first attempt (auto-aborted), then on the resolver's
+    // retry (leaveOnConflict=true) reports the same conflict. The resolver
+    // subprocess "fixes" things; getMergeStatus reflects a clean post-merge
+    // state with HEAD advanced. The walker must then fall through and run
+    // the actual n3 task subprocess.
+    const resolverEmitted: string[] = [];
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n3:merge-resolver',
+        [
+          {
+            events: [
+              {
+                type: 'task.usage',
+                payload: { taskId: 'n3:merge-resolver', tokensIn: 200, tokensOut: 100, turns: 3 },
+              },
+              {
+                type: 'task.completed',
+                payload: { taskId: 'n3:merge-resolver', outcome: 'pass', exitCode: 0 },
+              },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+
+    let mergeCallCount = 0;
+    let mergeStatusCallCount = 0;
+    h.deps.mergeBranches = async (_path, _branches, opts) => {
+      mergeCallCount += 1;
+      // Both attempts conflict. First call: auto-abort path. Second call:
+      // leaveOnConflict=true so we expect the worktree to be left dirty
+      // (simulated by the fake getMergeStatus below).
+      expect(opts?.leaveOnConflict === true || mergeCallCount === 1).toBe(true);
+      return { ok: false, conflict: 'CONFLICT in shared.txt' };
+    };
+    h.deps.abortMerge = async () => {
+      // Should not be called when the resolver succeeds.
+      throw new Error('abortMerge should not be called when the resolver succeeded');
+    };
+    h.deps.getMergeStatus = async () => {
+      mergeStatusCallCount += 1;
+      // First call (pre-resolver): in-merge with unmerged paths.
+      // Second call (post-resolver): clean state, HEAD advanced.
+      if (mergeStatusCallCount === 1) {
+        return { inMerge: true, unmergedPaths: ['shared.txt'], headCommit: 'a'.repeat(40) };
+      }
+      return { inMerge: false, unmergedPaths: [], headCommit: 'b'.repeat(40) };
+    };
+
+    const plan = makePlan([
+      node('n1', 'architect'),
+      node('n2', 'developer'),
+      node('n3', 'qa', ['n1', 'n2']),
+    ]);
+    const outcome = await h.walker.start({
+      runId: 'r-mergefix',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // Run finishes successfully because the resolver merged and n3 ran.
+    expect(outcome).toBe('success');
+
+    // The resolver subprocess was spawned with the compound taskId.
+    const resolverSpawn = h.spawns.find((s) => s.taskId === 'n3:merge-resolver');
+    expect(resolverSpawn).toBeDefined();
+    expect(resolverSpawn!.opts.allowedTools).toEqual(
+      expect.arrayContaining(['Read', 'Edit', 'Write', 'Bash']),
+    );
+
+    // The main n3 task also ran AFTER the resolver finalised the merge.
+    const n3Spawn = h.spawns.find((s) => s.taskId === 'n3');
+    expect(n3Spawn).toBeDefined();
+    const resolverIdx = h.spawns.findIndex((s) => s.taskId === 'n3:merge-resolver');
+    const n3Idx = h.spawns.findIndex((s) => s.taskId === 'n3');
+    expect(resolverIdx).toBeLessThan(n3Idx);
+
+    // Resolver tokens are attributed to the parent task so run-level counters
+    // include them. The fake resolver reported 200/100 tokens + 3 turns.
+    expect(h.taskStates.get('n3')?.tokensIn ?? 0).toBeGreaterThanOrEqual(200);
+    expect(h.taskStates.get('n3')?.turnsUsed ?? 0).toBeGreaterThanOrEqual(3);
+
+    // No task.failed for n3 — the dep-merge path was rescued.
+    expect(h.emitted.some((e) => e.type === 'task.failed' && e.payload.taskId === 'n3')).toBe(false);
+    // Suppress unused-warning for the events captured above.
+    void resolverEmitted;
+  });
+
+  it('falls back to task.failed when the resolver does not finalise the merge', async () => {
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n3:merge-resolver',
+        [
+          {
+            events: [
+              {
+                type: 'task.completed',
+                payload: { taskId: 'n3:merge-resolver', outcome: 'pass', exitCode: 0 },
+              },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+
+    h.deps.mergeBranches = async () => ({ ok: false, conflict: 'CONFLICT in shared.txt' });
+    let abortCalls = 0;
+    h.deps.abortMerge = async () => {
+      abortCalls += 1;
+    };
+    h.deps.getMergeStatus = async () => {
+      // Always report still-in-merge: the "resolver" never actually fixed
+      // anything. Walker must abort the merge and fail the task.
+      return { inMerge: true, unmergedPaths: ['shared.txt'], headCommit: 'a'.repeat(40) };
+    };
+
+    const plan = makePlan([
+      node('n1', 'architect'),
+      node('n2', 'developer'),
+      node('n3', 'qa', ['n1', 'n2']),
+    ]);
+    await h.walker.start({
+      runId: 'r-mergefail',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    const n3Failed = h.emitted.find(
+      (e) => e.type === 'task.failed' && e.payload.taskId === 'n3',
+    ) as Extract<HarnessEvent, { type: 'task.failed' }> | undefined;
+    expect(n3Failed).toBeDefined();
+    expect(n3Failed!.payload.error).toContain('auto-resolver');
+    expect(n3Failed!.payload.error).toContain('did not finalise');
+    // We must have aborted the merge so the worktree is left clean.
+    expect(abortCalls).toBeGreaterThanOrEqual(1);
+  });
+
+  it('falls back to legacy fail behaviour when abortMerge/getMergeStatus are not wired', async () => {
+    const h = makeHarness({});
+    h.deps.mergeBranches = async () => ({ ok: false, conflict: 'CONFLICT in shared.txt' });
+    h.deps.abortMerge = undefined;
+    h.deps.getMergeStatus = undefined;
+
+    const plan = makePlan([
+      node('n1', 'architect'),
+      node('n2', 'developer'),
+      node('n3', 'qa', ['n1', 'n2']),
+    ]);
+    await h.walker.start({
+      runId: 'r-mergelegacy',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    const n3Failed = h.emitted.find(
+      (e) => e.type === 'task.failed' && e.payload.taskId === 'n3',
+    ) as Extract<HarnessEvent, { type: 'task.failed' }> | undefined;
+    expect(n3Failed).toBeDefined();
+    expect(n3Failed!.payload.error).toContain('dep-merge conflict');
+  });
+});
+
 function createGate(): { release: () => void; promise: Promise<void> } {
   let release: () => void = () => undefined;
   const promise = new Promise<void>((resolve) => {

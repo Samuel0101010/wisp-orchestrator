@@ -30,8 +30,10 @@ import {
 import {
   SubprocessPool,
   Walker,
+  abortMergeInWorktree,
   addWorktree,
   commitWorktreeChanges,
+  getMergeStatusInWorktree,
   mergeBranchesInWorktree,
   removeWorktree,
   runVerification,
@@ -198,6 +200,8 @@ export class RunRuntime {
       now: () => Date.now(),
       autoCommit: commitWorktreeChanges,
       mergeBranches: mergeBranchesInWorktree,
+      abortMerge: abortMergeInWorktree,
+      getMergeStatus: getMergeStatusInWorktree,
       interTaskPacingMs: env.HARNESS_INTER_TASK_PACING_MS,
       autoResumeRateLimit: env.HARNESS_AUTO_RESUME_RATE_LIMIT,
       // M5 — parentPlanId is captured here as the original plan id from

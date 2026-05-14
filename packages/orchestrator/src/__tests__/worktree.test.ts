@@ -6,7 +6,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   addWorktree,
+  abortMergeInWorktree,
   computeWorktreePath,
+  getMergeStatusInWorktree,
   listWorktrees,
   removeWorktree,
   mergeBranchesInWorktree,
@@ -166,6 +168,79 @@ describe('mergeBranchesInWorktree', () => {
       // both a.txt and b.txt present
       expect(existsSync(join(wtPath, 'a.txt'))).toBe(true);
       expect(existsSync(join(wtPath, 'b.txt'))).toBe(true);
+      await removeWorktree({ repoPath: repo, worktreePath: wtPath, force: true });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('leaveOnConflict=true keeps the worktree in mid-merge state with unmerged paths', async () => {
+    if (!gitAvailable) return;
+    const root = await mkdtemp(join(tmpdir(), 'harness-mbl-'));
+    const repo = join(root, 'repo');
+    try {
+      await execa('git', ['init', '-b', 'main', repo]);
+      await execa('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+      await execa('git', ['-C', repo, 'config', 'user.name', 'Test']);
+      await writeFile(join(repo, 'shared.txt'), 'base\n');
+      await execa('git', ['-C', repo, 'add', '.']);
+      await execa('git', ['-C', repo, 'commit', '-m', 'init']);
+      await execa('git', ['-C', repo, 'checkout', '-b', 'feat/a']);
+      await writeFile(join(repo, 'shared.txt'), 'A\n');
+      await execa('git', ['-C', repo, 'add', '.']);
+      await execa('git', ['-C', repo, 'commit', '-m', 'a']);
+      await execa('git', ['-C', repo, 'checkout', 'main']);
+      await execa('git', ['-C', repo, 'checkout', '-b', 'feat/b']);
+      await writeFile(join(repo, 'shared.txt'), 'B\n');
+      await execa('git', ['-C', repo, 'add', '.']);
+      await execa('git', ['-C', repo, 'commit', '-m', 'b']);
+      await execa('git', ['-C', repo, 'checkout', 'main']);
+      const wtPath = await addWorktree({
+        repoPath: repo,
+        branchName: 'merge/leave',
+        baseBranch: 'feat/a',
+      });
+      const result = await mergeBranchesInWorktree(wtPath, ['feat/b'], { leaveOnConflict: true });
+      expect(result.ok).toBe(false);
+
+      // Worktree must be left mid-merge for the resolver to fix in place.
+      const status = await getMergeStatusInWorktree(wtPath);
+      expect(status.inMerge).toBe(true);
+      expect(status.unmergedPaths).toContain('shared.txt');
+
+      // Operator cleanup: explicit abort returns the worktree to clean state.
+      await abortMergeInWorktree(wtPath);
+      const cleaned = await getMergeStatusInWorktree(wtPath);
+      expect(cleaned.inMerge).toBe(false);
+      expect(cleaned.unmergedPaths).toEqual([]);
+
+      await removeWorktree({ repoPath: repo, worktreePath: wtPath, force: true });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 30_000);
+
+  it('getMergeStatusInWorktree returns clean state after a successful merge', async () => {
+    if (!gitAvailable) return;
+    const root = await mkdtemp(join(tmpdir(), 'harness-mst-'));
+    const repo = join(root, 'repo');
+    try {
+      await execa('git', ['init', '-b', 'main', repo]);
+      await execa('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+      await execa('git', ['-C', repo, 'config', 'user.name', 'Test']);
+      await writeFile(join(repo, 'a.txt'), '1\n');
+      await execa('git', ['-C', repo, 'add', '.']);
+      await execa('git', ['-C', repo, 'commit', '-m', 'init']);
+
+      const wtPath = await addWorktree({
+        repoPath: repo,
+        branchName: 'status/clean',
+        baseBranch: 'main',
+      });
+      const status = await getMergeStatusInWorktree(wtPath);
+      expect(status.inMerge).toBe(false);
+      expect(status.unmergedPaths).toEqual([]);
+      expect(status.headCommit).toMatch(/^[0-9a-f]{40}$/);
       await removeWorktree({ repoPath: repo, worktreePath: wtPath, force: true });
     } finally {
       await rm(root, { recursive: true, force: true });

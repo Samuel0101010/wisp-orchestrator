@@ -101,7 +101,25 @@ export interface WalkerDeps {
   mergeBranches: (
     worktreePath: string,
     branches: string[],
+    opts?: { leaveOnConflict?: boolean },
   ) => Promise<{ ok: true } | { ok: false; conflict: string }>;
+  /**
+   * Best-effort abort of an in-progress merge. Used by the auto-resolver path
+   * after a resolver subprocess fails to finalize the merge. Optional — when
+   * absent, the walker falls back to its legacy "merge conflict = task fail"
+   * behavior with no resolver attempt.
+   */
+  abortMerge?: (worktreePath: string) => Promise<void>;
+  /**
+   * Inspect the worktree's merge / unmerged state. The walker uses this to
+   * decide whether a resolver subprocess actually finalised the merge or
+   * left it dangling. Optional; see {@link WalkerDeps.abortMerge}.
+   */
+  getMergeStatus?: (worktreePath: string) => Promise<{
+    inMerge: boolean;
+    unmergedPaths: string[];
+    headCommit: string;
+  }>;
   /** Minimum milliseconds between subprocess launches. 0 disables pacing. */
   interTaskPacingMs: number;
   /**
@@ -558,6 +576,152 @@ export class Walker {
   }
 
   /**
+   * Auto-resolve a dep-merge conflict by spawning a focused subprocess that
+   * integrates both sides and commits the merge. The conflict is real (two
+   * parallel deps edited overlapping regions of the same file); this method
+   * only succeeds if the subprocess produces a proper merge commit.
+   *
+   * Returns `{ ok: true }` when the worktree is back to a clean post-merge
+   * state. Returns `{ ok: false, reason }` when:
+   *   - the new walker deps (abortMerge/getMergeStatus) are not wired
+   *   - re-attempting the merge does not even enter conflict state
+   *   - the resolver subprocess crashes
+   *   - the resolver leaves unmerged paths or aborts the merge
+   *
+   * Token usage from the resolver is attributed to the parent task so the
+   * run-level counters stay honest.
+   */
+  private async attemptAutoResolveMerge(args: {
+    runId: string;
+    worktreePath: string;
+    otherDepBranches: string[];
+    node: TaskNode;
+    taskRuntime: TaskRuntime;
+    initialConflict: string;
+  }): Promise<{ ok: true } | { ok: false; reason: string }> {
+    const { runId, worktreePath, otherDepBranches, node, taskRuntime } = args;
+    const abortMerge = this.deps.abortMerge;
+    const getMergeStatus = this.deps.getMergeStatus;
+    if (!abortMerge || !getMergeStatus) {
+      // Legacy deps: no resolver capability wired.
+      return { ok: false, reason: 'auto-resolver unavailable (deps not wired)' };
+    }
+
+    // Re-attempt the merge, this time leaving the conflict in the working
+    // tree so the resolver can fix it in place. The first attempt already
+    // auto-aborted, so we're back at the pre-merge HEAD.
+    const attempt = await this.deps.mergeBranches(worktreePath, otherDepBranches, {
+      leaveOnConflict: true,
+    });
+    if (attempt.ok) {
+      // Race: the re-attempt merged cleanly. Accept and continue.
+      return { ok: true };
+    }
+
+    const preStatus = await getMergeStatus(worktreePath);
+    if (!preStatus.inMerge && preStatus.unmergedPaths.length === 0) {
+      return { ok: false, reason: 'merge did not enter conflict state on retry' };
+    }
+
+    this.deps.emit({
+      type: 'task.text-delta',
+      payload: {
+        taskId: node.id,
+        text: `\n[harness] dep-merge conflict in: ${preStatus.unmergedPaths.join(', ')}\n[harness] spawning merge-resolver agent...\n`,
+      },
+    });
+
+    const resolverPrompt =
+      `A git merge has just failed in this worktree with conflicts in:\n` +
+      preStatus.unmergedPaths.map((p) => `  - ${p}`).join('\n') +
+      `\n\nThe merge is mid-flight: HEAD is pre-merge, MERGE_HEAD points at the second parent, and the conflicted files contain <<<<<<< / ======= / >>>>>>> markers.\n\n` +
+      `Your single job: integrate both sides of every conflict and finalise the merge.\n\n` +
+      `Procedure:\n` +
+      `  1. For each conflicted file, read its current contents (with the markers) and inspect both intents via "git show :2:<file>" (ours) and "git show :3:<file>" (theirs).\n` +
+      `  2. Edit the file to a single coherent version that preserves BOTH intents wherever they don't logically collide. Never blindly delete one side's work.\n` +
+      `  3. Run "git add <file>" for each resolved file.\n` +
+      `  4. After every conflict is resolved, run:\n` +
+      `       git -c user.email=harness@agent-harness.local -c user.name=Agent Harness -c commit.gpgsign=false -c tag.gpgsign=false commit --no-edit\n` +
+      `     to finalise the merge.\n\n` +
+      `Hard rules:\n` +
+      `  - Do NOT run "git merge --abort". Resolving the conflict is the only acceptable outcome.\n` +
+      `  - Do NOT introduce new functionality beyond what is needed to integrate the conflicting changes.\n` +
+      `  - Do NOT modify files that are not unmerged.\n\n` +
+      `Context (do not start implementing this task itself — only resolve the merge):\n` +
+      `  Role: ${node.role}\n  Task: ${node.id}\n`;
+
+    let resolverCrashed = false;
+    try {
+      const iter = this.deps.pool.run({
+        cwd: worktreePath,
+        prompt: resolverPrompt,
+        systemPrompt:
+          'You are an automated merge-conflict resolver embedded in a multi-agent harness. You operate inside a worktree with an unfinished git merge. Your single job is to resolve every conflict and commit the merge. Be precise, brief, and stay strictly within scope.',
+        allowedTools: ['Read', 'Edit', 'Write', 'Bash'],
+        maxTurns: 25,
+        taskId: `${node.id}:merge-resolver`,
+        runId,
+      });
+      for await (const ev of iter) {
+        this.deps.emit(ev);
+        // Attribute resolver usage to the parent task so run-level totals
+        // include the resolver's tokens/turns. Without this, the resolver
+        // is invisible in the dashboard counters even though it consumed
+        // real quota.
+        if (ev.type === 'task.usage') {
+          const newTokensIn = Math.max(taskRuntime.tokensIn, ev.payload.tokensIn);
+          const newTokensOut = Math.max(taskRuntime.tokensOut, ev.payload.tokensOut);
+          const newTurns = Math.max(taskRuntime.turnsUsed, ev.payload.turns);
+          this.runTokensInTotal += newTokensIn - taskRuntime.lastReportedTokensIn;
+          this.runTokensOutTotal += newTokensOut - taskRuntime.lastReportedTokensOut;
+          this.runTurnsTotal += newTurns - taskRuntime.lastReportedTurns;
+          taskRuntime.tokensIn = newTokensIn;
+          taskRuntime.tokensOut = newTokensOut;
+          taskRuntime.turnsUsed = newTurns;
+          taskRuntime.lastReportedTokensIn = newTokensIn;
+          taskRuntime.lastReportedTokensOut = newTokensOut;
+          taskRuntime.lastReportedTurns = newTurns;
+          await this.deps.onTaskState(node.id, {
+            tokensIn: taskRuntime.tokensIn,
+            tokensOut: taskRuntime.tokensOut,
+            turnsUsed: taskRuntime.turnsUsed,
+          });
+        }
+      }
+    } catch (err) {
+      resolverCrashed = true;
+      const errStr = err instanceof Error ? err.message : String(err);
+      this.deps.emit({
+        type: 'task.text-delta',
+        payload: { taskId: node.id, text: `[harness] resolver crashed: ${errStr}\n` },
+      });
+    }
+
+    const postStatus = await getMergeStatus(worktreePath);
+    if (postStatus.inMerge || postStatus.unmergedPaths.length > 0) {
+      await abortMerge(worktreePath);
+      return {
+        ok: false,
+        reason: resolverCrashed
+          ? 'resolver crashed mid-merge'
+          : `resolver did not finalise merge (still unmerged: ${postStatus.unmergedPaths.join(', ') || 'MERGE_HEAD set'})`,
+      };
+    }
+    if (postStatus.headCommit === preStatus.headCommit) {
+      return { ok: false, reason: 'resolver aborted the merge instead of resolving' };
+    }
+
+    this.deps.emit({
+      type: 'task.text-delta',
+      payload: {
+        taskId: node.id,
+        text: `[harness] merge-resolver finalised the merge; continuing task\n`,
+      },
+    });
+    return { ok: true };
+  }
+
+  /**
    * Synchronously transitions every pending task with at least one terminally-
    * failed (or cancelled) dependency to `cancelled`, emitting a `task.failed`
    * event with a synthetic "upstream dep failed" error. Called from the
@@ -698,17 +862,37 @@ export class Walker {
       const otherDepBranches = node.deps.slice(1).map((d) => this.branchForDep(d));
       const mergeResult = await this.deps.mergeBranches(worktreePath, otherDepBranches);
       if (!mergeResult.ok) {
-        t.status = 'failed';
-        await this.deps.onTaskState(node.id, { status: 'failed', worktreeBranch: branchName });
-        this.deps.emit({
-          type: 'task.failed',
-          payload: { taskId: node.id, error: `dep-merge conflict: ${mergeResult.conflict}` },
+        // Auto-resolver path: when two parallel deps edited the same files,
+        // a plain `git merge --no-ff` will conflict — but the conflicts are
+        // usually mechanical to integrate. Spawn a focused resolver subprocess
+        // in the worktree before giving up. Only when the resolver itself
+        // fails do we cascade-fail the task.
+        const resolve = await this.attemptAutoResolveMerge({
+          runId,
+          worktreePath,
+          otherDepBranches,
+          node,
+          taskRuntime: t,
+          initialConflict: mergeResult.conflict,
         });
-        this.consecutiveFailures += 1;
-        if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
-          await this.pause('consecutive-failures');
+        if (!resolve.ok) {
+          t.status = 'failed';
+          await this.deps.onTaskState(node.id, { status: 'failed', worktreeBranch: branchName });
+          this.deps.emit({
+            type: 'task.failed',
+            payload: {
+              taskId: node.id,
+              error: `dep-merge conflict: ${mergeResult.conflict} (auto-resolver: ${resolve.reason})`,
+            },
+          });
+          this.consecutiveFailures += 1;
+          if (this.consecutiveFailures >= Walker.CONSECUTIVE_FAILURE_THRESHOLD) {
+            await this.pause('consecutive-failures');
+          }
+          return;
         }
-        return;
+        // Resolver finalised the merge — fall through to the normal subprocess
+        // launch below.
       }
     }
 

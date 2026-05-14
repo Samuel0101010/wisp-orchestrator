@@ -119,9 +119,15 @@ const GIT_COMMIT_OVERRIDES = [
 
 /**
  * Merge each branch in `branches` into the current branch of `worktreePath`
- * with `git merge --no-ff`. On the first conflict, aborts the failing merge
- * and returns `{ ok: false, conflict }` — does NOT continue with remaining
- * branches. On success of all merges, returns `{ ok: true }`.
+ * with `git merge --no-ff`. On the first conflict, returns
+ * `{ ok: false, conflict }` — does NOT continue with remaining branches. On
+ * success of all merges, returns `{ ok: true }`.
+ *
+ * By default the failing merge is auto-aborted so the worktree is left clean.
+ * Callers that want to attempt an in-place conflict resolution can pass
+ * `leaveOnConflict: true` to keep the worktree in mid-merge state (with
+ * MERGE_HEAD + unmerged paths). Such callers MUST themselves either commit
+ * the resolved merge or call {@link abortMergeInWorktree}.
  *
  * Uses harness identity overrides so the merge commits look like other
  * automated commits and never trip the user's signing hooks.
@@ -129,6 +135,7 @@ const GIT_COMMIT_OVERRIDES = [
 export async function mergeBranchesInWorktree(
   worktreePath: string,
   branches: string[],
+  opts: { leaveOnConflict?: boolean } = {},
 ): Promise<{ ok: true } | { ok: false; conflict: string }> {
   for (const b of branches) {
     try {
@@ -140,12 +147,56 @@ export async function mergeBranchesInWorktree(
     } catch (err) {
       const e = err as { stderr?: string; stdout?: string };
       const conflict = (e.stderr || e.stdout || String(err)).slice(0, 500);
-      // Always abort to leave the working tree in a clean state.
-      await execa('git', ['merge', '--abort'], { cwd: worktreePath, reject: false });
+      if (!opts.leaveOnConflict) {
+        await execa('git', ['merge', '--abort'], { cwd: worktreePath, reject: false });
+      }
       return { ok: false, conflict };
     }
   }
   return { ok: true };
+}
+
+/**
+ * Best-effort abort of an in-progress merge in `worktreePath`. Safe to call
+ * even if no merge is in progress. Never throws.
+ */
+export async function abortMergeInWorktree(worktreePath: string): Promise<void> {
+  await execa('git', ['merge', '--abort'], { cwd: worktreePath, reject: false });
+}
+
+export interface MergeStatus {
+  /** True if `MERGE_HEAD` ref exists — i.e. a merge is mid-flight. */
+  inMerge: boolean;
+  /** Files with diff-filter=U (unresolved conflict markers). */
+  unmergedPaths: string[];
+  /** Current HEAD commit sha. */
+  headCommit: string;
+}
+
+/**
+ * Read the merge / unmerged state of a worktree. Used by the walker's
+ * auto-resolver path to decide whether a resolver subprocess actually
+ * finalised the merge or left it dangling.
+ */
+export async function getMergeStatusInWorktree(worktreePath: string): Promise<MergeStatus> {
+  const head = await execa('git', ['rev-parse', 'HEAD'], { cwd: worktreePath });
+  const headCommit = head.stdout.trim();
+
+  const mergeHead = await execa('git', ['rev-parse', '--verify', '--quiet', 'MERGE_HEAD'], {
+    cwd: worktreePath,
+    reject: false,
+  });
+  const inMerge = mergeHead.exitCode === 0;
+
+  const unmerged = await execa('git', ['diff', '--name-only', '--diff-filter=U'], {
+    cwd: worktreePath,
+  });
+  const unmergedPaths = unmerged.stdout
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return { inMerge, unmergedPaths, headCommit };
 }
 
 function parseWorktreePorcelain(text: string): WorktreeEntry[] {
