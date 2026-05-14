@@ -166,7 +166,7 @@ function Section({
         {title}
       </div>
       <ul
-        className={`list-disc space-y-0.5 pl-4 ${tone === 'muted' ? 'text-muted-foreground/80' : ''}`}
+        className={`list-disc space-y-0.5 pl-4 ${tone === 'muted' ? 'text-muted-foreground-soft' : ''}`}
       >
         {items.map((item, i) => (
           <li key={i}>{item}</li>

@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { WebSocket } from 'ws';
-import { harnessEventSchema, type HarnessEvent } from '@agent-harness/schemas';
+import { eq } from 'drizzle-orm';
+import { harnessEventSchema, runs, type HarnessEvent } from '@agent-harness/schemas';
+import { db } from './db/index.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const HEARTBEAT_TIMEOUT_MS = 35_000;
@@ -92,10 +94,26 @@ export function publishToRun(runId: string, event: HarnessEvent): void {
 }
 
 export function registerWebsocket(app: FastifyInstance): void {
-  app.get<{ Params: { runId: string } }>('/ws/runs/:runId', { websocket: true }, (socket, req) => {
-    const { runId } = req.params;
-    subscribeToRun(runId, socket as unknown as WebSocket);
-  });
+  app.get<{ Params: { runId: string } }>(
+    '/ws/runs/:runId',
+    {
+      websocket: true,
+      // Reject upgrade with 404 before switching protocols when the run id is
+      // unknown. Without this, bogus ids returned 101 + an immediately-closed
+      // socket, which is a confusing contract for clients.
+      preValidation: async (req, reply) => {
+        const { runId } = req.params as { runId: string };
+        const row = db.select({ id: runs.id }).from(runs).where(eq(runs.id, runId)).get();
+        if (!row) {
+          reply.code(404).send({ error: 'run not found' });
+        }
+      },
+    },
+    (socket, req) => {
+      const { runId } = req.params;
+      subscribeToRun(runId, socket as unknown as WebSocket);
+    },
+  );
 }
 
 // Test helpers — not part of the public surface.

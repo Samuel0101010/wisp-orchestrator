@@ -1,21 +1,44 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Outlet, Route, Routes } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { CommandPalette } from '@/components/CommandPalette';
 import { Home } from '@/routes/Home';
-import { ProjectDetail } from '@/routes/ProjectDetail';
-import { TeamBuilder } from '@/routes/TeamBuilder';
-import { PlanEditor } from '@/routes/PlanEditor';
-import { RunView } from '@/routes/RunView';
-import { AgentsRoute } from '@/routes/Agents';
-import { ChatRoute } from '@/routes/Chat';
-import { SkillsRoute } from '@/routes/Skills';
-import { WorkersRoute } from '@/routes/Workers';
-import { InsightsRoute } from '@/routes/Insights';
-import { GoapRoute } from '@/routes/Goap';
-import { PromptBundlesRoute } from '@/routes/PromptBundles';
 import { useUiStore } from '@/store/ui';
+
+// Code-split: every non-Home route lazy-loads. Home stays eager because it's
+// the initial paint target — splitting it would force the Suspense fallback
+// to flash on first load. The split chunks come from rollupOptions.manualChunks
+// in vite.config.ts (reactflow+dagre, recharts, radix, react-vendor).
+const ProjectDetail = lazy(() =>
+  import('@/routes/ProjectDetail').then((m) => ({ default: m.ProjectDetail })),
+);
+const TeamBuilder = lazy(() =>
+  import('@/routes/TeamBuilder').then((m) => ({ default: m.TeamBuilder })),
+);
+const PlanEditor = lazy(() =>
+  import('@/routes/PlanEditor').then((m) => ({ default: m.PlanEditor })),
+);
+const RunView = lazy(() => import('@/routes/RunView').then((m) => ({ default: m.RunView })));
+const AgentsRoute = lazy(() => import('@/routes/Agents').then((m) => ({ default: m.AgentsRoute })));
+const ChatRoute = lazy(() => import('@/routes/Chat').then((m) => ({ default: m.ChatRoute })));
+const SkillsRoute = lazy(() => import('@/routes/Skills').then((m) => ({ default: m.SkillsRoute })));
+const WorkersRoute = lazy(() =>
+  import('@/routes/Workers').then((m) => ({ default: m.WorkersRoute })),
+);
+const InsightsRoute = lazy(() =>
+  import('@/routes/Insights').then((m) => ({ default: m.InsightsRoute })),
+);
+const GoapRoute = lazy(() => import('@/routes/Goap').then((m) => ({ default: m.GoapRoute })));
+const PromptBundlesRoute = lazy(() =>
+  import('@/routes/PromptBundles').then((m) => ({ default: m.PromptBundlesRoute })),
+);
+
+// Minimal fallback while a route chunk loads. Stays out of the visual
+// hierarchy so accessibility tooling doesn't trip over it.
+function RouteFallback() {
+  return <div aria-busy="true" aria-live="polite" className="min-h-[40vh]" />;
+}
 
 function Shell() {
   return (
@@ -29,7 +52,9 @@ function Shell() {
           aria-label="Main content"
         >
           <div className="mx-auto w-full max-w-screen-2xl p-6">
-            <Outlet />
+            <Suspense fallback={<RouteFallback />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>

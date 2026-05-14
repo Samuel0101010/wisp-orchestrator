@@ -56,10 +56,12 @@ describe('App', () => {
     expect(screen.getByTestId('mission-control')).toBeInTheDocument();
   });
 
-  it('renders TeamBuilder at /projects/:id/teams', () => {
+  it('renders TeamBuilder at /projects/:id/teams', async () => {
     renderAt('/projects/abc/teams');
     // "Team Builder" now appears in both breadcrumbs and page heading; assert
     // at least one Team Builder is present rather than requiring uniqueness.
+    // Bumped timeout: lazy route + chunk import adds a tick over the default 1s.
+    await screen.findByText('Team Builder', {}, { timeout: 5000 });
     expect(screen.getAllByText('Team Builder').length).toBeGreaterThan(0);
   });
 
@@ -67,13 +69,14 @@ describe('App', () => {
     renderAt('/projects/abc/plan');
     // The mocked fetch returns 200 + "[]" for every request, including the plan
     // GET, so the PlanEditor lands in its empty state showing "No plan yet".
-    expect(await screen.findByText('No plan yet')).toBeInTheDocument();
+    // Bumped timeout: lazy route + chunk import adds a tick over the default 1s.
+    expect(await screen.findByText('No plan yet', {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it('renders RunView at /projects/:id/run/:runId', async () => {
     renderAt('/projects/abc/run/run-1');
     // The mocked fetch returns 200 + "[]" for everything, including the run GET,
     // which the route treats as a falsy (null) snapshot → "Run not found".
-    expect(await screen.findByTestId('run-not-found')).toBeInTheDocument();
+    expect(await screen.findByTestId('run-not-found', {}, { timeout: 5000 })).toBeInTheDocument();
   });
 });

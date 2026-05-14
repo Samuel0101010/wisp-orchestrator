@@ -138,7 +138,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
   if (!agents.data || agents.data.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-4 text-center">
-        <MessageSquare className="h-6 w-6 text-muted-foreground/60" />
+        <MessageSquare className="h-6 w-6 text-muted-foreground-soft" aria-hidden="true" />
         <div className="text-sm font-medium">{t('agentChat.noAgents')}</div>
         <p className="text-xs text-muted-foreground">{t('agentChat.noAgentsBody')}</p>
         <Link
@@ -212,7 +212,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
                 />
               ))
           ) : (
-            <div className="text-xs2 italic text-muted-foreground/60">
+            <div className="text-xs2 italic text-muted-foreground-soft">
               {t('agentChat.noThreads')}
             </div>
           )}
@@ -234,7 +234,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
         {messages.data && messages.data.length > 0
           ? messages.data.map((m) => <MessageBubble key={m.id} message={m} agent={selectedAgent} />)
           : !sendMessage.isPending && (
-              <div className="my-auto text-center text-xs italic text-muted-foreground/70">
+              <div className="my-auto text-center text-xs italic text-muted-foreground-soft">
                 {t('agentChat.startConversation')}
               </div>
             )}
@@ -294,7 +294,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
           </button>
         </div>
         {selectedThreadId && (
-          <div className="flex items-center justify-between font-mono text-2xs text-muted-foreground/80">
+          <div className="flex items-center justify-between font-mono text-2xs text-muted-foreground-soft">
             <span>{t('agentChat.threadMeta.count', { count: messages.data?.length ?? 0 })}</span>
             <button
               onClick={() => void deleteCurrentThread()}

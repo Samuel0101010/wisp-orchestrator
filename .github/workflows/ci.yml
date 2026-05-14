@@ -43,6 +43,9 @@ jobs:
       - name: Validate design tokens
         run: pnpm --filter dashboard-web tokens:check
 
+      - name: Encoding check (mojibake guardrail)
+        run: pnpm encoding:check
+
       - name: Test (unit)
         run: pnpm --filter "./packages/**" --filter "./apps/**" --filter "./tests/compliance" run test
 
