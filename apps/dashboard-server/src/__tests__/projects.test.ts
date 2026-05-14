@@ -1,5 +1,9 @@
 import './setup.js';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../app.js';
 import { runMigrations } from '../db/migrate.js';
@@ -107,5 +111,68 @@ describe('projects routes', () => {
       payload: { goal: 'whatever' },
     });
     expect(res.statusCode).toBe(404);
+  });
+
+  describe('POST /api/projects/:id/init-repo', () => {
+    const tmpDirs: string[] = [];
+    afterEach(() => {
+      for (const d of tmpDirs.splice(0)) {
+        try {
+          fs.rmSync(d, { recursive: true, force: true });
+        } catch {
+          /* ignore — Windows occasionally holds locks on .git index briefly */
+        }
+      }
+    });
+
+    async function createProjectWithRepo(repoPath: string): Promise<string> {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/projects',
+        payload: { name: 'init-test', goal: 'cover init-repo endpoint', repoPath },
+      });
+      return res.json().id;
+    }
+
+    it('initializes a missing-git but existing dir, returns 201 + head sha', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-init-'));
+      tmpDirs.push(dir);
+      const id = await createProjectWithRepo(dir);
+      const res = await app.inject({ method: 'POST', url: `/api/projects/${id}/init-repo` });
+      expect(res.statusCode).toBe(201);
+      const body = res.json();
+      expect(body.ok).toBe(true);
+      expect(body.alreadyInitialized).toBe(false);
+      expect(body.head).toMatch(/^[0-9a-f]{40}$/);
+      expect(fs.existsSync(path.join(dir, '.git'))).toBe(true);
+      expect(fs.existsSync(path.join(dir, 'README.md'))).toBe(true);
+    });
+
+    it('is idempotent on already-initialized repos', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-init-'));
+      tmpDirs.push(dir);
+      const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+      execFileSync('git', ['init', '-b', 'main'], { cwd: dir, env, stdio: 'pipe' });
+      const id = await createProjectWithRepo(dir);
+      const res = await app.inject({ method: 'POST', url: `/api/projects/${id}/init-repo` });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ ok: true, alreadyInitialized: true });
+    });
+
+    it('returns 400 when repoPath does not exist on disk', async () => {
+      const dir = path.join(os.tmpdir(), `harness-missing-${Date.now()}`);
+      const id = await createProjectWithRepo(dir);
+      const res = await app.inject({ method: 'POST', url: `/api/projects/${id}/init-repo` });
+      expect(res.statusCode).toBe(400);
+      expect(res.json()).toMatchObject({ error: 'repo_path_missing' });
+    });
+
+    it('returns 404 on unknown project id', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/projects/00000000-0000-0000-0000-000000000000/init-repo',
+      });
+      expect(res.statusCode).toBe(404);
+    });
   });
 });

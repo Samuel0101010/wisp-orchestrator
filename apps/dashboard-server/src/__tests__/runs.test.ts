@@ -1,5 +1,9 @@
 import './setup.js';
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
@@ -119,6 +123,26 @@ async function buildAppWithRuntime(runtime: FakeRuntime): Promise<FastifyInstanc
   return app;
 }
 
+// Track temp git repos created by tests so we can clean up afterwards.
+const tempRepos: string[] = [];
+
+function makeTempGitRepo(): string {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-runs-test-'));
+  const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+  const git = (...args: string[]): void => {
+    execFileSync('git', args, { cwd: dir, env, stdio: 'pipe' });
+  };
+  git('init', '-b', 'main');
+  git('config', 'user.email', 'test@example.com');
+  git('config', 'user.name', 'Test');
+  git('config', 'commit.gpgsign', 'false');
+  fs.writeFileSync(path.join(dir, 'README.md'), '# test\n');
+  git('add', 'README.md');
+  git('commit', '-m', 'initial commit');
+  tempRepos.push(dir);
+  return dir;
+}
+
 async function seedLockedPlan(): Promise<{ planId: string; projectId: string }> {
   const projectId = randomUUID();
   await db
@@ -127,7 +151,10 @@ async function seedLockedPlan(): Promise<{ planId: string; projectId: string }> 
       id: projectId,
       name: 'p',
       goal: 'g',
-      repoPath: '/tmp/repo',
+      // Real temp git repo so the run-start preflight passes. Without this,
+      // the preflight returns 400 `repo_not_initialized` before the fake
+      // runtime ever sees the request.
+      repoPath: makeTempGitRepo(),
       createdAt: new Date(),
     })
     .run();
@@ -164,6 +191,13 @@ beforeAll(() => {
 
 afterAll(() => {
   sqlite.close();
+  for (const dir of tempRepos.splice(0)) {
+    try {
+      fs.rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* Windows occasionally holds locks on .git; harmless test artifact. */
+    }
+  }
 });
 
 describe('run routes', () => {
@@ -190,6 +224,50 @@ describe('run routes', () => {
     expect(runtime.startCalls).toBe(1);
   });
 
+  it('POST /api/runs returns 400 repo_not_initialized when project repoPath has no .git', async () => {
+    const runtime = makeFakeRuntime();
+    app = await buildAppWithRuntime(runtime);
+    // Seed a project pointing at an existing dir that is NOT a git repo, plus
+    // a locked plan on it.
+    const noGitDir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-no-git-'));
+    tempRepos.push(noGitDir);
+    const projectId = randomUUID();
+    await db
+      .insert(projects)
+      .values({
+        id: projectId,
+        name: 'no-git',
+        goal: 'g',
+        repoPath: noGitDir,
+        createdAt: new Date(),
+      })
+      .run();
+    const planId = randomUUID();
+    await db
+      .insert(plans)
+      .values({
+        id: planId,
+        projectId,
+        dagJson: { nodes: [], edges: [] } as unknown,
+        status: 'locked',
+      })
+      .run();
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: { planId },
+    });
+    expect(res.statusCode).toBe(400);
+    const body = res.json();
+    expect(body.error).toBe('repo_not_initialized');
+    expect(body.projectId).toBe(projectId);
+    expect(body.repoPath).toBe(noGitDir);
+    expect(body.repoPathExists).toBe(true);
+    // Preflight must short-circuit BEFORE the runtime is invoked.
+    expect(runtime.startCalls).toBe(0);
+  });
+
   it('POST /api/runs returns 404 for unknown plan', async () => {
     const runtime = makeFakeRuntime();
     app = await buildAppWithRuntime(runtime);
@@ -213,7 +291,7 @@ describe('run routes', () => {
         id: projectId,
         name: 'p',
         goal: 'g',
-        repoPath: '/tmp/repo',
+        repoPath: makeTempGitRepo(),
         createdAt: new Date(),
       })
       .run();

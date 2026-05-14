@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
 import { and, desc, eq, gte } from 'drizzle-orm';
 import { z } from 'zod';
@@ -238,6 +240,38 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
       '/api/runs',
       wrap(async (req, reply) => {
         const body = startRunSchema.parse(req.body ?? {});
+
+        // Preflight: refuse to start a run if the project's repoPath isn't a
+        // git repo. Without this, the first task fails with a cryptic
+        // `git worktree add ... fatal: not a git repository` and the run-state
+        // machine cancel-cascades every remaining task. The client gets a
+        // structured error code so the UI can offer an Initialize button.
+        const planRow = await db
+          .select({ projectId: plans.projectId })
+          .from(plans)
+          .where(eq(plans.id, body.planId))
+          .get();
+        if (planRow) {
+          const projectRow = await db
+            .select({ id: projects.id, repoPath: projects.repoPath })
+            .from(projects)
+            .where(eq(projects.id, planRow.projectId))
+            .get();
+          if (projectRow) {
+            const dotGit = path.join(projectRow.repoPath, '.git');
+            if (!fs.existsSync(dotGit)) {
+              reply.code(400);
+              return {
+                error: 'repo_not_initialized',
+                projectId: projectRow.id,
+                repoPath: projectRow.repoPath,
+                repoPathExists: fs.existsSync(projectRow.repoPath),
+                hint: 'POST /api/projects/:id/init-repo to auto-init, or run `git init` manually.',
+              };
+            }
+          }
+        }
+
         const result = await runtime.startRun(body);
         if (!result.ok) {
           reply.code(result.status);

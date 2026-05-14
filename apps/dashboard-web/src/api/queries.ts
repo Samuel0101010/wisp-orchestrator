@@ -87,6 +87,28 @@ export interface UpdateProjectInput {
   repoPath?: string;
 }
 
+export interface InitRepoResponse {
+  ok: true;
+  alreadyInitialized: boolean;
+  repoPath: string;
+  head?: string;
+}
+
+/**
+ * Initialize the project's working-tree as a git repo so the orchestrator's
+ * `git worktree add` succeeds. Idempotent — safe to call on existing repos.
+ * Wired up by PlanEditor's recovery banner when `POST /api/runs` returns
+ * `{ error: 'repo_not_initialized' }`.
+ */
+export function useInitProjectRepo() {
+  return useMutation<InitRepoResponse, Error, string>({
+    mutationFn: (projectId) =>
+      apiFetch<InitRepoResponse>(`/api/projects/${projectId}/init-repo`, {
+        method: 'POST',
+      }),
+  });
+}
+
 export function useUpdateProject() {
   const qc = useQueryClient();
   return useMutation<Project, Error, UpdateProjectInput>({

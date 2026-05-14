@@ -423,7 +423,16 @@
       "runStartedDesc": "Run {{id}}",
       "lockFailed": "Sperren & Starten fehlgeschlagen",
       "regenerated": "Plan neu generiert",
-      "regenFailed": "Neu generieren fehlgeschlagen"
+      "regenFailed": "Neu generieren fehlgeschlagen",
+      "repoInitialized": "Repository initialisiert",
+      "repoAlreadyInitialized": "Repository bereits initialisiert",
+      "repoInitFailed": "Repository konnte nicht initialisiert werden"
+    },
+    "repoInit": {
+      "title": "Das Projektverzeichnis ist noch kein Git-Repository.",
+      "body": "Agents arbeiten in isolierten git-Worktrees. Initialisiere ein neues Git-Repository inkl. erstem Commit; danach starten wir Lock & Run automatisch neu. Verzeichnis:",
+      "initialize": "Repo initialisieren",
+      "initializing": "Initialisiere …"
     }
   },
   "runView": {
