@@ -308,7 +308,28 @@ export class RunRuntime {
         })
         .run();
 
-      // Seed tasks.
+      // Reset existing task rows for this plan before seeding. Tasks are
+      // keyed by (planId, id) and shared across every run of the plan, so
+      // without this any previous run's `failed`/`done` status would survive
+      // into the new run — the UI would show "FEHLGESCHLAGEN" on every task
+      // until the walker reached it, instead of the expected "AUSSTEHEND".
+      await this.db
+        .update(tasks)
+        .set({
+          status: 'pending',
+          worktreeBranch: null,
+          sessionId: null,
+          tokensIn: 0,
+          tokensOut: 0,
+          turnsUsed: 0,
+          durationMs: 0,
+        })
+        .where(eq(tasks.planId, args.planId))
+        .run();
+
+      // Seed tasks. onConflictDoNothing covers newly-added nodes if the plan
+      // was edited between runs; the bulk reset above already fixed every
+      // pre-existing row.
       for (const node of plan.nodes) {
         await this.db
           .insert(tasks)
