@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.7.6 — TaskCard status-pill no longer clips in narrow columns
+
+Polish after live-sweeping every route at 1056 px viewport with Chrome MCP.
+
+### Fixed
+
+- **TaskCard StatusPill clipped to `FEHLGESC`** inside narrow kanban columns
+  (~120 px content width). The translated label "FEHLGESCHLAGEN" overflowed
+  and rendered as garbage. Replaced the in-card status pill with a
+  `StatusDotBadge iconOnly` — a colored, optionally-pulsing dot scoped to
+  the card. The translated status name still appears in the kanban column
+  header, so no information is hidden. The dot keeps an `aria-label` with
+  the full status name for screen readers.
+- The role-name label on the same row got `truncate` + `min-w-0` so a long
+  role like `tech-writer` no longer pushes the dot off the row.
+- Removed the now-unused `taskStatusTone` helper.
+
 ## 1.7.5 — RunView UX pass: sidebar scroll, vertical scroll, saved indicator, task-card metrics
 
 User-driven hands-on pass on `/projects/:id/run/:runId` with the Chrome MCP.

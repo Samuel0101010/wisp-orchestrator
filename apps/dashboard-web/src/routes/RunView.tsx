@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusPill, type StatusPillTone } from '@/components/ui/status-pill';
+import { StatusDotBadge } from '@/components/StatusDotBadge';
 import { EmptyState } from '@/components/ui/empty-state';
 import {
   Dialog,
@@ -219,29 +220,10 @@ interface TaskCardProps {
   onOpenTail: () => void;
 }
 
-function taskStatusTone(status: string): StatusPillTone {
-  switch (status) {
-    case 'running':
-    case 'verifying':
-      return 'info';
-    case 'done':
-    case 'completed':
-    case 'success':
-      return 'success';
-    case 'failed':
-      return 'destructive';
-    case 'paused':
-      return 'warning';
-    default:
-      return 'neutral';
-  }
-}
-
 function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
   const { t } = useTranslation();
   const liveDuration = task.liveRunning && task.startedAtMs ? nowMs - task.startedAtMs : 0;
   const duration = Math.max(task.durationMs, liveDuration);
-  const tone = taskStatusTone(task.status);
   const live = task.status === 'running';
   return (
     <div
@@ -253,20 +235,28 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
       data-testid={`task-card-${task.id}`}
       data-status={task.status}
     >
-      <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="inline-flex min-w-0 items-center gap-1.5">
           <span
-            className="size-1.5 rounded-full"
+            className="size-1.5 shrink-0 rounded-full"
             style={{ background: roleHsl(task.role) }}
             aria-hidden
           />
-          <span className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="truncate text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             {task.role}
           </span>
         </span>
-        <StatusPill variant="soft" tone={tone} live={live}>
-          {statusLabel(task.status, t)}
-        </StatusPill>
+        {/* Inside a kanban column (~120 px content width), a full status pill
+            with a translated label like "FEHLGESCHLAGEN" overflows and gets
+            clipped to garbage like "FEHLGESC". The column header already
+            carries the status name; here we just need an at-a-glance dot. */}
+        <StatusDotBadge
+          status={task.status}
+          pulse={live}
+          iconOnly
+          aria-label={statusLabel(task.status, t)}
+          className="shrink-0"
+        />
       </div>
       <div className="flex flex-col">
         <span className="text-sm font-medium">{task.title}</span>
