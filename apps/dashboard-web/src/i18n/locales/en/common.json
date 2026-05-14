@@ -201,7 +201,29 @@
       "tools_other": "{{count}} tools"
     },
     "dialog": {
-      "colorPlaceholder": "e.g. #67e8f9"
+      "colorPlaceholder": "e.g. #67e8f9",
+      "titleCreate": "New agent",
+      "titleEdit": "Edit {{name}}",
+      "descCreate": "Define a reusable agent. Chat history attaches to it across projects.",
+      "descEdit": "Changes take effect immediately. Existing threads keep history.",
+      "name": "Name",
+      "namePlaceholder": "e.g. architect-sam",
+      "model": "Model",
+      "systemPrompt": "System prompt",
+      "systemPromptPlaceholder": "You are an opinionated TypeScript architect. You evaluate trade-offs honestly and prefer minimal abstractions…",
+      "charCounter": "{{count}} / {{max}} chars",
+      "allowedTools": "Allowed tools",
+      "description": "Description (optional)",
+      "descriptionPlaceholder": "Specialty, when to use…",
+      "accentColor": "Accent color (optional)",
+      "choosePicture": "Choose profile picture",
+      "defaultName": "New agent",
+      "createAgent": "Create agent",
+      "errors": {
+        "nameRequired": "Name required.",
+        "promptRequired": "System prompt required.",
+        "promptTooLong": "System prompt is too long ({{len}}/{{max}} chars)."
+      }
     },
     "loading": "Loading agents…",
     "loadFailed": "Failed to load agents",

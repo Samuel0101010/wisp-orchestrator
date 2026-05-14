@@ -675,7 +675,7 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
               {columns[col].length}
             </Badge>
           </div>
-          <div className="flex flex-col gap-2 overflow-y-auto p-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
             {columns[col].map((task) => (
               <TaskCard
                 key={task.id}

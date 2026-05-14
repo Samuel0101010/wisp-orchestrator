@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Sparkles } from 'lucide-react';
@@ -122,25 +122,6 @@ export function Home() {
       })
       .sort((a, b) => b.live - a.live || b.runs - a.runs);
   }, [globalRuns.data, projects.data]);
-
-  // experiments dropdown — collapsed by default
-  const [showVariants, setShowVariants] = useState(false);
-  // remember collapsed state
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem('mc-show-variants');
-      if (v) setShowVariants(v === '1');
-    } catch {
-      /* ignore */
-    }
-  }, []);
-  useEffect(() => {
-    try {
-      localStorage.setItem('mc-show-variants', showVariants ? '1' : '0');
-    } catch {
-      /* ignore */
-    }
-  }, [showVariants]);
 
   return (
     <div
@@ -357,91 +338,6 @@ export function Home() {
             </span>
           </header>
           <GlobalRunsTable runs={recentRuns} />
-        </section>
-
-        {/* Experiments link — collapsed */}
-        <section className="border-t border-dashed border-border/60 pt-3">
-          <button
-            onClick={() => setShowVariants((v) => !v)}
-            className="font-mono text-xs2 uppercase tracking-widest text-muted-foreground-soft hover:text-foreground"
-          >
-            {showVariants ? '↓ hide' : '→ show'} layout experiments (20 variants)
-          </button>
-          {showVariants && (
-            <div className="mt-2 flex flex-col gap-1 font-mono text-xs2 tracking-tight text-muted-foreground">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-widest text-muted-foreground-soft">
-                  Set A · 1—8
-                </span>
-                <Link
-                  to="/mc"
-                  className="font-semibold text-foreground hover:underline underline-offset-4"
-                >
-                  /mc · cycler
-                </Link>
-                {[
-                  ['v1', 'terminal'],
-                  ['v2', 'broadsheet'],
-                  ['v3', 'radar'],
-                  ['v4', 'spec'],
-                  ['v5', 'transit'],
-                  ['v6', 'poster'],
-                  ['v7', 'heatmap'],
-                  ['v8', 'console'],
-                ].map(([slug, name]) => (
-                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">
-                    {name}
-                  </Link>
-                ))}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-widest text-muted-foreground-soft">
-                  Set B · 9—14
-                </span>
-                <Link
-                  to="/mc/2"
-                  className="font-semibold text-foreground hover:underline underline-offset-4"
-                >
-                  /mc/2 · cycler
-                </Link>
-                {[
-                  ['v9', 'cockpit'],
-                  ['v10', 'stream'],
-                  ['v11', 'portfolio'],
-                  ['v12', 'honeycomb'],
-                  ['v13', 'exposé'],
-                  ['v14', 'now playing'],
-                ].map(([slug, name]) => (
-                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">
-                    {name}
-                  </Link>
-                ))}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-widest text-muted-foreground-soft">
-                  Set C · 15—20
-                </span>
-                <Link
-                  to="/mc/3"
-                  className="font-semibold text-foreground hover:underline underline-offset-4"
-                >
-                  /mc/3 · cycler
-                </Link>
-                {[
-                  ['v15', 'stream²'],
-                  ['v16', 'focus'],
-                  ['v17', 'dispatch'],
-                  ['v18', 'cockpit²'],
-                  ['v19', 'timeline'],
-                  ['v20', 'inbox'],
-                ].map(([slug, name]) => (
-                  <Link key={slug} to={`/mc/${slug}`} className="hover:text-foreground">
-                    {name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
         </section>
       </div>
 

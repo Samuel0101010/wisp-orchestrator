@@ -183,7 +183,7 @@ export function ChatRoute() {
   return (
     <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-[260px_1fr_280px] overflow-hidden">
       {/* LEFT: Thread list */}
-      <aside className="flex h-full flex-col border-r bg-card/40">
+      <aside className="flex h-full min-h-0 flex-col border-r bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-sm font-semibold">{t('chat.sidebar.title')}</span>
           <IconButton
@@ -193,7 +193,7 @@ export function ChatRoute() {
             disabled={createThread.isPending}
           />
         </div>
-        <div className="flex-1 overflow-y-auto py-1">
+        <div className="min-h-0 flex-1 overflow-y-auto py-1">
           {threadList.length === 0 && (
             <div className="px-4 py-6 text-center text-xs text-muted-foreground">
               {t('chat.sidebar.empty')}
@@ -226,7 +226,7 @@ export function ChatRoute() {
       </aside>
 
       {/* CENTER: Transcript */}
-      <section className="flex h-full min-w-0 flex-col">
+      <section className="flex h-full min-h-0 min-w-0 flex-col">
         <header className="flex items-center justify-between border-b px-5 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Avatar name={manager.name} avatarUrl={manager.avatarUrl ?? null} size={36} />
@@ -269,7 +269,7 @@ export function ChatRoute() {
           )}
         </header>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           {!selectedThreadId && <EmptyTranscript onStart={startNewThread} />}
           {selectedThreadId && messageList.length === 0 && !sendMessage.isPending && (
             <ConversationStarter manager={manager} />
@@ -323,7 +323,7 @@ export function ChatRoute() {
       </section>
 
       {/* RIGHT: Participants */}
-      <aside className="flex h-full flex-col border-l bg-card/40">
+      <aside className="flex h-full min-h-0 flex-col border-l bg-card/40">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Users className="h-4 w-4" /> {t('chat.participants.title')}
@@ -337,7 +337,7 @@ export function ChatRoute() {
             />
           )}
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {participants.length === 0 && (
             <div className="px-4 py-6 text-center text-xs text-muted-foreground">
               {t('chat.participants.empty')}
@@ -882,7 +882,7 @@ function AddMemberDialog({
             {t('chat.addMember.tabCustom')}
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {list.length === 0 && (
             <div className="px-4 py-8 text-center text-xs text-muted-foreground">
               {tab === 'custom' ? t('chat.addMember.emptyCustom') : t('chat.addMember.emptyTeam')}

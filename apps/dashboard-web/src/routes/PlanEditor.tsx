@@ -394,7 +394,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
               {selectedNode ? t('planEditor.node.instruction1') : t('planEditor.node.selectHint')}
             </p>
           </div>
-          <div className="flex-1 overflow-auto p-3">
+          <div className="min-h-0 flex-1 overflow-auto p-3">
             {selectedNode ? (
               <NodeEditor
                 plan={localPlan}

@@ -1,5 +1,51 @@
 # Changelog
 
+## 1.7.3 — Live-test pass: chat scroll, experiments removal, modal i18n
+
+Found by actually using the dashboard (not just running tests). The user hit
+two bugs in v1.7.2 that automated gates missed:
+
+- `/chat` was unusable: composer pushed below the viewport, transcript wouldn't
+  scroll. Classic flex `min-height: auto` overflow trap on the inner
+  `flex-1 overflow-y-auto` containers.
+- "show layout experiments (20 variants)" toggle still visible on Home — 20
+  dead links to never-registered `/mc/*` routes.
+
+Live-verifying every claim from this iteration on with Playwright; see new
+`feedback_use_browser_tools_directly` memory.
+
+### Fixed
+
+- **Flex scroll containers across 4 routes** got `min-h-0` so the inner
+  `flex-1 overflow-y-auto` actually scrolls instead of pushing siblings
+  off-screen: `routes/Chat.tsx` (left thread list, mid transcript, right
+  participants, AddMember modal body), `routes/Agents.tsx` (Edit/Create
+  modal body), `routes/PlanEditor.tsx` (node-editor sidebar),
+  `routes/RunView.tsx` (Kanban columns).
+- **Dev-only injection in production HTML**: `apps/dashboard-web/index.html`
+  contained an `impeccable-live` script tag pointing at `localhost:8400`,
+  triggering a `ERR_CONNECTION_REFUSED` console error on every page load.
+  Removed.
+- **Agents create/edit modal i18n**: every label, placeholder, button, error
+  message in `AgentDialog` was hardcoded English in an otherwise German UI.
+  Added 18 new keys (`agents.dialog.*`) in en+de locales and wired them
+  through `t()`.
+
+### Removed
+
+- **`/mc/*` experiments toggle and 20 dead links** from
+  `apps/dashboard-web/src/routes/Home.tsx`, plus the `showVariants`
+  state + `mc-show-variants` localStorage key. Routes were never
+  registered in `App.tsx` so the links 404'd on click.
+
+### Verification
+
+| Gate | Result |
+| --- | --- |
+| Unit tests | 462 passing |
+| Live Playwright probe | 0 console errors, composer in viewport, transcript scrollable, modal in German |
+| typecheck / lint / format:check / tokens:check / encoding:check | clean |
+
 ## 1.7.2 — Hotfix: chat error-pill contrast in dark mode
 
 CI hotfix for v1.7.1. Re-enabling axe `color-contrast` (v1.7.1, §6.A) exposed
