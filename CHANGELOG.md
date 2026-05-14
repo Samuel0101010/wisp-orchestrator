@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.7.8 — Tasks reset to pending on every new run
+
+### Fixed
+
+- **Starting a fresh run still showed every task as `FEHLGESCHLAGEN`**
+  (or whatever status the previous run left it in) until the walker actually
+  reached that task and overwrote the row. The `tasks` table is keyed by
+  `(planId, taskId)` and shared across every run of the same plan, and the
+  seed-loop in `RunRuntime.startRun` used `insert ... onConflictDoNothing`,
+  so previous-run state survived intact. Now we `UPDATE tasks SET status =
+  'pending', worktreeBranch = NULL, sessionId = NULL, tokensIn = 0,
+  tokensOut = 0, turnsUsed = 0, durationMs = 0 WHERE planId = ?` before the
+  seed loop runs. The seed loop still uses `onConflictDoNothing` so new
+  nodes added by a plan edit get inserted, while the bulk reset cleans every
+  pre-existing row. Regression test in `runtime-task-reset.test.ts`.
+
 ## 1.7.7 — Subprocess Write-permission bypass + rate-limit false-positive killer
 
 Diagnosed from a real Wertzeit-app run that died at `n1-architecture` with the
