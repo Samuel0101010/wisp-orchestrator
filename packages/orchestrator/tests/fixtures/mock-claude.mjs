@@ -90,6 +90,32 @@ async function waitForStdin() {
       process.stderr.write('Error: rate limit exceeded\n');
       process.exit(1);
       break;
+    case 'prose-mentions-rate-limit':
+      // Regression: the model narrates "rate limit" in plain prose on stdout.
+      // This MUST NOT trigger the orchestrator's rate-limit detector — the
+      // signal is only authoritative from stderr / structured error frames.
+      emit({
+        type: 'assistant',
+        message: {
+          content: [
+            { type: 'text', text: "I'll proceed carefully so we don't hit a rate limit boundary." },
+          ],
+        },
+      });
+      emit({
+        type: 'result',
+        subtype: 'success',
+        num_turns: 1,
+        usage: {
+          input_tokens: 5,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 3,
+        },
+      });
+      emit({ type: 'completion' });
+      process.exit(0);
+      break;
     case 'auth-fail':
       process.stderr.write('credentials invalid; please run claude login\n');
       process.exit(1);
