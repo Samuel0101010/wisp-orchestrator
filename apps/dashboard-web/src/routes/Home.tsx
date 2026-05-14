@@ -1,15 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Sparkles } from 'lucide-react';
 import { useGlobalRuns, useProjects, useRunsSummary } from '@/api/queries';
 import type { GlobalRunRow } from '@/api/queries';
 import { cn } from '@/lib/utils';
-import { TokenAreaChart } from '@/components/home/TokenAreaChart';
-import { OutcomeDonut } from '@/components/home/OutcomeDonut';
 import { LiveNowGrid } from '@/components/home/LiveNowGrid';
 import { GlobalRunsTable } from '@/components/home/GlobalRunsTable';
 import { AgentChat } from '@/components/AgentChat';
+
+// Charts pull in recharts (~120 kB gzip). Defer them off the initial paint so
+// the rest of the dashboard renders first; the charts swap in within a tick.
+const TokenAreaChart = lazy(() =>
+  import('@/components/home/TokenAreaChart').then((m) => ({ default: m.TokenAreaChart })),
+);
+const OutcomeDonut = lazy(() =>
+  import('@/components/home/OutcomeDonut').then((m) => ({ default: m.OutcomeDonut })),
+);
+
+function ChartFallback({ height = 220 }: { height?: number }) {
+  return <div aria-busy="true" style={{ height }} />;
+}
 
 function formatTokensCompact(n: number): string {
   if (n < 1000) return String(n);
@@ -38,7 +49,7 @@ function classify(r: { status: string; outcome?: string | null }) {
 }
 
 function Sparkline({ data, w = 96, h = 22 }: { data: number[]; w?: number; h?: number }) {
-  if (!data.length) return <span className="text-muted-foreground/50">—</span>;
+  if (!data.length) return <span className="text-muted-foreground-soft">—</span>;
   const max = Math.max(...data, 1);
   const step = data.length > 1 ? w / (data.length - 1) : w;
   const pts = data
@@ -244,7 +255,9 @@ export function Home() {
               </div>
               <Sparkles className="h-4 w-4 text-muted-foreground" />
             </header>
-            <TokenAreaChart data={tokensByDay} />
+            <Suspense fallback={<ChartFallback />}>
+              <TokenAreaChart data={tokensByDay} />
+            </Suspense>
           </div>
           <div className="rounded-lg border bg-card p-5">
             <header className="mb-3">
@@ -253,7 +266,9 @@ export function Home() {
                 {t('home.charts.outcomesDesc', 'last 7 days')}
               </p>
             </header>
-            <OutcomeDonut counts={outcomeCounts} />
+            <Suspense fallback={<ChartFallback />}>
+              <OutcomeDonut counts={outcomeCounts} />
+            </Suspense>
           </div>
         </section>
 
@@ -348,14 +363,14 @@ export function Home() {
         <section className="border-t border-dashed border-border/60 pt-3">
           <button
             onClick={() => setShowVariants((v) => !v)}
-            className="font-mono text-xs2 uppercase tracking-widest text-muted-foreground/70 hover:text-foreground"
+            className="font-mono text-xs2 uppercase tracking-widest text-muted-foreground-soft hover:text-foreground"
           >
             {showVariants ? '↓ hide' : '→ show'} layout experiments (20 variants)
           </button>
           {showVariants && (
             <div className="mt-2 flex flex-col gap-1 font-mono text-xs2 tracking-tight text-muted-foreground">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-widest text-muted-foreground/80">
+                <span className="uppercase tracking-widest text-muted-foreground-soft">
                   Set A · 1—8
                 </span>
                 <Link
@@ -380,7 +395,7 @@ export function Home() {
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-widest text-muted-foreground/80">
+                <span className="uppercase tracking-widest text-muted-foreground-soft">
                   Set B · 9—14
                 </span>
                 <Link
@@ -403,7 +418,7 @@ export function Home() {
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="uppercase tracking-widest text-muted-foreground/80">
+                <span className="uppercase tracking-widest text-muted-foreground-soft">
                   Set C · 15—20
                 </span>
                 <Link

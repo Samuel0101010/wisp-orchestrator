@@ -165,14 +165,43 @@ Without `HARNESS_HOOK_TOKEN`, the handler exits silently and the server returns
 Common scripts (run from the repo root):
 
 ```sh
-pnpm dev          # all packages, parallel watch
-pnpm build        # tsc -b across all packages
-pnpm test         # vitest in each package
-pnpm typecheck    # tsc -b --pretty
-pnpm lint         # eslint .
-pnpm format       # prettier --write
-pnpm format:check # prettier --check
+pnpm dev             # all packages, parallel watch
+pnpm build           # tsc -b across all packages
+pnpm test            # unit tests only (e2e excluded — use test:e2e for those)
+pnpm test:e2e        # Playwright smoke + a11y + i18n + tooltips + wave3
+pnpm typecheck       # tsc -b --pretty
+pnpm lint            # eslint .
+pnpm format          # prettier --write
+pnpm format:check    # prettier --check
+pnpm encoding:check  # mojibake guardrail (UTF-8 double-encoding)
 ```
+
+### Running the dashboard locally (Windows note)
+
+The `pnpm dev` parallel wrapper does not stream backend logs cleanly on Windows
+(`tsx watch` swallows stdout in some shell configurations). For interactive
+work prefer the two-terminal split, and detach the backend process from the
+parent shell when running long sessions so it survives a parent reap:
+
+```pwsh
+# Terminal A — backend (detached so it survives the parent PowerShell session)
+Start-Process -NoNewWindow pnpm -ArgumentList 'exec','tsx','apps/dashboard-server/src/server.ts'
+
+# Terminal B — frontend (HMR)
+pnpm --filter dashboard-web exec vite
+```
+
+```sh
+# POSIX equivalent
+nohup pnpm exec tsx apps/dashboard-server/src/server.ts > harness.log 2>&1 &
+pnpm --filter dashboard-web exec vite
+```
+
+The backend prints `server ready` on stdout (or in `harness.log`) when it's
+listening on `:4400`; wait for that before opening `http://localhost:5173`. If
+a long verification pass kills both processes with exit 127, it's almost
+always the parent shell being reaped — re-run with `Start-Process`/`nohup` as
+above rather than diagnosing further.
 
 ### Drizzle migrations
 

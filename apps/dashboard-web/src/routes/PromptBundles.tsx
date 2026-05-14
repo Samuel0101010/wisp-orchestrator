@@ -48,7 +48,7 @@ export function PromptBundlesRoute() {
         <p className="mt-1 text-sm text-muted-foreground">
           {t('promptBundles.subtitle', { count: rows.length })}
         </p>
-        <p className="mt-1 max-w-2xl text-xs text-muted-foreground/80">
+        <p className="mt-1 max-w-2xl text-xs text-muted-foreground-soft">
           {t('promptBundles.explanation')}
         </p>
       </header>

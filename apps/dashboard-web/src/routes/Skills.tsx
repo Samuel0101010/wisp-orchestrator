@@ -152,7 +152,7 @@ export function SkillsRoute() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-3 font-mono text-xs italic text-muted-foreground/70">
+                <p className="mt-3 font-mono text-xs italic text-muted-foreground-soft">
                   {t('skills.noTools')}
                 </p>
               )}

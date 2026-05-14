@@ -59,7 +59,9 @@ function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
         <p className="line-clamp-1 text-xs text-muted-foreground" title={taskNode.prompt}>
           {oneLine || <span className="italic">{t('planEditor.canvas.noPrompt')}</span>}
         </p>
-        <span className="text-2xs text-muted-foreground/80">{t('planEditor.canvas.editHint')}</span>
+        <span className="text-2xs text-muted-foreground-soft">
+          {t('planEditor.canvas.editHint')}
+        </span>
       </div>
     </div>
   );

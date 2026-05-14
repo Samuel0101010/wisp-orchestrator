@@ -133,7 +133,7 @@ export function Sidebar() {
         <Logomark className="h-6 w-6 text-foreground" />
         <div className="flex flex-col">
           <span className="text-sm font-semibold tracking-tight">{t('navigation.appName')}</span>
-          <span className="text-2xs font-mono tabular-nums text-muted-foreground/70">
+          <span className="text-2xs font-mono tabular-nums text-muted-foreground-soft">
             v{__APP_VERSION__}
           </span>
         </div>

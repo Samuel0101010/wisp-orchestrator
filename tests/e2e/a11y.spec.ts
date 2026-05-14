@@ -24,11 +24,7 @@ test.describe('a11y scan', () => {
       // deterministic UI signal instead.
       await page.locator('[data-testid="sidebar-mission-control"]').waitFor();
       // Some pages (e.g., /chat) have no h1 — wait only on the sidebar signal.
-      const results = await new AxeBuilder({ page })
-        .withTags(['wcag2a', 'wcag2aa'])
-        // TODO(v1.6.1): re-enable after multi-pass token nudging — see audit-artifacts/
-        .disableRules(['color-contrast'])
-        .analyze();
+      const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
       const blocking = results.violations.filter(
         (v) => v.impact === 'serious' || v.impact === 'critical',
       );

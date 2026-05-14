@@ -24,6 +24,7 @@
 
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-foreground-soft: hsl(var(--muted-foreground-soft));
 
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
@@ -70,6 +71,10 @@
   --secondary-foreground: 222.2 47.4% 11.2%;
   --muted: 210 40% 96.1%;
   --muted-foreground: 215 16% 38%;
+  /* Softer muted tier — visually equivalent to ~/60 opacity but solid, so
+     it clears WCAG-AA 4.5:1 against card/background. Use anywhere you'd
+     otherwise reach for `text-muted-foreground/{50..80}` on body text. */
+  --muted-foreground-soft: 215 14% 45%;
   --accent: 210 40% 96.1%;
   --accent-foreground: 222.2 47.4% 11.2%;
   /* Destructive — darkened (60% → 48% L) so white foreground passes WCAG-AA on solid fills. */
@@ -111,6 +116,7 @@
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
   --muted-foreground: 215 20% 72%;
+  --muted-foreground-soft: 215 18% 58%;
   --accent: 217.2 32.6% 17.5%;
   --accent-foreground: 210 40% 98%;
   --destructive: 0 70% 55%;
