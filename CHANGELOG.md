@@ -1,5 +1,58 @@
 # Changelog
 
+## 1.7.9 — Auto-resolver for dep-merge conflicts
+
+### Fixed
+
+- **A dep-merge conflict between two parallel deps no longer kills the task.**
+  Before: if `task X` had `deps: [a, b]` and both `a` and `b` had touched
+  overlapping regions of the same file, `git merge --no-ff` conflicted and
+  the walker marked `X` as `failed` with `dep-merge conflict: ...` — every
+  downstream task then cascaded as `cancelled: upstream dep failed`. A real
+  Wertzeit-app run lost `n12-pdf-export` (and via it `n13-builder`,
+  `n14-security-review`, `n15-qa-gate`) to two parallel backend tasks
+  both editing `src/renderer/pages/vertrag.{html,js}` on independent
+  branches.
+
+  The walker now retries the merge with `leaveOnConflict: true` (so the
+  worktree stays mid-merge with `MERGE_HEAD` and unmerged paths) and spawns
+  a focused **merge-resolver subprocess** (`Read/Edit/Write/Bash`, max 25
+  turns) inside the worktree. The resolver inspects ours/theirs via
+  `git show :2:<file>` / `git show :3:<file>`, integrates both intents,
+  `git add`s every resolved file, and finalises with
+  `git commit --no-edit`. Hard rules in the prompt forbid `git merge
+  --abort` and forbid touching files that are not unmerged. After the
+  subprocess exits, the walker re-checks `getMergeStatus`:
+
+  - clean state + HEAD advanced → resolved, task continues normally.
+  - still unmerged or MERGE_HEAD set → walker aborts the merge and falls
+    back to the legacy `task.failed` path with `(auto-resolver: <reason>)`
+    appended to the error so the failure is debuggable.
+  - resolver aborted the merge or didn't change HEAD → same fallback.
+
+  Resolver tokens / turns are attributed to the parent task so the
+  dashboard's run-level counters include the cost of resolution.
+
+### Added
+
+- `mergeBranchesInWorktree(path, branches, { leaveOnConflict?: boolean })`
+  — caller-controlled abort policy.
+- `abortMergeInWorktree(path)` — idempotent merge abort helper.
+- `getMergeStatusInWorktree(path)` — reads `MERGE_HEAD` + unmerged paths +
+  HEAD commit, used by the walker to validate resolution.
+- `WalkerDeps.abortMerge` / `WalkerDeps.getMergeStatus` (optional fields
+  for backward-compat; legacy walker setups stay on the original
+  fail-fast behaviour).
+
+### Tests
+
+- New walker tests cover three paths: resolver succeeds → task continues;
+  resolver runs but doesn't finalise the merge → task fails with
+  `auto-resolver` in the error string; legacy deps missing →
+  unchanged behaviour.
+- New worktree tests cover `leaveOnConflict: true` + `getMergeStatus`
+  reporting the merge state correctly.
+
 ## 1.7.8 — Tasks reset to pending on every new run
 
 ### Fixed

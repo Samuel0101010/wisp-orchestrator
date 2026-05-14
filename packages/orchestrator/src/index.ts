@@ -16,12 +16,15 @@ export {
   listWorktrees,
   computeWorktreePath,
   mergeBranchesInWorktree,
+  abortMergeInWorktree,
+  getMergeStatusInWorktree,
 } from './worktree.js';
 export type {
   AddWorktreeOpts,
   RemoveWorktreeOpts,
   ListWorktreesOpts,
   WorktreeEntry,
+  MergeStatus,
 } from './worktree.js';
 
 export { runVerification } from './verification.js';
