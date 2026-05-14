@@ -134,6 +134,29 @@ describe('runClaude (mock)', () => {
     }
   });
 
+  it('does NOT trigger rate-limit detection when model prose merely mentions "rate limit"', async () => {
+    // Regression for the false-positive that paused a run mid-task when the
+    // agent narrated "…so we don't hit a rate limit boundary." The detector
+    // must only fire on stderr or on structured error frames, not on
+    // assistant text-delta content streamed over stdout.
+    const events = await collect(
+      runClaude({
+        cwd: tmpdir(),
+        prompt: 'x',
+        allowedTools: [],
+        maxTurns: 1,
+        taskId: 't-prose',
+        runId: 'r-prose',
+        __mockBin: MOCK_BIN,
+        __mockEnv: { MOCK_MODE: 'prose-mentions-rate-limit' },
+      }),
+    );
+
+    const types = events.map((e) => e.type);
+    expect(types).not.toContain('rate-limit.hit');
+    expect(types[types.length - 1]).toBe('task.completed');
+  });
+
   it('emits rate-limit.hit then task.failed(rate-limited) when stderr contains a marker', async () => {
     const events = await collect(
       runClaude({
@@ -216,6 +239,23 @@ describe('buildArgs — mcpConfigPath', () => {
     });
     expect(args).not.toContain('--mcp-config');
     expect(args).not.toContain('--strict-mcp-config');
+  });
+
+  it('always passes --permission-mode bypassPermissions (subprocess is headless)', () => {
+    // Without this flag, the in-subprocess `claude -p` runs in default
+    // permission mode and silently rejects Write/Bash calls because there is
+    // no UI to accept the approval prompt. Verification then fails because no
+    // file ever lands on disk.
+    const args = buildArgs({
+      cwd: '/x',
+      prompt: 'p',
+      allowedTools: [],
+      maxTurns: 1,
+      taskId: 't',
+    });
+    const idx = args.indexOf('--permission-mode');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe('bypassPermissions');
   });
 
   it('appends --mcp-config <path> --strict-mcp-config when set', () => {

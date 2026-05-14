@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.7.7 — Subprocess Write-permission bypass + rate-limit false-positive killer
+
+Diagnosed from a real Wertzeit-app run that died at `n1-architecture` with the
+agents reporting "rate-limit reached" 6 seconds in, then failing verification
+on subsequent retries because no files ever made it to disk. Two independent
+bugs, both fixed.
+
+### Fixed
+
+- **Subprocess Write/Bash calls silently dropped because no UI to approve
+  permission prompts.** `claude -p` was launched without `--permission-mode`,
+  so the default mode requested approval for every Write — the model
+  "wrote" `docs/architecture.md` four times, the tool-use events fired, the
+  files never landed on disk, and the harness verifier (`accessSync(p)`)
+  then failed twice with `ENOENT`, cascading the whole DAG to
+  `cancelled: upstream dep failed`. Now passes
+  `--permission-mode bypassPermissions`. The orchestrator runs subprocesses
+  headlessly in an isolated per-task worktree, so this is the matching
+  permission mode for a non-interactive sandbox.
+- **Rate-limit detector false-positive on model prose.** The detector ran
+  the `/rate.?limit/i` marker against the raw stdout chunk, which on
+  `stream-json` output includes `assistant.message.content[].text` —
+  whenever the agent narrated something like "I'll proceed carefully so we
+  don't hit a rate limit boundary", the orchestrator paused the run for 6 s
+  and marked the task as `rate-limited`. Now scans only stderr and
+  structured stdout error frames (`result` with `subtype === 'error'` or
+  `is_error === true`). Model prose can mention rate-limits all it wants —
+  no pause.
+
+### Tests
+
+- New regression: `MOCK_MODE=prose-mentions-rate-limit` emits an assistant
+  frame containing the literal text "rate limit" via stdout. Verifies no
+  `rate-limit.hit` event fires and the task completes cleanly.
+- New `buildArgs` assertion that `--permission-mode bypassPermissions` is
+  always present, regardless of allowedTools / model / MCP config.
+
 ## 1.7.6 — TaskCard status-pill no longer clips in narrow columns
 
 Polish after live-sweeping every route at 1056 px viewport with Chrome MCP.

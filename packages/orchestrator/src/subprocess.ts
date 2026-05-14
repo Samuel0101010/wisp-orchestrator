@@ -48,6 +48,14 @@ export function buildArgs(opts: RunClaudeOpts): string[] {
     '--verbose',
     '--max-turns',
     String(opts.maxTurns),
+    // The orchestrator runs subprocesses headlessly in an isolated per-task
+    // worktree; there's no UI to accept Write/Bash permission prompts. Without
+    // bypass mode, the agent's Write calls silently fail (the model "writes"
+    // but no file lands on disk) and verification fails with missing-file
+    // errors. Workspace-trust is already skipped by `-p`, so bypassPermissions
+    // is the matching permission flag.
+    '--permission-mode',
+    'bypassPermissions',
   ];
   if (opts.allowedTools.length > 0) {
     args.push('--allowed-tools', opts.allowedTools.join(','));
@@ -268,37 +276,43 @@ export class ClaudeSubprocess {
     let rateLimitDetected: RateLimitHit | null = null;
     let observedTurns = 0;
 
+    const scanForRateLimit = (text: string): void => {
+      if (rateLimitDetected) return;
+      const hit = detectRateLimit(text);
+      if (!hit) return;
+      rateLimitDetected = hit;
+      push({
+        type: 'rate-limit.hit',
+        payload: {
+          runId: opts.runId ?? '',
+          taskId: opts.taskId,
+          resetAt: hit.resetAt,
+          source: hit.source,
+        },
+      });
+      // Abort the subprocess; the walker will react to the event.
+      // try/catch matches the onAbort handler above — on Windows the exitCode
+      // guard is not race-free, so a kill against an already-reaped process
+      // can throw EPERM. Best-effort.
+      if (child.exitCode === null) {
+        try {
+          child.kill('SIGTERM');
+        } catch {
+          // ignore
+        }
+      }
+    };
+
     const handleText = (text: string, isStderr: boolean): void => {
-      // Record stderr tail for failure reporting.
+      // Authoritative rate-limit signals only come from stderr and from
+      // structured stdout error frames. Scanning raw stdout chunks (which
+      // contain assistant `text-delta` content) used to false-positive on any
+      // prose mentioning "rate limit" — six seconds of pause + a doomed retry,
+      // for nothing. Structured stdout frames are scanned downstream in the
+      // NDJSON loop where we can filter by frame type.
       if (isStderr) {
         stderrTail = (stderrTail + text).slice(-STDERR_TAIL_BYTES);
-      }
-      // Try rate-limit detection on the chunk.
-      if (!rateLimitDetected) {
-        const hit = detectRateLimit(text);
-        if (hit) {
-          rateLimitDetected = hit;
-          push({
-            type: 'rate-limit.hit',
-            payload: {
-              runId: opts.runId ?? '',
-              taskId: opts.taskId,
-              resetAt: hit.resetAt,
-              source: hit.source,
-            },
-          });
-          // Abort the subprocess; the walker will react to the event.
-          // try/catch matches the onAbort handler above — on Windows the
-          // exitCode guard is not race-free, so a kill against an already-
-          // reaped process can throw EPERM. Best-effort.
-          if (child.exitCode === null) {
-            try {
-              child.kill('SIGTERM');
-            } catch {
-              // ignore
-            }
-          }
-        }
+        scanForRateLimit(text);
       }
     };
 
@@ -337,6 +351,15 @@ export class ClaudeSubprocess {
         if (parsed && typeof parsed === 'object' && 'num_turns' in parsed) {
           const n = (parsed as { num_turns: unknown }).num_turns;
           if (typeof n === 'number' && Number.isFinite(n)) observedTurns = n;
+        }
+        // Only scan structured stdout *error* frames for rate-limit markers —
+        // assistant/text-delta frames carry model prose and used to false-
+        // positive on any narration containing "rate limit".
+        if (parsed.type === 'result') {
+          const rec = parsed as Record<string, unknown>;
+          if (rec.subtype === 'error' || rec.is_error === true) {
+            scanForRateLimit(line);
+          }
         }
         for (const ev of mapCliEvent(parsed, opts.taskId)) push(ev);
       }
