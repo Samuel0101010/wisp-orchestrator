@@ -330,16 +330,16 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
   const submit = async () => {
     setError(null);
     if (!name.trim()) {
-      setError('Name required.');
+      setError(t('agents.dialog.errors.nameRequired'));
       return;
     }
     const promptLen = systemPrompt.trim().length;
     if (promptLen < 1) {
-      setError('System prompt required.');
+      setError(t('agents.dialog.errors.promptRequired'));
       return;
     }
     if (promptLen > 8000) {
-      setError(`System prompt is too long (${promptLen}/8000 chars).`);
+      setError(t('agents.dialog.errors.promptTooLong', { len: promptLen, max: 8000 }));
       return;
     }
     try {
@@ -384,25 +384,25 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
       >
         <header className="border-b px-5 py-3">
           <h3 className="text-base font-semibold">
-            {mode === 'create' ? 'New agent' : `Edit ${existing?.name ?? ''}`}
+            {mode === 'create'
+              ? t('agents.dialog.titleCreate')
+              : t('agents.dialog.titleEdit', { name: existing?.name ?? '' })}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {mode === 'create'
-              ? 'Define a reusable agent. Chat history attaches to it across projects.'
-              : 'Changes take effect immediately. Existing threads keep history.'}
+            {mode === 'create' ? t('agents.dialog.descCreate') : t('agents.dialog.descEdit')}
           </p>
         </header>
-        <div className="flex flex-col gap-4 overflow-auto px-5 py-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-5 py-4">
           {/* Avatar + Name + Model row */}
           <div className="flex items-start gap-4">
             <button
               type="button"
               onClick={() => setPickerOpen(true)}
               className="group relative shrink-0"
-              title="Choose profile picture"
+              title={t('agents.dialog.choosePicture')}
             >
               <Avatar
-                name={name || 'New agent'}
+                name={name || t('agents.dialog.defaultName')}
                 avatarUrl={avatarUrl}
                 color={color || null}
                 size={64}
@@ -417,20 +417,20 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                   htmlFor="agent-name"
                   className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
                 >
-                  Name
+                  {t('agents.dialog.name')}
                 </label>
                 <input
                   id="agent-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. architect-sam"
+                  placeholder={t('agents.dialog.namePlaceholder')}
                   className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:border-info"
                 />
               </div>
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Model
+                  {t('agents.dialog.model')}
                 </label>
                 <div className="mt-1 flex gap-1">
                   {MODELS.map((m) => (
@@ -452,26 +452,26 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
               htmlFor="agent-prompt"
               className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
             >
-              System prompt
+              {t('agents.dialog.systemPrompt')}
             </label>
             <textarea
               id="agent-prompt"
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
               rows={6}
-              placeholder="You are an opinionated TypeScript architect. You evaluate trade-offs honestly and prefer minimal abstractions…"
+              placeholder={t('agents.dialog.systemPromptPlaceholder')}
               className="mt-1 w-full resize-y rounded-md border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-info"
             />
             <div
               className={`mt-1 text-2xs ${systemPrompt.length > 8000 ? 'text-destructive' : 'text-muted-foreground'}`}
             >
-              {systemPrompt.length} / 8000 chars
+              {t('agents.dialog.charCounter', { count: systemPrompt.length, max: 8000 })}
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Allowed tools
+              {t('agents.dialog.allowedTools')}
             </label>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {DEFAULT_TOOLS.map((t) => {
@@ -495,14 +495,14 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                 htmlFor="agent-desc"
                 className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
               >
-                Description (optional)
+                {t('agents.dialog.description')}
               </label>
               <input
                 id="agent-desc"
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Specialty, when to use…"
+                placeholder={t('agents.dialog.descriptionPlaceholder')}
                 className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:border-info"
               />
             </div>
@@ -511,7 +511,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                 htmlFor="agent-color"
                 className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
               >
-                Accent color (optional)
+                {t('agents.dialog.accentColor')}
               </label>
               <input
                 id="agent-color"
@@ -536,7 +536,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
             onClick={onClose}
             className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
           >
-            Cancel
+            {t('buttons.cancel')}
           </button>
           <button
             type="button"
@@ -544,7 +544,11 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
             disabled={submitting}
             className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
-            {submitting ? 'Saving…' : mode === 'create' ? 'Create agent' : 'Save'}
+            {submitting
+              ? t('buttons.saving')
+              : mode === 'create'
+                ? t('agents.dialog.createAgent')
+                : t('buttons.save')}
           </button>
         </footer>
       </div>
@@ -552,7 +556,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
       <AvatarPicker
         open={pickerOpen}
         selected={avatarUrl}
-        name={name || 'New agent'}
+        name={name || t('agents.dialog.defaultName')}
         onSelect={setAvatarUrl}
         onClose={() => setPickerOpen(false)}
       />

@@ -201,7 +201,29 @@
       "tools_other": "{{count}} Tools"
     },
     "dialog": {
-      "colorPlaceholder": "e.g. #67e8f9"
+      "colorPlaceholder": "z. B. #67e8f9",
+      "titleCreate": "Neuer Agent",
+      "titleEdit": "{{name}} bearbeiten",
+      "descCreate": "Definiere einen wiederverwendbaren Agent. Chat-Verlauf bleibt projektübergreifend erhalten.",
+      "descEdit": "Änderungen greifen sofort. Bestehende Threads behalten ihren Verlauf.",
+      "name": "Name",
+      "namePlaceholder": "z. B. architect-sam",
+      "model": "Modell",
+      "systemPrompt": "System-Prompt",
+      "systemPromptPlaceholder": "Du bist ein meinungsstarker TypeScript-Architekt. Wäge Trade-offs ehrlich ab und bevorzuge minimale Abstraktionen …",
+      "charCounter": "{{count}} / {{max}} Zeichen",
+      "allowedTools": "Erlaubte Tools",
+      "description": "Beschreibung (optional)",
+      "descriptionPlaceholder": "Spezialität, wann nutzen …",
+      "accentColor": "Akzentfarbe (optional)",
+      "choosePicture": "Profilbild wählen",
+      "defaultName": "Neuer Agent",
+      "createAgent": "Agent erstellen",
+      "errors": {
+        "nameRequired": "Name erforderlich.",
+        "promptRequired": "System-Prompt erforderlich.",
+        "promptTooLong": "System-Prompt ist zu lang ({{len}}/{{max}} Zeichen)."
+      }
     },
     "loading": "Lade Agents…",
     "loadFailed": "Agents konnten nicht geladen werden",
