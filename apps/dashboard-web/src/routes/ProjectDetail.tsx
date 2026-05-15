@@ -19,23 +19,28 @@ import {
 import { Input } from '@/components/ui/input';
 import {
   useGeneratedPlan,
+  useInterview,
   useProject,
   useProjectRuns,
+  useProjectState,
   useStartRun,
   useTeam,
   useUpdateProject,
+  type ProjectRunRow,
 } from '@/api/queries';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
 import { ApiError } from '@/api/client';
 import { toast } from '@/components/ui/use-toast';
 import { DefinitionOfDoneCard } from '@/components/DefinitionOfDoneCard';
 import { BriefCard } from '@/components/BriefCard';
 import { ProjectStateCard } from '@/components/ProjectStateCard';
+import { PreviewFrame } from '@/components/PreviewFrame';
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
@@ -130,10 +135,6 @@ export function ProjectDetail() {
         <p className="text-sm text-muted-foreground">{t('projectDetail.subtitle')}</p>
       </div>
 
-      <BriefCard projectId={p.id} />
-
-      <ProjectStateCard projectId={p.id} />
-
       <div className="grid gap-4 md:grid-cols-3">
         <GoalCard projectId={p.id} goal={p.goal} />
 
@@ -175,168 +176,290 @@ export function ProjectDetail() {
         </Card>
       </div>
 
-      <ProductionModeCard
+      <ProjectTabs
         projectId={p.id}
-        autoMergeOnSuccess={p.autoMergeOnSuccess}
-        selfHealingEnabled={p.selfHealingEnabled}
-        maxChainIterations={p.maxChainIterations}
-        defaultAutopilotMode={p.defaultAutopilotMode}
-        defaultAutopilotBudgetMinutes={p.defaultAutopilotBudgetMinutes}
-        defaultAutopilotBudgetTokens={p.defaultAutopilotBudgetTokens}
+        project={p}
+        runList={runList}
+        successfulCount={successfulCount}
+        totalTokens={totalTokens}
+        planLocked={isLockedPlan}
+        planStatus={plan.data?.status}
+        startingRun={startRun.isPending}
+        onNewRun={handleNewRun}
       />
-
-      <DefinitionOfDoneCard projectId={p.id} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-            {t('projectDetail.summary.plan')}
-          </CardTitle>
-          <CardDescription>
-            {plan.data
-              ? plan.data.status === 'locked'
-                ? t('projectDetail.summary.planLocked')
-                : t('projectDetail.summary.planDraft')
-              : t('projectDetail.summary.noPlan')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link to={`/projects/${projectId}/teams`}>
-              <Users className="mr-2 h-4 w-4" />
-              {t('projectDetail.actions.openTeam')}
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link to={`/projects/${projectId}/plan`}>
-              <ClipboardList className="mr-2 h-4 w-4" />
-              {t('projectDetail.actions.openPlan')}
-            </Link>
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleNewRun}
-            disabled={!isLockedPlan || startRun.isPending}
-            title={isLockedPlan ? undefined : t('projectDetail.actions.newRunDisabled')}
-            data-testid="project-detail-new-run"
-          >
-            <Play className="mr-2 h-4 w-4" />
-            {startRun.isPending
-              ? t('projectDetail.actions.starting')
-              : t('projectDetail.actions.newRun')}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">{t('projectDetail.runs.title')}</CardTitle>
-          <CardDescription className="flex flex-wrap gap-3 text-xs">
-            <span>{t('projectDetail.runs.totalRuns', { count: runList.length })}</span>
-            {runList.length > 0 && (
-              <>
-                <Separator orientation="vertical" className="h-4" />
-                <span>{t('projectDetail.runs.successfulRuns', { count: successfulCount })}</span>
-                <Separator orientation="vertical" className="h-4" />
-                <span>
-                  {t('projectDetail.runs.totalTokens', { tokens: formatTokens(totalTokens) })}
-                </span>
-              </>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {runList.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              {t('projectDetail.runs.empty')}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="border-b text-left text-2xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-2 py-2 font-medium">{t('projectDetail.runs.table.id')}</th>
-                    <th className="px-2 py-2 font-medium">
-                      {t('projectDetail.runs.table.status')}
-                    </th>
-                    <th className="px-2 py-2 font-medium">
-                      {t('projectDetail.runs.table.outcome')}
-                    </th>
-                    <th className="px-2 py-2 font-medium">
-                      {t('projectDetail.runs.table.started')}
-                    </th>
-                    <th className="px-2 py-2 font-medium">
-                      {t('projectDetail.runs.table.duration')}
-                    </th>
-                    <th className="px-2 py-2 text-right font-medium">
-                      {t('projectDetail.runs.table.tokens')}
-                    </th>
-                    <th className="px-2 py-2 text-right font-medium">
-                      {t('projectDetail.runs.table.actions')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {runList.map((r) => {
-                    const tokens = (r.tokensInTotal ?? 0) + (r.tokensOutTotal ?? 0);
-                    const iter = r.chainIteration ?? 0;
-                    return (
-                      <tr
-                        key={r.id}
-                        className="border-b transition-colors hover:bg-muted/40"
-                        data-testid={`project-run-row-${r.id}`}
-                      >
-                        <td className="px-2 py-2 font-mono">
-                          <span className="inline-flex items-center gap-1.5">
-                            {iter > 0 && (
-                              <span
-                                className="rounded-full bg-indigo-500/15 px-1.5 py-0.5 text-2xs font-medium text-indigo-700 dark:text-indigo-300"
-                                title={
-                                  r.parentRunId
-                                    ? `Parent: ${r.parentRunId.slice(0, 8)}`
-                                    : 'Härtungs-Iteration'
-                                }
-                                data-testid={`run-chain-badge-${r.id}`}
-                              >
-                                ↳ Iter {iter}
-                              </span>
-                            )}
-                            {r.id.slice(0, 8)}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2">
-                          <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
-                        </td>
-                        <td className="px-2 py-2 text-muted-foreground">
-                          {r.outcome ?? t('projectDetail.runs.running')}
-                        </td>
-                        <td className="px-2 py-2 text-muted-foreground">
-                          {formatDate(r.startedAt)}
-                        </td>
-                        <td className="px-2 py-2 text-muted-foreground">
-                          {formatDuration(r.startedAt, r.endedAt ?? null)}
-                        </td>
-                        <td className="px-2 py-2 text-right font-mono">{formatTokens(tokens)}</td>
-                        <td className="px-2 py-2 text-right">
-                          <Button asChild size="sm" variant="ghost">
-                            <Link to={`/projects/${projectId}/run/${r.id}`}>
-                              {t('projectDetail.runs.openRun')}
-                              <ArrowRight className="ml-1 h-3 w-3" />
-                              <ExternalLink className="hidden" aria-hidden="true" />
-                            </Link>
-                          </Button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
+  );
+}
+
+interface ProjectTabsProps {
+  projectId: string;
+  project: NonNullable<ReturnType<typeof useProject>['data']>;
+  runList: ProjectRunRow[];
+  successfulCount: number;
+  totalTokens: number;
+  planLocked: boolean;
+  planStatus: string | undefined;
+  startingRun: boolean;
+  onNewRun: () => Promise<void>;
+}
+
+function ProjectTabs({
+  projectId,
+  project: p,
+  runList,
+  successfulCount,
+  totalTokens,
+  planLocked,
+  planStatus,
+  startingRun,
+  onNewRun,
+}: ProjectTabsProps) {
+  const { t } = useTranslation();
+  const interview = useInterview(projectId);
+  const stateQ = useProjectState(projectId);
+
+  // Compute the initial tab once on first render and freeze it. Later
+  // changes to the brief/state queries shouldn't yank the user off whatever
+  // tab they're currently looking at — useState's lazy initializer is the
+  // idiomatic way to derive a frozen mount-time value.
+  const [initialTab] = useState<'brief' | 'preview'>(() => {
+    const briefReady = interview.data?.brief?.briefReady === true;
+    const hasState = !!stateQ.data?.state;
+    return briefReady && hasState ? 'preview' : 'brief';
+  });
+
+  return (
+    <Tabs defaultValue={initialTab} className="flex flex-col gap-6">
+      <TabsList className="self-start">
+        <TabsTrigger value="brief" data-testid="project-tabs-trigger-brief">
+          {t('projectTabs.brief')}
+        </TabsTrigger>
+        <TabsTrigger value="plan" data-testid="project-tabs-trigger-plan">
+          {t('projectTabs.plan')}
+        </TabsTrigger>
+        <TabsTrigger value="runs" data-testid="project-tabs-trigger-runs">
+          {t('projectTabs.runs')}
+        </TabsTrigger>
+        <TabsTrigger value="preview" data-testid="project-tabs-trigger-preview">
+          {t('projectTabs.preview')}
+        </TabsTrigger>
+        <TabsTrigger value="settings" data-testid="project-tabs-trigger-settings">
+          {t('projectTabs.settings')}
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="brief" className="flex flex-col gap-6">
+        <BriefCard projectId={projectId} />
+        <ProjectStateCard projectId={projectId} />
+      </TabsContent>
+
+      <TabsContent value="plan" className="flex flex-col gap-6">
+        <PlanSummaryCard
+          projectId={projectId}
+          planStatus={planStatus}
+          planLocked={planLocked}
+          startingRun={startingRun}
+          onNewRun={onNewRun}
+        />
+        <DefinitionOfDoneCard projectId={projectId} />
+      </TabsContent>
+
+      <TabsContent value="runs" className="flex flex-col gap-6">
+        <RunsCard
+          projectId={projectId}
+          runList={runList}
+          successfulCount={successfulCount}
+          totalTokens={totalTokens}
+        />
+      </TabsContent>
+
+      <TabsContent value="preview" className="flex flex-col gap-6">
+        <PreviewFrame projectId={projectId} />
+      </TabsContent>
+
+      <TabsContent value="settings" className="flex flex-col gap-6">
+        <ProductionModeCard
+          projectId={projectId}
+          autoMergeOnSuccess={p.autoMergeOnSuccess}
+          selfHealingEnabled={p.selfHealingEnabled}
+          maxChainIterations={p.maxChainIterations}
+          defaultAutopilotMode={p.defaultAutopilotMode}
+          defaultAutopilotBudgetMinutes={p.defaultAutopilotBudgetMinutes}
+          defaultAutopilotBudgetTokens={p.defaultAutopilotBudgetTokens}
+        />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+interface PlanSummaryCardProps {
+  projectId: string;
+  planStatus: string | undefined;
+  planLocked: boolean;
+  startingRun: boolean;
+  onNewRun: () => Promise<void>;
+}
+
+function PlanSummaryCard({
+  projectId,
+  planStatus,
+  planLocked,
+  startingRun,
+  onNewRun,
+}: PlanSummaryCardProps) {
+  const { t } = useTranslation();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <ClipboardList className="h-4 w-4 text-muted-foreground" />
+          {t('projectDetail.summary.plan')}
+        </CardTitle>
+        <CardDescription>
+          {planStatus
+            ? planStatus === 'locked'
+              ? t('projectDetail.summary.planLocked')
+              : t('projectDetail.summary.planDraft')
+            : t('projectDetail.summary.noPlan')}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link to={`/projects/${projectId}/teams`}>
+            <Users className="mr-2 h-4 w-4" />
+            {t('projectDetail.actions.openTeam')}
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link to={`/projects/${projectId}/plan`}>
+            <ClipboardList className="mr-2 h-4 w-4" />
+            {t('projectDetail.actions.openPlan')}
+          </Link>
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => void onNewRun()}
+          disabled={!planLocked || startingRun}
+          title={planLocked ? undefined : t('projectDetail.actions.newRunDisabled')}
+          data-testid="project-detail-new-run"
+        >
+          <Play className="mr-2 h-4 w-4" />
+          {startingRun ? t('projectDetail.actions.starting') : t('projectDetail.actions.newRun')}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface RunsCardProps {
+  projectId: string;
+  runList: ProjectRunRow[];
+  successfulCount: number;
+  totalTokens: number;
+}
+
+function RunsCard({ projectId, runList, successfulCount, totalTokens }: RunsCardProps) {
+  const { t } = useTranslation();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm font-medium">{t('projectDetail.runs.title')}</CardTitle>
+        <CardDescription className="flex flex-wrap gap-3 text-xs">
+          <span>{t('projectDetail.runs.totalRuns', { count: runList.length })}</span>
+          {runList.length > 0 && (
+            <>
+              <Separator orientation="vertical" className="h-4" />
+              <span>{t('projectDetail.runs.successfulRuns', { count: successfulCount })}</span>
+              <Separator orientation="vertical" className="h-4" />
+              <span>
+                {t('projectDetail.runs.totalTokens', { tokens: formatTokens(totalTokens) })}
+              </span>
+            </>
+          )}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {runList.length === 0 ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            {t('projectDetail.runs.empty')}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="border-b text-left text-2xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-2 py-2 font-medium">{t('projectDetail.runs.table.id')}</th>
+                  <th className="px-2 py-2 font-medium">{t('projectDetail.runs.table.status')}</th>
+                  <th className="px-2 py-2 font-medium">{t('projectDetail.runs.table.outcome')}</th>
+                  <th className="px-2 py-2 font-medium">{t('projectDetail.runs.table.started')}</th>
+                  <th className="px-2 py-2 font-medium">
+                    {t('projectDetail.runs.table.duration')}
+                  </th>
+                  <th className="px-2 py-2 text-right font-medium">
+                    {t('projectDetail.runs.table.tokens')}
+                  </th>
+                  <th className="px-2 py-2 text-right font-medium">
+                    {t('projectDetail.runs.table.actions')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {runList.map((r) => {
+                  const tokens = (r.tokensInTotal ?? 0) + (r.tokensOutTotal ?? 0);
+                  const iter = r.chainIteration ?? 0;
+                  return (
+                    <tr
+                      key={r.id}
+                      className="border-b transition-colors hover:bg-muted/40"
+                      data-testid={`project-run-row-${r.id}`}
+                    >
+                      <td className="px-2 py-2 font-mono">
+                        <span className="inline-flex items-center gap-1.5">
+                          {iter > 0 && (
+                            <span
+                              className="rounded-full bg-indigo-500/15 px-1.5 py-0.5 text-2xs font-medium text-indigo-700 dark:text-indigo-300"
+                              title={
+                                r.parentRunId
+                                  ? `Parent: ${r.parentRunId.slice(0, 8)}`
+                                  : 'Härtungs-Iteration'
+                              }
+                              data-testid={`run-chain-badge-${r.id}`}
+                            >
+                              ↳ Iter {iter}
+                            </span>
+                          )}
+                          {r.id.slice(0, 8)}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2">
+                        <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
+                      </td>
+                      <td className="px-2 py-2 text-muted-foreground">
+                        {r.outcome ?? t('projectDetail.runs.running')}
+                      </td>
+                      <td className="px-2 py-2 text-muted-foreground">{formatDate(r.startedAt)}</td>
+                      <td className="px-2 py-2 text-muted-foreground">
+                        {formatDuration(r.startedAt, r.endedAt ?? null)}
+                      </td>
+                      <td className="px-2 py-2 text-right font-mono">{formatTokens(tokens)}</td>
+                      <td className="px-2 py-2 text-right">
+                        <Button asChild size="sm" variant="ghost">
+                          <Link to={`/projects/${projectId}/run/${r.id}`}>
+                            {t('projectDetail.runs.openRun')}
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                            <ExternalLink className="hidden" aria-hidden="true" />
+                          </Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

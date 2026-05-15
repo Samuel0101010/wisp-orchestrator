@@ -781,6 +781,35 @@
       "hardening": "Hardening pass"
     }
   },
+  "projectTabs": {
+    "brief": "Brief",
+    "plan": "Plan & Team",
+    "runs": "Runs",
+    "preview": "Preview",
+    "settings": "Settings"
+  },
+  "preview": {
+    "title": "Preview",
+    "description": "Boots the project's dev server inside the harness and frames it here. Useful for an eye-test between iterations.",
+    "start": "Start",
+    "stop": "Stop",
+    "empty": "No preview running. Start the dev server to see the app here.",
+    "viewport": {
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobile"
+    },
+    "status": {
+      "stopped": "Stopped",
+      "starting": "Starting",
+      "running": "Running",
+      "error": "Error"
+    },
+    "toasts": {
+      "startFailed": "Could not start preview",
+      "stopFailed": "Could not stop preview"
+    }
+  },
   "briefCard": {
     "title": "Project brief",
     "statusReady": "Finalised",
