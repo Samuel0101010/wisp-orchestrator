@@ -35,6 +35,7 @@ import { ApiError } from '@/api/client';
 import { toast } from '@/components/ui/use-toast';
 import { DefinitionOfDoneCard } from '@/components/DefinitionOfDoneCard';
 import { BriefCard } from '@/components/BriefCard';
+import { ProjectStateCard } from '@/components/ProjectStateCard';
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
@@ -130,6 +131,8 @@ export function ProjectDetail() {
       </div>
 
       <BriefCard projectId={p.id} />
+
+      <ProjectStateCard projectId={p.id} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <GoalCard projectId={p.id} goal={p.goal} />

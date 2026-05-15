@@ -10,6 +10,7 @@ import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import { actionableFindings, scanRefForFindings } from '../orchestrator/findings.js';
 import { buildHardeningPlan, insertHardeningPlan } from '../orchestrator/self-healing.js';
+import { getLatestProjectState } from '../orchestrator/project-state-loader.js';
 import { ensureBriefRow } from './interview.js';
 
 const createProjectSchema = z.object({
@@ -100,6 +101,24 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         return { error: 'project not found' };
       }
       return row;
+    }),
+  );
+
+  // v1.10 — return the most recent project_states row, or null when the
+  // project has never produced one (first run hasn't completed yet, or
+  // the runtime-verifier didn't emit docs/project-state.md). The
+  // ProjectStateCard renders nothing in the null case.
+  app.get(
+    '/api/projects/:id/state',
+    wrap(async (req, reply) => {
+      const params = z.object({ id: z.string() }).parse(req.params);
+      const project = await db.select().from(projects).where(eq(projects.id, params.id)).get();
+      if (!project) {
+        reply.code(404);
+        return { error: 'project not found' };
+      }
+      const state = await getLatestProjectState(db, params.id);
+      return { state };
     }),
   );
 

@@ -763,6 +763,24 @@
       "budgetDescription": "Stops autopilot when minutes or tokens exceed the cap (empty = unlimited)."
     }
   },
+  "projectState": {
+    "title": "Project state",
+    "description": "What this project does today — extracted by the runtime-verifier after the last successful run. The iteration planner reads this to plan a delta.",
+    "implementedFeatures": "Implemented features",
+    "openTodos": "Open todos",
+    "knownIssues": "Known issues",
+    "more": "+{{count}} more",
+    "empty": {
+      "implemented": "No features recorded yet.",
+      "todos": "No outstanding todos.",
+      "issues": "No known issues."
+    },
+    "planKind": {
+      "initial": "Initial plan",
+      "iteration": "Iteration plan",
+      "hardening": "Hardening pass"
+    }
+  },
   "briefCard": {
     "title": "Project brief",
     "statusReady": "Finalised",

@@ -356,6 +356,32 @@ export function usePatchBrief(projectId: string | undefined) {
   });
 }
 
+// ---------- Project state (v1.10 Phase 2) ----------
+
+export interface ProjectStateRow {
+  id: string;
+  projectId: string;
+  runId: string | null;
+  stateMd: string | null;
+  completedFeatures: string[];
+  openTodos: string[];
+  knownIssues: string[];
+  architectureSnapshot: unknown | null;
+  createdAt: string | Date;
+}
+
+export function useProjectState(projectId: string | undefined) {
+  return useQuery<{ state: ProjectStateRow | null }>({
+    queryKey: ['project-state', projectId ?? null],
+    enabled: Boolean(projectId),
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      if (!projectId) return { state: null };
+      return await apiFetch<{ state: ProjectStateRow | null }>(`/api/projects/${projectId}/state`);
+    },
+  });
+}
+
 export interface InitRepoResponse {
   ok: true;
   alreadyInitialized: boolean;

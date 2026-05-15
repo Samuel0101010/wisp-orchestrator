@@ -763,6 +763,24 @@
       "budgetDescription": "Stoppt den Autopilot wenn Minuten oder Tokens überschritten (leer = kein Cap)."
     }
   },
+  "projectState": {
+    "title": "Projekt-Stand",
+    "description": "Was das Projekt heute kann — vom Runtime-Verifier nach dem letzten erfolgreichen Run erhoben. Der Iterations-Planer baut darauf auf.",
+    "implementedFeatures": "Umgesetzte Features",
+    "openTodos": "Offene Todos",
+    "knownIssues": "Bekannte Probleme",
+    "more": "+{{count}} weitere",
+    "empty": {
+      "implemented": "Noch keine Features erfasst.",
+      "todos": "Keine offenen Todos.",
+      "issues": "Keine bekannten Probleme."
+    },
+    "planKind": {
+      "initial": "Initial-Plan",
+      "iteration": "Iterations-Plan",
+      "hardening": "Hardening-Durchlauf"
+    }
+  },
   "briefCard": {
     "title": "Projekt-Brief",
     "statusReady": "Finalisiert",
