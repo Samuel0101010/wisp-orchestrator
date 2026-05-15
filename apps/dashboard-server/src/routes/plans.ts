@@ -33,6 +33,7 @@ import {
   type PlanKind,
 } from '@agent-harness/schemas';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
+import { injectLeadCheckpoint } from '../orchestrator/inject-lead-checkpoint.js';
 import { detectProjectType } from '../orchestrator/detect-project-type.js';
 import { getLatestProjectState } from '../orchestrator/project-state-loader.js';
 
@@ -382,6 +383,13 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
             },
           });
           finalPlan = injection.plan;
+        }
+
+        // v2.0.0 Phase 8 — optionally add a lead-checkpoint node at the end
+        // when the project has leadEnabled=true. Idempotent + non-destructive.
+        if (project.leadEnabled) {
+          const leadInjection = injectLeadCheckpoint({ plan: finalPlan });
+          finalPlan = leadInjection.plan;
         }
 
         const id = randomUUID();

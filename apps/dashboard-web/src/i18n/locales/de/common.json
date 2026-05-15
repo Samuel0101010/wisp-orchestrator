@@ -906,6 +906,30 @@
       "finalizeFailed": "Brief konnte nicht finalisiert werden"
     }
   },
+  "leadNotes": {
+    "title": "Team-Lead — Theo",
+    "description": "Theo verdichtet Projektstand, Events und Handoffs zu einer Routing-Entscheidung. In v2.0 nur manuell anstoßbar.",
+    "statusActive": "Aktiv",
+    "statusInactive": "Inaktiv",
+    "activate": "Lead aktivieren",
+    "tickNow": "Jetzt synthetisieren",
+    "ticking": "Denkt nach…",
+    "empty": "Noch keine Lead-Notizen. Starte einen Tick, damit Theo synthetisiert.",
+    "blockers": "Blocker",
+    "nextRole": "Als nächstes",
+    "expand": "Volle Notiz zeigen",
+    "collapse": "Volle Notiz verbergen",
+    "recommendedAction": {
+      "continue": "Weitermachen",
+      "replan": "Neu planen",
+      "wait-for-user": "Auf Nutzer warten"
+    },
+    "toasts": {
+      "tickFailed": "Lead-Tick fehlgeschlagen",
+      "leadActivated": "Lead-Agent aktiviert",
+      "deleteFailed": "Lead-Notiz konnte nicht gelöscht werden"
+    }
+  },
   "applyTemplate": {
     "title": "Vorlage anwenden",
     "trigger": "Vorlage anwenden",

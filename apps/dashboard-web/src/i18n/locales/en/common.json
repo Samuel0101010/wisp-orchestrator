@@ -906,6 +906,30 @@
       "finalizeFailed": "Could not finalise brief"
     }
   },
+  "leadNotes": {
+    "title": "Team Lead — Theo",
+    "description": "Theo synthesises project state, events, and handoffs into a routing decision. Manual ticks only in v2.0.",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "activate": "Activate lead",
+    "tickNow": "Tick now",
+    "ticking": "Thinking…",
+    "empty": "No lead notes yet. Trigger a tick to get Theo's synthesis.",
+    "blockers": "Blockers",
+    "nextRole": "Next",
+    "expand": "Show full note",
+    "collapse": "Hide full note",
+    "recommendedAction": {
+      "continue": "Continue",
+      "replan": "Replan",
+      "wait-for-user": "Wait for user"
+    },
+    "toasts": {
+      "tickFailed": "Could not run lead tick",
+      "leadActivated": "Lead agent activated",
+      "deleteFailed": "Could not delete lead note"
+    }
+  },
   "applyTemplate": {
     "title": "Apply a template",
     "trigger": "Apply Template",

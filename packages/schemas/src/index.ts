@@ -49,6 +49,8 @@ export {
   packageTargetValues,
   changeRequestStatusValues,
   changeRequestSourceValues,
+  // v2.0.0 Phase 8 — lead agent (Theo)
+  leadNotes,
 } from './db.js';
 
 export type {
@@ -128,7 +130,16 @@ export type {
   NewProjectAgentOverride,
   PlanKind,
   PackageTarget,
+  // v2.0.0 Phase 8 — lead agent (Theo)
+  LeadNote,
+  NewLeadNote,
+  LeadDecisionsJson,
+  LeadRecommendedAction,
 } from './db.js';
+
+// v2.0.0 Lead decision directive parsing
+export { leadDecisionSchema, parseLeadDecisionFromText } from './lead.js';
+export type { LeadDecision } from './lead.js';
 
 // v1.9 Brief patch directive parsing
 export { briefPatchSchema, parseBriefPatchFromText } from './brief.js';

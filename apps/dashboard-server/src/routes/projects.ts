@@ -44,6 +44,8 @@ const patchProjectSchema = z
     runtimeVerifyProbeUrl: z.string().min(1).nullable().optional(),
     // v1.15 (Phase 7) — native-packaging target. 'web' disables packaging.
     packageTarget: z.enum(packageTargetValues).optional(),
+    // v2.0.0 (Phase 8) — enable the lead agent (Theo) for this project.
+    leadEnabled: z.boolean().optional(),
   })
   .refine(
     (v) =>
@@ -59,7 +61,8 @@ const patchProjectSchema = z
       v.runtimeVerifyEnabled !== undefined ||
       v.runtimeVerifyDevCmd !== undefined ||
       v.runtimeVerifyProbeUrl !== undefined ||
-      v.packageTarget !== undefined,
+      v.packageTarget !== undefined ||
+      v.leadEnabled !== undefined,
     {
       message: 'at least one editable field must be provided',
     },
@@ -158,6 +161,7 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
       if (patch.runtimeVerifyProbeUrl !== undefined)
         updates.runtimeVerifyProbeUrl = patch.runtimeVerifyProbeUrl;
       if (patch.packageTarget !== undefined) updates.packageTarget = patch.packageTarget;
+      if (patch.leadEnabled !== undefined) updates.leadEnabled = patch.leadEnabled;
       await db.update(projects).set(updates).where(eq(projects.id, params.id)).run();
       const updated = await db.select().from(projects).where(eq(projects.id, params.id)).get();
       return updated ?? existing;
