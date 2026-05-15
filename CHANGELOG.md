@@ -1,5 +1,85 @@
 # Changelog
 
+## 1.13.0 — Per-project team org-chart (Phase 5)
+
+Closes the "who is on this project" gap that's been open since teams became
+projects-of-agents in v1.9. Before this release the only way to see a
+project's team was a flat badge list at the top of the Project Detail page.
+After this release every project page has a **Team Chart** tab between
+**Plan & Team** and **Runs** that visualises the team as a directed graph:
+nodes are roles (architect / developer / qa / …), edges are hand-offs
+derived from the most recent plan's DAG, and each node carries the agent's
+avatar (or initials fallback), display name, model badge, and a live-status
+pill (idle / working / done / failed) that refreshes every 5 seconds while
+a run is active.
+
+The design deliberately stays small. The role-edge derivation is one pass
+over the plan's node-level edges, collapsed to (from-role, to-role) pairs
+and deduplicated; self-loops at the role level are dropped because they
+carry no chart signal. Live status is a single Drizzle query against the
+latest run's tasks aggregated per-role under a fixed severity hierarchy
+(`failed > running > done > idle`). The chart reuses the existing
+`ReactFlow + dagre` toolchain that ships with `PlanCanvas`; no new npm
+dependencies. Handoff edges (kind `'handoff'`) ship as a visual distinction
+today (solid stroke vs the dashed plan-dep stroke) — Phase 6 will populate
+them from the memory-mcp routing tree.
+
+### Added
+
+- **`apps/dashboard-server/src/routes/org-chart.ts`** — single endpoint
+  `GET /api/projects/:projectId/org-chart`. Returns a `roles` array (one
+  per team role, with displayName from the linked agent or fallback to
+  the role name, plus model / avatarUrl / color / seedKey / agentId),
+  an `edges` array of role-level pairs derived from the most-recent
+  plan's DAG (`kind='plan-dep'`, deduped), a `liveStatus` array
+  aggregated from the latest run's tasks, and the latestPlanId /
+  latestRunId pointers so the UI can deep-link. 404 on unknown project;
+  empty `roles` (not 404) when the project has no team yet so the UI
+  renders a "no team yet" empty state without juggling 404 plumbing.
+  Registered in `routes/index.ts` after the change-requests routes.
+- **`apps/dashboard-web/src/components/OrgChartView.tsx`** — ReactFlow
+  + dagre renderer (TB layout, nodesep 30, ranksep 50) with a custom
+  `AgentNode` card (180×96 px): 32 px avatar with initials fallback, a
+  display name (truncate), a font-mono role label, a model badge, an
+  optional "seed" badge for agents with a seedKey, and a 2×2 status
+  pill in the top-right corner (gray / blue-pulse / emerald / red for
+  idle / working / done / failed). Plan-dep edges render with a dashed
+  stroke; handoff edges (Phase 6) with a solid stroke; both use
+  `hsl(var(--muted-foreground))`. data-testid hooks cover
+  `org-chart-view`, `org-chart-empty`, `org-chart-node-{role}`, and
+  `org-chart-status-{role}`. When the API returns an empty `roles`
+  array the component renders an EmptyState card with a CTA link to
+  the team editor.
+- **Five-field `useOrgChart` hook** in `apps/dashboard-web/src/api/queries.ts`
+  alongside the `OrgChartRole` / `OrgChartEdge` / `OrgChartLiveStatus` /
+  `OrgChartResponse` types. Refetches every 5 s so the live-status pills
+  update during an active run.
+- **`ProjectDetail.tsx`** gains a **Team Chart** tab between **Plan &
+  Team** and **Runs** with the `Network` lucide icon. The tab content
+  is `<OrgChartView projectId={p.id} />`.
+- **i18n** EN + DE under `orgChart.*` (title / description /
+  status.{idle,working,done,failed} / legend.{planDep,handoff} /
+  empty.{title,description,action}) and a new `projectTabs.org` entry
+  ("Team Chart" / "Team-Chart").
+
+### Tests
+
+- **6 new in `org-chart.test.ts`** — 404 for unknown project, empty
+  `roles` when no team is configured, role list + plan-derived edges
+  deduped at role granularity (4 node-level edges collapse to 2
+  role-level edges), live-status aggregation (one task `done` + one
+  task `running` on the same role yields `working`), failed status
+  wins when one task is `failed` even with another `done`, and
+  latest-plan selection across multiple plans.
+- **2 new in `OrgChartView.test.tsx`** — empty state when the API
+  returns `roles: []`, and node rendering with status-pill class
+  mapping for `done` (emerald) and `working` (blue + animate-pulse).
+  Uses a `vi.mock('reactflow', …)` stub so the custom node renders
+  without needing ReactFlow's real width/height measurements in jsdom.
+
+CI: 374 server / 115 web / 45 schemas / typecheck clean / lint clean /
+format clean.
+
 ## 1.12.0 — Visual edit + change-request queue (Phase 4)
 
 Closes the eyeball-to-iteration loop the Preview tab opened in v1.11. Before

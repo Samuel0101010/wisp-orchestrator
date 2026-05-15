@@ -784,9 +784,29 @@
   "projectTabs": {
     "brief": "Brief",
     "plan": "Plan & Team",
+    "org": "Team-Chart",
     "runs": "Runs",
     "preview": "Vorschau",
     "settings": "Einstellungen"
+  },
+  "orgChart": {
+    "title": "Team-Org-Chart",
+    "description": "Rollen, Übergaben und Live-Aktivität des Projektteams.",
+    "status": {
+      "idle": "Inaktiv",
+      "working": "Arbeitet",
+      "done": "Fertig",
+      "failed": "Fehlgeschlagen"
+    },
+    "legend": {
+      "planDep": "Plan-Abhängigkeit",
+      "handoff": "Übergabe"
+    },
+    "empty": {
+      "title": "Noch kein Team",
+      "description": "Lege Rollen für dieses Projekt an, um das Org-Chart zu sehen.",
+      "action": "Team-Editor öffnen"
+    }
   },
   "preview": {
     "title": "Vorschau",

@@ -784,9 +784,29 @@
   "projectTabs": {
     "brief": "Brief",
     "plan": "Plan & Team",
+    "org": "Team Chart",
     "runs": "Runs",
     "preview": "Preview",
     "settings": "Settings"
+  },
+  "orgChart": {
+    "title": "Team org-chart",
+    "description": "Roles, hand-offs and live activity for this project's team.",
+    "status": {
+      "idle": "Idle",
+      "working": "Working",
+      "done": "Done",
+      "failed": "Failed"
+    },
+    "legend": {
+      "planDep": "Plan dependency",
+      "handoff": "Handoff"
+    },
+    "empty": {
+      "title": "No team yet",
+      "description": "Configure roles for this project to see the org-chart.",
+      "action": "Open team editor"
+    }
   },
   "preview": {
     "title": "Preview",
