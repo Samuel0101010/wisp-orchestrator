@@ -8,6 +8,8 @@ import { z } from 'zod';
 import { plans, projects, runs } from '@agent-harness/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
+import { actionableFindings, scanRefForFindings } from '../orchestrator/findings.js';
+import { buildHardeningPlan, insertHardeningPlan } from '../orchestrator/self-healing.js';
 
 const createProjectSchema = z.object({
   name: z.string().min(1),
@@ -28,6 +30,10 @@ const patchProjectSchema = z
     autoMergeOnSuccess: z.boolean().optional(),
     selfHealingEnabled: z.boolean().optional(),
     maxChainIterations: z.number().int().min(1).max(10).optional(),
+    // Project-level autopilot defaults — applied to NEW runs only.
+    defaultAutopilotMode: z.boolean().optional(),
+    defaultAutopilotBudgetMinutes: z.number().int().positive().nullable().optional(),
+    defaultAutopilotBudgetTokens: z.number().int().positive().nullable().optional(),
   })
   .refine(
     (v) =>
@@ -36,10 +42,12 @@ const patchProjectSchema = z
       v.repoPath !== undefined ||
       v.autoMergeOnSuccess !== undefined ||
       v.selfHealingEnabled !== undefined ||
-      v.maxChainIterations !== undefined,
+      v.maxChainIterations !== undefined ||
+      v.defaultAutopilotMode !== undefined ||
+      v.defaultAutopilotBudgetMinutes !== undefined ||
+      v.defaultAutopilotBudgetTokens !== undefined,
     {
-      message:
-        'at least one of name, goal, repoPath, autoMergeOnSuccess, selfHealingEnabled, maxChainIterations must be provided',
+      message: 'at least one editable field must be provided',
     },
   );
 
@@ -102,9 +110,123 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         updates.selfHealingEnabled = patch.selfHealingEnabled;
       if (patch.maxChainIterations !== undefined)
         updates.maxChainIterations = patch.maxChainIterations;
+      if (patch.defaultAutopilotMode !== undefined)
+        updates.defaultAutopilotMode = patch.defaultAutopilotMode;
+      if (patch.defaultAutopilotBudgetMinutes !== undefined)
+        updates.defaultAutopilotBudgetMinutes = patch.defaultAutopilotBudgetMinutes;
+      if (patch.defaultAutopilotBudgetTokens !== undefined)
+        updates.defaultAutopilotBudgetTokens = patch.defaultAutopilotBudgetTokens;
       await db.update(projects).set(updates).where(eq(projects.id, params.id)).run();
       const updated = await db.select().from(projects).where(eq(projects.id, params.id)).get();
       return updated ?? existing;
+    }),
+  );
+
+  // Manually trigger a self-healing hardening run on a project, using a prior
+  // successful run as the source of findings. Same machinery as the auto-chain
+  // hook in runtime.ts — exposed as an endpoint so the user can retroactively
+  // start the first iteration for runs that completed BEFORE the project had
+  // selfHealingEnabled (or before v1.7.14 existed at all).
+  //
+  // Body: { parentRunId: string }
+  //
+  // The parent run MUST be on the same project AND have outcome=success.
+  // Its result branch (`harness/<parentRunId>/result`) is scanned for HIGH/
+  // CRITICAL/MEDIUM findings; if any remain, a hardening plan is inserted
+  // and a fresh run is started with chain_iteration = parent.chain_iteration + 1.
+  app.post(
+    '/api/projects/:id/harden-run',
+    wrap(async (req, reply) => {
+      const params = z.object({ id: z.string() }).parse(req.params);
+      const body = z.object({ parentRunId: z.string().min(1) }).parse(req.body ?? {});
+
+      const project = await db.select().from(projects).where(eq(projects.id, params.id)).get();
+      if (!project) {
+        reply.code(404);
+        return { error: 'project not found' };
+      }
+      const parentRun = await db.select().from(runs).where(eq(runs.id, body.parentRunId)).get();
+      if (!parentRun) {
+        reply.code(404);
+        return { error: 'parent run not found' };
+      }
+      const parentPlan = await db.select().from(plans).where(eq(plans.id, parentRun.planId)).get();
+      if (!parentPlan || parentPlan.projectId !== project.id) {
+        reply.code(400);
+        return { error: 'parent run does not belong to this project' };
+      }
+      if (parentRun.outcome !== 'success') {
+        reply.code(400);
+        return {
+          error: 'parent run did not succeed — hardening only runs on top of success outcomes',
+          actual: parentRun.outcome,
+        };
+      }
+
+      const resultBranch = `harness/${parentRun.id}/result`;
+      let actionable;
+      try {
+        const all = await scanRefForFindings({ repoPath: project.repoPath, ref: resultBranch });
+        actionable = actionableFindings(all);
+      } catch (err) {
+        reply.code(500);
+        return {
+          error: 'findings scan failed',
+          details: err instanceof Error ? err.message : String(err),
+        };
+      }
+      if (actionable.length === 0) {
+        reply.code(200);
+        return {
+          ok: true,
+          spawned: false,
+          reason: 'no remaining HIGH/CRITICAL/MEDIUM findings — chain naturally complete',
+        };
+      }
+
+      const nextIteration = parentRun.chainIteration + 1;
+      if (nextIteration > project.maxChainIterations) {
+        reply.code(409);
+        return {
+          error: 'chain cap reached',
+          chainIteration: parentRun.chainIteration,
+          maxChainIterations: project.maxChainIterations,
+        };
+      }
+
+      const plan = buildHardeningPlan({
+        parentGoal: project.goal,
+        iteration: nextIteration,
+        findings: actionable,
+      });
+      const newPlanId = await insertHardeningPlan({
+        db,
+        projectId: project.id,
+        parentPlanId: parentRun.planId,
+        plan,
+      });
+
+      // Defer-import the runtime to avoid a circular import (routes/runs.ts
+      // imports this very file via the routes index).
+      const { getDefaultRuntime } = await import('./runs.js');
+      const runtime = getDefaultRuntime();
+      const res = await runtime.startRun({
+        planId: newPlanId,
+        parentRunId: parentRun.id,
+        chainIteration: nextIteration,
+      });
+      if (!res.ok) {
+        reply.code(res.status);
+        return { error: res.error, details: res.details };
+      }
+      return {
+        ok: true,
+        spawned: true,
+        runId: res.runId,
+        planId: newPlanId,
+        chainIteration: nextIteration,
+        findingsCount: actionable.length,
+      };
     }),
   );
 
@@ -210,6 +332,10 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
           tokensInTotal: runs.tokensInTotal,
           tokensOutTotal: runs.tokensOutTotal,
           turnsTotal: runs.turnsTotal,
+          // Chain pointers so the project Run-Historie can surface
+          // "Iteration N / parent run" relationships in the list view.
+          parentRunId: runs.parentRunId,
+          chainIteration: runs.chainIteration,
         })
         .from(runs)
         .orderBy(desc(runs.startedAt))

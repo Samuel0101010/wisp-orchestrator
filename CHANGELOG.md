@@ -1,5 +1,56 @@
 # Changelog
 
+## 1.7.15 — Project-level autopilot defaults + chain visualisation + harden-run endpoint
+
+Closes the UX gap exposed by the v1.7.14 wertzeit-app dry run: a 4-deep
+self-healing chain worked end-to-end on the harness side but was invisible
+in the project Run-Historie, and autopilot still had to be re-toggled
+per run. Three follow-up changes:
+
+### Added
+
+- **Project-level autopilot defaults.** Three new project columns
+  (`default_autopilot_mode`, `default_autopilot_budget_minutes`,
+  `default_autopilot_budget_tokens`) act as the seed value for every new
+  run started against the project. The per-run `AutopilotToggle` still
+  overrides for the active run; the project defaults are just the
+  starting point so users don't have to re-toggle autopilot on every
+  new run for the same project.
+- **Run-Historie chain indicator.** The project's run list now shows a
+  `↳ Iter N` badge next to each follow-up run, with `Parent: <8-hex>`
+  as the title attribute so the relationship is hover-discoverable.
+  Powered by `parent_run_id` + `chain_iteration` now included in the
+  `GET /api/projects/:id/runs` projection.
+- **`POST /api/projects/:id/harden-run` endpoint.** Manual one-shot
+  trigger for a self-healing iteration on a project, given any prior
+  successful run on it. Same machinery as the post-success hook —
+  scans the parent run's result branch for findings, builds the
+  hardening plan, inserts it, starts a new run with
+  `chain_iteration=parent+1`. Used to retroactively chain runs that
+  completed before v1.7.14 existed; also useful if a user wants to
+  force a re-pass without re-running the original goal.
+
+### Schema
+
+Migration `0010_project_run_defaults.sql`:
+- `projects.default_autopilot_mode` integer NOT NULL DEFAULT 0
+- `projects.default_autopilot_budget_minutes` integer NULL
+- `projects.default_autopilot_budget_tokens` integer NULL
+
+### UI
+
+The Production-Modus card on the project page gains a "Run-Defaults"
+sub-block with the autopilot toggle and the two budget inputs. The
+existing per-run AutopilotToggle on the RunView keeps working
+unchanged.
+
+### Tests
+
+`project-autopilot-defaults.test.ts` covers (a) project default true →
+new run row carries autopilotMode=true + budgets + autopilotStartedAt,
+(b) project default false → new run keeps autopilot off, (c) explicit
+parentRunId + chainIteration overrides still take effect.
+
 ## 1.7.14 — Production loop: auto-merge + self-healing chain
 
 Two harness-level features that close the "finish my app in one goal" gap

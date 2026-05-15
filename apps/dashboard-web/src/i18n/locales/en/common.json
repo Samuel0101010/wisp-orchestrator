@@ -713,7 +713,11 @@
       "saveFailed": "Could not save production mode",
       "chainIteration": "Iteration {{current}}/{{max}}",
       "chainIterationShort": "Hardening iteration {{current}}",
-      "chainParent": "← Previous run in chain"
+      "chainParent": "← Previous run in chain",
+      "autopilotDefaults": "Run defaults",
+      "autopilotDefault": "Autopilot",
+      "autopilotDefaultDescription": "Auto-enables autopilot for every new run of this project — still overridable per run.",
+      "budgetDescription": "Stops autopilot when minutes or tokens exceed the cap (empty = unlimited)."
     }
   },
   "applyTemplate": {

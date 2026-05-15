@@ -316,6 +316,18 @@ export class RunRuntime {
     let walker: Walker;
     let repoPath: string;
     try {
+      // Look up the project so we can seed the new run with the project-level
+      // autopilot defaults. Falls through to the schema defaults (false/null)
+      // when the project row is missing for any reason — startRun's other
+      // checks would already have rejected the plan in that case but the
+      // belt-and-braces costs nothing.
+      const planRow = await this.db.select().from(plans).where(eq(plans.id, args.planId)).get();
+      const projectRow = planRow
+        ? await this.db.select().from(projects).where(eq(projects.id, planRow.projectId)).get()
+        : null;
+      const defaultAutopilotOn = projectRow?.defaultAutopilotMode ?? false;
+      const seededAutopilotStartedAt = defaultAutopilotOn ? startedAt : null;
+
       await this.db
         .insert(runs)
         .values({
@@ -328,6 +340,10 @@ export class RunRuntime {
           maxParallel,
           parentRunId: args.parentRunId ?? null,
           chainIteration: args.chainIteration ?? 0,
+          autopilotMode: defaultAutopilotOn,
+          autopilotBudgetMinutes: projectRow?.defaultAutopilotBudgetMinutes ?? null,
+          autopilotBudgetTokens: projectRow?.defaultAutopilotBudgetTokens ?? null,
+          autopilotStartedAt: seededAutopilotStartedAt,
         })
         .run();
 
