@@ -224,6 +224,77 @@ describe('run routes', () => {
     expect(runtime.startCalls).toBe(1);
   });
 
+  // v1.10 — POST /api/runs with `changeRequestIds[]` marks those rows as
+  // in-run and links the new runId. Only rows belonging to the same project
+  // AND currently in `pending` status are linked; anything else is silently
+  // ignored so a malicious client cannot mutate other projects' queues.
+  it('POST /api/runs links eligible change_requests when changeRequestIds is provided', async () => {
+    const runtime = makeFakeRuntime();
+    app = await buildAppWithRuntime(runtime);
+    const { planId, projectId } = await seedLockedPlan();
+    const crA = randomUUID();
+    const crB = randomUUID();
+    const crOtherProject = randomUUID();
+    const crAlreadyDone = randomUUID();
+    const otherProjectId = randomUUID();
+    const now = Date.now();
+    // A foreign project + a row that belongs to it (will be skipped).
+    await db
+      .insert(projects)
+      .values({
+        id: otherProjectId,
+        name: 'other',
+        goal: 'o',
+        repoPath: '/tmp/o',
+        createdAt: new Date(),
+      })
+      .run();
+    sqlite
+      .prepare(
+        `INSERT INTO change_requests (id, project_id, status, source, user_prompt, created_at) VALUES (?, ?, 'pending', 'text', ?, ?)`,
+      )
+      .run(crA, projectId, 'A', now);
+    sqlite
+      .prepare(
+        `INSERT INTO change_requests (id, project_id, status, source, user_prompt, created_at) VALUES (?, ?, 'pending', 'text', ?, ?)`,
+      )
+      .run(crB, projectId, 'B', now);
+    sqlite
+      .prepare(
+        `INSERT INTO change_requests (id, project_id, status, source, user_prompt, created_at) VALUES (?, ?, 'pending', 'text', ?, ?)`,
+      )
+      .run(crOtherProject, otherProjectId, 'X', now);
+    sqlite
+      .prepare(
+        `INSERT INTO change_requests (id, project_id, status, source, user_prompt, created_at) VALUES (?, ?, 'done', 'text', ?, ?)`,
+      )
+      .run(crAlreadyDone, projectId, 'D', now);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: {
+        planId,
+        changeRequestIds: [crA, crB, crOtherProject, crAlreadyDone],
+      },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().linkedChangeRequestCount).toBe(2);
+
+    // crA + crB flipped to in-run; the other two stayed put.
+    const rows = sqlite.prepare(`SELECT id, status, run_id FROM change_requests`).all() as Array<{
+      id: string;
+      status: string;
+      run_id: string | null;
+    }>;
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    expect(byId.get(crA)?.status).toBe('in-run');
+    expect(byId.get(crA)?.run_id).toBe(res.json().runId);
+    expect(byId.get(crB)?.status).toBe('in-run');
+    expect(byId.get(crOtherProject)?.status).toBe('pending');
+    expect(byId.get(crAlreadyDone)?.status).toBe('done');
+  });
+
   it('POST /api/runs returns 400 repo_not_initialized when project repoPath has no .git', async () => {
     const runtime = makeFakeRuntime();
     app = await buildAppWithRuntime(runtime);

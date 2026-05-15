@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyPluginAsync } from 'fastify';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   agents,
@@ -25,11 +25,68 @@ import {
 import { pickModel, recordOutcome } from '../router/thompson.js';
 import { retrieveSimilar } from '../reasoningbank/store.js';
 import { getLatestSummaryForProject } from '../run-summary/retrieve.js';
-import { dodCriteria as dodCriteriaTable, projectBriefs } from '@agent-harness/schemas';
+import {
+  changeRequests as changeRequestsTable,
+  dodCriteria as dodCriteriaTable,
+  projectBriefs,
+  type ChangeRequestStatus,
+  type PlanKind,
+} from '@agent-harness/schemas';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
 import { detectProjectType } from '../orchestrator/detect-project-type.js';
+import { getLatestProjectState } from '../orchestrator/project-state-loader.js';
 
 const UNBRIEFED_OVERRIDE_HEADER = 'x-allow-unbriefed';
+
+const PENDING_STATUS: ChangeRequestStatus = 'pending';
+
+/**
+ * Parse the optional `changeRequestIds: string[]` field off the plan POST
+ * body. Returns null when absent; an empty array when explicitly empty (the
+ * caller wants "no change requests for this iteration"). zod is overkill
+ * here — one optional field with element-level string validation.
+ */
+function parseChangeRequestIdsFromBody(body: unknown): string[] | null {
+  if (typeof body !== 'object' || body === null) return null;
+  const raw = (body as { changeRequestIds?: unknown }).changeRequestIds;
+  if (raw === undefined) return null;
+  if (!Array.isArray(raw)) return null;
+  const cleaned: string[] = [];
+  for (const v of raw) {
+    if (typeof v === 'string' && v.length > 0) cleaned.push(v);
+  }
+  return cleaned;
+}
+
+/**
+ * Load pending change_requests for an iteration plan. When `requestedIds`
+ * is null → all pending requests for the project. When non-null →
+ * filter to only those ids that ARE in the project AND in 'pending' status
+ * (silently drops mismatches; the planner doesn't need to know about them).
+ */
+async function loadChangeRequestsForPlanning(
+  projectId: string,
+  requestedIds: string[] | null,
+): Promise<Array<{ id: string; source: string; selector: string | null; userPrompt: string }>> {
+  const rows = await db
+    .select({
+      id: changeRequestsTable.id,
+      source: changeRequestsTable.source,
+      selector: changeRequestsTable.selector,
+      userPrompt: changeRequestsTable.userPrompt,
+    })
+    .from(changeRequestsTable)
+    .where(
+      and(
+        eq(changeRequestsTable.projectId, projectId),
+        eq(changeRequestsTable.status, PENDING_STATUS),
+      ),
+    )
+    .all();
+  if (requestedIds === null) return rows;
+  const requestedSet = new Set(requestedIds);
+  return rows.filter((r) => requestedSet.has(r.id));
+}
 
 interface PlansRouterDeps {
   runner?: Runner;
@@ -205,6 +262,18 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         const similar = await retrieveSimilar(project.goal, projectId, 3);
         const lastSummary = getLatestSummaryForProject(projectId);
 
+        // v1.10 — plan kind detection. A pre-existing project_states row means
+        // a prior run succeeded; treat this as an 'iteration' plan that gets
+        // the latest state + any pending change_requests injected. Without a
+        // state row this is the first plan ('initial', greenfield assumption).
+        const latestState = await getLatestProjectState(db, projectId);
+        const planKind: PlanKind = latestState ? 'iteration' : 'initial';
+        const requestedChangeIds = parseChangeRequestIdsFromBody(req.body);
+        const pendingChangeRequests =
+          planKind === 'iteration'
+            ? await loadChangeRequestsForPlanning(projectId, requestedChangeIds)
+            : [];
+
         const sections: string[] = [];
         if (brief) {
           const briefLines: string[] = [];
@@ -234,6 +303,38 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         }
         if (lastSummary) {
           sections.push(`## Previous run on this project\n\n${lastSummary.summaryMd}`);
+        }
+        if (latestState) {
+          const stateLines: string[] = [
+            `## Current project state (from prior run)\n`,
+            `This is an ITERATION plan — the project already exists and runs. Plan a SURGICAL delta. Do not re-implement what is already shipped.`,
+            '',
+            `### Implemented features`,
+            latestState.completedFeatures.length > 0
+              ? latestState.completedFeatures.map((f) => `- ${f}`).join('\n')
+              : '_(none recorded)_',
+            '',
+            `### Open todos`,
+            latestState.openTodos.length > 0
+              ? latestState.openTodos.map((t) => `- ${t}`).join('\n')
+              : '_(none recorded)_',
+            '',
+            `### Known issues`,
+            latestState.knownIssues.length > 0
+              ? latestState.knownIssues.map((i) => `- ${i}`).join('\n')
+              : '_(none recorded)_',
+          ];
+          sections.push(stateLines.join('\n'));
+        }
+        if (pendingChangeRequests.length > 0) {
+          const crLines: string[] = [
+            `## User change-requests to address THIS iteration\n`,
+            ...pendingChangeRequests.map(
+              (cr, i) =>
+                `### CR-${i + 1} (id=${cr.id}, source=${cr.source}${cr.selector ? `, selector=${cr.selector}` : ''})\n${cr.userPrompt}`,
+            ),
+          ];
+          sections.push(crLines.join('\n'));
         }
         const context = sections.length > 0 ? sections.join('\n\n') : undefined;
 
@@ -289,6 +390,8 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           projectId,
           dagJson: finalPlan as unknown,
           status: 'draft' as const,
+          kind: planKind,
+          parentStateId: latestState?.id ?? null,
         };
         await db.insert(plans).values(row).run();
 
@@ -297,6 +400,7 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           ...row,
           plan: finalPlan,
           attempts: outcome.attempts,
+          pendingChangeRequestIds: pendingChangeRequests.map((cr) => cr.id),
         };
       }),
     );

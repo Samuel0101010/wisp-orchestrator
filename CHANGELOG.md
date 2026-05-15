@@ -1,5 +1,69 @@
 # Changelog
 
+## 1.10.0 — Project state + iteration planner (Phase 2)
+
+Closes the "every run is greenfield" gap. Before this release run N+1 had no
+formal signal that the project already existed — the planner re-built from
+scratch each time. After this release the runtime-verifier writes
+`docs/project-state.md` after every successful run, the harness persists
+a `project_states` row, and the next plan is auto-tagged `kind='iteration'`
+with the prior state + any pending change-requests injected into the
+planner's context. The planner is now told explicitly: "this is an
+ITERATION plan — plan a SURGICAL delta. Do not re-implement what is
+already shipped."
+
+### Added
+
+- **`runtime-verifier` writes `docs/project-state.md`** as step 9 of its
+  workflow with four canonical sections (Implemented features / Open todos
+  / Known issues / Architecture snapshot JSON). The harness parses the
+  sections back into structured JSON for the next iteration plan.
+- **`orchestrator/project-state-loader.ts`** — tolerant markdown parser
+  (handles missing fences, malformed JSON, mixed bullet markers, extra
+  prose between sections), git-show loader, persistence helper, and a
+  `getLatestProjectState` retrieval. 13 unit tests.
+- **`handlePostRunSuccess` hook** persists a `project_states` row after
+  every successful run that produced a docs/project-state.md.
+- **Plan-kind detection** in `POST /api/projects/:id/plan`:
+  - Prior `project_states` row present → `kind='iteration'`
+  - Otherwise → `kind='initial'` (existing behaviour)
+  - Hardening chain already produces `kind='hardening'` via self-healing.
+- **Iteration context injection** — when `kind='iteration'`, the planner
+  receives:
+  - `## Current project state (from prior run)` with Implemented features,
+    Open todos, Known issues (matching the verifier's structure)
+  - `## User change-requests to address THIS iteration` with each pending
+    change_request rendered as a CR-N block (id + source + selector +
+    user prompt). Honours an optional `changeRequestIds[]` body filter.
+- **`POST /api/runs` accepts `changeRequestIds[]`** — eligible rows
+  (same project + status='pending') get flipped to `'in-run'` and linked
+  to the new runId. Foreign-project or already-done ids are silently
+  ignored so a client cannot mutate other queues.
+- **`GET /api/projects/:id/state`** returns the latest project_states row
+  (null when the project has never been verified).
+- **`ProjectStateCard`** under the BriefCard on every project page —
+  three columns (Implemented features / Open todos / Known issues) with
+  counts, empty-state copy, and a "+N more" overflow at 8 items.
+  Hidden when no state exists.
+- **`useProjectState` hook** + `ProjectStateRow` type in
+  `dashboard-web/src/api/queries.ts`. Auto-refetch every 30s.
+- **i18n** EN + DE under `projectState.*` plus `projectState.planKind.*`
+  labels.
+
+### Tests
+
+- 13 new in `project-state-loader.test.ts` (parser + persist + retrieve).
+- 4 new in `iteration-plan.test.ts` (initial vs iteration detection,
+  change-request injection in pendingChangeRequestIds, explicit ids
+  filter).
+- 1 new in `runs.test.ts` (POST /api/runs links eligible CRs only,
+  skips foreign-project + already-done).
+- Existing plans.test.ts happy-path now asserts `kind='initial'` /
+  `parentStateId=null` on first plan.
+
+CI: 356 server / 117 web / 45 schemas / typecheck clean / lint clean /
+format clean.
+
 ## 1.9.0 — Requirements-interviewer agent + brief gate (Phase 0+1)
 
 First slice of the v1.9 production-loop pipeline: agent-driven elicitation

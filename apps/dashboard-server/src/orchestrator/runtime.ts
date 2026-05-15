@@ -65,6 +65,12 @@ import {
   persistRuntimeReport,
   planHasRuntimeVerifier,
 } from './runtime-report-loader.js';
+import {
+  loadProjectStateMarkdownFromRef,
+  parseProjectStateMarkdown,
+  persistProjectState,
+  PROJECT_STATE_MD_PATH,
+} from './project-state-loader.js';
 import type { RunOutcome } from '@agent-harness/schemas';
 
 function resolveMemoryMcpEntrypoint(): string {
@@ -772,6 +778,29 @@ export class RunRuntime {
       });
     } catch (e) {
       console.error('[runtime] persistRuntimeReport failed', e);
+    }
+
+    // v1.10 — also persist a project_states row so the NEXT iteration planner
+    // can plan a delta instead of greenfield. Best-effort: a missing or
+    // malformed docs/project-state.md still flips us to 'iteration' kind on
+    // the next plan (empty arrays are still a valid state row).
+    try {
+      const stateMd = await loadProjectStateMarkdownFromRef({
+        repoPath: ctx.repoPath,
+        ref: resultBranch,
+      });
+      if (stateMd !== null) {
+        const parsed = parseProjectStateMarkdown(stateMd);
+        await persistProjectState({
+          db: this.db,
+          projectId: ctx.projectId,
+          runId,
+          stateMdPath: PROJECT_STATE_MD_PATH,
+          parsed,
+        });
+      }
+    } catch (e) {
+      console.error('[runtime] persistProjectState failed', e);
     }
 
     this.persistEvent(runId, {

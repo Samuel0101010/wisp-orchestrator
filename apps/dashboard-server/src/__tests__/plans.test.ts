@@ -205,6 +205,10 @@ describe('plan generation route', () => {
     expect(body.plan.nodes.map((n: { role: string }) => n.role)).toContain('runtime-verifier');
     expect(callCount()).toBe(1);
 
+    // v1.10 — first plan on a fresh project is `kind='initial'`.
+    expect(body.kind).toBe('initial');
+    expect(body.parentStateId).toBeNull();
+
     // GET returns the persisted plan
     const fetched = await app.inject({
       method: 'GET',

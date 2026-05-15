@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
-import { and, desc, eq, gte } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import {
+  changeRequests as changeRequestsTable,
   checkpoints,
   events as eventsTable,
   plans,
@@ -28,6 +29,12 @@ const startRunSchema = z.object({
   budgetMinutes: z.number().int().positive().optional(),
   budgetTurns: z.number().int().positive().optional(),
   maxParallel: z.number().int().positive().optional(),
+  // v1.10 — optional list of change_request rows to mark as 'in-run' and
+  // link to this new run. Used when the iteration planner consumed a
+  // specific subset of pending change-requests; the UI passes the same
+  // ids here so the queue stays in sync. Silently ignores ids that
+  // belong to another project or aren't in 'pending' status.
+  changeRequestIds: z.array(z.string().min(1)).optional(),
 });
 
 let defaultRuntime: RunRuntime | null = null;
@@ -277,8 +284,46 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
           reply.code(result.status);
           return { error: result.error, ...(result.details ? { details: result.details } : {}) };
         }
+
+        // v1.10 — link the requested change_requests to this run. We do this
+        // POST-startRun so a failed startRun doesn't lock the queue. The
+        // filter (projectId match + status='pending') is enforced server-
+        // side so a malicious client cannot mutate other projects' rows.
+        let linkedChangeRequestCount = 0;
+        if (body.changeRequestIds && body.changeRequestIds.length > 0 && planRow) {
+          try {
+            const candidates = await db
+              .select({
+                id: changeRequestsTable.id,
+                projectId: changeRequestsTable.projectId,
+                status: changeRequestsTable.status,
+              })
+              .from(changeRequestsTable)
+              .where(inArray(changeRequestsTable.id, body.changeRequestIds))
+              .all();
+            const eligible = candidates
+              .filter((c) => c.projectId === planRow.projectId && c.status === 'pending')
+              .map((c) => c.id);
+            if (eligible.length > 0) {
+              await db
+                .update(changeRequestsTable)
+                .set({ status: 'in-run', runId: result.runId })
+                .where(inArray(changeRequestsTable.id, eligible))
+                .run();
+              linkedChangeRequestCount = eligible.length;
+            }
+          } catch (err) {
+            // Don't fail the run because the link failed — the run is
+            // already started. Log and continue.
+            console.error('[runs] failed to link change_requests', err);
+          }
+        }
+
         reply.code(201);
-        return { runId: result.runId };
+        return {
+          runId: result.runId,
+          ...(linkedChangeRequestCount > 0 ? { linkedChangeRequestCount } : {}),
+        };
       }),
     );
 
