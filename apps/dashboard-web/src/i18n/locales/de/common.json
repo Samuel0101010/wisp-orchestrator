@@ -808,6 +808,28 @@
       "action": "Team-Editor öffnen"
     }
   },
+  "agentOverride": {
+    "title": "{{role}} anpassen",
+    "description": "Projektspezifische Overrides werden an die Basis-Definition des Agenten angehängt. Leer lassen, um auf die Standardwerte zurückzufallen.",
+    "fields": {
+      "extraPrompt": "Zusätzlicher System-Prompt",
+      "extraTools": "Zusätzliche erlaubte Tools (eines pro Zeile)",
+      "model": "Modell-Override",
+      "memoryNamespace": "Memory-Namespace",
+      "modelDefault": "Standard"
+    },
+    "actions": {
+      "save": "Override speichern",
+      "reset": "Auf Standard zurücksetzen",
+      "delete": "Löschen"
+    },
+    "toasts": {
+      "saved": "Override gespeichert",
+      "reset": "Override entfernt",
+      "saveFailed": "Override konnte nicht gespeichert werden",
+      "resetFailed": "Override konnte nicht zurückgesetzt werden"
+    }
+  },
   "preview": {
     "title": "Vorschau",
     "description": "Startet den Dev-Server des Projekts im Harness und zeigt ihn hier an. Nützlich für einen Augen-Test zwischen Iterationen.",

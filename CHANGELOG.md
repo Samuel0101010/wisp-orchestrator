@@ -1,5 +1,128 @@
 # Changelog
 
+## 1.14.0 — Agent communications upgrade (Phase 6)
+
+Closes three gaps in how agents communicate across a run: memory was per-run
+only (so the architect's spec evaporated the moment the run ended), hand-offs
+between roles had to travel through the agents' chat windows (where they
+were truncated or forgotten), and the team's per-role behaviour was locked
+to the shared `/agents/*.md` system prompts (no way to say "for THIS project,
+the developer should also call npm-audit"). Phase 6 lays the foundation for
+all three:
+
+- **Project-scoped memory** in `memory-mcp`. Every `memory.{set,get,list,delete}`
+  tool gains an optional `scope` field. `scope='run'` keeps the v1.13
+  behavior (per-run SQLite file). `scope='project'` resolves to a separate
+  per-project DB at `<dataDir>/memory/project-<projectId>.db` that survives
+  across runs of the same project. The MCP server picks up `HARNESS_PROJECT_ID`
+  + `HARNESS_DATA_DIR` from the subprocess env that the dashboard-server
+  exports via `writeMemoryMcpConfig`. A small in-process LRU keyed by db
+  path avoids reopening the same SQLite file on every tool call.
+- **Hand-off helpers** (`loadHandoffsForProject` + `renderHandoffsSection`)
+  exposed by `apps/dashboard-server/src/orchestrator/handoff-loader.ts`. They
+  read every `handoff/*` row from the per-project memory DB and render them
+  as a `## Prior Handoffs` markdown section the walker can append to the
+  next task's composed prompt. The walker wiring itself is deferred to
+  v1.14.x — the helpers are well-tested today; full wiring lands once the
+  `WalkerDeps` signature gains `projectId` + `dataDir` fields. The
+  `TODO(phase-6-followup)` comments mark the integration points.
+- **Per-project agent overrides** — a full CRUD on `project_agent_overrides`
+  (table exists since the v1.9 Phase 0 migration) and a click-to-edit dialog
+  inside the OrgChartView. The user can swap a role's model, append an
+  extra system prompt, widen the allowed-tools list, and assign a shared
+  memory namespace. The merge utility (`applyAgentOverride`) is exported
+  for the walker; runtime consumption is the same Phase-6 follow-up as the
+  hand-off injection.
+
+The trade-off is explicit: the user-visible surface ships today (project
+memory works, hand-off helpers are usable from any server-side code, CRUD
++ UI work end-to-end), but the walker doesn't yet auto-write hand-offs or
+auto-merge overrides — those land in v1.14.x once we agree on the walker
+constructor surface. Marked clearly in code with `TODO(phase-6-followup)`.
+
+### Added
+
+- **`packages/memory-mcp/src/store.ts`** gains `resolveStore({ scope,
+  runDbPath, dataDir, projectId })` + `resolveProjectDbPath({ dataDir,
+  projectId })` + `closeAllStores()`. The internal `cachedStore` LRU caps
+  at 8 entries — plenty for one short-lived task subprocess. New
+  `entries()` method on `MemoryStore` returns `(key, value, updated_at)`
+  triples ordered by `updated_at`; used by the hand-off loader.
+- **`packages/memory-mcp/src/project-store.ts`** (new) — thin
+  `writeProjectMemoryEntry` / `readProjectMemoryEntries` helpers for
+  callers outside the MCP server process (the dashboard-server walker
+  writes hand-offs straight through these instead of round-tripping the
+  stdio transport).
+- **`packages/memory-mcp/src/tools.ts`** — every tool input schema gains
+  an optional `scope: 'run' | 'project'` field (default `'run'`). The
+  handler signature changed from `(store, args)` to `(resolve, args)`;
+  the server constructs the resolver once from env and threads it through.
+- **`apps/dashboard-server/src/orchestrator/mcp-config.ts`** — accepts a
+  new `projectId` field. When set, the generated MCP config exports
+  `HARNESS_PROJECT_ID` + `HARNESS_DATA_DIR` in the memory-mcp env block
+  so the per-task subprocess can resolve the right project DB.
+- **`apps/dashboard-server/src/orchestrator/handoff-loader.ts`** (new) —
+  `loadHandoffsForProject` + `renderHandoffsSection`. Skips malformed
+  rows, caps results at 15 by default (configurable via `limit`), renders
+  oldest-first as `- **role** (taskId): <short prompt>` bullets.
+- **`apps/dashboard-server/src/orchestrator/agent-overrides.ts`** (new) —
+  `loadAgentOverridesForProject(projectId)` returns a role→merge map.
+  `applyAgentOverride(base, override)` is a pure function the walker can
+  call per task to merge.
+- **`apps/dashboard-server/src/routes/agent-overrides.ts`** (new) — CRUD
+  endpoints `GET /api/projects/:projectId/agent-overrides`, `GET .../`
+  `:role`, `PUT .../:role` (upsert via `INSERT ... ON CONFLICT DO
+  UPDATE`), `DELETE .../:role`. Registered after `orgChartRoutes`.
+- **`apps/dashboard-web/src/api/queries.ts`** — `AgentOverrideRow` type,
+  `useAgentOverrides`, `usePutAgentOverride`, `useDeleteAgentOverride`.
+- **`apps/dashboard-web/src/components/AgentOverrideDialog.tsx`** (new) —
+  Dialog with read-only base summary + four editable fields (model
+  select, extra prompt textarea, extra tools textarea, memory namespace
+  input). `parseToolsList` is the exported pure helper. data-testids:
+  `agent-override-dialog`, `agent-override-save`, `agent-override-reset`,
+  `agent-override-extra-prompt`.
+- **`apps/dashboard-web/src/components/OrgChartView.tsx`** gains an
+  `onNodeClick` handler that opens the `AgentOverrideDialog` for the
+  clicked role. The dialog is rendered as a sibling to the ReactFlow
+  canvas with controlled `open` state.
+- **i18n** EN + DE under `agentOverride.*` (title, description, fields.*,
+  actions.*, toasts.*).
+
+### Tests
+
+- **`packages/memory-mcp/src/__tests__/scope.test.ts`** — 4 tests:
+  scope='project' writes to a different DB than scope='run'; project-
+  scoped read-back works across `closeAll` cycles; project DB persists
+  across simulated run boundaries (run A writes, run B reads); resolveStore
+  throws when projectId is missing.
+- **`apps/dashboard-server/src/__tests__/agent-overrides.test.ts`** — 8
+  tests: GET empty list, GET 404 unknown project, PUT creates new, PUT
+  upserts existing (UNIQUE enforced), GET single 404 / 200, DELETE 204,
+  PUT empty body rejected, PUT unknown project 404.
+- **`apps/dashboard-server/src/__tests__/handoff-injection.test.ts`** — 4
+  tests: two seeded handoffs render a markdown section in role order;
+  empty list → empty string; malformed rows skipped without throwing;
+  limit caps results.
+- **`apps/dashboard-server/src/__tests__/mcp-config.test.ts`** — 2 new
+  cases for the projectId branch: env carries `HARNESS_PROJECT_ID` +
+  `HARNESS_DATA_DIR` when supplied, omits both when not.
+- **`apps/dashboard-web/src/components/OrgChartView.test.tsx`** — 1 new
+  case: clicking a node opens the `AgentOverrideDialog` and prefills the
+  existing override fields from the fetched row.
+
+### Fixed
+
+- **`apps/dashboard-server/src/__tests__/org-chart.test.ts`** — the
+  "most-recent plan" case used `randomUUID()` for two plan ids and relied
+  on `orderBy(desc(plans.id))` returning them in insertion order. That
+  works only when the second UUID happens to sort after the first; the
+  test was silently flaky in v1.13. Pin both ids to lexicographically
+  sortable strings (`plan-1-…` / `plan-2-…`) so the latest-plan path is
+  exercised deterministically.
+
+CI: 388 server / 116 web / 45 schemas / 33 memory-mcp / typecheck clean /
+lint clean / prettier clean.
+
 ## 1.13.0 — Per-project team org-chart (Phase 5)
 
 Closes the "who is on this project" gap that's been open since teams became

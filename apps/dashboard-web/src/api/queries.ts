@@ -662,6 +662,79 @@ export function useOrgChart(projectId: string | undefined) {
   });
 }
 
+// ---------- Agent overrides (v1.14 Phase 6) ----------
+
+export interface AgentOverrideRow {
+  id: string;
+  projectId: string;
+  role: string;
+  model: 'opus' | 'sonnet' | 'haiku' | null;
+  extraSystemPrompt: string | null;
+  extraAllowedTools: string[] | null;
+  memoryNamespace: string | null;
+  createdAt: number | string;
+  updatedAt: number | string;
+}
+
+export interface AgentOverridePatch {
+  model?: 'opus' | 'sonnet' | 'haiku' | null;
+  extraSystemPrompt?: string | null;
+  extraAllowedTools?: string[] | null;
+  memoryNamespace?: string | null;
+}
+
+export function useAgentOverrides(projectId: string | undefined) {
+  return useQuery<AgentOverrideRow[]>({
+    queryKey: ['agent-overrides', projectId ?? null],
+    enabled: Boolean(projectId),
+    queryFn: async () => {
+      if (!projectId) return [];
+      try {
+        return await apiFetch<AgentOverrideRow[]>(`/api/projects/${projectId}/agent-overrides`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
+      }
+    },
+  });
+}
+
+export function usePutAgentOverride(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<AgentOverrideRow, Error, { role: string; patch: AgentOverridePatch }>({
+    mutationFn: async ({ role, patch }) => {
+      if (!projectId) throw new Error('projectId required');
+      return apiFetch<AgentOverrideRow>(
+        `/api/projects/${projectId}/agent-overrides/${encodeURIComponent(role)}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(patch),
+          headers: { 'content-type': 'application/json' },
+        },
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['agent-overrides', projectId ?? null] });
+    },
+  });
+}
+
+export function useDeleteAgentOverride(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (role) => {
+      if (!projectId) throw new Error('projectId required');
+      await apiFetch<void>(
+        `/api/projects/${projectId}/agent-overrides/${encodeURIComponent(role)}`,
+        { method: 'DELETE' },
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['agent-overrides', projectId ?? null] });
+    },
+  });
+}
+
 export interface InitRepoResponse {
   ok: true;
   alreadyInitialized: boolean;

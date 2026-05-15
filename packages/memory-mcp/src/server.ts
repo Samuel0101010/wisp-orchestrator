@@ -3,8 +3,8 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { MemoryStore } from './store.js';
-import { findTool, tools, type ToolName } from './tools.js';
+import { closeAllStores, resolveStore, type MemoryStore } from './store.js';
+import { findTool, tools, type ToolName, type ScopeResolver } from './tools.js';
 
 const DB_PATH = process.env.HARNESS_MEMORY_DB;
 if (!DB_PATH || DB_PATH.trim().length === 0) {
@@ -14,9 +14,32 @@ if (!DB_PATH || DB_PATH.trim().length === 0) {
   process.exit(1);
 }
 
-let store: MemoryStore;
+// Project-scoped storage (v1.14, Phase 6) keys off the per-run dataDir +
+// projectId. Both are propagated by the dashboard-server via mcp-config.ts.
+// Run scope still works exactly as before — HARNESS_PROJECT_ID is only needed
+// when an agent passes scope='project' on a tool call.
+const DATA_DIR = process.env.HARNESS_DATA_DIR ?? '';
+const PROJECT_ID = process.env.HARNESS_PROJECT_ID ?? '';
+
+const resolver: ScopeResolver = (scope): MemoryStore => {
+  try {
+    return resolveStore({
+      scope,
+      runDbPath: DB_PATH,
+      dataDir: DATA_DIR,
+      projectId: PROJECT_ID,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`memory scope='${scope}' unavailable: ${message}`);
+  }
+};
+
+// Eagerly open the run-scoped store so early failures (bad path, permission
+// denied) crash the server before stdio is hooked up — matching v1.13
+// behavior where `new MemoryStore(DB_PATH)` ran at startup.
 try {
-  store = new MemoryStore(DB_PATH);
+  resolver('run');
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
   process.stderr.write(`agent-harness-memory: failed to open SQLite at ${DB_PATH}: ${message}\n`);
@@ -54,7 +77,7 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
     };
   }
   try {
-    const result = tool.handle(store, parsed.data);
+    const result = tool.handle(resolver, parsed.data);
     return {
       content: [{ type: 'text' as const, text: JSON.stringify(result) }],
     };
@@ -67,15 +90,14 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   }
 });
 
-// Graceful shutdown — ensure the SQLite handle releases the file lock.
-// Multiple triggers (SIGINT/SIGTERM/stdin-close/stdin-end) can fire in
-// sequence on the same teardown; guard against double-close and double-exit.
+// Graceful shutdown — ensure SQLite handles release file locks for every
+// store the resolver opened (run + project caches).
 let shuttingDown = false;
 function shutdown(): void {
   if (shuttingDown) return;
   shuttingDown = true;
   try {
-    store.close();
+    closeAllStores();
   } catch {
     // best-effort
   }

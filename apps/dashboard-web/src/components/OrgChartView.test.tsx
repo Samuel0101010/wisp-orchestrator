@@ -14,14 +14,23 @@ vi.mock('reactflow', async () => {
   const ReactFlow = (props: {
     nodes: Array<{ id: string; type: string; data: unknown }>;
     nodeTypes: Record<string, React.ComponentType<{ data: unknown; id: string }>>;
+    onNodeClick?: (e: unknown, node: { id: string; data: unknown }) => void;
     children?: React.ReactNode;
   }) => {
-    const { nodes, nodeTypes, children } = props;
+    const { nodes, nodeTypes, children, onNodeClick } = props;
     return React.createElement(
       'div',
       { 'data-testid': 'rf-mock', 'data-node-count': String(nodes.length) },
       ...nodes.map((n) =>
-        React.createElement(nodeTypes[n.type]!, { key: n.id, id: n.id, data: n.data }),
+        React.createElement(
+          'div',
+          {
+            key: n.id,
+            'data-testid': `rf-node-wrapper-${n.id}`,
+            onClick: () => onNodeClick?.(null, n),
+          },
+          React.createElement(nodeTypes[n.type]!, { id: n.id, data: n.data }),
+        ),
       ),
       children,
     );
@@ -75,11 +84,31 @@ let fixture: OrgChartFixture = {
   latestRunId: null,
 };
 
+interface AgentOverrideFixture {
+  id: string;
+  projectId: string;
+  role: string;
+  model: 'opus' | 'sonnet' | 'haiku' | null;
+  extraSystemPrompt: string | null;
+  extraAllowedTools: string[] | null;
+  memoryNamespace: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+let agentOverridesFixture: AgentOverrideFixture[] = [];
+
 beforeEach(() => {
   globalThis.fetch = vi.fn(async (input) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (url.includes('/org-chart')) {
       return new Response(JSON.stringify(fixture), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    if (url.includes('/agent-overrides')) {
+      return new Response(JSON.stringify(agentOverridesFixture), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       });
@@ -98,6 +127,7 @@ afterEach(() => {
     latestPlanId: null,
     latestRunId: null,
   };
+  agentOverridesFixture = [];
 });
 
 function renderView() {
@@ -178,5 +208,59 @@ describe('OrgChartView', () => {
     expect(devStatus.getAttribute('data-status')).toBe('working');
     expect(devStatus.className).toContain('bg-blue-500');
     expect(devStatus.className).toContain('animate-pulse');
+  });
+
+  it('opens the AgentOverrideDialog when a node is clicked and prefills with the existing override', async () => {
+    fixture = {
+      roles: [
+        {
+          role: 'developer',
+          displayName: 'Devon',
+          model: 'sonnet',
+          avatarUrl: null,
+          color: null,
+          description: 'Implements the feature.',
+          allowedToolsCount: 5,
+          seedKey: null,
+          agentId: null,
+        },
+      ],
+      edges: [],
+      liveStatus: [{ role: 'developer', status: 'idle' }],
+      latestPlanId: null,
+      latestRunId: null,
+    };
+    agentOverridesFixture = [
+      {
+        id: 'aov-1',
+        projectId: 'p1',
+        role: 'developer',
+        model: 'opus',
+        extraSystemPrompt: 'Prefer functional patterns.',
+        extraAllowedTools: ['Read', 'Write'],
+        memoryNamespace: 'shared-dev',
+        createdAt: 0,
+        updatedAt: 0,
+      },
+    ];
+
+    const { default: userEventModule } = await import('@testing-library/user-event');
+    const user = userEventModule.setup();
+    renderView();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('org-chart-node-developer')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByTestId('rf-node-wrapper-developer'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('agent-override-dialog')).toBeInTheDocument();
+    });
+    // Prefilled value from the override fixture
+    const promptArea = screen.getByTestId('agent-override-extra-prompt') as HTMLTextAreaElement;
+    expect(promptArea.value).toBe('Prefer functional patterns.');
+    expect(screen.getByTestId('agent-override-save')).toBeInTheDocument();
+    expect(screen.getByTestId('agent-override-reset')).toBeInTheDocument();
   });
 });

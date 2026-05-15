@@ -5,6 +5,14 @@ export interface WriteMemoryMcpConfigArgs {
   runId: string;
   dataDir: string;
   memoryMcpEntrypoint: string;
+  /**
+   * v1.14 — when present, the per-task subprocess can resolve a project-
+   * scoped memory DB at `<dataDir>/memory/project-<projectId>.db`. Required
+   * for agents to call `memory.{set,get,list,delete}` with scope='project'.
+   * When omitted the project-scope tools will surface an error at call time,
+   * but run-scope continues to work.
+   */
+  projectId?: string;
 }
 
 export interface WriteMemoryMcpConfigResult {
@@ -23,6 +31,7 @@ export interface WriteMemoryMcpConfigResult {
  * Both paths are returned so callers can inspect the DB after a run.
  */
 const RUN_ID_RE = /^[a-zA-Z0-9_-]+$/;
+const PROJECT_ID_RE = /^[a-zA-Z0-9_-]+$/;
 
 export function writeMemoryMcpConfig(args: WriteMemoryMcpConfigArgs): WriteMemoryMcpConfigResult {
   // Defense in depth: runIds are randomUUID() in production. Reject anything
@@ -39,14 +48,24 @@ export function writeMemoryMcpConfig(args: WriteMemoryMcpConfigArgs): WriteMemor
   const memDir = path.join(dataDirAbs, 'memory');
   mkdirSync(memDir, { recursive: true });
   const dbPath = path.join(memDir, `${args.runId}.db`);
+  const env: Record<string, string> = {
+    HARNESS_MEMORY_DB: dbPath,
+  };
+  if (args.projectId) {
+    if (!PROJECT_ID_RE.test(args.projectId)) {
+      throw new Error(`writeMemoryMcpConfig: invalid projectId ${JSON.stringify(args.projectId)}`);
+    }
+    // Memory-mcp resolves the per-project DB from these two env vars; pass
+    // them in so scope='project' works in the per-task subprocess.
+    env.HARNESS_DATA_DIR = dataDirAbs;
+    env.HARNESS_PROJECT_ID = args.projectId;
+  }
   const cfg = {
     mcpServers: {
       'agent-harness-memory': {
         command: process.execPath,
         args: [args.memoryMcpEntrypoint],
-        env: {
-          HARNESS_MEMORY_DB: dbPath,
-        },
+        env,
       },
     },
   };

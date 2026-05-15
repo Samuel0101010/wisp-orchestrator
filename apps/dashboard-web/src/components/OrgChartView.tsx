@@ -7,7 +7,7 @@
  * Edges are dashed for `plan-dep` and solid for `handoff` (the latter
  * ships in Phase 6; we render the visual distinction today).
  */
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   Background,
@@ -19,6 +19,7 @@ import ReactFlow, {
   useEdgesState,
   useNodesState,
 } from 'reactflow';
+import { AgentOverrideDialog } from '@/components/AgentOverrideDialog';
 import dagre from 'dagre';
 import { Link } from 'react-router-dom';
 import { Network } from 'lucide-react';
@@ -174,6 +175,11 @@ function OrgChartViewInner({ projectId }: OrgChartViewProps) {
     latestRunId: null,
   };
 
+  const [selectedRole, setSelectedRole] = useState<OrgChartRole | null>(null);
+  const onNodeClick = useCallback((_e: unknown, node: RFNode<AgentNodeData>) => {
+    setSelectedRole(node.data.role);
+  }, []);
+
   const builtNodes = useMemo(() => buildNodes(data), [data]);
   const builtEdges = useMemo(() => buildEdges(data), [data]);
   const [nodes, setNodes, onNodesChange] = useNodesState<AgentNodeData>(builtNodes);
@@ -232,6 +238,7 @@ function OrgChartViewInner({ projectId }: OrgChartViewProps) {
           nodeTypes={NODE_TYPES}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick}
           fitView
           proOptions={{ hideAttribution: true }}
         >
@@ -243,6 +250,14 @@ function OrgChartViewInner({ projectId }: OrgChartViewProps) {
           />
         </ReactFlow>
       </div>
+      <AgentOverrideDialog
+        open={selectedRole !== null}
+        onOpenChange={(o) => {
+          if (!o) setSelectedRole(null);
+        }}
+        projectId={projectId}
+        role={selectedRole}
+      />
     </div>
   );
 }
