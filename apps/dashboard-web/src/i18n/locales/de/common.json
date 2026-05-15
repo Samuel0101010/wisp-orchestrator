@@ -713,7 +713,11 @@
       "saveFailed": "Production-Modus konnte nicht gespeichert werden",
       "chainIteration": "Iteration {{current}}/{{max}}",
       "chainIterationShort": "Härtungs-Iteration {{current}}",
-      "chainParent": "← Vorheriger Run im Chain"
+      "chainParent": "← Vorheriger Run im Chain",
+      "autopilotDefaults": "Run-Defaults",
+      "autopilotDefault": "Autopilot",
+      "autopilotDefaultDescription": "Aktiviert Autopilot automatisch für jeden neuen Run dieses Projekts — pro Run weiterhin überschreibbar.",
+      "budgetDescription": "Stoppt den Autopilot wenn Minuten oder Tokens überschritten (leer = kein Cap)."
     }
   },
   "applyTemplate": {

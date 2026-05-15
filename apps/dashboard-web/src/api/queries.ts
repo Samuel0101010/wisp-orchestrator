@@ -90,6 +90,10 @@ export interface UpdateProjectInput {
   autoMergeOnSuccess?: boolean;
   selfHealingEnabled?: boolean;
   maxChainIterations?: number;
+  // Project-level autopilot defaults (apply to NEW runs only).
+  defaultAutopilotMode?: boolean;
+  defaultAutopilotBudgetMinutes?: number | null;
+  defaultAutopilotBudgetTokens?: number | null;
 }
 
 export interface InitRepoResponse {
@@ -342,6 +346,9 @@ export interface ProjectRunRow {
   tokensInTotal?: number;
   tokensOutTotal?: number;
   turnsTotal?: number;
+  /** Self-healing chain pointers (null/0 for user-launched root runs). */
+  parentRunId?: string | null;
+  chainIteration?: number;
 }
 
 export function useProjectRuns(projectId: string | undefined) {

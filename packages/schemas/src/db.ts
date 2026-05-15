@@ -20,6 +20,16 @@ export const projects = sqliteTable('projects', {
   autoMergeOnSuccess: integer('auto_merge_on_success', { mode: 'boolean' }).notNull().default(true),
   selfHealingEnabled: integer('self_healing_enabled', { mode: 'boolean' }).notNull().default(false),
   maxChainIterations: integer('max_chain_iterations').notNull().default(3),
+  // Project-level autopilot defaults (migration 0010). When a new run is
+  // created via startRun, these are copied into the run row at insert. The
+  // per-run AutopilotToggle still overrides for the active run; this is just
+  // the seed value so users don't have to re-toggle autopilot on every new
+  // run started against the same project.
+  defaultAutopilotMode: integer('default_autopilot_mode', { mode: 'boolean' })
+    .notNull()
+    .default(false),
+  defaultAutopilotBudgetMinutes: integer('default_autopilot_budget_minutes'),
+  defaultAutopilotBudgetTokens: integer('default_autopilot_budget_tokens'),
 });
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;

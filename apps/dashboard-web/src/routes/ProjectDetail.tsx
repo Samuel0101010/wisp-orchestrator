@@ -173,6 +173,9 @@ export function ProjectDetail() {
         autoMergeOnSuccess={p.autoMergeOnSuccess}
         selfHealingEnabled={p.selfHealingEnabled}
         maxChainIterations={p.maxChainIterations}
+        defaultAutopilotMode={p.defaultAutopilotMode}
+        defaultAutopilotBudgetMinutes={p.defaultAutopilotBudgetMinutes}
+        defaultAutopilotBudgetTokens={p.defaultAutopilotBudgetTokens}
       />
 
       <Card>
@@ -268,13 +271,31 @@ export function ProjectDetail() {
                 <tbody>
                   {runList.map((r) => {
                     const tokens = (r.tokensInTotal ?? 0) + (r.tokensOutTotal ?? 0);
+                    const iter = r.chainIteration ?? 0;
                     return (
                       <tr
                         key={r.id}
                         className="border-b transition-colors hover:bg-muted/40"
                         data-testid={`project-run-row-${r.id}`}
                       >
-                        <td className="px-2 py-2 font-mono">{r.id.slice(0, 8)}</td>
+                        <td className="px-2 py-2 font-mono">
+                          <span className="inline-flex items-center gap-1.5">
+                            {iter > 0 && (
+                              <span
+                                className="rounded-full bg-indigo-500/15 px-1.5 py-0.5 text-2xs font-medium text-indigo-700 dark:text-indigo-300"
+                                title={
+                                  r.parentRunId
+                                    ? `Parent: ${r.parentRunId.slice(0, 8)}`
+                                    : 'Härtungs-Iteration'
+                                }
+                                data-testid={`run-chain-badge-${r.id}`}
+                              >
+                                ↳ Iter {iter}
+                              </span>
+                            )}
+                            {r.id.slice(0, 8)}
+                          </span>
+                        </td>
                         <td className="px-2 py-2">
                           <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
                         </td>
@@ -420,6 +441,9 @@ interface ProductionModeCardProps {
   autoMergeOnSuccess: boolean;
   selfHealingEnabled: boolean;
   maxChainIterations: number;
+  defaultAutopilotMode: boolean;
+  defaultAutopilotBudgetMinutes: number | null;
+  defaultAutopilotBudgetTokens: number | null;
 }
 
 /**
@@ -445,27 +469,42 @@ function ProductionModeCard({
   autoMergeOnSuccess,
   selfHealingEnabled,
   maxChainIterations,
+  defaultAutopilotMode,
+  defaultAutopilotBudgetMinutes,
+  defaultAutopilotBudgetTokens,
 }: ProductionModeCardProps) {
   const { t } = useTranslation();
   const update = useUpdateProject();
   const [autoMerge, setAutoMerge] = useState(autoMergeOnSuccess);
   const [selfHeal, setSelfHeal] = useState(selfHealingEnabled);
   const [maxIter, setMaxIter] = useState<string>(String(maxChainIterations));
+  const [autoPilot, setAutoPilot] = useState(defaultAutopilotMode);
+  const [budgetMin, setBudgetMin] = useState<string>(
+    defaultAutopilotBudgetMinutes != null ? String(defaultAutopilotBudgetMinutes) : '',
+  );
+  const [budgetTok, setBudgetTok] = useState<string>(
+    defaultAutopilotBudgetTokens != null ? String(defaultAutopilotBudgetTokens) : '',
+  );
   const [saved, setSaved] = useState({
     autoMerge: autoMergeOnSuccess,
     selfHeal: selfHealingEnabled,
     maxIter: String(maxChainIterations),
+    autoPilot: defaultAutopilotMode,
+    budgetMin: defaultAutopilotBudgetMinutes != null ? String(defaultAutopilotBudgetMinutes) : '',
+    budgetTok: defaultAutopilotBudgetTokens != null ? String(defaultAutopilotBudgetTokens) : '',
   });
 
+  const validMaxIter = /^\d+$/.test(maxIter) && Number(maxIter) >= 1 && Number(maxIter) <= 10;
+  const validBudgetMin = budgetMin === '' || (/^\d+$/.test(budgetMin) && Number(budgetMin) >= 1);
+  const validBudgetTok = budgetTok === '' || (/^\d+$/.test(budgetTok) && Number(budgetTok) >= 1);
+  const valid = validMaxIter && validBudgetMin && validBudgetTok;
   const dirty =
     autoMerge !== saved.autoMerge ||
     selfHeal !== saved.selfHeal ||
     maxIter !== saved.maxIter ||
-    !/^\d+$/.test(maxIter) ||
-    Number(maxIter) < 1 ||
-    Number(maxIter) > 10;
-
-  const valid = /^\d+$/.test(maxIter) && Number(maxIter) >= 1 && Number(maxIter) <= 10;
+    autoPilot !== saved.autoPilot ||
+    budgetMin !== saved.budgetMin ||
+    budgetTok !== saved.budgetTok;
 
   const handleSave = async (): Promise<void> => {
     if (!valid) return;
@@ -475,8 +514,11 @@ function ProductionModeCard({
         autoMergeOnSuccess: autoMerge,
         selfHealingEnabled: selfHeal,
         maxChainIterations: Number(maxIter),
+        defaultAutopilotMode: autoPilot,
+        defaultAutopilotBudgetMinutes: budgetMin === '' ? null : Number(budgetMin),
+        defaultAutopilotBudgetTokens: budgetTok === '' ? null : Number(budgetTok),
       });
-      setSaved({ autoMerge, selfHeal, maxIter });
+      setSaved({ autoMerge, selfHeal, maxIter, autoPilot, budgetMin, budgetTok });
       toast({ title: t('projectDetail.productionMode.saved') });
     } catch (err) {
       toast({
@@ -563,6 +605,54 @@ function ProductionModeCard({
           <span className="text-sm">{t('projectDetail.productionMode.maxIterations')}</span>
           <span className="text-xs text-muted-foreground">
             {t('projectDetail.productionMode.maxIterationsDescription')}
+          </span>
+        </div>
+
+        <div className="my-1 border-t border-border" />
+        <p className="text-xs font-medium text-muted-foreground">
+          {t('projectDetail.productionMode.autopilotDefaults')}
+        </p>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={autoPilot}
+            onChange={(e) => setAutoPilot(e.target.checked)}
+            data-testid="production-mode-autopilot"
+          />
+          <span className="text-sm font-medium">
+            {t('projectDetail.productionMode.autopilotDefault')}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {t('projectDetail.productionMode.autopilotDefaultDescription')}
+          </span>
+        </label>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            type="number"
+            min={1}
+            className="w-28"
+            placeholder={t('runView.autopilot.budgetMinPlaceholder')}
+            value={budgetMin}
+            onChange={(e) => setBudgetMin(e.target.value)}
+            disabled={!autoPilot}
+            data-testid="production-mode-budgetmin"
+            aria-label={t('runView.autopilot.budgetMinPlaceholder')}
+          />
+          <Input
+            type="number"
+            min={1}
+            className="w-32"
+            placeholder={t('runView.autopilot.budgetTokensPlaceholder')}
+            value={budgetTok}
+            onChange={(e) => setBudgetTok(e.target.value)}
+            disabled={!autoPilot}
+            data-testid="production-mode-budgettok"
+            aria-label={t('runView.autopilot.budgetTokensPlaceholder')}
+          />
+          <span className="text-xs text-muted-foreground">
+            {t('projectDetail.productionMode.budgetDescription')}
           </span>
         </div>
       </CardContent>
