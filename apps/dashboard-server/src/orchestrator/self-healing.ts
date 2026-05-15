@@ -209,6 +209,10 @@ export interface ProjectChainContext {
   selfHealingEnabled: boolean;
   autoMergeOnSuccess: boolean;
   maxChainIterations: number;
+  /** v1.8: when true, the post-success hook reads docs/runtime-report.json
+   *  + evaluates the release-gate before auto-merge. When false the gate is
+   *  skipped and behavior matches v1.7 (auto-merge on any successful run). */
+  runtimeVerifyEnabled: boolean;
 }
 
 export function loadProjectChainContext(
@@ -224,5 +228,6 @@ export function loadProjectChainContext(
     selfHealingEnabled: Boolean(p.selfHealingEnabled),
     autoMergeOnSuccess: Boolean(p.autoMergeOnSuccess),
     maxChainIterations: p.maxChainIterations,
+    runtimeVerifyEnabled: Boolean(p.runtimeVerifyEnabled),
   };
 }

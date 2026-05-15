@@ -57,6 +57,14 @@ import {
   loadProjectChainContext,
   shouldChainHardeningRun,
 } from './self-healing.js';
+import { evaluateReleaseGate } from './release-gate.js';
+import {
+  countProjectDodCriteria,
+  loadRuntimeReportFromRef,
+  loadRuntimeReportMarkdownFromRef,
+  persistRuntimeReport,
+  planHasRuntimeVerifier,
+} from './runtime-report-loader.js';
 import type { RunOutcome } from '@agent-harness/schemas';
 
 function resolveMemoryMcpEntrypoint(): string {
@@ -710,7 +718,74 @@ export class RunRuntime {
 
     const resultBranch = `harness/${runId}/result`;
 
-    if (ctx.autoMergeOnSuccess) {
+    // v1.8 release gate: read the runtime-verifier's structured verdict,
+    // count DoD criteria, scan findings — then decide what to do. The gate
+    // gates auto-merge; the existing chain logic still keys off findings.
+    let plan: Plan | null = null;
+    try {
+      plan = parsePlan(planRow.dagJson);
+    } catch {
+      // A malformed plan should never reach this point (parsePlan ran at
+      // startRun), but defend anyway. Without a plan we can't ask "did it
+      // include a verifier", so we default to legacy behaviour: skip gate.
+    }
+    const verifierExpected = plan ? planHasRuntimeVerifier(plan) : false;
+    const effectiveRuntimeVerifyEnabled = ctx.runtimeVerifyEnabled && verifierExpected;
+
+    const runtimeReport = effectiveRuntimeVerifyEnabled
+      ? await loadRuntimeReportFromRef({ repoPath: ctx.repoPath, ref: resultBranch })
+      : null;
+    const runtimeReportMd = effectiveRuntimeVerifyEnabled
+      ? await loadRuntimeReportMarkdownFromRef({ repoPath: ctx.repoPath, ref: resultBranch })
+      : null;
+
+    let actionable: Awaited<ReturnType<typeof scanRefForFindings>> = [];
+    try {
+      const all = await scanRefForFindings({ repoPath: ctx.repoPath, ref: resultBranch });
+      actionable = actionableFindings(all);
+    } catch (e) {
+      // Don't let a scan error abort the gate decision — treat as no findings.
+      console.error('[runtime] findings scan errored', e);
+    }
+
+    const dodCounts = await countProjectDodCriteria(this.db, ctx.projectId).catch(() => ({
+      total: 0,
+      manual: 0,
+    }));
+
+    const gate = evaluateReleaseGate({
+      runSucceeded: true,
+      runtime: runtimeReport,
+      actionableFindingsCount: actionable.length,
+      dodTotal: dodCounts.total,
+      dodManual: dodCounts.manual,
+      runtimeVerifyEnabled: effectiveRuntimeVerifyEnabled,
+    });
+
+    try {
+      await persistRuntimeReport({
+        db: this.db,
+        runId,
+        report: runtimeReport,
+        gate,
+        markdownReport: runtimeReportMd,
+      });
+    } catch (e) {
+      console.error('[runtime] persistRuntimeReport failed', e);
+    }
+
+    this.persistEvent(runId, {
+      type: 'task.text-delta',
+      payload: {
+        taskId: 'system',
+        text: `[harness] release-gate: ${gate.verdict.toUpperCase()} — ${gate.reasons.join('; ')}\n`,
+      },
+    });
+
+    // Auto-merge only when the gate says it's safe. Blocked runs are
+    // explicitly held back so the self-healing chain (or a human) can
+    // address the failing gate before code lands on main.
+    if (ctx.autoMergeOnSuccess && gate.verdict !== 'blocked') {
       try {
         const merge = await autoMergeResultIntoMain({ repoPath: ctx.repoPath, resultBranch });
         const msg = merge.ok
@@ -724,18 +799,16 @@ export class RunRuntime {
       } catch (e) {
         console.error('[runtime] auto-merge errored', e);
       }
+    } else if (ctx.autoMergeOnSuccess && gate.verdict === 'blocked') {
+      const msg = `[harness] auto-merge SKIPPED — release-gate blocked: ${gate.reasons.join('; ')}`;
+      this.persistEvent(runId, {
+        type: 'task.text-delta',
+        payload: { taskId: 'system', text: msg + '\n' },
+      });
+      console.log(msg);
     }
 
     if (!ctx.selfHealingEnabled) return;
-
-    let actionable: Awaited<ReturnType<typeof scanRefForFindings>> = [];
-    try {
-      const all = await scanRefForFindings({ repoPath: ctx.repoPath, ref: resultBranch });
-      actionable = actionableFindings(all);
-    } catch (e) {
-      console.error('[runtime] findings scan errored', e);
-      return;
-    }
 
     const willChain = shouldChainHardeningRun({
       selfHealingEnabled: ctx.selfHealingEnabled,
