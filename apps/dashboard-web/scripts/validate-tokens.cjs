@@ -20,6 +20,12 @@ const allowFiles = new Set([
   // Top-level layout shells with sticky viewport-height containers.
   path.join(root, 'routes', 'Chat.tsx'),
   path.join(root, 'routes', 'Home.tsx'),
+  // Preview-inspector runs as injected script INSIDE the user's iframe and
+  // sets inline element.style.* strings directly — it can't reference our
+  // CSS variables because it lives outside our React tree. (v1.12 Phase 4.)
+  path.join(root, 'components', 'preview-inspector.ts'),
+  // Test snapshot fixture asserts a specific hex literal.
+  path.join(root, 'components', 'OrgChartView.test.tsx'),
 ]);
 const denyPatterns = [
   { re: /#[0-9A-Fa-f]{3,8}\b/g, label: 'hex literal' },

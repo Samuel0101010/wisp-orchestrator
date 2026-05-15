@@ -81,10 +81,10 @@ export function loadHandoffsForProject(args: {
     projectId: args.projectId,
   });
   const handoffs = entries
-    .filter((e) => HANDOFF_KEY_RE.test(e.key))
+    .filter((e: ProjectMemoryEntry) => HANDOFF_KEY_RE.test(e.key))
     .map(safeParseHandoff)
-    .filter((h): h is LoadedHandoff => h !== null)
-    .sort((a, b) => a.updatedAt - b.updatedAt);
+    .filter((h: LoadedHandoff | null): h is LoadedHandoff => h !== null)
+    .sort((a: LoadedHandoff, b: LoadedHandoff) => a.updatedAt - b.updatedAt);
   const limit = args.limit ?? 15;
   // Tail-slice when over the cap so the most recent N survive (older entries
   // are likelier to be stale memory from prior runs and less useful).
