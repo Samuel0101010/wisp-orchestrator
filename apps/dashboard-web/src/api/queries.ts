@@ -606,6 +606,62 @@ export function useRunIteration(projectId: string | undefined) {
   });
 }
 
+// ---------- Org chart (v1.13 Phase 5) ----------
+
+export interface OrgChartRole {
+  role: string;
+  displayName: string;
+  model: 'opus' | 'sonnet' | 'haiku';
+  avatarUrl: string | null;
+  color: string | null;
+  description: string | null;
+  allowedToolsCount: number;
+  seedKey: string | null;
+  agentId: string | null;
+}
+
+export interface OrgChartEdge {
+  from: string;
+  to: string;
+  kind: 'plan-dep' | 'handoff';
+}
+
+export interface OrgChartLiveStatus {
+  role: string;
+  status: 'idle' | 'working' | 'done' | 'failed';
+  lastTaskId?: string;
+  lastUpdatedAt?: number;
+}
+
+export interface OrgChartResponse {
+  roles: OrgChartRole[];
+  edges: OrgChartEdge[];
+  liveStatus: OrgChartLiveStatus[];
+  latestPlanId: string | null;
+  latestRunId: string | null;
+}
+
+export function useOrgChart(projectId: string | undefined) {
+  return useQuery<OrgChartResponse>({
+    queryKey: ['org-chart', projectId ?? null],
+    enabled: Boolean(projectId),
+    refetchInterval: 5000,
+    queryFn: async () => {
+      if (!projectId) {
+        return { roles: [], edges: [], liveStatus: [], latestPlanId: null, latestRunId: null };
+      }
+      try {
+        return await apiFetch<OrgChartResponse>(`/api/projects/${projectId}/org-chart`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          return { roles: [], edges: [], liveStatus: [], latestPlanId: null, latestRunId: null };
+        }
+        throw err;
+      }
+    },
+  });
+}
+
 export interface InitRepoResponse {
   ok: true;
   alreadyInitialized: boolean;

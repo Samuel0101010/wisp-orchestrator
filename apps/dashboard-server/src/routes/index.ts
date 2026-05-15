@@ -36,6 +36,7 @@ import { dodRoutes } from './dod.js';
 import { interviewRoutes } from './interview.js';
 import { previewRoutes } from './preview.js';
 import { changeRequestRoutes } from './change-requests.js';
+import { orgChartRoutes } from './org-chart.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -145,4 +146,5 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(interviewRoutes);
   await app.register(previewRoutes);
   await app.register(changeRequestRoutes);
+  await app.register(orgChartRoutes);
 };

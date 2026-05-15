@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FolderGit2,
   GitMerge,
+  Network,
   Pencil,
   Play,
   RefreshCcw,
@@ -41,6 +42,7 @@ import { DefinitionOfDoneCard } from '@/components/DefinitionOfDoneCard';
 import { BriefCard } from '@/components/BriefCard';
 import { ProjectStateCard } from '@/components/ProjectStateCard';
 import { PreviewFrame } from '@/components/PreviewFrame';
+import { OrgChartView } from '@/components/OrgChartView';
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
@@ -237,6 +239,10 @@ function ProjectTabs({
         <TabsTrigger value="plan" data-testid="project-tabs-trigger-plan">
           {t('projectTabs.plan')}
         </TabsTrigger>
+        <TabsTrigger value="org" data-testid="project-tabs-trigger-org">
+          <Network className="mr-1 h-3.5 w-3.5" />
+          {t('projectTabs.org')}
+        </TabsTrigger>
         <TabsTrigger value="runs" data-testid="project-tabs-trigger-runs">
           {t('projectTabs.runs')}
         </TabsTrigger>
@@ -262,6 +268,10 @@ function ProjectTabs({
           onNewRun={onNewRun}
         />
         <DefinitionOfDoneCard projectId={projectId} />
+      </TabsContent>
+
+      <TabsContent value="org" className="flex flex-col gap-6">
+        <OrgChartView projectId={projectId} />
       </TabsContent>
 
       <TabsContent value="runs" className="flex flex-col gap-6">
