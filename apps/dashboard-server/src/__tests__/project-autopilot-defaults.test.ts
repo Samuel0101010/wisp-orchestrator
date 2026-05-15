@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import { plans, projects, runs, tasks } from '@agent-harness/schemas';
 import { db } from '../db/index.js';
 import { RunRuntime } from '../orchestrator/runtime.js';
-import { Walker, type WalkerDeps } from '@agent-harness/orchestrator';
+import { Walker } from '@agent-harness/orchestrator';
 
 // Test that project-level autopilot defaults propagate into new run rows.
 // Uses a Walker stub that never actually starts so we can inspect the
