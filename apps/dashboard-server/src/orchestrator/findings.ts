@@ -149,8 +149,19 @@ export function actionableFindings(findings: Finding[]): Finding[] {
   return findings.filter((f) => ACTIONABLE_SEVERITIES.includes(f.severity));
 }
 
-/** Scan paths we know the agents write to. Honestly: a stable, small set. */
-export const DEFAULT_FINDING_SOURCES = ['docs/security-review.md', 'docs/qa-report.md'] as const;
+/**
+ * Scan paths we know the agents write to. Honestly: a stable, small set.
+ *
+ * `docs/runtime-report.md` was added in v1.8: when runtime-verifier flags
+ * a boot crash or failing E2E it emits the same Markdown table format as
+ * security-review and qa-report, so the self-healing chain consumes it
+ * without further parser work.
+ */
+export const DEFAULT_FINDING_SOURCES = [
+  'docs/security-review.md',
+  'docs/qa-report.md',
+  'docs/runtime-report.md',
+] as const;
 
 export interface ScanRefArgs {
   repoPath: string;
