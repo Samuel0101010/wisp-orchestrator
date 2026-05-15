@@ -224,6 +224,138 @@ export function useRuntimeReport(runId: string | undefined) {
   });
 }
 
+// ---------- Project brief / interview (v1.9 Phase 1) ----------
+
+export interface ProjectBriefRow {
+  id: string;
+  projectId: string;
+  targetAudience: string | null;
+  successCriteria: string | null;
+  designPrefs: string | null;
+  platform: string | null;
+  constraints: string | null;
+  deadline: number | null;
+  completenessScore: number;
+  prdPath: string | null;
+  briefReady: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface InterviewTranscriptMessage {
+  id: string;
+  threadId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string | Date;
+  authorAgentId: string | null;
+}
+
+export interface InterviewStateResponse {
+  brief: ProjectBriefRow | null;
+  transcript: InterviewTranscriptMessage[];
+  threadId?: string;
+}
+
+export function useInterview(projectId: string | undefined) {
+  return useQuery<InterviewStateResponse>({
+    queryKey: ['interview', projectId ?? null],
+    enabled: Boolean(projectId),
+    queryFn: async () => {
+      if (!projectId) return { brief: null, transcript: [] };
+      return await apiFetch<InterviewStateResponse>(`/api/projects/${projectId}/interview`);
+    },
+  });
+}
+
+export function useStartInterview(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<InterviewStateResponse, Error, void>({
+    mutationFn: async () => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<InterviewStateResponse>(`/api/projects/${projectId}/interview/start`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['interview', projectId] });
+    },
+  });
+}
+
+export interface SendInterviewMessageResponse {
+  userMessage: InterviewTranscriptMessage;
+  assistantMessage: InterviewTranscriptMessage;
+  brief: ProjectBriefRow;
+  shouldFinalize: boolean;
+  parseError: string | null;
+}
+
+export function useSendInterviewMessage(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<SendInterviewMessageResponse, Error, string>({
+    mutationFn: async (message) => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<SendInterviewMessageResponse>(
+        `/api/projects/${projectId}/interview/message`,
+        { method: 'POST', body: JSON.stringify({ message }) },
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['interview', projectId] });
+    },
+  });
+}
+
+export interface FinalizeInterviewResponse {
+  brief: ProjectBriefRow;
+  prdPath: string | null;
+  prdWriteError: string | null;
+}
+
+export function useFinalizeInterview(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<FinalizeInterviewResponse, Error, void>({
+    mutationFn: async () => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<FinalizeInterviewResponse>(
+        `/api/projects/${projectId}/interview/finalize`,
+        { method: 'POST' },
+      );
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['interview', projectId] });
+    },
+  });
+}
+
+export interface PatchBriefInput {
+  targetAudience?: string | null;
+  successCriteria?: string | null;
+  designPrefs?: string | null;
+  platform?: string | null;
+  constraints?: string | null;
+  deadline?: number | null;
+  completenessScore?: number;
+  briefReady?: boolean;
+}
+
+export function usePatchBrief(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<{ brief: ProjectBriefRow }, Error, PatchBriefInput>({
+    mutationFn: async (patch) => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<{ brief: ProjectBriefRow }>(`/api/projects/${projectId}/interview`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['interview', projectId] });
+    },
+  });
+}
+
 export interface InitRepoResponse {
   ok: true;
   alreadyInitialized: boolean;
