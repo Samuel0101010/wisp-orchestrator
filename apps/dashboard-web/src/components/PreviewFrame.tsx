@@ -1,16 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eye, Monitor, Play, Smartphone, Square, Tablet } from 'lucide-react';
 import {
+  Edit3,
+  Eye,
+  Monitor,
+  MousePointerSquareDashed,
+  Play,
+  Smartphone,
+  Square,
+  Tablet,
+} from 'lucide-react';
+import {
+  useCreateChangeRequest,
   usePreviewStatus,
   useStartPreview,
   useStopPreview,
+  type ChangeRequestRect,
   type PreviewStatusResponse,
 } from '@/api/queries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusPill, type StatusPillTone } from '@/components/ui/status-pill';
 import { toast } from '@/components/ui/use-toast';
+import { INSPECTOR_SCRIPT } from './preview-inspector';
+import { PendingChangesPanel } from './PendingChangesPanel';
 
 interface PreviewFrameProps {
   projectId: string;
@@ -41,22 +54,70 @@ const STATUS_TONE: Record<'stopped' | 'starting' | 'running' | 'error', StatusPi
   error: 'destructive',
 };
 
+interface SelectedElement {
+  selector: string;
+  rect: ChangeRequestRect;
+  html: string;
+}
+
 /**
  * Per-project preview tab. Spawns the project's dev server inside the
  * harness, then frames it via the reverse-proxy at `/preview/:projectId/`.
  *
- * Console-log streaming is intentionally out of scope for Phase 3 — only
- * status + start/stop + a viewport switcher.
+ * v1.12 adds visual-edit mode: a toggle that injects an inspector script
+ * into the same-origin iframe; clicking an element captures its selector +
+ * bounding rect and surfaces a side-panel where the user can author a
+ * change-request that is appended to the project's queue.
  */
 export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const { t } = useTranslation();
   const status = usePreviewStatus(projectId);
   const start = useStartPreview(projectId);
   const stop = useStopPreview(projectId);
+  const createChangeRequest = useCreateChangeRequest(projectId);
   const [viewport, setViewport] = useState<Viewport>('desktop');
+  const [editMode, setEditMode] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState('');
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const state = resolveStatus(status.data);
   const tone = STATUS_TONE[state];
+
+  // Listen for `harness:pick` messages from the inspector inside the iframe.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      const data = e.data as
+        | { kind?: string; selector?: string; rect?: ChangeRequestRect; html?: string }
+        | undefined;
+      if (!data || data.kind !== 'harness:pick') return;
+      if (!data.selector || !data.rect) return;
+      setSelectedElement({
+        selector: data.selector,
+        rect: data.rect,
+        html: data.html ?? '',
+      });
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  // Tell the inspector to enable / disable edit mode and clear selection
+  // when the user toggles off.
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (iframe?.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage({ kind: 'harness:set-edit-mode', value: editMode }, '*');
+      } catch {
+        /* ignore — iframe may not be ready yet */
+      }
+    }
+    if (!editMode) {
+      setSelectedElement(null);
+      setPendingPrompt('');
+    }
+  }, [editMode]);
 
   const handleStart = async (): Promise<void> => {
     try {
@@ -89,71 +150,170 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     }
   };
 
+  const handleIframeLoad = (): void => {
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!doc || !doc.body) return;
+    // Same-origin via the reverse-proxy: injecting a script tag into the
+    // iframe body just works. The inspector script idempotently early-exits
+    // on a re-injection.
+    try {
+      const script = doc.createElement('script');
+      script.textContent = INSPECTOR_SCRIPT;
+      doc.body.appendChild(script);
+      // Re-broadcast the current edit-mode flag to a freshly-loaded frame.
+      iframe?.contentWindow?.postMessage({ kind: 'harness:set-edit-mode', value: editMode }, '*');
+    } catch {
+      /* ignore — likely cross-origin in some edge configuration */
+    }
+  };
+
+  const handleAddToQueue = async (): Promise<void> => {
+    if (!selectedElement || pendingPrompt.trim().length === 0) return;
+    try {
+      await createChangeRequest.mutateAsync({
+        source: 'visual',
+        selector: selectedElement.selector,
+        rectJson: selectedElement.rect,
+        userPrompt: pendingPrompt.trim(),
+      });
+      toast({ title: t('preview.toasts.added') });
+      setSelectedElement(null);
+      setPendingPrompt('');
+    } catch (err) {
+      toast({
+        title: t('preview.toasts.addFailed'),
+        description: (err as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   const running = state === 'running';
   const port = status.data?.port;
 
   return (
-    <Card data-testid="preview-frame">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-        <div className="flex flex-col gap-1">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Eye className="h-4 w-4 text-muted-foreground" />
-            {t('preview.title')}
-            <StatusPill tone={tone} live={state === 'starting'}>
-              <span data-testid="preview-status">{t(`preview.status.${state}`)}</span>
-            </StatusPill>
-          </CardTitle>
-          <CardDescription className="text-xs">{t('preview.description')}</CardDescription>
-        </div>
-        <div className="flex items-center gap-2">
-          <ViewportSwitcher selected={viewport} onSelect={setViewport} />
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => void handleStart()}
-            disabled={running || start.isPending}
-            data-testid="preview-start"
-          >
-            <Play className="mr-1 h-3 w-3" />
-            {t('preview.start')}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={() => void handleStop()}
-            disabled={!running || stop.isPending}
-            data-testid="preview-stop"
-          >
-            <Square className="mr-1 h-3 w-3" />
-            {t('preview.stop')}
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {running && port ? (
-          <div className="flex justify-center bg-muted/40 p-3">
-            <iframe
-              key={port}
-              data-testid="preview-iframe"
-              src={`/preview/${projectId}/`}
-              title={t('preview.title')}
-              sandbox="allow-scripts allow-forms allow-same-origin"
-              style={{ width: VIEWPORT_WIDTH[viewport], height: '600px' }}
-              className="rounded border border-border bg-background"
-            />
+    <div className="flex flex-col gap-4">
+      <Card data-testid="preview-frame">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+          <div className="flex flex-col gap-1">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              {t('preview.title')}
+              <StatusPill tone={tone} live={state === 'starting'}>
+                <span data-testid="preview-status">{t(`preview.status.${state}`)}</span>
+              </StatusPill>
+            </CardTitle>
+            <CardDescription className="text-xs">{t('preview.description')}</CardDescription>
           </div>
-        ) : (
-          <p
-            className="py-12 text-center text-sm text-muted-foreground"
-            data-testid="preview-empty"
-          >
-            {t('preview.empty')}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={editMode ? 'default' : 'outline'}
+              onClick={() => setEditMode((v) => !v)}
+              disabled={!running}
+              data-testid="preview-edit-toggle"
+              data-active={editMode}
+              title={t('preview.edit.toggle')}
+            >
+              <Edit3 className="mr-1 h-3 w-3" />
+              {t('preview.edit.toggle')}
+            </Button>
+            <ViewportSwitcher selected={viewport} onSelect={setViewport} />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void handleStart()}
+              disabled={running || start.isPending}
+              data-testid="preview-start"
+            >
+              <Play className="mr-1 h-3 w-3" />
+              {t('preview.start')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => void handleStop()}
+              disabled={!running || stop.isPending}
+              data-testid="preview-stop"
+            >
+              <Square className="mr-1 h-3 w-3" />
+              {t('preview.stop')}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 lg:flex-row">
+            <div className="flex flex-1 justify-center bg-muted/40 p-3">
+              {running && port ? (
+                <iframe
+                  key={port}
+                  ref={iframeRef}
+                  data-testid="preview-iframe"
+                  src={`/preview/${projectId}/`}
+                  title={t('preview.title')}
+                  sandbox="allow-scripts allow-forms allow-same-origin"
+                  style={{ width: VIEWPORT_WIDTH[viewport], height: '600px' }}
+                  className="rounded border border-border bg-background"
+                  onLoad={handleIframeLoad}
+                />
+              ) : (
+                <p
+                  className="py-12 text-center text-sm text-muted-foreground"
+                  data-testid="preview-empty"
+                >
+                  {t('preview.empty')}
+                </p>
+              )}
+            </div>
+            {editMode && selectedElement ? (
+              <aside
+                data-testid="preview-selection"
+                className="flex w-full max-w-sm flex-col gap-2 rounded-md border border-border bg-background p-3 text-xs lg:w-80"
+              >
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <MousePointerSquareDashed className="h-3 w-3" />
+                  <span>{t('preview.edit.selected')}</span>
+                </div>
+                <code
+                  className="block truncate rounded bg-muted px-2 py-1 font-mono text-[11px]"
+                  title={selectedElement.selector}
+                >
+                  {selectedElement.selector}
+                </code>
+                <span className="text-muted-foreground">
+                  {Math.round(selectedElement.rect.width)}×{Math.round(selectedElement.rect.height)}
+                  px
+                </span>
+                <textarea
+                  data-testid="preview-prompt-textarea"
+                  value={pendingPrompt}
+                  onChange={(e) => setPendingPrompt(e.target.value)}
+                  placeholder={t('preview.edit.promptPlaceholder') ?? ''}
+                  rows={4}
+                  className="w-full resize-none rounded border border-border bg-background p-2 text-xs"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void handleAddToQueue()}
+                  disabled={pendingPrompt.trim().length === 0 || createChangeRequest.isPending}
+                  data-testid="preview-add-to-queue"
+                >
+                  {createChangeRequest.isPending
+                    ? t('preview.edit.adding')
+                    : t('preview.edit.addToQueue')}
+                </Button>
+              </aside>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+      <PendingChangesPanel projectId={projectId} />
+    </div>
   );
 }
 

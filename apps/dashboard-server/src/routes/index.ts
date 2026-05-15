@@ -35,6 +35,7 @@ import { promptBundlesRoutes } from './prompt-bundles.js';
 import { dodRoutes } from './dod.js';
 import { interviewRoutes } from './interview.js';
 import { previewRoutes } from './preview.js';
+import { changeRequestRoutes } from './change-requests.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -143,4 +144,5 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(dodRoutes);
   await app.register(interviewRoutes);
   await app.register(previewRoutes);
+  await app.register(changeRequestRoutes);
 };

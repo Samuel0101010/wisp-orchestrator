@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 import { PreviewFrame } from './PreviewFrame';
 
 const originalFetch = globalThis.fetch;
@@ -54,6 +55,12 @@ beforeEach(() => {
         headers: { 'content-type': 'application/json' },
       });
     }
+    if (url.includes('/change-requests')) {
+      return new Response('[]', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
     return new Response('{}', { status: 404 });
   }) as typeof fetch;
 });
@@ -67,7 +74,9 @@ function renderFrame() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <PreviewFrame projectId="p1" />
+      <MemoryRouter>
+        <PreviewFrame projectId="p1" />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }

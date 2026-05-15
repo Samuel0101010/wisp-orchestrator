@@ -447,6 +447,165 @@ export function useStopPreview(projectId: string | undefined) {
   });
 }
 
+// ---------- Change requests (v1.12 Phase 4) ----------
+
+export type ChangeRequestStatus = 'pending' | 'in-run' | 'done' | 'dismissed';
+export type ChangeRequestSource = 'visual' | 'text';
+
+export interface ChangeRequestRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface ChangeRequestRow {
+  id: string;
+  projectId: string;
+  runId: string | null;
+  status: ChangeRequestStatus;
+  source: ChangeRequestSource;
+  selector: string | null;
+  rectJson: ChangeRequestRect | null;
+  screenshotPath: string | null;
+  userPrompt: string;
+  createdAt: number;
+  resolvedAt: number | null;
+}
+
+export function useChangeRequests(projectId: string | undefined, status?: ChangeRequestStatus) {
+  return useQuery<ChangeRequestRow[]>({
+    queryKey: ['change-requests', projectId ?? null, status ?? 'pending'],
+    enabled: Boolean(projectId),
+    refetchInterval: 5000,
+    queryFn: async () => {
+      if (!projectId) return [];
+      const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+      try {
+        return await apiFetch<ChangeRequestRow[]>(
+          `/api/projects/${projectId}/change-requests${qs}`,
+        );
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
+      }
+    },
+  });
+}
+
+export interface CreateChangeRequestInput {
+  source: ChangeRequestSource;
+  selector?: string;
+  rectJson?: ChangeRequestRect;
+  userPrompt: string;
+}
+
+export function useCreateChangeRequest(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<ChangeRequestRow, Error, CreateChangeRequestInput>({
+    mutationFn: async (input) => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<ChangeRequestRow>(`/api/projects/${projectId}/change-requests`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['change-requests', projectId] });
+    },
+  });
+}
+
+export interface PatchChangeRequestInput {
+  id: string;
+  status?: ChangeRequestStatus;
+  userPrompt?: string;
+}
+
+export function usePatchChangeRequest(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<ChangeRequestRow, Error, PatchChangeRequestInput>({
+    mutationFn: async ({ id, ...patch }) => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<ChangeRequestRow>(`/api/projects/${projectId}/change-requests/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['change-requests', projectId] });
+    },
+  });
+}
+
+export function useDeleteChangeRequest(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      if (!projectId) throw new Error('No project id');
+      await apiFetch<void>(`/api/projects/${projectId}/change-requests/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['change-requests', projectId] });
+    },
+  });
+}
+
+export interface RunIterationResult {
+  planId: string;
+  runId: string;
+}
+
+/**
+ * Chains the three calls needed to kick off an iteration run from the queue:
+ *   1. POST /api/projects/:id/plan  → generate iteration plan with the queue
+ *   2. POST /api/plans/:planId/lock → flip draft → locked
+ *   3. POST /api/runs               → start run + link change_requests
+ * Each step is awaited sequentially; on failure the thrown error includes
+ * which step failed so the caller can toast a meaningful message.
+ */
+export function useRunIteration(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<RunIterationResult, Error, { changeRequestIds: string[] }>({
+    mutationFn: async ({ changeRequestIds }) => {
+      if (!projectId) throw new Error('No project id');
+      let planId: string;
+      try {
+        const planRes = await apiFetch<{ id: string }>(`/api/projects/${projectId}/plan`, {
+          method: 'POST',
+          body: JSON.stringify({ changeRequestIds }),
+        });
+        planId = planRes.id;
+      } catch (err) {
+        throw new Error(`Step 1/3 failed: ${(err as Error).message}`);
+      }
+      try {
+        await apiFetch(`/api/plans/${planId}/lock`, { method: 'POST' });
+      } catch (err) {
+        throw new Error(`Step 2/3 failed: lock plan (${(err as Error).message})`);
+      }
+      let runId: string;
+      try {
+        const runRes = await apiFetch<{ runId: string }>(`/api/runs`, {
+          method: 'POST',
+          body: JSON.stringify({ planId, changeRequestIds }),
+        });
+        runId = runRes.runId;
+      } catch (err) {
+        throw new Error(`Step 3/3 failed: start run (${(err as Error).message})`);
+      }
+      return { planId, runId };
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['change-requests', projectId] });
+      void qc.invalidateQueries({ queryKey: ['runs', projectId] });
+      void qc.invalidateQueries({ queryKey: ['project-runs', projectId] });
+    },
+  });
+}
+
 export interface InitRepoResponse {
   ok: true;
   alreadyInitialized: boolean;

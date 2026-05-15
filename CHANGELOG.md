@@ -1,5 +1,105 @@
 # Changelog
 
+## 1.12.0 — Visual edit + change-request queue (Phase 4)
+
+Closes the eyeball-to-iteration loop the Preview tab opened in v1.11. Before
+this release the only way to act on something you noticed in the preview was
+to switch back to the chat tab and describe the problem from scratch. After
+this release you toggle **Edit Mode** inside the Preview tab, click the
+element you want to change, type a sentence, and the request lands in a
+project-scoped queue. One **Run Iteration** click kicks off a planner-led
+iteration run that consumes every pending request and navigates straight to
+the new run's view — no detour through the plan editor or the manager chat.
+
+The design deliberately stays small. The inspector that highlights elements
+inside the iframe is a ~140-line vanilla-JS string inlined into the bundle
+and injected at iframe-load time (same-origin via the v1.11 reverse-proxy);
+no extra static asset, no MutationObserver, no React-in-an-iframe. The Run
+Iteration chain is three plain `await` calls in a single mutation — plan,
+lock, start — with step-numbered error messages instead of react-query's
+mutation-chain helpers. Screenshot upload is intentionally out of scope; a
+selector plus a bounding rect is enough for the planner to act on.
+
+### Added
+
+- **`apps/dashboard-server/src/routes/change-requests.ts`** — full CRUD
+  for the `change_requests` table that's existed since v1.9 Phase 0.
+  `GET /api/projects/:projectId/change-requests?status=...` defaults to
+  `pending` and orders rows oldest-first so the queue UI reads naturally.
+  `POST` validates source / selector / rectJson / userPrompt via zod and
+  inserts a `pending` row; `PATCH` updates status or userPrompt; `DELETE`
+  is a hard delete and returns 204. All four endpoints 404 on a
+  cross-project id mismatch so a row in project A is invisible from
+  project B's endpoints. Registered in `routes/index.ts` after the
+  preview routes.
+- **`apps/dashboard-web/src/components/preview-inspector.ts`** — exports
+  `INSPECTOR_SCRIPT` (the raw JS body) and `INSPECTOR_VERSION = '1'`. The
+  body is idempotent (early-exits on a re-injection via a window-scoped
+  flag), draws a 2px outline + a font-mono selector label on mouseover,
+  builds stable CSS selectors as `#id` or `tag.class:nth-of-type(N)` up
+  to 5 segments deep, and posts `harness:pick` payloads to
+  `window.parent` on click (with `preventDefault` + `stopPropagation` so
+  the click doesn't navigate the page inside the iframe). Listens for
+  `harness:set-edit-mode` from the parent so the inspector can be
+  toggled without re-injection.
+- **`PreviewFrame.tsx`** gains an **Edit toggle** (lucide `Edit3`,
+  disabled when the preview isn't running) and a **side panel** that
+  renders when edit-mode is on and an element has been picked. The panel
+  shows the captured selector, the rect dimensions, and a textarea
+  bound to `useCreateChangeRequest`. The iframe's `onLoad` injects the
+  inspector script via `iframe.contentDocument.body.appendChild` (the
+  reverse-proxy makes the preview same-origin so this just works); a
+  parent-window `message` listener funnels picks into local state.
+  `PendingChangesPanel` is rendered below the iframe regardless of
+  preview state so users can curate the queue with the dev-server
+  stopped.
+- **`apps/dashboard-web/src/components/PendingChangesPanel.tsx`** —
+  the queue card. Renders pending rows with source icon (visual /
+  text), userPrompt, selector, and a per-row Delete button. Includes
+  a small free-form text-mode form at the top for `source='text'`
+  entries that don't need a selector. The **Run Iteration** button is
+  disabled when the queue is empty; clicking it fires the chained
+  `useRunIteration` mutation and navigates to
+  `/projects/:projectId/run/:runId`. data-testid hooks cover
+  `pending-row-{id}`, `pending-delete-{id}`, `run-iteration-button`,
+  `text-mode-textarea`, `text-mode-submit`.
+- **Five new hooks** at the change-request section of
+  `apps/dashboard-web/src/api/queries.ts`:
+  - `useChangeRequests(projectId, status?)` — 5s refetch interval.
+  - `useCreateChangeRequest(projectId)` — POST.
+  - `usePatchChangeRequest(projectId)` — PATCH (status and/or
+    userPrompt).
+  - `useDeleteChangeRequest(projectId)` — DELETE.
+  - `useRunIteration(projectId)` — three-step chain (POST /plan →
+    POST /lock → POST /runs) with step-tagged error messages
+    (`"Step 1/3 failed: ..."`) so the toast on the Pending panel can
+    point at the failure.
+- **i18n** EN + DE under `preview.edit.*`, `preview.changes.*`, and
+  `preview.toasts.*` (added/addFailed/deleted/deleteFailed/
+  iterationStarted/iterationFailed).
+
+### Tests
+
+- **8 new in `change-requests.test.ts`** — GET empty, POST text source,
+  POST visual source with selector + rectJson roundtrip, POST rejects
+  empty userPrompt (400), PATCH pending → dismissed (and confirms the
+  default GET no longer surfaces it while `?status=dismissed` does),
+  DELETE returns 204 and removes the row, cross-project isolation
+  (project A's row is invisible from project B), and 404s on unknown
+  project id for GET + POST.
+- **5 new in `PendingChangesPanel.test.tsx`** — list renders rows from
+  the fetch mock, delete button removes the row, Run Iteration fires
+  POST /plan + POST /lock + POST /runs in sequence and navigates via
+  `MemoryRouter` to the new run view (verified by a `LocationProbe`
+  component), button is disabled with an empty queue, text-mode form
+  POSTs a `source='text'` change-request.
+- Existing `PreviewFrame.test.tsx` updated to wrap in `MemoryRouter`
+  (PendingChangesPanel uses `useNavigate`) and to stub the
+  `/change-requests` fetch.
+
+CI: 368 server / 113 web / 45 schemas / typecheck clean / lint clean /
+format clean.
+
 ## 1.11.0 — Preview tab (Phase 3)
 
 Closes the visual-feedback gap between iterations. Before this release the

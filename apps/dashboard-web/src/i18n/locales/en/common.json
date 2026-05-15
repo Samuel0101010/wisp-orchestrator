@@ -807,7 +807,30 @@
     },
     "toasts": {
       "startFailed": "Could not start preview",
-      "stopFailed": "Could not stop preview"
+      "stopFailed": "Could not stop preview",
+      "added": "Added to queue",
+      "addFailed": "Could not add change-request",
+      "deleted": "Removed from queue",
+      "deleteFailed": "Could not remove change-request",
+      "iterationStarted": "Iteration run started",
+      "iterationFailed": "Could not start iteration"
+    },
+    "edit": {
+      "toggle": "Edit",
+      "selected": "Selected",
+      "promptPlaceholder": "What should change about this element?",
+      "addToQueue": "Add to queue",
+      "adding": "Adding…",
+      "queueEmpty": "No pending change-requests yet."
+    },
+    "changes": {
+      "title": "Pending change requests",
+      "pending": "These will be addressed on the next Run Iteration.",
+      "delete": "Delete",
+      "runIteration": "Run Iteration",
+      "runIterationStarting": "Starting…",
+      "textPlaceholder": "Describe a free-form change (no element pick needed)…",
+      "textAdd": "Add"
     }
   },
   "briefCard": {
