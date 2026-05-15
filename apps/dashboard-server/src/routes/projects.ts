@@ -10,6 +10,7 @@ import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import { actionableFindings, scanRefForFindings } from '../orchestrator/findings.js';
 import { buildHardeningPlan, insertHardeningPlan } from '../orchestrator/self-healing.js';
+import { ensureBriefRow } from './interview.js';
 
 const createProjectSchema = z.object({
   name: z.string().min(1),
@@ -81,6 +82,9 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         createdAt: new Date(),
       };
       await db.insert(projects).values(row).run();
+      // v1.9 — auto-seed an empty brief row so the interview UI can pick up
+      // the project right after creation. Idempotent.
+      ensureBriefRow(row.id);
       reply.code(201);
       return row;
     }),

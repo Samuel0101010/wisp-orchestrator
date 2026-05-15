@@ -134,6 +134,12 @@ async function createProject(app: FastifyInstance, goal = 'goal'): Promise<strin
   return created.json().id;
 }
 
+/**
+ * v1.9 — plans-route now requires the project brief to be finalised before
+ * plan generation. `saveTeam` auto-finalises so the bulk of the existing
+ * tests stay focused on plan-route behaviour. Tests that exercise the
+ * brief-gate itself bypass this helper and use direct SQL.
+ */
 async function saveTeam(
   app: FastifyInstance,
   projectId: string,
@@ -144,6 +150,11 @@ async function saveTeam(
     url: `/api/projects/${projectId}/team`,
     payload: team,
   });
+  sqlite
+    .prepare(
+      `UPDATE project_briefs SET brief_ready = 1, completeness_score = 100, updated_at = ? WHERE project_id = ?`,
+    )
+    .run(Date.now(), projectId);
 }
 
 beforeAll(() => {

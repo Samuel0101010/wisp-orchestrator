@@ -40,6 +40,15 @@ export {
   modelRouterRoleValues,
   modelRouterModelValues,
   modelRouterSampleOutcomeValues,
+  // v1.9 Phase 0
+  projectBriefs,
+  changeRequests,
+  projectStates,
+  projectAgentOverrides,
+  planKindValues,
+  packageTargetValues,
+  changeRequestStatusValues,
+  changeRequestSourceValues,
 } from './db.js';
 
 export type {
@@ -105,7 +114,25 @@ export type {
   NewRuntimeReport,
   RuntimeReportVerdict,
   RuntimeEvidenceJson,
+  // v1.9 Phase 0
+  ProjectBrief,
+  NewProjectBrief,
+  ChangeRequest,
+  NewChangeRequest,
+  ChangeRequestStatus,
+  ChangeRequestSource,
+  ChangeRequestRectJson,
+  ProjectState,
+  NewProjectState,
+  ProjectAgentOverride,
+  NewProjectAgentOverride,
+  PlanKind,
+  PackageTarget,
 } from './db.js';
+
+// v1.9 Brief patch directive parsing
+export { briefPatchSchema, parseBriefPatchFromText } from './brief.js';
+export type { BriefPatch } from './brief.js';
 
 // Plan DAG (Zod)
 export {
