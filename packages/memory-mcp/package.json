@@ -1,6 +1,6 @@
 {
   "name": "@agent-harness/memory-mcp",
-  "version": "1.7.16",
+  "version": "1.8.0",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",

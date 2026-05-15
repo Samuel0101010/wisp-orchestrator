@@ -98,6 +98,18 @@ The Vite dev server runs at `http://localhost:5173` and proxies API/WS calls to 
 
    _TODO: GIF/screenshot here_
 
+## Runtime verification (v1.8)
+
+The harness now insists on **proving** an app runs before declaring it done, instead of trusting `build + test` green as a finish line.
+
+- **Definition-of-Done card** on the project detail page lets you declare per-project acceptance criteria. Three kinds: `smoke` (HTTP probe of a URL), `e2e` (a Playwright-driven user action — the verifier writes the actual test from your one-line description), `manual` (human sign-off — never auto-passes; blocks auto-release until the approver clears it).
+- **runtime-verifier agent** is auto-injected behind every terminal node of every new plan. It starts your dev server, drives Chromium against your DoD, writes `docs/runtime-report.{md,json}`, and stores screenshots / traces under `docs/runtime-evidence/`.
+- **Release-gate** turns the verifier's verdict into one of READY / BLOCKED / MANUAL-REVIEW. BLOCKED runs are held back from auto-merge and feed their failing gates into the next self-healing iteration. Visible on the RunView as a verdict pill + Boot / E2E / DoD count badges.
+- **Playwright auto-install.** First runtime-verify in a fresh install downloads Chromium once into `~/.cache/agent-harness/playwright-browsers`. Subsequent runs are instant — every worktree shares the cache via `PLAYWRIGHT_BROWSERS_PATH`.
+- **`pnpm doctor`** — runs a quick check that Node, pnpm, `claude`, git, and the Playwright cache are all reachable. Diagnostic only; exits 0. Prints the exact one-liner to populate anything missing.
+
+The whole layer is opt-in per project (`runtimeVerifyEnabled` defaults to ON; flip it off on the Production-Modus card to fall back to v1.7 behaviour). Plans created before v1.8 keep running with their old shape — the verifier only gets injected into newly-generated plans.
+
 ## Architecture
 
 A single Fastify + WebSocket process owns SQLite, dispatches `claude -p` subprocesses through a `SubprocessPool`, and fans events out to a React dashboard. See [docs/architecture.md](docs/architecture.md) for the full breakdown.

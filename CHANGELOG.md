@@ -1,5 +1,92 @@
 # Changelog
 
+## 1.8.0 — Runtime verification + Definition-of-Done release-gate
+
+Closes the largest gap between "the harness says it's done" and "the app
+actually works". Static checks (build, typecheck, unit tests) prove a
+codebase compiles; v1.8 adds a third layer that proves it _runs_ in a
+real browser, and a fourth that proves it satisfies the acceptance
+criteria the user declared.
+
+### Added
+
+- **Runtime-verifier agent role.** A new agent role
+  (`runtime-verifier`) gets auto-injected behind every terminal node
+  on every plan that the planner produces. Its job: start the dev
+  server, probe the URL, run @playwright/test specs against the
+  user's Definition-of-Done criteria, capture screenshots, and emit
+  BOTH `docs/runtime-report.md` (human-readable, scanned by the
+  findings parser for HIGH/CRITICAL rows) and
+  `docs/runtime-report.json` (machine-readable, source of truth for
+  the release-gate).
+- **Definition of Done (DoD) per project.** New `dod_criteria` table
+  and full CRUD at `/api/projects/:id/dod` (GET/POST/PATCH/DELETE/
+  PUT-bulk-replace). Three kinds: `smoke` (HTTP probe), `e2e`
+  (Playwright user action), `manual` (human sign-off, never
+  auto-pass). Authored from the new Definition-of-Done card on the
+  project detail page.
+- **Release-gate.** `evaluateReleaseGate()` is a pure decision
+  function over run outcome + runtime-report verdict + actionable
+  findings count + DoD progress. Three verdicts:
+  - `READY` — auto-merge proceeds.
+  - `BLOCKED` — auto-merge held; self-healing chain (if enabled)
+    picks up failing gates and tries again.
+  - `MANUAL-REVIEW` — auto gates passed, manual criteria still need
+    a human signature.
+- **Auto-injection of the verifier into planner output.**
+  `injectRuntimeVerifier()` post-processes a planner-emitted Plan,
+  appending the role + node + edges from every DAG terminal.
+  Idempotent, refuses on the 8-role team cap, returns the unchanged
+  plan when injection isn't applicable.
+- **Playwright cache management.** `ensurePlaywrightCached()` installs
+  Chromium once into `~/.cache/agent-harness/playwright-browsers`
+  pointed to by `PLAYWRIGHT_BROWSERS_PATH`. Every worktree shares
+  the cache so the first download pays the cost and subsequent runs
+  are instant.
+- **`pnpm doctor` command.** Sanity check for v1.8 prerequisites
+  (Node, pnpm, claude, git, playwright cache, npx). Diagnostic only;
+  exits 0. Prints the exact one-liner to fix any missing piece.
+- **Dashboard.**
+  - `DefinitionOfDoneCard` on ProjectDetail — kind-aware add/delete
+    rows, icons per kind, one-line spec summary inline.
+  - `ReleaseGateCard` on RunView — verdict pill with colour-coded
+    tone, Boot / E2E / DoD count badges, collapsible `<details>`
+    rendering the agent's `docs/runtime-report.md` verbatim.
+  - Project patch route accepts `runtimeVerifyEnabled`,
+    `runtimeVerifyDevCmd`, `runtimeVerifyProbeUrl` so the user can
+    override the auto-detected dev command / probe URL.
+- **Project-type detection.** `detectProjectType()` classifies a repo
+  from package.json (web-app, backend, cli, library, unknown) and
+  recommends a dev command + probe URL. Conservative — returns
+  `unknown` rather than guessing.
+- **Boot-smoke runner.** `runBootSmoke()` spawns the dev command,
+  polls the probe URL until a non-5xx response or timeout, kills the
+  process tree cleanly on Windows + POSIX.
+- **`runtime_reports` table.** One row per (run, verifier iteration),
+  persists the structured verdict so the dashboard renders it
+  without re-fetching the result branch.
+
+### Changed
+
+- **Post-success hook** in `RunRuntime` now parses the plan →
+  determines whether the runtime-verifier was expected → reads
+  `docs/runtime-report.json` → scans findings → counts DoD criteria
+  → calls `evaluateReleaseGate()` → persists a `runtime_reports` row
+  → gates auto-merge on the verdict. Legacy plans without the
+  verifier degrade gracefully to the v1.7 behaviour.
+- **Findings scanner** now reads `docs/runtime-report.md` alongside
+  `security-review.md` and `qa-report.md`, so a failing E2E flows
+  into the self-healing chain identically to a security finding.
+
+### Migration
+
+- Migration 0011 adds `dod_criteria` + `runtime_reports` tables, plus
+  three `projects.runtime_verify_*` columns (default ON for all
+  rows). Existing projects pick up the feature without a manual flip;
+  the release-gate falls back to legacy behaviour for plans that
+  don't yet include the verifier (the v1.8 planner auto-injects it
+  for new plans only — old locked plans still run unchanged).
+
 ## 1.7.16 — Autopilot: pause-reason gating + resumeAt respect + decision log + watching banner
 
 Closes three behavioural gaps in the autopilot tick that surfaced once
