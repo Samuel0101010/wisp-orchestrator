@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.7.12 — Inactivity watchdog on task subprocesses
+
+### Fixed
+
+- **Hung subprocess froze the run for hours.** Live failure on the 2026-05-15
+  wertzeit-app retry on v1.7.11: n1-architecture's claude CLI emitted its
+  final text-delta "Documentation complete" then never wrote its `result`
+  frame and never exited. The harness had no per-task inactivity timeout —
+  the walker held the slot indefinitely. The user had to manually pause the
+  run after 3 hours.
+
+  Walker now arms an inactivity watchdog (`deps.setTimeout`) that re-arms on
+  every subprocess event and fires after `INACTIVITY_TIMEOUT_MS = 10min` of
+  silence. On firing it emits a visible `[harness] subprocess inactive for
+  10min — aborting and retrying as transient` text-delta to the dashboard,
+  aborts the subprocess via the existing `AbortController.signal` plumbing,
+  and routes the failure through the transient-retry path so the run picks
+  up on the next attempt without consuming the structural retry budget.
+
+  The 10-min default was picked from the healthy-run baseline (every
+  observed n*-task gap between events was under 1 minute, even during
+  long-thinking phases). Configurable later if needed.
+
+### Tests
+
+- New walker test: gated FakePool task hangs after emitting one event, fake
+  timers advance past the inactivity timeout, abort propagates, retry on
+  attempt 2 completes successfully. Verifies both the abort path AND the
+  `[harness] inactive for ...` text-delta.
+
 ## 1.7.11 — Transient retries for main task subprocess + worktree-race retry
 
 ### Fixed
