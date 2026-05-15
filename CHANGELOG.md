@@ -1,5 +1,81 @@
 # Changelog
 
+## 1.11.0 — Preview tab (Phase 3)
+
+Closes the visual-feedback gap between iterations. Before this release the
+only way to eyeball the project the harness was building was to open a
+second terminal, `pnpm dev` into the worktree, and remember the right port.
+After this release every project page has a Preview tab that boots the
+project's dev server inside the harness and frames it via a loopback
+reverse-proxy at `/preview/:projectId/`. The tab also doubles as the
+landing tab once the brief is finalised and the first run has produced a
+project state — the planner-to-eyes loop is now one click.
+
+Two deliberate cuts to keep the surface small: (1) **no console-log
+streaming** — the preview is a hosted iframe, not an embedded devtools
+panel; users who need logs read the spawned process's terminal. (2) **no
+`@fastify/http-proxy` dependency** — a ~50-line manual streaming forwarder
+on top of node's built-in `http` module is plenty for a single-upstream,
+loopback-only proxy and avoids dragging in a transitive plugin tree.
+
+### Added
+
+- **`orchestrator/preview-server.ts`** — `PreviewProcessRegistry` owns the
+  per-project dev-server lifecycle. `startPreview` is idempotent (a second
+  call for the same project returns the live entry instead of spawning a
+  duplicate), polls the probe URL until a non-5xx response or a 60s
+  timeout, and surfaces a `{ status, port, pid, startedAt, error? }`
+  payload. `stopPreview` is safe to call when nothing is running. The
+  Windows tree-kill path uses `taskkill /T /F` to bring down the
+  downstream vite/node worker — same trick as `boot-smoke.ts`.
+- **`src/routes/preview.ts`** — three control endpoints
+  (`POST /api/projects/:id/preview/start|stop`, `GET .../status`) plus the
+  catch-all `ALL /preview/:projectId/*` reverse-proxy. Manual streaming
+  forwarder strips `accept-encoding` from the upstream request, rewrites
+  the host header to the loopback target, and pipes the response straight
+  through. 502 with `preview_not_running` when no entry is registered.
+  Falls back to `detectProjectType` for projects without an explicit
+  `runtimeVerifyDevCmd` / `runtimeVerifyProbeUrl`; returns 400
+  `no_dev_cmd` only when both the project setting AND the detector come
+  up empty.
+- **`PreviewFrame` component** in `dashboard-web/src/components`. Status
+  pill (stopped / starting / running / error), Start + Stop buttons with
+  proper disabled gating, viewport switcher
+  (Desktop / Tablet 768px / Mobile 375px) applied via inline style on the
+  iframe, and the iframe itself with
+  `sandbox="allow-scripts allow-forms allow-same-origin"`. The iframe is
+  keyed by `port` so a port change forces a clean reload. data-testid
+  hooks cover every interactive element.
+- **`useStartPreview` / `useStopPreview` / `usePreviewStatus` hooks** at
+  the bottom of `dashboard-web/src/api/queries.ts`. Status auto-refetches
+  every 2s when the preview is running, 5s otherwise.
+- **Tabs on the Project Detail page** — `Brief`, `Plan & Team`, `Runs`,
+  `Preview`, `Settings`. The 3-card summary header
+  (Goal / RepoPath / Team) still sits above the tabs as the page header.
+  Initial tab is `Preview` when the brief is finalised AND a project
+  state exists; otherwise `Brief`. The initial value is frozen at first
+  render so later interview/state refetches don't yank the user off
+  whatever tab they're looking at.
+- **i18n** EN + DE under `projectTabs.*` (brief/plan/runs/preview/settings)
+  and `preview.*` (title/description/start/stop/empty/viewport.\*/
+  status.\*/toasts.\*).
+
+### Tests
+
+- 4 new in `preview-server.test.ts` — `startPreview` happy path with a
+  stubbed spawn+fetch, `stopPreview` idempotency, reverse-proxy happy path
+  against a real in-process upstream HTTP server, and 502
+  `preview_not_running` for an unregistered project. The reverse-proxy
+  test uses the registry's `__test_register` seam so it doesn't need to
+  spawn `pnpm dev`.
+- 2 new in `PreviewFrame.test.tsx` — initial stopped state (Start enabled,
+  Stop disabled, empty placeholder visible) and Start flow asserts both
+  that the POST fires and that the iframe with the right `src` /
+  `sandbox` shows up once the status flips.
+
+CI: 360 server / 108 web / 45 schemas / typecheck clean / lint clean /
+format clean.
+
 ## 1.10.0 — Project state + iteration planner (Phase 2)
 
 Closes the "every run is greenfield" gap. Before this release run N+1 had no

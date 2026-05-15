@@ -781,6 +781,35 @@
       "hardening": "Hardening-Durchlauf"
     }
   },
+  "projectTabs": {
+    "brief": "Brief",
+    "plan": "Plan & Team",
+    "runs": "Runs",
+    "preview": "Vorschau",
+    "settings": "Einstellungen"
+  },
+  "preview": {
+    "title": "Vorschau",
+    "description": "Startet den Dev-Server des Projekts im Harness und zeigt ihn hier an. Nützlich für einen Augen-Test zwischen Iterationen.",
+    "start": "Start",
+    "stop": "Stopp",
+    "empty": "Keine Vorschau läuft. Starte den Dev-Server, um die App hier zu sehen.",
+    "viewport": {
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobile"
+    },
+    "status": {
+      "stopped": "Gestoppt",
+      "starting": "Startet",
+      "running": "Läuft",
+      "error": "Fehler"
+    },
+    "toasts": {
+      "startFailed": "Vorschau konnte nicht gestartet werden",
+      "stopFailed": "Vorschau konnte nicht gestoppt werden"
+    }
+  },
   "briefCard": {
     "title": "Projekt-Brief",
     "statusReady": "Finalisiert",

@@ -382,6 +382,71 @@ export function useProjectState(projectId: string | undefined) {
   });
 }
 
+// ---------- Preview (v1.11 Phase 3) ----------
+
+export interface PreviewStatusResponse {
+  running: boolean;
+  port?: number;
+  pid?: number;
+  startedAt?: number;
+  status?: 'starting' | 'running' | 'error' | 'stopped';
+  error?: string;
+}
+
+export interface StartPreviewResponse {
+  status: 'running' | 'error';
+  port: number;
+  pid: number | null;
+  startedAt: number;
+  error?: string;
+}
+
+export function usePreviewStatus(projectId: string | undefined) {
+  return useQuery<PreviewStatusResponse>({
+    queryKey: ['preview-status', projectId ?? null],
+    enabled: Boolean(projectId),
+    refetchInterval: (query) => (query.state.data?.running ? 2000 : 5000),
+    queryFn: async () => {
+      if (!projectId) return { running: false };
+      try {
+        return await apiFetch<PreviewStatusResponse>(`/api/projects/${projectId}/preview/status`);
+      } catch {
+        return { running: false };
+      }
+    },
+  });
+}
+
+export function useStartPreview(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<StartPreviewResponse, Error, void>({
+    mutationFn: async () => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<StartPreviewResponse>(`/api/projects/${projectId}/preview/start`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['preview-status', projectId] });
+    },
+  });
+}
+
+export function useStopPreview(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<{ stopped: boolean }, Error, void>({
+    mutationFn: async () => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<{ stopped: boolean }>(`/api/projects/${projectId}/preview/stop`, {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['preview-status', projectId] });
+    },
+  });
+}
+
 export interface InitRepoResponse {
   ok: true;
   alreadyInitialized: boolean;
