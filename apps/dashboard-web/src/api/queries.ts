@@ -85,6 +85,11 @@ export interface UpdateProjectInput {
   name?: string;
   goal?: string;
   repoPath?: string;
+  // Production-loop toggles. Optional so a name-only edit doesn't need to
+  // resend the flags.
+  autoMergeOnSuccess?: boolean;
+  selfHealingEnabled?: boolean;
+  maxChainIterations?: number;
 }
 
 export interface InitRepoResponse {

@@ -22,10 +22,26 @@ const patchProjectSchema = z
     name: z.string().min(1).max(120).optional(),
     goal: z.string().min(1).max(4000).optional(),
     repoPath: z.string().min(1).optional(),
+    // Production-loop toggles (see schemas/db.ts → projects). Sent from the
+    // dashboard's "Production-Modus"-Karte. Validated independently so the
+    // .refine "at least one" guard accepts them as edits.
+    autoMergeOnSuccess: z.boolean().optional(),
+    selfHealingEnabled: z.boolean().optional(),
+    maxChainIterations: z.number().int().min(1).max(10).optional(),
   })
-  .refine((v) => v.name !== undefined || v.goal !== undefined || v.repoPath !== undefined, {
-    message: 'at least one of name, goal, repoPath must be provided',
-  });
+  .refine(
+    (v) =>
+      v.name !== undefined ||
+      v.goal !== undefined ||
+      v.repoPath !== undefined ||
+      v.autoMergeOnSuccess !== undefined ||
+      v.selfHealingEnabled !== undefined ||
+      v.maxChainIterations !== undefined,
+    {
+      message:
+        'at least one of name, goal, repoPath, autoMergeOnSuccess, selfHealingEnabled, maxChainIterations must be provided',
+    },
+  );
 
 export const projectRoutes: FastifyPluginAsync = async (app) => {
   app.get(
@@ -80,6 +96,12 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
       if (patch.name !== undefined) updates.name = patch.name;
       if (patch.goal !== undefined) updates.goal = patch.goal;
       if (patch.repoPath !== undefined) updates.repoPath = patch.repoPath;
+      if (patch.autoMergeOnSuccess !== undefined)
+        updates.autoMergeOnSuccess = patch.autoMergeOnSuccess;
+      if (patch.selfHealingEnabled !== undefined)
+        updates.selfHealingEnabled = patch.selfHealingEnabled;
+      if (patch.maxChainIterations !== undefined)
+        updates.maxChainIterations = patch.maxChainIterations;
       await db.update(projects).set(updates).where(eq(projects.id, params.id)).run();
       const updated = await db.select().from(projects).where(eq(projects.id, params.id)).get();
       return updated ?? existing;

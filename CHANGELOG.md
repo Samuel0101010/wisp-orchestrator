@@ -1,5 +1,58 @@
 # Changelog
 
+## 1.7.14 — Production loop: auto-merge + self-healing chain
+
+Two harness-level features that close the "finish my app in one goal" gap
+exposed by the wertzeit-app run on v1.7.13: the result branch sat 24
+commits ahead of main with a clean PASS verdict but 9 security findings
+that no one ever picked up. v1.7.14 turns these into automated steps.
+
+### Added
+
+- **`projects.auto_merge_on_success`** (default `true`). After every
+  successful run the runtime's post-run hook fast-forwards
+  `harness/<runId>/result` into `main`. Strategy: prefer `git update-ref`
+  (no working-tree touch, atomic compare-and-swap from old main SHA) for
+  the FF case; fall back to a detached worktree at the current main
+  commit + `git merge --no-ff` when main has diverged. Conflicts leave
+  main untouched and surface a `[harness] auto-merge … FAILED` text
+  delta on the run feed.
+- **`projects.self_healing_enabled`** (default `false`) +
+  **`projects.max_chain_iterations`** (default `3`). When enabled, the
+  same post-run hook reads `docs/security-review.md` and
+  `docs/qa-report.md` from the result branch, extracts every
+  CRITICAL/HIGH/MEDIUM finding (regex-based parser; handles both
+  Markdown table rows and `### Finding N — HIGH:` headers), and if any
+  remain spawns a follow-up "hardening run" with a hand-crafted 2-node
+  DAG (`security` fixes → `qa-engineer` verifies). The chain stops when
+  either no actionable findings remain OR `chain_iteration >=
+  maxChainIterations`. Runs in a chain are linked by
+  `runs.parent_run_id` + `runs.chain_iteration`.
+- **Dashboard "Production-Modus" card** on the project detail page with
+  the three toggles and a Speichern/Gespeichert indicator wired to the
+  existing `PATCH /api/projects/:id` route.
+- **Chain-iteration badge** on RunView linking back to the parent run.
+
+### Schema
+
+Migration `0009_production_loop.sql`:
+- `projects.auto_merge_on_success` integer NOT NULL DEFAULT 1
+- `projects.self_healing_enabled` integer NOT NULL DEFAULT 0
+- `projects.max_chain_iterations` integer NOT NULL DEFAULT 3
+- `runs.parent_run_id` text NULL
+- `runs.chain_iteration` integer NOT NULL DEFAULT 0
+
+### Tests
+
+- `findings.test.ts` (10 assertions): table-row + header parsing,
+  dedupe of summary/detail twins, severity gating.
+- `auto-merge.test.ts` (5 cases against a real temp git repo):
+  fast-forward, noop, divergent merge-commit, conflict-leaves-main-alone,
+  missing-result-branch.
+- `self-healing.test.ts` (9 assertions): chain-decision pure logic,
+  hardening-plan shape including planSchema round-trip, embedded
+  parent-goal + findings text.
+
 ## 1.7.13 — Shutdown-aware pause banner + dirty-protected autopilot resync
 
 ### Fixed

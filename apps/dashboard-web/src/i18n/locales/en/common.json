@@ -699,6 +699,21 @@
       "editButton": "Edit",
       "placeholder": "Describe what the agents should accomplish.",
       "hint": "Re-generate the plan after saving to use the new goal in future runs."
+    },
+    "productionMode": {
+      "title": "Production mode",
+      "description": "Deliver a truly finished app in one goal: auto-merge into main + automatic hardening runs.",
+      "autoMerge": "Auto-merge",
+      "autoMergeDescription": "Fast-forwards the result branch into main after every successful run.",
+      "selfHealing": "Self-healing",
+      "selfHealingDescription": "Scans docs/security-review.md + docs/qa-report.md for HIGH/CRITICAL and spawns a hardening run if any remain.",
+      "maxIterations": "Max iterations",
+      "maxIterationsDescription": "Cap on consecutive self-healing runs (1–10). Prevents infinite loops.",
+      "saved": "Production mode saved",
+      "saveFailed": "Could not save production mode",
+      "chainIteration": "Iteration {{current}}/{{max}}",
+      "chainIterationShort": "Hardening iteration {{current}}",
+      "chainParent": "← Previous run in chain"
     }
   },
   "applyTemplate": {

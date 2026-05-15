@@ -49,6 +49,15 @@ import { getLastAuthProbe } from '../auth-status.js';
 import { writeMemoryMcpConfig } from './mcp-config.js';
 import { replanOnQAFailure } from './replan.js';
 import { storeTrajectory } from '../reasoningbank/store.js';
+import { autoMergeResultIntoMain } from './auto-merge.js';
+import { actionableFindings, scanRefForFindings } from './findings.js';
+import {
+  buildHardeningPlan,
+  insertHardeningPlan,
+  loadProjectChainContext,
+  shouldChainHardeningRun,
+} from './self-healing.js';
+import type { RunOutcome } from '@agent-harness/schemas';
 
 function resolveMemoryMcpEntrypoint(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -86,6 +95,14 @@ export interface StartRunArgs {
   budgetMinutes?: number;
   budgetTurns?: number;
   maxParallel?: number;
+  /**
+   * Set by the self-healing chain when this run was spawned automatically as
+   * a follow-up to another successful run. Used to (a) thread the chain into
+   * the `runs.parent_run_id` column for UI back-pointers and (b) increment
+   * `runs.chain_iteration` so the cap check works.
+   */
+  parentRunId?: string;
+  chainIteration?: number;
 }
 
 const DEFAULT_BUDGET_MIN = 120;
@@ -309,6 +326,8 @@ export class RunRuntime {
           budgetMinutes,
           budgetTurns,
           maxParallel,
+          parentRunId: args.parentRunId ?? null,
+          chainIteration: args.chainIteration ?? 0,
         })
         .run();
 
@@ -371,6 +390,14 @@ export class RunRuntime {
         plan,
         repoPath,
         budget: { budgetMinutes, budgetTurns, maxParallel },
+      })
+      .then((outcome) => {
+        // Post-success hook: optional auto-merge into main + optional
+        // self-healing chain. Both are project-flag-gated; on a default
+        // project this is a fast no-op.
+        return this.handlePostRunSuccess(runId, outcome).catch((e) => {
+          console.error(`[runtime] post-run hook for ${runId} failed:`, e);
+        });
       })
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err);
@@ -639,6 +666,122 @@ export class RunRuntime {
   }
 
   // ---------- internals ----------
+
+  /**
+   * Post-success hook — runs after the walker resolves with a RunOutcome.
+   *
+   * Two project-flag-gated behaviours, both no-ops for default projects:
+   *   1. `auto_merge_on_success`: fast-forward the result branch into main
+   *      so the user's working tree picks up the finished code without a
+   *      manual `git merge`.
+   *   2. `self_healing_enabled`: scan the result branch for HIGH/CRITICAL
+   *      findings. If any remain AND `chain_iteration` is under the cap,
+   *      auto-spawn a follow-up hardening run with those findings baked
+   *      into its goal.
+   *
+   * Returns silently on failure — the run is already persisted, the hook
+   * is purely additive convenience.
+   */
+  private async handlePostRunSuccess(runId: string, outcome: RunOutcome): Promise<void> {
+    if (outcome !== 'success') return;
+
+    const runRow = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
+    if (!runRow) return;
+    const planRow = await this.db.select().from(plans).where(eq(plans.id, runRow.planId)).get();
+    if (!planRow) return;
+    const ctx = loadProjectChainContext(this.db, planRow.projectId);
+    if (!ctx) return;
+
+    const resultBranch = `harness/${runId}/result`;
+
+    if (ctx.autoMergeOnSuccess) {
+      try {
+        const merge = await autoMergeResultIntoMain({ repoPath: ctx.repoPath, resultBranch });
+        const msg = merge.ok
+          ? `[harness] auto-merge ${resultBranch} → main: ${merge.mode}`
+          : `[harness] auto-merge ${resultBranch} → main FAILED: ${merge.reason}`;
+        this.persistEvent(runId, {
+          type: 'task.text-delta',
+          payload: { taskId: 'system', text: msg + '\n' },
+        });
+        console.log(msg);
+      } catch (e) {
+        console.error('[runtime] auto-merge errored', e);
+      }
+    }
+
+    if (!ctx.selfHealingEnabled) return;
+
+    let actionable: Awaited<ReturnType<typeof scanRefForFindings>> = [];
+    try {
+      const all = await scanRefForFindings({ repoPath: ctx.repoPath, ref: resultBranch });
+      actionable = actionableFindings(all);
+    } catch (e) {
+      console.error('[runtime] findings scan errored', e);
+      return;
+    }
+
+    const willChain = shouldChainHardeningRun({
+      selfHealingEnabled: ctx.selfHealingEnabled,
+      chainIteration: runRow.chainIteration,
+      maxChainIterations: ctx.maxChainIterations,
+      actionableFindingsCount: actionable.length,
+    });
+
+    if (!willChain) {
+      console.log(
+        `[self-healing] no chain for ${runId}: iter=${runRow.chainIteration}/${ctx.maxChainIterations} findings=${actionable.length}`,
+      );
+      this.persistEvent(runId, {
+        type: 'task.text-delta',
+        payload: {
+          taskId: 'system',
+          text: `[harness] self-healing: ${actionable.length === 0 ? 'no remaining HIGH+ findings — chain complete' : `iteration cap reached (${runRow.chainIteration}/${ctx.maxChainIterations})`}\n`,
+        },
+      });
+      return;
+    }
+
+    const nextIteration = runRow.chainIteration + 1;
+    const newPlan = buildHardeningPlan({
+      parentGoal: ctx.goal,
+      iteration: nextIteration,
+      findings: actionable,
+    });
+    let newPlanId: string;
+    try {
+      newPlanId = await insertHardeningPlan({
+        db: this.db,
+        projectId: ctx.projectId,
+        parentPlanId: planRow.id,
+        plan: newPlan,
+      });
+    } catch (e) {
+      console.error('[self-healing] failed to insert hardening plan', e);
+      return;
+    }
+
+    this.persistEvent(runId, {
+      type: 'task.text-delta',
+      payload: {
+        taskId: 'system',
+        text: `[harness] self-healing: ${actionable.length} actionable findings remain — spawning hardening iteration ${nextIteration}/${ctx.maxChainIterations}\n`,
+      },
+    });
+
+    const res = await this.startRun({
+      planId: newPlanId,
+      parentRunId: runId,
+      chainIteration: nextIteration,
+    });
+    if (res.ok) {
+      console.log(
+        `[self-healing] iteration ${nextIteration} started: parent=${runId} new=${res.runId}`,
+      );
+    } else {
+      console.error(`[self-healing] startRun failed`, res);
+    }
+  }
 
   private async resolveRepoPath(planId: string): Promise<string> {
     const planRow = await this.db.select().from(plans).where(eq(plans.id, planId)).get();
