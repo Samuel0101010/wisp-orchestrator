@@ -1315,6 +1315,81 @@ describe('Walker — main task transient-retry', () => {
     if (last?.type === 'run.completed') expect(last.payload.outcome).toBe('success');
   });
 
+  it('aborts a hung subprocess after the inactivity timeout and retries as transient', async () => {
+    // Regression for the 2026-05-15 n1-architecture freeze: subprocess emits
+    // some events, then sits silently for hours without writing the result
+    // frame. Without the watchdog the walker waits forever. With the
+    // watchdog, the run-aborted attempt re-launches via the transient retry
+    // path (so the structural budget is preserved for real bugs).
+    const releaseHang = createGate();
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n1',
+        [
+          // Attempt 1: emits one event, then gates (= subprocess hangs).
+          // When abort fires (from the watchdog), the FakePool's gated path
+          // checks the abort signal and emits task.failed('aborted').
+          {
+            events: [
+              {
+                type: 'task.text-delta',
+                payload: { taskId: 'n1', text: 'Doing some work...' },
+              },
+            ],
+            gate: releaseHang,
+            finishWith: [],
+          },
+          // Attempt 2: success.
+          {
+            events: [
+              { type: 'task.completed', payload: { taskId: 'n1', outcome: 'pass', exitCode: 0 } },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+
+    const plan = makePlan([node('n1', 'architect')]);
+    const startPromise = h.walker.start({
+      runId: 'r-inactivity',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // Wait for the watchdog to be armed, then advance past the inactivity
+    // timeout. Watchdog uses deps.setTimeout (the FakeTimers seam) so this
+    // is deterministic.
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    // INACTIVITY_TIMEOUT_MS is 10 minutes; advance a bit past it.
+    h.timers.advance(11 * 60 * 1000);
+    // Drain microtasks so abort propagates into the gated FakePool task.
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    // Release any remaining gate (mostly a no-op once abort propagates).
+    releaseHang.release();
+    // Pump the transient-retry backoff timer too.
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    h.timers.advance(15_000);
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+
+    const outcome = await startPromise;
+    expect(outcome).toBe('success');
+
+    // Two spawns: the hung first attempt + the successful retry.
+    expect(h.spawns.filter((s) => s.taskId === 'n1').length).toBe(2);
+
+    // The harness emitted an inactivity-warning text-delta to surface what
+    // happened in the dashboard.
+    const watchdogWarn = h.emitted.find(
+      (e) =>
+        e.type === 'task.text-delta' &&
+        e.payload.taskId === 'n1' &&
+        /inactive for/i.test(e.payload.text),
+    );
+    expect(watchdogWarn).toBeDefined();
+  });
+
   it('non-transient subprocess failure still consumes the structural retry budget', async () => {
     // Inverse of the test above: a 'boom' error doesn't match TRANSIENT_RE, so
     // the task uses its normal `retries < 1` budget (1 retry) and then fails

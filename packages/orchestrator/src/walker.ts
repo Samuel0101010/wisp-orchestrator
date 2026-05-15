@@ -199,6 +199,19 @@ export const MAX_TRANSIENT_RETRIES = 5;
 /** Base backoff (multiplied by attempt #) before re-launching a task subprocess after a transient failure. */
 export const TRANSIENT_BACKOFF_MS = 10_000;
 
+/**
+ * Maximum time the walker waits between events from a task subprocess before
+ * assuming it's hung and aborting it. The 2026-05-15 wertzeit-app retry on
+ * v1.7.11 surfaced a real hang: n1-architecture emitted its final
+ * "Documentation complete" text-delta then sat for 3 hours without exiting
+ * — the claude CLI never wrote its `result` frame, the walker had no
+ * inactivity timeout, and the whole run froze. Conservative default: 10 min
+ * (the slowest natural gap between events seen in healthy runs is under 1
+ * minute). Counts as a transient failure so the existing retry budget
+ * recovers it.
+ */
+export const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
+
 interface TaskRuntime {
   node: TaskNode;
   status: TaskStatusValue;
@@ -992,6 +1005,34 @@ export class Walker {
     let lastTaskFailedError: string | null = null;
     let cleanExit = false;
     let transientErrorSeen = false;
+    let inactivityKillFired = false;
+
+    // Watchdog: abort the subprocess if no events arrive for
+    // INACTIVITY_TIMEOUT_MS. The claude CLI can hang after emitting its
+    // final text-delta without writing the `result` frame; without this
+    // watchdog the walker waits forever (seen on a 2026-05-15 wertzeit-app
+    // run where n1-architecture froze for 3 hours after finishing).
+    let inactivityCancel: (() => void) | null = null as (() => void) | null;
+    const armInactivityWatchdog = (): void => {
+      if (inactivityCancel) inactivityCancel();
+      inactivityCancel = this.deps.setTimeout(() => {
+        inactivityCancel = null;
+        if (abort.signal.aborted) return;
+        inactivityKillFired = true;
+        this.deps.emit({
+          type: 'task.text-delta',
+          payload: {
+            taskId: node.id,
+            text: `[harness] subprocess inactive for ${Math.round(INACTIVITY_TIMEOUT_MS / 60_000)}min — aborting and retrying as transient\n`,
+          },
+        });
+        try {
+          abort.abort();
+        } catch {
+          /* ignore */
+        }
+      }, INACTIVITY_TIMEOUT_MS);
+    };
 
     try {
       const iter = this.deps.pool.run({
@@ -1007,7 +1048,11 @@ export class Walker {
         signal: abort.signal,
       });
 
+      armInactivityWatchdog();
       for await (const ev of iter) {
+        // Reset watchdog on every event from the subprocess.
+        armInactivityWatchdog();
+
         // Always forward to the bus.
         this.deps.emit(ev);
 
@@ -1076,6 +1121,18 @@ export class Walker {
       const errStr = err instanceof Error ? err.message : String(err);
       lastTaskFailedError = `subprocess error: ${errStr}`;
       if (TRANSIENT_RE.test(errStr)) transientErrorSeen = true;
+    } finally {
+      if (inactivityCancel) inactivityCancel();
+    }
+
+    // An inactivity-triggered abort is treated as a transient failure so the
+    // task retries via the transient-retry budget instead of consuming a
+    // structural retry. The subprocess hang itself is not the agent's fault.
+    if (inactivityKillFired) {
+      transientErrorSeen = true;
+      if (!lastTaskFailedError) {
+        lastTaskFailedError = 'subprocess inactivity timeout (no events for >10min)';
+      }
     }
 
     // After the subprocess loop:
