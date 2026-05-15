@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.7.11 — Transient retries for main task subprocess + worktree-race retry
+
+### Fixed
+
+- **Main task subprocess hit Anthropic 529 on attempt 1 + attempt 2 and was
+  declared dead.** Live failure on a 2026-05-15 wertzeit-app re-run: the
+  529-overload storm from earlier in the day was still active, n3-skeleton's
+  initial subprocess died at minute ~4 with `API Error: 529 Overloaded`, the
+  walker burned its single structural retry on a second attempt that hit the
+  same 529, then marked the task permanently failed. n6 + all downstream
+  tasks then cancel-cascaded. The resolver path got its transient retry in
+  v1.7.10, but the main task subprocess path didn't — and the same upstream
+  blip kills that path too.
+
+  Added a *separate* transient-retry budget (`MAX_TRANSIENT_RETRIES = 5`,
+  10s × attempt backoff) on top of the existing `retries < 1` structural
+  budget. The same shared `TRANSIENT_RE` constant detects 5(29|03) /
+  Overloaded / Service Unavailable / temporarily unavailable / rate-limit /
+  ETIMEDOUT / ECONNRESET in `task.text-delta` and `task.failed` payloads from
+  the subprocess event stream. Transient retries don't consume the structural
+  budget, so a real bug in the agent's work still surfaces after one normal
+  retry. The new shared constant replaces the local copy inside the resolver
+  path.
+
+- **`git worktree add` race on Windows.** When two parallel tasks both
+  depended on the same parent (e.g. n2 + n3 both `deps: [n1]`) and dispatched
+  simultaneously, git hit a metadata-read race against the sibling's
+  `.git/worktrees/<sibling>/commondir` and failed with `failed to read
+  ...commondir: No error`. The walker had no retry for this and the task
+  cascade-failed. Added a transient-retry loop inside `addWorktree` itself
+  (3 attempts, 500ms × attempt backoff) that prunes stale worktree metadata
+  before each retry and detects this and a few related Windows FS-race
+  patterns (`sharing violation`, `Access is denied`, `cannot create file`,
+  `file in use`).
+
+### Tests
+
+- New walker tests: subprocess succeeds after 2 transient 529s on the 3rd
+  attempt; non-transient `boom` failure still consumes only the structural
+  retry budget (no transient-retry burn for real bugs).
+
 ## 1.7.10 — Resolver retries through transient Anthropic 529 / Overloaded
 
 ### Fixed

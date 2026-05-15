@@ -180,10 +180,36 @@ export interface WalkerStatus {
 
 // ---------- internal types ----------
 
+/**
+ * Transient infrastructure failures (Anthropic 5xx, network blips, rate-limit
+ * chatter) that should NOT count against a task's regular retry budget. Used
+ * by both the resolver subprocess loop and the main task subprocess loop.
+ */
+export const TRANSIENT_RE =
+  /(\b5(29|03)\b|Overloaded|Service Unavailable|temporarily unavailable|rate.?limit|ETIMEDOUT|ECONNRESET)/i;
+
+/**
+ * Max attempts a task subprocess can take when every prior attempt died with a
+ * transient marker. Independent of {@link TaskRuntime.retries} (which is the
+ * structural-error budget). 5 attempts × ~10s backoff per step covers a
+ * multi-minute Anthropic 529 storm without spending the structural budget.
+ */
+export const MAX_TRANSIENT_RETRIES = 5;
+
+/** Base backoff (multiplied by attempt #) before re-launching a task subprocess after a transient failure. */
+export const TRANSIENT_BACKOFF_MS = 10_000;
+
 interface TaskRuntime {
   node: TaskNode;
   status: TaskStatusValue;
   retries: number; // number of retries already attempted (0 or 1)
+  /**
+   * Separate retry counter that increments only when the previous attempt died
+   * with a transient infrastructure marker (5xx, rate-limit, network reset).
+   * Bounded by {@link MAX_TRANSIENT_RETRIES}; does NOT consume the regular
+   * `retries` budget so a real bug still surfaces after 1 normal retry.
+   */
+  transientRetries: number;
   attempt: number; // attempt counter (1, 2)
   worktreePath: string | null;
   branchName: string | null;
@@ -298,6 +324,7 @@ export class Walker {
         node,
         status,
         retries: 0,
+        transientRetries: 0,
         attempt: 0,
         worktreePath: null,
         branchName: null,
@@ -656,10 +683,10 @@ export class Walker {
     // wertzeit-app run. Without retry, a momentary upstream blip cascade-
     // fails every downstream task. Retry the resolver up to N times when we
     // detect a transient pattern AND the worktree is still in merge state.
+    // Pattern (TRANSIENT_RE) is shared with the main task subprocess retry
+    // path so the two paths agree on what counts as "infra blip".
     const MAX_RESOLVER_ATTEMPTS = 3;
     const RETRY_BACKOFF_MS = 5000;
-    const TRANSIENT_RE =
-      /(\b5(29|03)\b|Overloaded|Service Unavailable|temporarily unavailable|rate.?limit|ETIMEDOUT|ECONNRESET)/i;
 
     let postStatus: { inMerge: boolean; unmergedPaths: string[]; headCommit: string } = preStatus;
     let lastReason = 'resolver did not finalise merge';
@@ -964,6 +991,7 @@ export class Walker {
 
     let lastTaskFailedError: string | null = null;
     let cleanExit = false;
+    let transientErrorSeen = false;
 
     try {
       const iter = this.deps.pool.run({
@@ -982,6 +1010,17 @@ export class Walker {
       for await (const ev of iter) {
         // Always forward to the bus.
         this.deps.emit(ev);
+
+        // The claude CLI surfaces upstream Anthropic 5xx / rate-limit / network
+        // errors as text-delta frames right before exiting non-zero. Detecting
+        // them here lets the retry path below distinguish "infrastructure
+        // blip" from "real bug in the agent's work", and apply a separate
+        // (higher) retry budget with backoff.
+        if (ev.type === 'task.text-delta' && TRANSIENT_RE.test(ev.payload.text)) {
+          transientErrorSeen = true;
+        } else if (ev.type === 'task.failed' && TRANSIENT_RE.test(ev.payload.error)) {
+          transientErrorSeen = true;
+        }
 
         if (ev.type === 'task.usage') {
           // task.usage carries CUMULATIVE counters from `claude -p
@@ -1036,6 +1075,7 @@ export class Walker {
     } catch (err) {
       const errStr = err instanceof Error ? err.message : String(err);
       lastTaskFailedError = `subprocess error: ${errStr}`;
+      if (TRANSIENT_RE.test(errStr)) transientErrorSeen = true;
     }
 
     // After the subprocess loop:
@@ -1060,6 +1100,30 @@ export class Walker {
     if (!cleanExit) {
       // Subprocess errored before completing.
       const errMsg = lastTaskFailedError ?? 'subprocess exited without completion';
+
+      // Transient infrastructure retry — separate from the structural retry
+      // below. Anthropic 5xx storms can wipe out an hour-long run if every
+      // task subprocess gets one normal retry then dies. Detected via the
+      // TRANSIENT_RE patterns from the subprocess event stream above; bounded
+      // by MAX_TRANSIENT_RETRIES with linear-on-attempt backoff.
+      if (transientErrorSeen && t.transientRetries < MAX_TRANSIENT_RETRIES) {
+        t.transientRetries += 1;
+        t.status = 'pending';
+        t.lastError = errMsg;
+        const waitMs = TRANSIENT_BACKOFF_MS * t.transientRetries;
+        this.deps.emit({
+          type: 'task.text-delta',
+          payload: {
+            taskId: node.id,
+            text: `[harness] transient infra error on task subprocess (attempt ${t.transientRetries}/${MAX_TRANSIENT_RETRIES}); retrying in ${waitMs}ms\n`,
+          },
+        });
+        await new Promise<void>((resolve) => {
+          this.deps.setTimeout(resolve, waitMs);
+        });
+        return;
+      }
+
       if (t.retries < 1) {
         t.retries += 1;
         t.status = 'pending';
@@ -1223,6 +1287,7 @@ export class Walker {
               node: newNode,
               status: carryDone ? 'done' : 'pending',
               retries: 0,
+              transientRetries: 0,
               attempt: 1,
               worktreePath: carryDone ? old!.worktreePath : null,
               branchName: carryDone ? old!.branchName : null,

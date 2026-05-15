@@ -1232,6 +1232,125 @@ describe('Walker — QA-driven replan (M5)', () => {
 
 // ---------- helpers ----------
 
+describe('Walker — main task transient-retry', () => {
+  it('retries the main task subprocess when it dies with a transient 529 / Overloaded marker', async () => {
+    // Regression for the 2026-05-15 wertzeit-app run where n3-skeleton hit
+    // Anthropic 529 on both its first attempt and its single normal retry,
+    // cascade-failing every downstream task. Transient infra errors must
+    // not consume the structural retry budget; they get their own pool of
+    // attempts with backoff.
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n1',
+        [
+          // Attempt 1: transient error (worth retrying — infra blip).
+          {
+            events: [
+              {
+                type: 'task.text-delta',
+                payload: { taskId: 'n1', text: 'API Error: 529 Overloaded. Try again.' },
+              },
+              { type: 'task.failed', payload: { taskId: 'n1', error: 'exit code 1' } },
+            ],
+            finishWith: [],
+          },
+          // Attempt 2: transient again.
+          {
+            events: [
+              {
+                type: 'task.text-delta',
+                payload: { taskId: 'n1', text: 'API Error: 529 Overloaded. Try again.' },
+              },
+              { type: 'task.failed', payload: { taskId: 'n1', error: 'exit code 1' } },
+            ],
+            finishWith: [],
+          },
+          // Attempt 3: success.
+          {
+            events: [
+              {
+                type: 'task.completed',
+                payload: { taskId: 'n1', outcome: 'pass', exitCode: 0 },
+              },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+
+    const plan = makePlan([node('n1', 'architect')]);
+    const startPromise = h.walker.start({
+      runId: 'r-transient-task',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+    // Pump fake timers so backoffs resolve.
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setImmediate(r));
+      h.timers.advance(15_000);
+    }
+    const outcome = await startPromise;
+    expect(outcome).toBe('success');
+
+    // Three pool.run invocations: two transient attempts + the success.
+    const spawns = h.spawns.filter((s) => s.taskId === 'n1');
+    expect(spawns.length).toBe(3);
+
+    // No task.failed for n1 — transient retries hid the infra blip.
+    expect(h.emitted.some((e) => e.type === 'task.failed' && e.payload.taskId === 'n1')).toBe(
+      true, // subprocess emits task.failed inside each transient attempt, that's fine
+    );
+    // ...but no terminal walker-emitted permanent failure.
+    const lastFailedForN1 = [...h.emitted]
+      .reverse()
+      .find((e) => e.type === 'task.failed' && e.payload.taskId === 'n1');
+    // Walker did NOT add a permanent-fail emit after exhausting attempts.
+    // The last task.failed comes from the subprocess events (transient), and
+    // run.completed must be the very last event with outcome=success.
+    expect(lastFailedForN1).toBeDefined();
+    const last = h.emitted[h.emitted.length - 1];
+    expect(last?.type).toBe('run.completed');
+    if (last?.type === 'run.completed') expect(last.payload.outcome).toBe('success');
+  });
+
+  it('non-transient subprocess failure still consumes the structural retry budget', async () => {
+    // Inverse of the test above: a 'boom' error doesn't match TRANSIENT_RE, so
+    // the task uses its normal `retries < 1` budget (1 retry) and then fails
+    // terminally. Otherwise the transient-retry path would let real bugs
+    // burn the whole transient budget too.
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n1',
+        [
+          {
+            events: [{ type: 'task.failed', payload: { taskId: 'n1', error: 'boom' } }],
+            finishWith: [],
+          },
+          {
+            events: [{ type: 'task.failed', payload: { taskId: 'n1', error: 'boom' } }],
+            finishWith: [],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+
+    const plan = makePlan([node('n1', 'architect')]);
+    await h.walker.start({
+      runId: 'r-nontransient',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    // 1 attempt + 1 normal retry = 2 spawns. NO transient extras.
+    const spawns = h.spawns.filter((s) => s.taskId === 'n1');
+    expect(spawns.length).toBe(2);
+  });
+});
+
 describe('Walker — dep-merge auto-resolver', () => {
   it('spawns a resolver subprocess on dep-merge conflict and continues the task when it succeeds', async () => {
     // n1 + n2 are parallel, n3 merges them both. mergeBranches reports a
