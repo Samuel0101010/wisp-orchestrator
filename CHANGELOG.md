@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.7.13 — Shutdown-aware pause banner + dirty-protected autopilot resync
+
+### Fixed
+
+- **Pause banner couldn't distinguish shutdown from user-pause.** Live on
+  2026-05-15: after the v1.7.12 server restart for deployment, the
+  wertzeit-app run sat at `status='paused', pausedReason='shutdown'` (the
+  abrupt-crash recovery path). The `RunPausedBanner` in `RunView.tsx` only
+  had two branches — `rate-limit` and "everything else → pausedByUser" — so
+  the dashboard claimed "Run vom Benutzer pausiert." for a server-shutdown
+  pause. New `pausedByShutdown` i18n string and a dedicated banner variant
+  with `data-testid="shutdown-paused-banner"` and a `Fortsetzen` button.
+
+- **Autopilot form clobbered unsaved edits.** `AutopilotToggle`'s resync
+  `useEffect` ran on every change to the run-snapshot props
+  (`initialEnabled`, `initialBudgetMinutes`, `initialBudgetTokens`) and
+  unconditionally overwrote local form state. A 5-second background
+  refetch or any WS-driven invalidation that landed mid-edit would
+  silently un-tick the checkbox the user had just enabled or wipe a
+  half-typed budget value — making it impossible to actually save
+  autopilot on. The resync is now gated by refs that track `dirty` and
+  `toggle.isPending`; the server snapshot is only adopted when the user
+  has no unsaved edits and no save is in flight.
+
+### Tests
+
+- New `apps/dashboard-web/src/components/AutopilotToggle.test.tsx`:
+  - No-clobber while dirty: user ticks checkbox, simulated stale refetch
+    arrives with `enabled=false`, checkbox stays checked and Save still
+    shows `data-dirty=true`.
+  - Clean snapshot adoption: with no local edits, a server-side flip to
+    `enabled=true` propagates into the form and `data-dirty=false`.
+  - Save POST shape: enabled + budgetMinutes go up correctly and the form
+    settles to `data-dirty=false` afterwards.
+- `RunView.test.tsx` gains a `shutdown-paused-banner` rendering
+  assertion when `pausedReason='shutdown'` (and confirms the legacy
+  `user-paused-banner` does NOT render in that case).
+
 ## 1.7.12 — Inactivity watchdog on task subprocesses
 
 ### Fixed
