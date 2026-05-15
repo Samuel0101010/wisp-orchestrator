@@ -30,6 +30,17 @@ export const projects = sqliteTable('projects', {
     .default(false),
   defaultAutopilotBudgetMinutes: integer('default_autopilot_budget_minutes'),
   defaultAutopilotBudgetTokens: integer('default_autopilot_budget_tokens'),
+  // Runtime-verification toggles (migration 0011, v1.8). When
+  // `runtimeVerifyEnabled` is true the post-run hook adds a runtime-verify
+  // pass before auto-merge: boot the app, probe the dev URL, run any
+  // declared Playwright tests, and block the release-gate on failure.
+  // `runtimeVerifyDevCmd` and `runtimeVerifyProbeUrl` may be NULL, in which
+  // case detect-project-type infers them from package.json.
+  runtimeVerifyEnabled: integer('runtime_verify_enabled', { mode: 'boolean' })
+    .notNull()
+    .default(true),
+  runtimeVerifyDevCmd: text('runtime_verify_dev_cmd'),
+  runtimeVerifyProbeUrl: text('runtime_verify_probe_url'),
 });
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
@@ -505,6 +516,82 @@ export const runSummaries = sqliteTable('run_summaries', {
 });
 export type RunSummary = typeof runSummaries.$inferSelect;
 export type NewRunSummary = typeof runSummaries.$inferInsert;
+
+// ----- dod_criteria (v1.8: Definition of Done) -----
+//
+// Per-project list of acceptance criteria. Each row is one user-declared
+// "this must work" gate. The runtime-verifier agent produces evidence that
+// each criterion is satisfied (smoke probe, Playwright test, or human
+// approval); the release-gate node refuses to merge until every criterion
+// has evidence.
+
+export const dodKindValues = ['smoke', 'e2e', 'manual'] as const;
+export type DodKind = (typeof dodKindValues)[number];
+
+/**
+ * Storage shape for `dod_criteria.specJson`. The shape varies per kind:
+ *   - smoke: `{ url: string; expectedStatus?: number; timeoutMs?: number }`
+ *   - e2e:   `{ testFile: string; testName?: string }`
+ *   - manual: `{ note?: string }`
+ * We keep it as a discriminated union at the Zod layer (see plan.ts), but
+ * the SQL column is a generic JSON blob.
+ */
+export type DodSpecJson = Record<string, unknown>;
+
+export const dodCriteria = sqliteTable('dod_criteria', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  kind: text('kind', { enum: dodKindValues }).notNull(),
+  specJson: text('spec_json', { mode: 'json' }).$type<DodSpecJson>().notNull(),
+  position: integer('position').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type DodCriterion = typeof dodCriteria.$inferSelect;
+export type NewDodCriterion = typeof dodCriteria.$inferInsert;
+
+// ----- runtime_reports (v1.8: runtime verification per run) -----
+//
+// One row per runtime-verify pass against a run's result branch. `verdict`
+// is the top-level decision the release-gate consumes; the per-component
+// flags (boot_ok, e2e_ok) are surfaced in the dashboard so the user sees
+// which gate failed without opening the markdown.
+
+export const runtimeReportVerdictValues = ['pass', 'fail', 'skipped', 'error'] as const;
+export type RuntimeReportVerdict = (typeof runtimeReportVerdictValues)[number];
+
+export interface RuntimeEvidenceJson {
+  /** Relative paths in the result branch to screenshots or trace files. */
+  artifacts?: string[];
+  /** Optional Playwright JSON-reporter summary path. */
+  playwrightReport?: string;
+  /** Optional console/network error counts captured during boot-smoke. */
+  consoleErrors?: number;
+  networkErrors?: number;
+}
+
+export const runtimeReports = sqliteTable('runtime_reports', {
+  id: text('id').primaryKey(),
+  runId: text('run_id')
+    .notNull()
+    .references(() => runs.id, { onDelete: 'cascade' }),
+  verdict: text('verdict', { enum: runtimeReportVerdictValues }).notNull(),
+  bootOk: integer('boot_ok', { mode: 'boolean' }).notNull().default(false),
+  e2eOk: integer('e2e_ok', { mode: 'boolean' }).notNull().default(false),
+  dodPassed: integer('dod_passed').notNull().default(0),
+  dodTotal: integer('dod_total').notNull().default(0),
+  reportMd: text('report_md'),
+  evidenceJson: text('evidence_json', { mode: 'json' }).$type<RuntimeEvidenceJson>(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type RuntimeReport = typeof runtimeReports.$inferSelect;
+export type NewRuntimeReport = typeof runtimeReports.$inferInsert;
 
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {
