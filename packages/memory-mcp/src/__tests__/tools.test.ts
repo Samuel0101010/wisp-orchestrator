@@ -3,13 +3,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { MemoryStore } from '../store.js';
-import { tools, findTool } from '../tools.js';
+import { tools, findTool, type ScopeResolver } from '../tools.js';
 
-async function withStore<T>(fn: (store: MemoryStore) => Promise<T> | T): Promise<T> {
+async function withResolver<T>(
+  fn: (resolve: ScopeResolver, store: MemoryStore) => Promise<T> | T,
+): Promise<T> {
   const dir = await mkdtemp(join(tmpdir(), 'mem-tools-'));
   const store = new MemoryStore(join(dir, 'mem.db'));
+  const resolve: ScopeResolver = () => store;
   try {
-    return await fn(store);
+    return await fn(resolve, store);
   } finally {
     store.close();
     await rm(dir, { recursive: true, force: true });
@@ -27,31 +30,31 @@ describe('tools registry', () => {
   });
 
   it('memory.set writes and returns ok', async () => {
-    await withStore((s) => {
-      const out = tools['memory.set'].handle(s, { key: 'a', value: 'one' });
+    await withResolver((resolve, s) => {
+      const out = tools['memory.set'].handle(resolve, { key: 'a', value: 'one' });
       expect(out).toEqual({ ok: true });
       expect(s.get('a')).toBe('one');
     });
   });
 
   it('memory.get returns the stored value', async () => {
-    await withStore((s) => {
+    await withResolver((resolve, s) => {
       s.set('a', 'one');
-      expect(tools['memory.get'].handle(s, { key: 'a' })).toEqual({ value: 'one' });
+      expect(tools['memory.get'].handle(resolve, { key: 'a' })).toEqual({ value: 'one' });
     });
   });
 
   it('memory.get returns null for an unknown key', async () => {
-    await withStore((s) => {
-      expect(tools['memory.get'].handle(s, { key: 'missing' })).toEqual({ value: null });
+    await withResolver((resolve) => {
+      expect(tools['memory.get'].handle(resolve, { key: 'missing' })).toEqual({ value: null });
     });
   });
 
   it('memory.list returns sorted entries', async () => {
-    await withStore((s) => {
+    await withResolver((resolve, s) => {
       s.set('b', 'second');
       s.set('a', 'first value');
-      const out = tools['memory.list'].handle(s, {});
+      const out = tools['memory.list'].handle(resolve, {});
       expect(out).toEqual({
         entries: [
           { key: 'a', size: 11 },
@@ -62,10 +65,10 @@ describe('tools registry', () => {
   });
 
   it('memory.delete returns deleted=true when a key existed and false otherwise', async () => {
-    await withStore((s) => {
+    await withResolver((resolve, s) => {
       s.set('temp', 'x');
-      expect(tools['memory.delete'].handle(s, { key: 'temp' })).toEqual({ deleted: true });
-      expect(tools['memory.delete'].handle(s, { key: 'temp' })).toEqual({ deleted: false });
+      expect(tools['memory.delete'].handle(resolve, { key: 'temp' })).toEqual({ deleted: true });
+      expect(tools['memory.delete'].handle(resolve, { key: 'temp' })).toEqual({ deleted: false });
       expect(s.get('temp')).toBeNull();
     });
   });
@@ -89,6 +92,24 @@ describe('input schema validation', () => {
 
   it('memory.delete rejects non-string key', () => {
     const r = tools['memory.delete'].inputSchema.safeParse({ key: 42 });
+    expect(r.success).toBe(false);
+  });
+
+  it('memory.set accepts an explicit scope', () => {
+    const r = tools['memory.set'].inputSchema.safeParse({
+      key: 'k',
+      value: 'v',
+      scope: 'project',
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('memory.set rejects an unknown scope', () => {
+    const r = tools['memory.set'].inputSchema.safeParse({
+      key: 'k',
+      value: 'v',
+      scope: 'global',
+    });
     expect(r.success).toBe(false);
   });
 });

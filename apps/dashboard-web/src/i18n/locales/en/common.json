@@ -808,6 +808,28 @@
       "action": "Open team editor"
     }
   },
+  "agentOverride": {
+    "title": "Customise {{role}}",
+    "description": "Project-specific overrides are appended to the base agent definition. Leave blank to fall back to the default.",
+    "fields": {
+      "extraPrompt": "Extra system prompt",
+      "extraTools": "Extra allowed tools (one per line)",
+      "model": "Model override",
+      "memoryNamespace": "Memory namespace",
+      "modelDefault": "Default"
+    },
+    "actions": {
+      "save": "Save override",
+      "reset": "Reset to default",
+      "delete": "Delete"
+    },
+    "toasts": {
+      "saved": "Override saved",
+      "reset": "Override removed",
+      "saveFailed": "Could not save override",
+      "resetFailed": "Could not reset override"
+    }
+  },
   "preview": {
     "title": "Preview",
     "description": "Boots the project's dev server inside the harness and frames it here. Useful for an eye-test between iterations.",

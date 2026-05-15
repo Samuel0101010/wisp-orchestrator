@@ -180,7 +180,12 @@ export class RunRuntime {
    * Build the Walker dependencies for a given run. Factored out so both
    * startRun() and resumeRun() (rebuild path) share the same wiring.
    */
-  private makeWalkerDeps(runId: string, planId: string, maxParallel: number): WalkerDeps {
+  private makeWalkerDeps(
+    runId: string,
+    planId: string,
+    maxParallel: number,
+    projectId?: string,
+  ): WalkerDeps {
     const mcpConfigPath = env.HARNESS_MOCK_CLI
       ? undefined
       : writeMemoryMcpConfig({
@@ -191,6 +196,7 @@ export class RunRuntime {
           // claude resolves it from a worktree cwd.
           dataDir: env.HARNESS_DATA_DIR,
           memoryMcpEntrypoint: resolveMemoryMcpEntrypoint(),
+          projectId,
         }).path;
     const pool = new SubprocessPool({
       maxParallel,
@@ -404,7 +410,7 @@ export class RunRuntime {
       // because nothing else will clean them up — the void walker.start
       // chain that owns the .finally cleanup never starts in that case.
       repoPath = await this.resolveRepoPath(args.planId);
-      const walkerDeps = this.makeWalkerDeps(runId, args.planId, maxParallel);
+      const walkerDeps = this.makeWalkerDeps(runId, args.planId, maxParallel, planRow?.projectId);
       walker = this.buildWalker({ walkerDeps, runId });
       this.registerResidentWalker(runId, walker);
     } finally {
@@ -593,7 +599,7 @@ export class RunRuntime {
 
     let walker: Walker;
     try {
-      const walkerDeps = this.makeWalkerDeps(runId, planRow.id, run.maxParallel);
+      const walkerDeps = this.makeWalkerDeps(runId, planRow.id, run.maxParallel, planRow.projectId);
       walker = this.buildWalker({ walkerDeps, runId });
       this.registerResidentWalker(runId, walker);
     } catch (err) {

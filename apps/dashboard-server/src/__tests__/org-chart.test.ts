@@ -334,7 +334,11 @@ describe('GET /api/projects/:projectId/org-chart', () => {
     const projectId = await createProject(app, 'oc-latest');
     await putTeam(app, projectId, defaultTeam());
 
-    const oldPlanId = randomUUID();
+    // Pin plan ids to lexicographically-sortable strings so the
+    // `orderBy(desc(plans.id))` selection in org-chart.ts always picks
+    // 'plan-2-...' over 'plan-1-...'. Using randomUUID() here is flaky
+    // because UUIDv4s have no ordering by creation time.
+    const oldPlanId = `plan-1-${randomUUID()}`;
     await db
       .insert(plans)
       .values({
@@ -368,7 +372,7 @@ describe('GET /api/projects/:projectId/org-chart', () => {
         kind: 'initial',
       })
       .run();
-    const newPlanId = randomUUID();
+    const newPlanId = `plan-2-${randomUUID()}`;
     await db
       .insert(plans)
       .values({

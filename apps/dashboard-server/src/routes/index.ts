@@ -37,6 +37,7 @@ import { interviewRoutes } from './interview.js';
 import { previewRoutes } from './preview.js';
 import { changeRequestRoutes } from './change-requests.js';
 import { orgChartRoutes } from './org-chart.js';
+import { agentOverridesRoutes } from './agent-overrides.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -147,4 +148,5 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(previewRoutes);
   await app.register(changeRequestRoutes);
   await app.register(orgChartRoutes);
+  await app.register(agentOverridesRoutes);
 };

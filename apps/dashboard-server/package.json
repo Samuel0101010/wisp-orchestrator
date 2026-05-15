@@ -1,6 +1,6 @@
 {
   "name": "@agent-harness/dashboard-server",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
@@ -16,6 +16,7 @@
     "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
+    "@agent-harness/memory-mcp": "workspace:*",
     "@agent-harness/orchestrator": "workspace:*",
     "@agent-harness/schemas": "workspace:*",
     "@fastify/cors": "^10.0.0",
