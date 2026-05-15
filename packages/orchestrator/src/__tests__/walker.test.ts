@@ -1515,7 +1515,9 @@ describe('Walker — dep-merge auto-resolver', () => {
     expect(h.taskStates.get('n3')?.turnsUsed ?? 0).toBeGreaterThanOrEqual(3);
 
     // No task.failed for n3 — the dep-merge path was rescued.
-    expect(h.emitted.some((e) => e.type === 'task.failed' && e.payload.taskId === 'n3')).toBe(false);
+    expect(h.emitted.some((e) => e.type === 'task.failed' && e.payload.taskId === 'n3')).toBe(
+      false,
+    );
     // Suppress unused-warning for the events captured above.
     void resolverEmitted;
   });
@@ -1610,7 +1612,9 @@ describe('Walker — dep-merge auto-resolver', () => {
     expect(n3Idx).toBeGreaterThan(h.spawns.lastIndexOf(resolverSpawns[1]!));
 
     // No task.failed for n3 — we recovered.
-    expect(h.emitted.some((e) => e.type === 'task.failed' && e.payload.taskId === 'n3')).toBe(false);
+    expect(h.emitted.some((e) => e.type === 'task.failed' && e.payload.taskId === 'n3')).toBe(
+      false,
+    );
   });
 
   it('gives up after MAX_RESOLVER_ATTEMPTS when transient errors persist', async () => {

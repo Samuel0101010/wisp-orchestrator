@@ -607,9 +607,7 @@ function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBann
       <div className="flex items-center gap-2">
         <Pause className="h-4 w-4" />
         <span>
-          {isShutdown
-            ? t('runView.controls.pausedByShutdown')
-            : t('runView.controls.pausedByUser')}
+          {isShutdown ? t('runView.controls.pausedByShutdown') : t('runView.controls.pausedByUser')}
         </span>
       </div>
       <Tooltip>

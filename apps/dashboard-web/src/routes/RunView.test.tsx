@@ -240,9 +240,7 @@ describe('RunView', () => {
     fetchHandler = (url) => {
       if (/\/api\/runs\/run-1$/.test(url)) {
         return new Response(
-          JSON.stringify(
-            snapshot(buildRun({ status: 'paused', pausedReason: 'shutdown' })),
-          ),
+          JSON.stringify(snapshot(buildRun({ status: 'paused', pausedReason: 'shutdown' }))),
           { status: 200 },
         );
       }

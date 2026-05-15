@@ -8,11 +8,5 @@
   },
   "homepage": "https://github.com/Samuel0101010/agent-harness",
   "license": "Apache-2.0",
-  "keywords": [
-    "agents",
-    "orchestration",
-    "kanban",
-    "dag",
-    "subscription"
-  ]
+  "keywords": ["agents", "orchestration", "kanban", "dag", "subscription"]
 }
