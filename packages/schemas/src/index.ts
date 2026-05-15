@@ -21,6 +21,10 @@ export {
   hookEvents,
   promptBundles,
   runSummaries,
+  dodCriteria,
+  runtimeReports,
+  dodKindValues,
+  runtimeReportVerdictValues,
   planStatusValues,
   taskStatusValues,
   runStatusValues,
@@ -93,6 +97,14 @@ export type {
   NewPromptBundle,
   RunSummary,
   NewRunSummary,
+  DodCriterion,
+  NewDodCriterion,
+  DodKind,
+  DodSpecJson,
+  RuntimeReport,
+  NewRuntimeReport,
+  RuntimeReportVerdict,
+  RuntimeEvidenceJson,
 } from './db.js';
 
 // Plan DAG (Zod)
