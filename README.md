@@ -1,5 +1,9 @@
 # Agent Harness
 
+<p align="center">
+  <img src="docs/assets/wisp-figure.png" alt="Wisp — Agent Harness mascot" width="240">
+</p>
+
 Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.
 
 ## What it is
