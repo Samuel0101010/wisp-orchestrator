@@ -25,6 +25,9 @@ import {
 import { pickModel, recordOutcome } from '../router/thompson.js';
 import { retrieveSimilar } from '../reasoningbank/store.js';
 import { getLatestSummaryForProject } from '../run-summary/retrieve.js';
+import { dodCriteria as dodCriteriaTable } from '@agent-harness/schemas';
+import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
+import { detectProjectType } from '../orchestrator/detect-project-type.js';
 
 interface PlansRouterDeps {
   runner?: Runner;
@@ -217,11 +220,36 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           };
         }
 
+        // v1.8 — auto-inject the runtime-verifier node when the project opted
+        // in. Idempotent + non-destructive: if the planner happened to include
+        // it already, or the team is at the 8-role cap, the original plan
+        // passes through unchanged. The release-gate degrades to legacy
+        // behaviour in that case.
+        let finalPlan = outcome.plan;
+        if (project.runtimeVerifyEnabled) {
+          const dod = await db
+            .select()
+            .from(dodCriteriaTable)
+            .where(eq(dodCriteriaTable.projectId, projectId))
+            .all();
+          const detected = detectProjectType(project.repoPath);
+          const injection = injectRuntimeVerifier({
+            plan: outcome.plan,
+            dodCriteria: dod,
+            detected: {
+              type: detected.type,
+              devCommand: detected.devCommand,
+              probeUrl: detected.probeUrl,
+            },
+          });
+          finalPlan = injection.plan;
+        }
+
         const id = randomUUID();
         const row = {
           id,
           projectId,
-          dagJson: outcome.plan as unknown,
+          dagJson: finalPlan as unknown,
           status: 'draft' as const,
         };
         await db.insert(plans).values(row).run();
@@ -229,7 +257,7 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         reply.code(201);
         return {
           ...row,
-          plan: outcome.plan,
+          plan: finalPlan,
           attempts: outcome.attempts,
         };
       }),

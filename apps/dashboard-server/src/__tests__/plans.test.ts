@@ -186,7 +186,12 @@ describe('plan generation route', () => {
     const body = res.json();
     expect(body.attempts).toBe(1);
     expect(body.status).toBe('draft');
-    expect(body.plan.nodes).toHaveLength(3);
+    // v1.8 — projects default to runtimeVerifyEnabled=true, so the planner's
+    // 3-node output gets a 4th node spliced on: the auto-injected runtime-
+    // verifier. The injection is a release-gate prerequisite (see
+    // orchestrator/inject-runtime-verifier.ts).
+    expect(body.plan.nodes).toHaveLength(4);
+    expect(body.plan.nodes.map((n: { role: string }) => n.role)).toContain('runtime-verifier');
     expect(callCount()).toBe(1);
 
     // GET returns the persisted plan
