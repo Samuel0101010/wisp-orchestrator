@@ -1,0 +1,162 @@
+/**
+ * Interviewer engine — runs one turn of the requirements-interviewer agent
+ * against a user message and applies the structured patch the agent emits
+ * to the `project_briefs` row.
+ *
+ * Stays a thin wrapper over runAgentTurn (chat-engine) + parseBriefPatchFromText
+ * (schemas/brief): the route layer owns SQL + HTTP, this owns "given a brief
+ * + user reply, produce a new brief + assistant text + completeness flag".
+ *
+ * Pure async function — no SQL writes, no side effects. Tests construct a
+ * mock SubprocessRunner and assert the merged brief is correct.
+ */
+
+import { parseBriefPatchFromText, type BriefPatch } from '@agent-harness/schemas';
+import {
+  composePrompt,
+  runAgentTurn,
+  type HistoryMessage,
+  type RunAgentTurnResult,
+} from '../routes/chat-engine.js';
+import type { SubprocessRunner } from '@agent-harness/orchestrator';
+
+export interface BriefState {
+  targetAudience: string | null;
+  successCriteria: string | null;
+  designPrefs: string | null;
+  platform: string | null;
+  constraints: string | null;
+  deadline: number | null;
+  completenessScore: number;
+  briefReady: boolean;
+}
+
+export interface RunInterviewTurnArgs {
+  systemPrompt: string;
+  current: BriefState;
+  history: HistoryMessage[];
+  userMessage: string;
+  /** Test seam — defaults to runClaude. */
+  runner?: SubprocessRunner;
+  /** Test seam — defaults to runAgentTurn. */
+  turnImpl?: (args: Parameters<typeof runAgentTurn>[0]) => Promise<RunAgentTurnResult>;
+  taskId: string;
+  /** Optional explicit completeness threshold to flip briefReady. Defaults to 80. */
+  readyThreshold?: number;
+}
+
+export interface InterviewTurnResult {
+  /** Assistant text with the <<BRIEF_*>> markers stripped, ready to persist. */
+  assistantText: string;
+  /** The patch parsed off the reply, or null if no patch present. */
+  patch: BriefPatch | null;
+  /** Merged brief after applying the patch + completeness logic. */
+  nextBrief: BriefState;
+  /** Whether the agent emitted the <<BRIEF_COMPLETE>> marker. */
+  agentSignaledComplete: boolean;
+  /** True iff the new completenessScore crossed the readyThreshold OR the agent signaled complete. */
+  shouldFinalize: boolean;
+  /** Non-fatal parse error from the directive parser, if any. */
+  parseError: string | null;
+  /** Token usage so the route can persist it on the assistant message. */
+  tokensIn: number;
+  tokensOut: number;
+  durationMs: number;
+  /** Subprocess failure mode (timeout, etc) or null. */
+  failed: string | null;
+}
+
+const DEFAULT_READY_THRESHOLD = 80;
+
+/**
+ * Apply a brief patch to the current brief state. Non-null fields replace
+ * existing values; null fields explicitly clear them; missing fields are
+ * left unchanged. CompletenessScore is monotone non-decreasing — a turn
+ * can never lower the score.
+ */
+export function applyBriefPatch(current: BriefState, patch: BriefPatch | null): BriefState {
+  if (!patch) return current;
+  const next: BriefState = { ...current };
+  if (patch.targetAudience !== undefined) next.targetAudience = patch.targetAudience;
+  if (patch.successCriteria !== undefined) next.successCriteria = patch.successCriteria;
+  if (patch.designPrefs !== undefined) next.designPrefs = patch.designPrefs;
+  if (patch.platform !== undefined) next.platform = patch.platform;
+  if (patch.constraints !== undefined) next.constraints = patch.constraints;
+  if (patch.deadline !== undefined) next.deadline = patch.deadline;
+  if (patch.completenessScore !== undefined) {
+    next.completenessScore = Math.max(current.completenessScore, patch.completenessScore);
+  }
+  return next;
+}
+
+export async function runInterviewerTurn(args: RunInterviewTurnArgs): Promise<InterviewTurnResult> {
+  const threshold = args.readyThreshold ?? DEFAULT_READY_THRESHOLD;
+  const composed = composePrompt(args.systemPrompt, args.history, args.userMessage, 'user');
+
+  const turnImpl = args.turnImpl ?? runAgentTurn;
+  const turn = await turnImpl({
+    systemPrompt: composed.systemPrompt,
+    prompt: composed.prompt,
+    allowedTools: ['Read'],
+    model: 'opus',
+    taskId: args.taskId,
+    runner: args.runner,
+  });
+
+  const parsed = parseBriefPatchFromText(turn.text);
+  const merged = applyBriefPatch(args.current, parsed.patch);
+  const shouldFinalize = parsed.complete || merged.completenessScore >= threshold;
+
+  return {
+    assistantText: parsed.cleanedText,
+    patch: parsed.patch,
+    nextBrief: merged,
+    agentSignaledComplete: parsed.complete,
+    shouldFinalize,
+    parseError: parsed.parseError,
+    tokensIn: turn.tokensIn,
+    tokensOut: turn.tokensOut,
+    durationMs: turn.durationMs,
+    failed: turn.failed,
+  };
+}
+
+/**
+ * Render the current brief into a docs/PRD.md body. Called on finalize.
+ * Markdown structure is stable so the planner can grep for sections.
+ */
+export function renderBriefAsPrdMarkdown(brief: BriefState, projectName: string): string {
+  const lines: string[] = [];
+  lines.push(`# ${projectName} — Product Requirements`);
+  lines.push('');
+  lines.push('_Generated by the requirements-interviewer agent. Edit freely._');
+  lines.push('');
+
+  const section = (heading: string, value: string | null) => {
+    lines.push(`## ${heading}`);
+    lines.push('');
+    lines.push(value ?? '_not provided_');
+    lines.push('');
+  };
+
+  section('Target audience', brief.targetAudience);
+  section('Success criteria', brief.successCriteria);
+  section('Design preferences', brief.designPrefs);
+  section('Platform', brief.platform);
+  section('Constraints', brief.constraints);
+
+  lines.push('## Deadline');
+  lines.push('');
+  if (brief.deadline) {
+    lines.push(new Date(brief.deadline).toISOString().slice(0, 10));
+  } else {
+    lines.push('_none_');
+  }
+  lines.push('');
+
+  lines.push('## Completeness');
+  lines.push('');
+  lines.push(`${brief.completenessScore}% (briefReady=${brief.briefReady})`);
+  lines.push('');
+  return lines.join('\n');
+}

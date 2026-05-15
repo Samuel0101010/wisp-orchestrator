@@ -31,6 +31,7 @@ import { runAgentTurn, composePrompt, type HistoryMessage } from './chat-engine.
 import type { SubprocessRunner } from '@agent-harness/orchestrator';
 import type { SkillRegistry } from '../skills/registry.js';
 import { invokeSkill } from '../skills/invoker.js';
+import { ensureBriefRow } from './interview.js';
 
 export interface DirectiveContext {
   threadId: string;
@@ -296,6 +297,11 @@ async function handleCreateProject(
       .run(teamId, projectId, JSON.stringify(team));
   });
   tx();
+
+  // v1.9 — auto-seed an empty brief row so the manager's create_project flow
+  // converges with the manual sidebar create-project flow. Both surfaces now
+  // produce identical post-create state.
+  ensureBriefRow(projectId);
 
   return {
     projectId,

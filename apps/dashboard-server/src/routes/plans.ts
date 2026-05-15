@@ -25,9 +25,11 @@ import {
 import { pickModel, recordOutcome } from '../router/thompson.js';
 import { retrieveSimilar } from '../reasoningbank/store.js';
 import { getLatestSummaryForProject } from '../run-summary/retrieve.js';
-import { dodCriteria as dodCriteriaTable } from '@agent-harness/schemas';
+import { dodCriteria as dodCriteriaTable, projectBriefs } from '@agent-harness/schemas';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
 import { detectProjectType } from '../orchestrator/detect-project-type.js';
+
+const UNBRIEFED_OVERRIDE_HEADER = 'x-allow-unbriefed';
 
 interface PlansRouterDeps {
   runner?: Runner;
@@ -174,6 +176,27 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           };
         }
 
+        // v1.9 — gate plan-generation on briefReady unless the caller explicitly
+        // opts out via the X-Allow-Unbriefed header (power-user / scripted use).
+        // Manual sidebar + manager-chat create-project both auto-seed an empty
+        // brief row, so the gate triggers consistently no matter the entry path.
+        const brief = await db
+          .select()
+          .from(projectBriefs)
+          .where(eq(projectBriefs.projectId, projectId))
+          .get();
+        const allowUnbriefed =
+          (req.headers[UNBRIEFED_OVERRIDE_HEADER] as string | undefined)?.trim() === '1';
+        if (!allowUnbriefed && (!brief || !brief.briefReady)) {
+          reply.code(412);
+          return {
+            error: 'brief_not_ready',
+            message:
+              'Project brief is not finalised. Finish the interview at /api/projects/:id/interview or send header X-Allow-Unbriefed: 1 to override.',
+            completenessScore: brief?.completenessScore ?? 0,
+          };
+        }
+
         // Substantive plan generation — gets full Thompson exploration. Orchestration
         // phases (context-ingest, status-post) should call pickFixed('haiku', 'planner-orchestration')
         // instead of consuming the same prior.
@@ -183,6 +206,21 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         const lastSummary = getLatestSummaryForProject(projectId);
 
         const sections: string[] = [];
+        if (brief) {
+          const briefLines: string[] = [];
+          if (brief.targetAudience) briefLines.push(`Target audience: ${brief.targetAudience}`);
+          if (brief.successCriteria) briefLines.push(`Success criteria: ${brief.successCriteria}`);
+          if (brief.designPrefs) briefLines.push(`Design preferences: ${brief.designPrefs}`);
+          if (brief.platform) briefLines.push(`Platform: ${brief.platform}`);
+          if (brief.constraints) briefLines.push(`Constraints: ${brief.constraints}`);
+          if (brief.deadline)
+            briefLines.push(`Deadline: ${new Date(brief.deadline).toISOString().slice(0, 10)}`);
+          if (briefLines.length > 0) {
+            sections.push(
+              `## Project brief (from requirements interview)\n\n` + briefLines.join('\n'),
+            );
+          }
+        }
         if (similar.length > 0) {
           sections.push(
             `## Context from past similar runs\n\n` +

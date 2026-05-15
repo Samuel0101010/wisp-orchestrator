@@ -8,6 +8,45 @@ DB-only — no behavior changes; new tables and columns sit empty until the
 following phases (Interview agent, Iteration planner, Preview tab, Visual
 edit, Org-chart, Packaging) land.
 
+### Added (Phase 1a — interview agent backend)
+
+- **`requirements-interviewer` seed agent** (Sarah, Opus). Asks structured
+  one-question-at-a-time turns for target audience, success criteria,
+  design preferences, platform, constraints, deadline. Emits a
+  `<<BRIEF_PATCH>>{...}<<END>>` JSON block every turn and an optional
+  `<<BRIEF_COMPLETE>>` marker when she has ≥80% coverage.
+- **`briefPatchSchema` + `parseBriefPatchFromText`** in
+  `@agent-harness/schemas` — strict Zod validation of agent patches, plus
+  a tolerant text extractor that strips machine markers before the user
+  sees the assistant message.
+- **`interviewer-engine.ts`** — pure async runner over the existing
+  `runAgentTurn` primitive: takes a brief snapshot + transcript + user
+  reply, returns `{ assistantText, patch, nextBrief, shouldFinalize }`.
+  Monotone-non-decreasing `completenessScore` so a regression turn cannot
+  lower the gate. `renderBriefAsPrdMarkdown` produces `docs/PRD.md`.
+- **Interview REST routes** at `/api/projects/:projectId/interview*`:
+  - `GET` — brief + transcript
+  - `POST /start` — idempotent ensure brief + thread
+  - `POST /message` — append user message, run one interviewer turn,
+    persist assistant reply, return new brief state
+  - `POST /finalize` — write `docs/PRD.md` to the managed repo, flip
+    `briefReady=true`
+  - `PATCH` — direct manual field edits (escape hatch for power users)
+- **Auto-seeded brief on every project creation** — both the dashboard
+  sidebar `POST /api/projects` and the manager-chat
+  `<<ACTION>>create_project<<END>>` directive now call `ensureBriefRow`,
+  so both surfaces converge on identical post-create state.
+- **Planner gate** on `POST /api/projects/:id/plan` — returns `412
+  Precondition Failed` with `error: brief_not_ready` when the project
+  brief is not finalised. Power-users can bypass via `X-Allow-Unbriefed:
+  1` header. The brief is also injected into the planner's
+  `additionalContext` (sections: target audience, success criteria,
+  design preferences, platform, constraints, deadline).
+- **22 new tests** (11 schema + 11 routes/engine) verifying brief patch
+  parsing, monotone completeness, BRIEF_COMPLETE handling, idempotent
+  start, message accumulation, finalize write semantics, planner gate
+  412/override behaviour, and dual-path auto-seed.
+
 ### Added (Phase 0 — schema foundation)
 
 - **`project_briefs` table** (migration 0012) — holds the
