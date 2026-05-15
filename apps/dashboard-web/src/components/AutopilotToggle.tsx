@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
 import { useToggleAutopilot } from '@/api/queries';
@@ -40,10 +40,27 @@ export function AutopilotToggle({
   });
   const toggle = useToggleAutopilot();
 
-  // If the snapshot from the server changes (e.g. another tab updated, or the
-  // /api/runs/:id refetch refreshes) and the user hasn't edited locally yet,
-  // adopt the new values as the saved baseline.
+  const dirty =
+    enabled !== saved.enabled || budgetMin !== saved.budgetMin || budgetTok !== saved.budgetTok;
+
+  // Refs let the useEffect read the latest form state without re-triggering
+  // when local edits happen. Resync from server is otherwise driven solely
+  // by changes to `initialEnabled` / `initialBudgetMinutes` / `initialBudgetTokens`.
+  const dirtyRef = useRef(dirty);
+  const pendingRef = useRef(toggle.isPending);
   useEffect(() => {
+    dirtyRef.current = dirty;
+    pendingRef.current = toggle.isPending;
+  });
+
+  // If the snapshot from the server changes (e.g. another tab updated, or the
+  // /api/runs/:id refetch refreshes) AND the user has no unsaved local edits
+  // and no save is in flight, adopt the new values as the saved baseline.
+  // Skipping the resync while dirty/pending is critical: otherwise a 5s
+  // background refetch in the middle of the user's edit would clobber their
+  // checkbox/number inputs before they could press Speichern.
+  useEffect(() => {
+    if (dirtyRef.current || pendingRef.current) return;
     setEnabled(initialEnabled);
     setBudgetMin(initialBudgetMinutes?.toString() ?? '');
     setBudgetTok(initialBudgetTokens?.toString() ?? '');
@@ -53,9 +70,6 @@ export function AutopilotToggle({
       budgetTok: initialBudgetTokens?.toString() ?? '',
     });
   }, [initialEnabled, initialBudgetMinutes, initialBudgetTokens]);
-
-  const dirty =
-    enabled !== saved.enabled || budgetMin !== saved.budgetMin || budgetTok !== saved.budgetTok;
 
   const save = (): void => {
     toggle.mutate(

@@ -235,4 +235,23 @@ describe('RunView', () => {
     renderRunView();
     expect(await screen.findByTestId('run-not-found')).toBeInTheDocument();
   });
+
+  it('shows a shutdown-specific banner when run.paused with pausedReason=shutdown', async () => {
+    fetchHandler = (url) => {
+      if (/\/api\/runs\/run-1$/.test(url)) {
+        return new Response(
+          JSON.stringify(
+            snapshot(buildRun({ status: 'paused', pausedReason: 'shutdown' })),
+          ),
+          { status: 200 },
+        );
+      }
+      return new Response('{}', { status: 404 });
+    };
+    renderRunView();
+
+    expect(await screen.findByTestId('shutdown-paused-banner')).toBeInTheDocument();
+    expect(screen.queryByTestId('user-paused-banner')).not.toBeInTheDocument();
+    expect(screen.getByTestId('shutdown-paused-resume')).toBeEnabled();
+  });
 });
