@@ -34,6 +34,12 @@ const patchProjectSchema = z
     defaultAutopilotMode: z.boolean().optional(),
     defaultAutopilotBudgetMinutes: z.number().int().positive().nullable().optional(),
     defaultAutopilotBudgetTokens: z.number().int().positive().nullable().optional(),
+    // Runtime-verification toggles (v1.8). When enabled, new plans get the
+    // runtime-verifier role auto-injected and the post-success hook gates
+    // auto-merge on the release-gate's verdict.
+    runtimeVerifyEnabled: z.boolean().optional(),
+    runtimeVerifyDevCmd: z.string().min(1).nullable().optional(),
+    runtimeVerifyProbeUrl: z.string().min(1).nullable().optional(),
   })
   .refine(
     (v) =>
@@ -45,7 +51,10 @@ const patchProjectSchema = z
       v.maxChainIterations !== undefined ||
       v.defaultAutopilotMode !== undefined ||
       v.defaultAutopilotBudgetMinutes !== undefined ||
-      v.defaultAutopilotBudgetTokens !== undefined,
+      v.defaultAutopilotBudgetTokens !== undefined ||
+      v.runtimeVerifyEnabled !== undefined ||
+      v.runtimeVerifyDevCmd !== undefined ||
+      v.runtimeVerifyProbeUrl !== undefined,
     {
       message: 'at least one editable field must be provided',
     },
@@ -116,6 +125,12 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         updates.defaultAutopilotBudgetMinutes = patch.defaultAutopilotBudgetMinutes;
       if (patch.defaultAutopilotBudgetTokens !== undefined)
         updates.defaultAutopilotBudgetTokens = patch.defaultAutopilotBudgetTokens;
+      if (patch.runtimeVerifyEnabled !== undefined)
+        updates.runtimeVerifyEnabled = patch.runtimeVerifyEnabled;
+      if (patch.runtimeVerifyDevCmd !== undefined)
+        updates.runtimeVerifyDevCmd = patch.runtimeVerifyDevCmd;
+      if (patch.runtimeVerifyProbeUrl !== undefined)
+        updates.runtimeVerifyProbeUrl = patch.runtimeVerifyProbeUrl;
       await db.update(projects).set(updates).where(eq(projects.id, params.id)).run();
       const updated = await db.select().from(projects).where(eq(projects.id, params.id)).get();
       return updated ?? existing;

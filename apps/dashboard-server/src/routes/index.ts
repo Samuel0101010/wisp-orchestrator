@@ -32,6 +32,7 @@ import { insightsRoutes } from './insights.js';
 import { goapRoutes } from './goap.js';
 import { createHooksRouter } from './hooks.js';
 import { promptBundlesRoutes } from './prompt-bundles.js';
+import { dodRoutes } from './dod.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -137,4 +138,5 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   await app.register(goapRoutes);
   await app.register(createHooksRouter);
   await app.register(promptBundlesRoutes);
+  await app.register(dodRoutes);
 };
