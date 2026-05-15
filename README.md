@@ -1,4 +1,6 @@
-# Agent Harness
+<p align="center">
+  <img src="docs/assets/wisp-logo.png" alt="WISP" width="320">
+</p>
 
 <p align="center">
   <img src="docs/assets/wisp-figure.png" alt="Wisp — Agent Harness mascot" width="240">
