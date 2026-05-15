@@ -11,8 +11,6 @@
 // touch the DB directly. That means the server's runtime hooks (auto-merge
 // on subsequent success, self-healing chain extension) fire normally.
 
-import { setTimeout as sleep } from 'node:timers/promises';
-
 const RUN_ID = process.argv[2];
 if (!RUN_ID) {
   console.error('usage: node scripts/trigger-hardening-run.mjs <runId>');
