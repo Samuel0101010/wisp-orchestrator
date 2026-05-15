@@ -50,6 +50,7 @@ import {
 } from '@/store/run';
 import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 import { AutopilotToggle } from '@/components/AutopilotToggle';
+import { ReleaseGateCard } from '@/components/ReleaseGateCard';
 import type { TFunction } from 'i18next';
 import { statusLabel } from '@/lib/status-labels';
 import { roleHsl } from '@/lib/role-color';
@@ -892,6 +893,8 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
         initialBudgetMinutes={snapshot.run.autopilotBudgetMinutes ?? null}
         initialBudgetTokens={snapshot.run.autopilotBudgetTokens ?? null}
       />
+
+      <ReleaseGateCard runId={run.id} />
 
       {/* Indicator: autopilot is active AND the run is paused with an
           auto-resumable reason. Tells the user "the harness is watching

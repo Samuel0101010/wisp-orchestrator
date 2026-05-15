@@ -4,6 +4,46 @@
     "english": "English",
     "german": "Deutsch"
   },
+  "dod": {
+    "title": "Definition of Done",
+    "description": "Was muss erfüllt sein, damit der Release-Gate diesen Run als fertig akzeptiert.",
+    "empty": "Noch keine Akzeptanzkriterien — ohne diese kann der Release-Gate nichts verifizieren.",
+    "kinds": {
+      "smoke": "Smoke",
+      "e2e": "E2E",
+      "manual": "Manuell"
+    },
+    "placeholders": {
+      "title": "Titel (z. B. 'Login funktioniert')",
+      "smoke": "URL, z. B. /api/health",
+      "e2e": "Beschreibung der User-Aktion",
+      "manual": "Notiz für den menschlichen Approver"
+    },
+    "actions": {
+      "add": "Hinzufügen",
+      "delete": "Löschen"
+    },
+    "errors": {
+      "createFailed": "Kriterium konnte nicht angelegt werden",
+      "deleteFailed": "Kriterium konnte nicht gelöscht werden"
+    }
+  },
+  "releaseGate": {
+    "title": "Release-Gate",
+    "boot": "Boot",
+    "e2e": "E2E",
+    "dod": "DoD",
+    "pass": "PASS",
+    "fail": "FAIL",
+    "artifacts": "{{count}} Artefakte",
+    "showReport": "Bericht zeigen",
+    "verdict": {
+      "pass": "READY",
+      "fail": "BLOCKED",
+      "skipped": "ÜBERSPRUNGEN",
+      "error": "FEHLER"
+    }
+  },
   "errors": {
     "title": "Etwas ist schiefgegangen",
     "loadFailed": "Laden fehlgeschlagen",

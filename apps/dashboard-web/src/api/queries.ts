@@ -94,6 +94,134 @@ export interface UpdateProjectInput {
   defaultAutopilotMode?: boolean;
   defaultAutopilotBudgetMinutes?: number | null;
   defaultAutopilotBudgetTokens?: number | null;
+  // v1.8 runtime-verify settings. NULL clears an existing override.
+  runtimeVerifyEnabled?: boolean;
+  runtimeVerifyDevCmd?: string | null;
+  runtimeVerifyProbeUrl?: string | null;
+}
+
+// ---------- DoD criteria (v1.8) ----------
+
+export type DodKind = 'smoke' | 'e2e' | 'manual';
+
+export interface DodCriterion {
+  id: string;
+  projectId: string;
+  title: string;
+  kind: DodKind;
+  specJson: Record<string, unknown>;
+  position: number;
+  createdAt: string | Date;
+}
+
+export interface CreateDodInput {
+  title: string;
+  kind: DodKind;
+  spec: Record<string, unknown>;
+  position?: number;
+}
+
+export interface PatchDodInput {
+  id: string;
+  title?: string;
+  kind?: DodKind;
+  spec?: Record<string, unknown>;
+  position?: number;
+}
+
+export function useDodCriteria(projectId: string | undefined) {
+  return useQuery<DodCriterion[]>({
+    queryKey: ['dod', projectId ?? null],
+    enabled: Boolean(projectId),
+    queryFn: async () => {
+      if (!projectId) return [];
+      try {
+        return await apiFetch<DodCriterion[]>(`/api/projects/${projectId}/dod`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
+      }
+    },
+  });
+}
+
+export function useCreateDod(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<DodCriterion, Error, CreateDodInput>({
+    mutationFn: (input) => {
+      if (!projectId) throw new Error('No project id');
+      return apiFetch<DodCriterion>(`/api/projects/${projectId}/dod`, {
+        method: 'POST',
+        body: JSON.stringify(input),
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['dod', projectId] });
+    },
+  });
+}
+
+export function usePatchDod(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<DodCriterion, Error, PatchDodInput>({
+    mutationFn: ({ id, ...patch }) => {
+      if (!projectId) throw new Error('No project id');
+      return apiFetch<DodCriterion>(`/api/projects/${projectId}/dod/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['dod', projectId] });
+    },
+  });
+}
+
+export function useDeleteDod(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      if (!projectId) throw new Error('No project id');
+      await apiFetch<void>(`/api/projects/${projectId}/dod/${id}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['dod', projectId] });
+    },
+  });
+}
+
+// ---------- runtime report (v1.8) ----------
+
+export type RuntimeReportVerdict = 'pass' | 'fail' | 'skipped' | 'error';
+
+export interface RuntimeReportRow {
+  id: string;
+  runId: string;
+  verdict: RuntimeReportVerdict;
+  bootOk: boolean;
+  e2eOk: boolean;
+  dodPassed: number;
+  dodTotal: number;
+  reportMd: string | null;
+  evidenceJson: { artifacts?: string[] } | null;
+  createdAt: string | Date;
+}
+
+export function useRuntimeReport(runId: string | undefined) {
+  return useQuery<RuntimeReportRow | null>({
+    queryKey: ['runtime-report', runId ?? null],
+    enabled: Boolean(runId),
+    refetchInterval: 5000,
+    queryFn: async () => {
+      if (!runId) return null;
+      try {
+        return await apiFetch<RuntimeReportRow>(`/api/runs/${runId}/runtime-report`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
+  });
 }
 
 export interface InitRepoResponse {
