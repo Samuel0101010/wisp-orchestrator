@@ -458,11 +458,14 @@
     },
     "autopilot": {
       "label": "Autopilot",
+      "tooltip": "Auto-resumes the run when it's paused by rate-limit or server restart. User-pause + structural failures are NOT auto-resumed. Stops at the Budget Min/Tokens cap.",
       "budgetMinPlaceholder": "budget min",
       "budgetTokensPlaceholder": "budget tokens",
       "save": "Save",
       "saving": "Saving…",
-      "saved": "Saved"
+      "saved": "Saved",
+      "watching": "Autopilot watching — waiting until {{at}}",
+      "watchingNoCountdown": "Autopilot watching — ready to auto-resume"
     },
     "kanban": {
       "pending": "PENDING",

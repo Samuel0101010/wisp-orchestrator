@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react';
+import { Check, Info } from 'lucide-react';
 import { useToggleAutopilot } from '@/api/queries';
 
 interface AutopilotToggleProps {
@@ -103,6 +103,13 @@ export function AutopilotToggle({
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
         <span className="font-medium">{t('runView.autopilot.label')}</span>
       </label>
+      <span
+        className="text-muted-foreground"
+        title={t('runView.autopilot.tooltip')}
+        aria-label={t('runView.autopilot.tooltip')}
+      >
+        <Info className="h-3.5 w-3.5" />
+      </span>
       <input
         type="number"
         min={1}

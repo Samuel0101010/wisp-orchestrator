@@ -458,11 +458,14 @@
     },
     "autopilot": {
       "label": "Autopilot",
+      "tooltip": "Setzt den Run automatisch fort wenn er durch Rate-Limit oder Server-Neustart pausiert wird. User-Pause + strukturelle Failures werden NICHT auto-resumed. Stoppt bei Budget-Min/Tokens-Cap.",
       "budgetMinPlaceholder": "Budget Min",
       "budgetTokensPlaceholder": "Budget Tokens",
       "save": "Speichern",
       "saving": "Speichere…",
-      "saved": "Gespeichert"
+      "saved": "Gespeichert",
+      "watching": "Autopilot wacht — wartet bis {{at}}",
+      "watchingNoCountdown": "Autopilot wacht — bereit zum Auto-Resume"
     },
     "kanban": {
       "pending": "AUSSTEHEND",

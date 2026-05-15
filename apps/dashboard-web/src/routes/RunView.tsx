@@ -893,6 +893,27 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
         initialBudgetTokens={snapshot.run.autopilotBudgetTokens ?? null}
       />
 
+      {/* Indicator: autopilot is active AND the run is paused with an
+          auto-resumable reason. Tells the user "the harness is watching
+          this for you" so they don't have to click Resume themselves. */}
+      {snapshot.run.autopilotMode &&
+        run.status === 'paused' &&
+        (run.pausedReason === 'rate-limit' || run.pausedReason === 'shutdown') && (
+          <div
+            className="flex items-center gap-2 rounded border border-emerald-500/40 bg-emerald-500/10 p-2 text-xs text-emerald-700 dark:text-emerald-300"
+            data-testid="autopilot-watching"
+          >
+            <Activity className="h-3.5 w-3.5" />
+            <span>
+              {run.pausedReason === 'rate-limit' && run.resumeAt
+                ? t('runView.autopilot.watching', {
+                    at: new Date(run.resumeAt as unknown as string | number).toLocaleTimeString(),
+                  })
+                : t('runView.autopilot.watchingNoCountdown')}
+            </span>
+          </div>
+        )}
+
       <Kanban
         tasks={orderedTasks}
         budgetTurns={run.budgetTurns}
