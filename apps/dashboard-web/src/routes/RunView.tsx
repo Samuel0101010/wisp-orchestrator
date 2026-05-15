@@ -598,14 +598,19 @@ function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBann
       </div>
     );
   }
+  const isShutdown = pausedReason === 'shutdown';
   return (
     <div
       className="flex items-center justify-between gap-3 rounded-md border bg-muted p-3 text-sm"
-      data-testid="user-paused-banner"
+      data-testid={isShutdown ? 'shutdown-paused-banner' : 'user-paused-banner'}
     >
       <div className="flex items-center gap-2">
         <Pause className="h-4 w-4" />
-        <span>{t('runView.controls.pausedByUser')}</span>
+        <span>
+          {isShutdown
+            ? t('runView.controls.pausedByShutdown')
+            : t('runView.controls.pausedByUser')}
+        </span>
       </div>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -614,7 +619,7 @@ function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBann
             variant="outline"
             onClick={() => void handleResumeNow()}
             disabled={resume.isPending}
-            data-testid="user-paused-resume"
+            data-testid={isShutdown ? 'shutdown-paused-resume' : 'user-paused-resume'}
           >
             {t('runView.controls.resume')}
           </Button>

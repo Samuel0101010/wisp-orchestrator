@@ -498,6 +498,7 @@
       "quotaExhausted": "Quota exhausted — automatic resume in {{countdown}}",
       "quotaExhaustedPrefix": "Quota exhausted — automatic resume in",
       "pausedByUser": "Run paused by user.",
+      "pausedByShutdown": "Run paused by server restart.",
       "resumeNow": "Resume now"
     },
     "cancelDialog": {

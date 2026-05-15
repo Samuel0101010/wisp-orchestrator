@@ -498,6 +498,7 @@
       "quotaExhausted": "Quota erschöpft — automatische Fortsetzung in {{countdown}}",
       "quotaExhaustedPrefix": "Quota erschöpft — automatische Fortsetzung in",
       "pausedByUser": "Run vom Benutzer pausiert.",
+      "pausedByShutdown": "Run durch Server-Neustart pausiert.",
       "resumeNow": "Jetzt fortsetzen"
     },
     "cancelDialog": {
