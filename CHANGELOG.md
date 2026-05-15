@@ -1,12 +1,30 @@
 # Changelog
 
-## Unreleased — v1.9.0 production-loop pipeline (in progress)
+## 1.9.0 — Requirements-interviewer agent + brief gate (Phase 0+1)
 
-Lays the schema foundation for the v1.9 release that turns the harness into
-a full "Plan → Run → Preview → Iterate → Build .exe" pipeline. Phase 0 is
-DB-only — no behavior changes; new tables and columns sit empty until the
-following phases (Interview agent, Iteration planner, Preview tab, Visual
-edit, Org-chart, Packaging) land.
+First slice of the v1.9 production-loop pipeline: agent-driven elicitation
+before any planning runs. Before this release the planner received a
+single `goal` string and guessed everything else (audience, success
+criteria, design prefs, platform, constraints, deadline). After this
+release Sarah — a new seed agent — interviews the user one structured
+question at a time and writes `docs/PRD.md`. The planner refuses to
+generate a plan until the brief is finalised (override via
+`X-Allow-Unbriefed: 1` for scripted use).
+
+### Added (Phase 1b — Brief UI)
+
+- **`BriefCard`** at the top of every project page. Shows a completeness
+  Progress bar, a structured summary of the captured fields, the
+  transcript with Sarah, and a message composer. Switches to a
+  collapsed-summary mode once `briefReady=true` with an expand toggle
+  to revisit the conversation.
+- **TanStack hooks** in `apps/dashboard-web/src/api/queries.ts`:
+  `useInterview`, `useStartInterview`, `useSendInterviewMessage`,
+  `useFinalizeInterview`, `usePatchBrief` plus full Row types.
+- **i18n** under `briefCard.*` for EN + DE.
+- **5 component tests** for the BriefCard (pending state, message
+  round-trip advancing the score, finalize disabled-at-zero gate,
+  finalize collapses chat, expand-when-ready reveals transcript).
 
 ### Added (Phase 1a — interview agent backend)
 

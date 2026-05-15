@@ -763,6 +763,37 @@
       "budgetDescription": "Stoppt den Autopilot wenn Minuten oder Tokens überschritten (leer = kein Cap)."
     }
   },
+  "briefCard": {
+    "title": "Projekt-Brief",
+    "statusReady": "Finalisiert",
+    "statusPending": "In Arbeit",
+    "descriptionReady": "Das Interview ist abgeschlossen. Der Planer liest aus diesem Brief.",
+    "descriptionPending": "Sarah erhebt die Requirements. Beantworte ihre Fragen bis der Brief steht.",
+    "send": "Senden",
+    "sending": "Sendet…",
+    "finalize": "Brief finalisieren",
+    "finalizing": "Finalisiere…",
+    "finalizeHint": "Brief abschließen und docs/PRD.md schreiben.",
+    "finalizeEarlyHint": "Frühes Finalisieren ist möglich, aber der Planer hat weniger Kontext.",
+    "collapse": "Chat ausblenden",
+    "expand": "Chat anzeigen",
+    "inputPlaceholder": "Antwort an Sarah eingeben…",
+    "keyboardHint": "⌘/Strg+Enter sendet",
+    "transcriptEmpty": "Noch keine Nachrichten — starte die Unterhaltung, wenn du bereit bist.",
+    "fields": {
+      "platform": "Plattform",
+      "targetAudience": "Zielgruppe",
+      "successCriteria": "Erfolgskriterien",
+      "designPrefs": "Design-Präferenzen",
+      "constraints": "Einschränkungen"
+    },
+    "toasts": {
+      "sendFailed": "Nachricht konnte nicht gesendet werden",
+      "finalized": "Brief finalisiert",
+      "finalizedWithWarning": "Brief finalisiert, aber PRD konnte nicht geschrieben werden",
+      "finalizeFailed": "Brief konnte nicht finalisiert werden"
+    }
+  },
   "applyTemplate": {
     "title": "Vorlage anwenden",
     "trigger": "Vorlage anwenden",

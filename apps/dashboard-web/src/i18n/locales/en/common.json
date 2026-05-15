@@ -763,6 +763,37 @@
       "budgetDescription": "Stops autopilot when minutes or tokens exceed the cap (empty = unlimited)."
     }
   },
+  "briefCard": {
+    "title": "Project brief",
+    "statusReady": "Finalised",
+    "statusPending": "In progress",
+    "descriptionReady": "The interview is finished. The planner reads from this brief.",
+    "descriptionPending": "Sarah is gathering the requirements. Answer her questions until the brief is finalised.",
+    "send": "Send",
+    "sending": "Sending…",
+    "finalize": "Finalise brief",
+    "finalizing": "Finalising…",
+    "finalizeHint": "Lock the brief and write docs/PRD.md.",
+    "finalizeEarlyHint": "You can finalise early but the planner will have less context.",
+    "collapse": "Hide chat",
+    "expand": "Show chat",
+    "inputPlaceholder": "Type your answer to Sarah…",
+    "keyboardHint": "⌘/Ctrl+Enter to send",
+    "transcriptEmpty": "No messages yet — start the conversation when you're ready.",
+    "fields": {
+      "platform": "Platform",
+      "targetAudience": "Target audience",
+      "successCriteria": "Success criteria",
+      "designPrefs": "Design preferences",
+      "constraints": "Constraints"
+    },
+    "toasts": {
+      "sendFailed": "Could not send message",
+      "finalized": "Brief finalised",
+      "finalizedWithWarning": "Brief finalised, but PRD could not be written",
+      "finalizeFailed": "Could not finalise brief"
+    }
+  },
   "applyTemplate": {
     "title": "Apply a template",
     "trigger": "Apply Template",

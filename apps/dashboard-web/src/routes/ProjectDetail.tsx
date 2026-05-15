@@ -34,6 +34,7 @@ import { StatusDotBadge } from '@/components/StatusDotBadge';
 import { ApiError } from '@/api/client';
 import { toast } from '@/components/ui/use-toast';
 import { DefinitionOfDoneCard } from '@/components/DefinitionOfDoneCard';
+import { BriefCard } from '@/components/BriefCard';
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
@@ -127,6 +128,8 @@ export function ProjectDetail() {
         <h1 className="text-2xl font-semibold">{p.name}</h1>
         <p className="text-sm text-muted-foreground">{t('projectDetail.subtitle')}</p>
       </div>
+
+      <BriefCard projectId={p.id} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <GoalCard projectId={p.id} goal={p.goal} />
