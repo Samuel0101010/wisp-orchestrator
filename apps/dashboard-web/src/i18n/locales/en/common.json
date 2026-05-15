@@ -4,6 +4,46 @@
     "english": "English",
     "german": "Deutsch"
   },
+  "dod": {
+    "title": "Definition of Done",
+    "description": "What must be true for the release-gate to call this run finished.",
+    "empty": "No acceptance criteria yet — without these the release-gate has nothing to verify.",
+    "kinds": {
+      "smoke": "Smoke",
+      "e2e": "E2E",
+      "manual": "Manual"
+    },
+    "placeholders": {
+      "title": "Title (e.g. 'Login works')",
+      "smoke": "URL, e.g. /api/health",
+      "e2e": "Describe the user action",
+      "manual": "Note for the human approver"
+    },
+    "actions": {
+      "add": "Add",
+      "delete": "Delete"
+    },
+    "errors": {
+      "createFailed": "Could not create criterion",
+      "deleteFailed": "Could not delete criterion"
+    }
+  },
+  "releaseGate": {
+    "title": "Release gate",
+    "boot": "Boot",
+    "e2e": "E2E",
+    "dod": "DoD",
+    "pass": "PASS",
+    "fail": "FAIL",
+    "artifacts": "{{count}} artifacts",
+    "showReport": "Show report",
+    "verdict": {
+      "pass": "READY",
+      "fail": "BLOCKED",
+      "skipped": "SKIPPED",
+      "error": "ERROR"
+    }
+  },
   "errors": {
     "title": "Something went wrong",
     "loadFailed": "Failed to load",

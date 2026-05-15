@@ -33,6 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
 import { ApiError } from '@/api/client';
 import { toast } from '@/components/ui/use-toast';
+import { DefinitionOfDoneCard } from '@/components/DefinitionOfDoneCard';
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
@@ -177,6 +178,8 @@ export function ProjectDetail() {
         defaultAutopilotBudgetMinutes={p.defaultAutopilotBudgetMinutes}
         defaultAutopilotBudgetTokens={p.defaultAutopilotBudgetTokens}
       />
+
+      <DefinitionOfDoneCard projectId={p.id} />
 
       <Card>
         <CardHeader>
