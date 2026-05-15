@@ -807,7 +807,30 @@
     },
     "toasts": {
       "startFailed": "Vorschau konnte nicht gestartet werden",
-      "stopFailed": "Vorschau konnte nicht gestoppt werden"
+      "stopFailed": "Vorschau konnte nicht gestoppt werden",
+      "added": "Zur Queue hinzugefügt",
+      "addFailed": "Change-Request konnte nicht hinzugefügt werden",
+      "deleted": "Aus Queue entfernt",
+      "deleteFailed": "Change-Request konnte nicht entfernt werden",
+      "iterationStarted": "Iterations-Run gestartet",
+      "iterationFailed": "Iteration konnte nicht gestartet werden"
+    },
+    "edit": {
+      "toggle": "Bearbeiten",
+      "selected": "Ausgewählt",
+      "promptPlaceholder": "Was soll an diesem Element geändert werden?",
+      "addToQueue": "In Queue",
+      "adding": "Wird hinzugefügt…",
+      "queueEmpty": "Noch keine offenen Change-Requests."
+    },
+    "changes": {
+      "title": "Offene Change-Requests",
+      "pending": "Werden beim nächsten Iterations-Run berücksichtigt.",
+      "delete": "Löschen",
+      "runIteration": "Iteration starten",
+      "runIterationStarting": "Wird gestartet…",
+      "textPlaceholder": "Freitext-Änderung beschreiben (ohne Element-Pick)…",
+      "textAdd": "Hinzufügen"
     }
   },
   "briefCard": {
