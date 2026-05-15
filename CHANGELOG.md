@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.7.10 — Resolver retries through transient Anthropic 529 / Overloaded
+
+### Fixed
+
+- **Merge-resolver subprocess gave up on the first Anthropic 529.** Caught live
+  on the 2026-05-15 wertzeit-app run: `n13-builder`'s resolver subprocess hit
+  `API Error: 529 Overloaded` ~3 minutes in, the CLI exited 1 with 0 useful
+  turns, and the walker tore down the attempt and failed `n13` —
+  cascade-failing `n14-security-review` + `n15-qa-gate`. A momentary upstream
+  blip was enough to kill three downstream tasks.
+
+  The resolver loop now wraps its single subprocess call in a retry loop with
+  exponential backoff (`5s`, `10s`) up to `MAX_RESOLVER_ATTEMPTS = 3`. The
+  walker watches the subprocess event stream for transient-error markers:
+
+  ```
+  /\b5(29|03)\b|Overloaded|Service Unavailable|temporarily unavailable|rate.?limit|ETIMEDOUT|ECONNRESET/i
+  ```
+
+  matched against either `task.text-delta` text (where the claude CLI surfaces
+  API 5xx errors) or `task.failed` error payloads. When `getMergeStatus`
+  after the resolver still shows in-merge / unmerged paths **and** a transient
+  marker was observed, the walker waits and respawns the resolver against the
+  same mid-merge worktree. Files the previous attempt did manage to `git add`
+  remain staged, so retries make progress rather than starting from zero.
+
+  Non-transient failures (resolver finished without surfacing a 5xx marker
+  but didn't commit the merge) skip the retry path entirely — those are
+  structural and would just burn budget. Same for explicit
+  `git merge --abort`s (rare but caught).
+
+  Token / turn attribution to the parent task is preserved across retries.
+
+### Tests
+
+- New walker tests: resolver succeeds on retry after transient 529 →
+  task completes; resolver exhausts all 3 attempts → task fails with
+  `transient retries` in the reason; non-transient resolver failure →
+  no retry, fail immediately (no budget waste).
+
 ## 1.7.9 — Auto-resolver for dep-merge conflicts
 
 ### Fixed
