@@ -111,10 +111,7 @@ export async function addWorktree(opts: AddWorktreeOpts): Promise<string> {
 
       // Transient git/FS race? Wait a beat and retry; the racing sibling's
       // metadata writes settle within milliseconds.
-      if (
-        TRANSIENT_WORKTREE_ERROR_RE.test(message) &&
-        attempt < TRANSIENT_WORKTREE_MAX_RETRIES
-      ) {
+      if (TRANSIENT_WORKTREE_ERROR_RE.test(message) && attempt < TRANSIENT_WORKTREE_MAX_RETRIES) {
         await sleep(TRANSIENT_WORKTREE_BACKOFF_MS * attempt);
         try {
           await execa('git', ['worktree', 'prune'], { cwd: opts.repoPath });
