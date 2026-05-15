@@ -9,6 +9,14 @@ import {
   checkpoints,
   rateWindows,
   runPausedReasonValues,
+  planKindValues,
+  packageTargetValues,
+  changeRequestStatusValues,
+  changeRequestSourceValues,
+  projectBriefs,
+  changeRequests,
+  projectStates,
+  projectAgentOverrides,
   type Project,
   type NewProject,
   type Plan,
@@ -16,6 +24,12 @@ import {
   type Run,
   type HarnessEventRow,
   type RunPausedReason,
+  type PlanKind,
+  type PackageTarget,
+  type ProjectBrief,
+  type ChangeRequest,
+  type ProjectState,
+  type ProjectAgentOverride,
 } from './db.js';
 
 describe('drizzle table definitions', () => {
@@ -87,7 +101,68 @@ describe('drizzle table definitions', () => {
       dagJson: { goal: 'g', team: { roles: [] }, nodes: [], edges: [] },
       status: 'draft',
       parentPlanId: 'parent',
+      kind: 'initial',
+      parentStateId: null,
     };
     expect(p.parentPlanId).toBe('parent');
+  });
+
+  // ---- v1.9 Phase 0 additions ----
+
+  it('planKindValues + packageTargetValues are stable', () => {
+    expect(planKindValues).toEqual(['initial', 'iteration', 'hardening']);
+    expect(packageTargetValues).toEqual(['web', 'tauri-exe', 'electron-exe', 'pkg-bin']);
+    const k: PlanKind = 'iteration';
+    const t: PackageTarget = 'tauri-exe';
+    expect(k).toBe('iteration');
+    expect(t).toBe('tauri-exe');
+  });
+
+  it('change-request enum values are stable', () => {
+    expect(changeRequestStatusValues).toEqual(['pending', 'in-run', 'done', 'dismissed']);
+    expect(changeRequestSourceValues).toEqual(['visual', 'text']);
+  });
+
+  it('Plan type carries kind + parentStateId (defaults initial / null)', () => {
+    const p: Plan = {
+      id: 'p-initial',
+      projectId: 'proj-1',
+      dagJson: { goal: 'g', team: { roles: [] }, nodes: [], edges: [] },
+      status: 'draft',
+      parentPlanId: null,
+      kind: 'initial',
+      parentStateId: null,
+    };
+    expect(p.kind).toBe('initial');
+    expect(p.parentStateId).toBeNull();
+  });
+
+  it('Project type carries packageTarget + artifactPath', () => {
+    const np: NewProject = {
+      id: 'p3',
+      name: 'n',
+      goal: 'g',
+      repoPath: '/x',
+      packageTarget: 'tauri-exe',
+    };
+    expect(np.packageTarget).toBe('tauri-exe');
+  });
+
+  it('exports all 4 new v1.9 tables', () => {
+    for (const t of [projectBriefs, changeRequests, projectStates, projectAgentOverrides]) {
+      expect(t).toBeDefined();
+      expect(typeof t).toBe('object');
+    }
+  });
+
+  it('row types for new tables compile', () => {
+    const _b: ProjectBrief | undefined = undefined;
+    const _c: ChangeRequest | undefined = undefined;
+    const _s: ProjectState | undefined = undefined;
+    const _o: ProjectAgentOverride | undefined = undefined;
+    void _b;
+    void _c;
+    void _s;
+    void _o;
   });
 });
