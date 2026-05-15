@@ -51,6 +51,13 @@ export const projects = sqliteTable('projects', {
     .notNull()
     .default('web'),
   artifactPath: text('artifact_path'),
+  // v2.0.0 (migration 0018, Phase 8). When `leadEnabled` is true the Team
+  // Lead (Theo) agent is available for this project: the user can trigger
+  // POST /lead/tick to get a synthesis of project state + events + handoffs
+  // and routing decisions, and the planner auto-injects an optional `lead`
+  // checkpoint node into newly generated plans. Disabled by default for
+  // backwards-compat; flip via PATCH /api/projects/:id.
+  leadEnabled: integer('lead_enabled', { mode: 'boolean' }).notNull().default(false),
 });
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
@@ -756,6 +763,42 @@ export const projectAgentOverrides = sqliteTable('project_agent_overrides', {
 });
 export type ProjectAgentOverride = typeof projectAgentOverrides.$inferSelect;
 export type NewProjectAgentOverride = typeof projectAgentOverrides.$inferInsert;
+
+// ----- lead_notes (v2.0.0: lead agent — Theo — synthesis output) -----
+//
+// One row per `POST /api/projects/:id/lead/tick`. Captures the lead agent's
+// full markdown narrative (`summaryMd`) plus a structured short-form
+// (`decisionsJson`) the dashboard can render at a glance: which role should
+// pick up next, what's blocking progress, and whether the lead recommends
+// continuing, replanning, or waiting for the user. `runId` is the run the
+// tick was scoped to (or null for a tick that wasn't run-bound).
+// `triggeredRunId` is wired for the v2.1 auto-spawn replan path; v2.0 always
+// leaves it null and emits replan recommendations only.
+
+export type LeadRecommendedAction = 'continue' | 'replan' | 'wait-for-user';
+
+export interface LeadDecisionsJson {
+  nextRole?: string | null;
+  reasoning?: string | null;
+  blockers?: string[];
+  recommendedAction?: LeadRecommendedAction;
+}
+
+export const leadNotes = sqliteTable('lead_notes', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  runId: text('run_id'),
+  summaryMd: text('summary_md').notNull(),
+  decisionsJson: text('decisions_json', { mode: 'json' }).$type<LeadDecisionsJson>(),
+  triggeredRunId: text('triggered_run_id'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type LeadNote = typeof leadNotes.$inferSelect;
+export type NewLeadNote = typeof leadNotes.$inferInsert;
 
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {

@@ -41,6 +41,7 @@ import { toast } from '@/components/ui/use-toast';
 import { DefinitionOfDoneCard } from '@/components/DefinitionOfDoneCard';
 import { BriefCard } from '@/components/BriefCard';
 import { ProjectStateCard } from '@/components/ProjectStateCard';
+import { LeadNotesCard } from '@/components/LeadNotesCard';
 import { PreviewFrame } from '@/components/PreviewFrame';
 import { OrgChartView } from '@/components/OrgChartView';
 import { BuildAppCard } from '@/components/BuildAppCard';
@@ -259,6 +260,7 @@ function ProjectTabs({
       <TabsContent value="brief" className="flex flex-col gap-6">
         <BriefCard projectId={projectId} />
         <ProjectStateCard projectId={projectId} />
+        <LeadNotesCard projectId={projectId} />
       </TabsContent>
 
       <TabsContent value="plan" className="flex flex-col gap-6">

@@ -127,6 +127,13 @@
       "when": 1779500000005,
       "tag": "0017_package_target",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1779500000006,
+      "tag": "0018_lead_notes",
+      "breakpoints": true
     }
   ]
 }

@@ -100,6 +100,8 @@ export interface UpdateProjectInput {
   runtimeVerifyProbeUrl?: string | null;
   // v1.15 (Phase 7) native-packaging target.
   packageTarget?: PackageTarget;
+  // v2.0.0 (Phase 8) — enable the lead agent for this project.
+  leadEnabled?: boolean;
 }
 
 // ---------- Native packaging (v1.15) ----------
@@ -1690,5 +1692,86 @@ export function useDeletePromptBundle() {
     mutationFn: (key: string) =>
       apiFetch(`/api/prompt-bundles/${encodeURIComponent(key)}`, { method: 'DELETE' }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['prompt-bundles'] }),
+  });
+}
+
+// ---------- Lead agent (v2.0.0 Phase 8) ----------
+
+export type LeadRecommendedAction = 'continue' | 'replan' | 'wait-for-user';
+
+export interface LeadDecisionsJson {
+  nextRole?: string | null;
+  reasoning?: string | null;
+  blockers?: string[];
+  recommendedAction?: LeadRecommendedAction;
+}
+
+export interface LeadNoteRow {
+  id: string;
+  projectId: string;
+  runId: string | null;
+  summaryMd: string;
+  decisionsJson: LeadDecisionsJson | null;
+  triggeredRunId: string | null;
+  createdAt: string | number | Date;
+}
+
+export interface LeadTickResponse {
+  noteId: string;
+  summary: string;
+  decision: LeadDecisionsJson | null;
+  parseError: string | null;
+  tokensIn: number;
+  tokensOut: number;
+  durationMs: number;
+  failed: string | null;
+}
+
+export function useLeadNotes(projectId: string | undefined, limit = 10) {
+  return useQuery<LeadNoteRow[]>({
+    queryKey: ['lead-notes', projectId ?? null, limit],
+    enabled: Boolean(projectId),
+    refetchInterval: 30000,
+    queryFn: async () => {
+      if (!projectId) return [];
+      try {
+        return await apiFetch<LeadNoteRow[]>(
+          `/api/projects/${projectId}/lead/notes?limit=${limit}`,
+        );
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
+      }
+    },
+  });
+}
+
+export function useLeadTick(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<LeadTickResponse, Error, { runId?: string } | void>({
+    mutationFn: async (input) => {
+      if (!projectId) throw new Error('No project id');
+      const body = input && 'runId' in input && input.runId ? { runId: input.runId } : {};
+      return await apiFetch<LeadTickResponse>(`/api/projects/${projectId}/lead/tick`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['lead-notes', projectId] });
+    },
+  });
+}
+
+export function useDeleteLeadNote(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      if (!projectId) throw new Error('No project id');
+      await apiFetch(`/api/projects/${projectId}/lead/notes/${id}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['lead-notes', projectId] });
+    },
   });
 }

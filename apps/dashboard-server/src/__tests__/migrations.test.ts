@@ -31,9 +31,24 @@ describe('migrations', () => {
       'change_requests',
       'project_states',
       'project_agent_overrides',
+      // v2.0.0 Phase 8 — lead agent (Theo)
+      'lead_notes',
     ]) {
       expect(names.has(t)).toBe(true);
     }
+  });
+
+  it('projects has lead_enabled column with default 0', () => {
+    const cols = sqlite.prepare(`PRAGMA table_info('projects')`).all() as Array<{
+      name: string;
+      dflt_value: string | null;
+      notnull: number;
+    }>;
+    const byName = new Map(cols.map((c) => [c.name, c]));
+    const le = byName.get('lead_enabled');
+    expect(le).toBeDefined();
+    expect(le!.notnull).toBe(1);
+    expect(le!.dflt_value).toBe('0');
   });
 
   it('projects has package_target + artifact_path columns with correct defaults', () => {

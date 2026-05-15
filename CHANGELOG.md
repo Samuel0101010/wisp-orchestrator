@@ -1,5 +1,121 @@
 # Changelog
 
+## 2.0.0 — Complete production loop · Lead agent (Phase 8 · final)
+
+This is the milestone release where the "Plan → Run → Preview → Iterate
+→ Build → Lead" production loop is feature-complete end-to-end.
+
+The Team Lead (Theo) closes the last gap: a read-only role whose only job
+is to look at the whole project — brief, current state, last run's events,
+open change-requests, prior hand-offs and prior lead notes — and decide
+what should happen next. V1 ships as **manual ticks only**: the user clicks
+"Tick now" in the Brief tab and Theo emits a structured `<<LEAD_DECISION>>`
+directive that the dashboard renders as a card with a `recommendedAction`
+badge (continue / replan / wait-for-user), a `nextRole` hint, and any
+blockers Theo identified. V1 emits replan recommendations; auto-triggered
+replans land in v2.1.
+
+### Added (Phase 8 — Lead Agent)
+
+- **Migration `0018_lead_notes.sql`** — new `lead_notes` table (id,
+  project_id FK with `ON DELETE CASCADE`, run_id, summary_md,
+  decisions_json, triggered_run_id, created_at + two indexes) plus
+  `projects.lead_enabled INTEGER NOT NULL DEFAULT 0`. Both statements
+  separated by `--> statement-breakpoint` so the migrator runs them as
+  discrete operations.
+- **`packages/schemas/src/lead.ts`** — `leadDecisionSchema` (Zod, strict)
+  + `parseLeadDecisionFromText` directive parser mirroring `brief.ts`.
+  Tolerant of plain text, invalid JSON, unknown fields, and unterminated
+  blocks; the cleaned reply has the directive stripped so the UI doesn't
+  render raw machine markers.
+- **`packages/schemas/src/db.ts`** — `leadNotes` Drizzle table object,
+  `LeadNote` / `NewLeadNote` row types, `LeadDecisionsJson` /
+  `LeadRecommendedAction` shape types, and `projects.leadEnabled` boolean
+  column. Re-exported from the package barrel.
+- **Seed agent `lead` (Theo, opus, `#8B5CF6`)** in
+  `apps/dashboard-server/src/db/agents-seed.ts` — read-only allowlist
+  (`Read`, `Grep`, `Glob`), ~2500-char system prompt that teaches the
+  workflow, hard rules, and the `<<LEAD_DECISION>>{...}<<END>>` directive
+  grammar. Seeder remains idempotent.
+- **`apps/dashboard-server/src/orchestrator/lead-runner.ts`** (new) —
+  `runLeadTick({ projectId, runId?, turnImpl?, runner?, dataDirOverride? })`.
+  Loads the context bundle from the DB (project, brief, latest
+  project-state, latest run + last 50 events, open change-requests, prior
+  handoffs via `loadHandoffsForProject`, prior lead notes), composes a
+  sectioned prompt, calls Theo via `runAgentTurn`, parses the directive,
+  and persists a `lead_notes` row. Returns `{ noteId, summary, decision,
+  parseError, tokensIn, tokensOut, durationMs, failed }`.
+- **`apps/dashboard-server/src/routes/lead.ts`** (new) — `createLeadRouter`
+  factory wiring four endpoints registered after `buildRoutes`:
+  `POST /api/projects/:projectId/lead/tick` (412 `lead_disabled` when the
+  flag is off, 404 when project missing), `GET /lead/notes?limit=N`
+  newest-first, `GET /lead/notes/:id`, `DELETE /lead/notes/:id` (204).
+- **`apps/dashboard-server/src/orchestrator/inject-lead-checkpoint.ts`**
+  (new) — `injectLeadCheckpoint({ plan })` mirrors
+  `inject-runtime-verifier.ts`. Idempotent, refuses at the 8-role team
+  cap, wires the new `n-lead-checkpoint` node behind every terminal node.
+  Plugged into `routes/plans.ts` AFTER the runtime-verifier injection,
+  gated by `project.leadEnabled`.
+- **`apps/dashboard-server/src/routes/projects.ts`** — PATCH route accepts
+  `leadEnabled?: boolean`, applied via the existing partial-update
+  refinement.
+- **`apps/dashboard-web/src/api/queries.ts`** — `LeadDecisionsJson`,
+  `LeadNoteRow`, `LeadTickResponse` types; `useLeadNotes(projectId, limit)`
+  (refetchInterval 30s); `useLeadTick(projectId)` with optional `runId`;
+  `useDeleteLeadNote(projectId)`; `UpdateProjectInput.leadEnabled?`.
+- **`apps/dashboard-web/src/components/LeadNotesCard.tsx`** (new) —
+  rendered inside the Brief tab below `ProjectStateCard`. Toggle "Activate
+  lead" when the flag is off (patches `leadEnabled: true`), "Tick now"
+  button when on (disabled while pending), expandable list of the most
+  recent 5 notes with colour-coded `recommendedAction` badges,
+  `nextRole` chips, blocker chips, delete affordance, and an empty
+  state. `data-testid`s: `lead-notes-card`, `lead-tick-button`,
+  `lead-activate`, `lead-note-{id}`, `lead-decision-{action}`.
+- **EN + DE translations** under `leadNotes.*` (title, description,
+  activate, tickNow, ticking, empty, blockers, nextRole, expand/collapse,
+  recommendedAction.{continue, replan, wait-for-user}, status badges,
+  toasts).
+
+### Behaviour
+
+- V1 lead-driven replan is recommendation-only: when Theo returns
+  `recommendedAction: 'replan'`, the note carries the recommendation and
+  the user acts on it manually. Auto-spawn lands in v2.1.
+- Lead is NOT wired into the walker's between-task lifecycle. Triggers
+  are explicit (`POST /lead/tick` or the dashboard button).
+
+### Tests
+
+- `packages/schemas/src/lead.test.ts` — 8 tests covering empty text,
+  valid directive parsing, invalid JSON, unknown fields under strict
+  mode, invalid enum, unterminated block, multi-paragraph round-trip,
+  minimal-shape acceptance.
+- `apps/dashboard-server/src/__tests__/lead-runner.test.ts` — 4 tests
+  asserting happy-path persistence, parseError fallback, empty-project
+  prompt composition, and `project_not_found` error.
+- `apps/dashboard-server/src/__tests__/lead-routes.test.ts` — 6 tests
+  covering 412 / 404, happy POST, newest-first listing, single-row GET,
+  DELETE, and PATCH `leadEnabled` plumbing.
+- `apps/dashboard-server/src/__tests__/inject-lead-checkpoint.test.ts` —
+  5 tests covering injection, idempotence, team-cap refusal, plan-empty,
+  and multi-sink wiring.
+- `apps/dashboard-server/src/__tests__/migrations.test.ts` — `lead_notes`
+  table existence assertion + `projects.lead_enabled` column assertion.
+- `apps/dashboard-web/src/components/LeadNotesCard.test.tsx` — 3 tests
+  covering activate button, prior-notes rendering, and tick → POST →
+  new-note round-trip.
+
+### The journey from v1.8 → v2.0
+
+- v1.9 — Requirements interviewer (Sarah) + brief gate.
+- v1.10 — Project state + iteration planner.
+- v1.11 — Preview tab with reverse-proxy iframe.
+- v1.12 — Visual edit + change-request queue.
+- v1.13 — Per-project team org-chart.
+- v1.14 — Agent communications upgrade (memory-mcp scope + handoff helpers + per-project overrides).
+- v1.15 — Native packaging (Tauri) + CI hotfix.
+- v2.0 — Lead Agent (Theo) coordinating the loop.
+
 ## 1.15.1 — CI hotfix
 
 Fixes two pre-existing CI failures that landed on main during Phases 3–7
