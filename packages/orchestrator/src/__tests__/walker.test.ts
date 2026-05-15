@@ -1326,6 +1326,208 @@ describe('Walker — dep-merge auto-resolver', () => {
     void resolverEmitted;
   });
 
+  it('retries the resolver subprocess when it dies with a transient 529 / Overloaded error', async () => {
+    // Regression for the live n13-builder failure on 2026-05-15: Anthropic's
+    // API returned 529 Overloaded inside the resolver subprocess, the CLI
+    // exited 1 with text-delta "API Error: 529 Overloaded", and the walker
+    // gave up after one attempt — cascade-failing n14 + n15. The resolver
+    // must retry on transient infra errors and only fail if the condition
+    // persists across attempts.
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n3:merge-resolver',
+        [
+          // Attempt 1: transient error.
+          {
+            events: [
+              {
+                type: 'task.text-delta',
+                payload: { taskId: 'n3:merge-resolver', text: 'API Error: 529 Overloaded.\n' },
+              },
+              {
+                type: 'task.failed',
+                payload: { taskId: 'n3:merge-resolver', error: 'exit code 1' },
+              },
+            ],
+            finishWith: [],
+          },
+          // Attempt 2: success.
+          {
+            events: [
+              {
+                type: 'task.usage',
+                payload: { taskId: 'n3:merge-resolver', tokensIn: 1000, tokensOut: 500, turns: 7 },
+              },
+              {
+                type: 'task.completed',
+                payload: { taskId: 'n3:merge-resolver', outcome: 'pass', exitCode: 0 },
+              },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+
+    h.deps.mergeBranches = async () => ({ ok: false, conflict: 'CONFLICT' });
+    h.deps.abortMerge = async () => {
+      throw new Error('abortMerge should NOT fire when the retried resolver succeeds');
+    };
+    let statusCallCount = 0;
+    h.deps.getMergeStatus = async () => {
+      statusCallCount += 1;
+      // Pre-resolver: in-merge.
+      // Post-attempt-1: still in-merge (transient error → no progress).
+      // Post-attempt-2: clean + HEAD advanced (resolver finalised).
+      if (statusCallCount <= 2) {
+        return { inMerge: true, unmergedPaths: ['shared.txt'], headCommit: 'a'.repeat(40) };
+      }
+      return { inMerge: false, unmergedPaths: [], headCommit: 'b'.repeat(40) };
+    };
+
+    const plan = makePlan([
+      node('n1', 'architect'),
+      node('n2', 'developer'),
+      node('n3', 'qa', ['n1', 'n2']),
+    ]);
+
+    // Start the walker; advance fake timers so the retry-backoff resolves.
+    const startPromise = h.walker.start({
+      runId: 'r-retry',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+    // Pump fake timers until the resolver retry-backoff has fired.
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setImmediate(r));
+      h.timers.advance(10_000);
+    }
+    const outcome = await startPromise;
+    expect(outcome).toBe('success');
+
+    const resolverSpawns = h.spawns.filter((s) => s.taskId === 'n3:merge-resolver');
+    expect(resolverSpawns.length).toBe(2);
+
+    const n3Spawn = h.spawns.find((s) => s.taskId === 'n3');
+    expect(n3Spawn).toBeDefined();
+    // n3 main task ran AFTER both resolver attempts.
+    const n3Idx = h.spawns.findIndex((s) => s.taskId === 'n3');
+    expect(n3Idx).toBeGreaterThan(h.spawns.lastIndexOf(resolverSpawns[1]!));
+
+    // No task.failed for n3 — we recovered.
+    expect(h.emitted.some((e) => e.type === 'task.failed' && e.payload.taskId === 'n3')).toBe(false);
+  });
+
+  it('gives up after MAX_RESOLVER_ATTEMPTS when transient errors persist', async () => {
+    // If the upstream blip keeps blocking the resolver across every retry,
+    // the task must still fail (with a clear "transient retries" reason)
+    // rather than spin forever.
+    const transientScript: FakeTask = {
+      events: [
+        {
+          type: 'task.text-delta',
+          payload: { taskId: 'n3:merge-resolver', text: 'API Error: 529 Overloaded.\n' },
+        },
+        { type: 'task.failed', payload: { taskId: 'n3:merge-resolver', error: 'exit code 1' } },
+      ],
+      finishWith: [],
+    };
+    const scripts = new Map<string, FakeTask[]>([
+      ['n3:merge-resolver', [transientScript, transientScript, transientScript]],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+
+    h.deps.mergeBranches = async () => ({ ok: false, conflict: 'CONFLICT' });
+    let abortCalls = 0;
+    h.deps.abortMerge = async () => {
+      abortCalls += 1;
+    };
+    h.deps.getMergeStatus = async () => ({
+      inMerge: true,
+      unmergedPaths: ['shared.txt'],
+      headCommit: 'a'.repeat(40),
+    });
+
+    const plan = makePlan([
+      node('n1', 'architect'),
+      node('n2', 'developer'),
+      node('n3', 'qa', ['n1', 'n2']),
+    ]);
+
+    const startPromise = h.walker.start({
+      runId: 'r-retry-exhaust',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setImmediate(r));
+      h.timers.advance(15_000);
+    }
+    await startPromise;
+
+    // Three resolver attempts fired then walker abandoned.
+    const resolverSpawns = h.spawns.filter((s) => s.taskId === 'n3:merge-resolver');
+    expect(resolverSpawns.length).toBe(3);
+    expect(abortCalls).toBeGreaterThanOrEqual(1);
+
+    const n3Failed = h.emitted.find(
+      (e) => e.type === 'task.failed' && e.payload.taskId === 'n3',
+    ) as Extract<HarnessEvent, { type: 'task.failed' }> | undefined;
+    expect(n3Failed).toBeDefined();
+    expect(n3Failed!.payload.error).toContain('transient retries');
+  });
+
+  it('does NOT retry the resolver on a non-transient failure (skip wasted budget)', async () => {
+    // Resolver exited without resolving but with no transient marker — likely
+    // a structural impossibility. Retrying would just burn tokens. The walker
+    // must fail the task after exactly one attempt.
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n3:merge-resolver',
+        [
+          {
+            events: [
+              {
+                type: 'task.completed',
+                payload: { taskId: 'n3:merge-resolver', outcome: 'pass', exitCode: 0 },
+              },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+
+    h.deps.mergeBranches = async () => ({ ok: false, conflict: 'CONFLICT' });
+    h.deps.abortMerge = async () => {};
+    h.deps.getMergeStatus = async () => ({
+      inMerge: true,
+      unmergedPaths: ['weird.txt'],
+      headCommit: 'a'.repeat(40),
+    });
+
+    const plan = makePlan([
+      node('n1', 'architect'),
+      node('n2', 'developer'),
+      node('n3', 'qa', ['n1', 'n2']),
+    ]);
+    await h.walker.start({
+      runId: 'r-no-retry',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    expect(h.spawns.filter((s) => s.taskId === 'n3:merge-resolver').length).toBe(1);
+    const n3Failed = h.emitted.find(
+      (e) => e.type === 'task.failed' && e.payload.taskId === 'n3',
+    ) as Extract<HarnessEvent, { type: 'task.failed' }> | undefined;
+    expect(n3Failed).toBeDefined();
+    expect(n3Failed!.payload.error).not.toContain('transient retries');
+  });
+
   it('falls back to task.failed when the resolver does not finalise the merge', async () => {
     const scripts = new Map<string, FakeTask[]>([
       [

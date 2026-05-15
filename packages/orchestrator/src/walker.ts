@@ -650,75 +650,135 @@ export class Walker {
       `Context (do not start implementing this task itself — only resolve the merge):\n` +
       `  Role: ${node.role}\n  Task: ${node.id}\n`;
 
-    let resolverCrashed = false;
-    try {
-      const iter = this.deps.pool.run({
-        cwd: worktreePath,
-        prompt: resolverPrompt,
-        systemPrompt:
-          'You are an automated merge-conflict resolver embedded in a multi-agent harness. You operate inside a worktree with an unfinished git merge. Your single job is to resolve every conflict and commit the merge. Be precise, brief, and stay strictly within scope.',
-        allowedTools: ['Read', 'Edit', 'Write', 'Bash'],
-        maxTurns: 25,
-        taskId: `${node.id}:merge-resolver`,
-        runId,
-      });
-      for await (const ev of iter) {
-        this.deps.emit(ev);
-        // Attribute resolver usage to the parent task so run-level totals
-        // include the resolver's tokens/turns. Without this, the resolver
-        // is invisible in the dashboard counters even though it consumed
-        // real quota.
-        if (ev.type === 'task.usage') {
-          const newTokensIn = Math.max(taskRuntime.tokensIn, ev.payload.tokensIn);
-          const newTokensOut = Math.max(taskRuntime.tokensOut, ev.payload.tokensOut);
-          const newTurns = Math.max(taskRuntime.turnsUsed, ev.payload.turns);
-          this.runTokensInTotal += newTokensIn - taskRuntime.lastReportedTokensIn;
-          this.runTokensOutTotal += newTokensOut - taskRuntime.lastReportedTokensOut;
-          this.runTurnsTotal += newTurns - taskRuntime.lastReportedTurns;
-          taskRuntime.tokensIn = newTokensIn;
-          taskRuntime.tokensOut = newTokensOut;
-          taskRuntime.turnsUsed = newTurns;
-          taskRuntime.lastReportedTokensIn = newTokensIn;
-          taskRuntime.lastReportedTokensOut = newTokensOut;
-          taskRuntime.lastReportedTurns = newTurns;
-          await this.deps.onTaskState(node.id, {
-            tokensIn: taskRuntime.tokensIn,
-            tokensOut: taskRuntime.tokensOut,
-            turnsUsed: taskRuntime.turnsUsed,
-          });
-        }
+    // Transient infrastructure errors (Anthropic 529 / 503 / "Overloaded" /
+    // rate-limit chatter) can kill a resolver subprocess before it does any
+    // real work — exactly what happened on n13-builder during the 2026-05-15
+    // wertzeit-app run. Without retry, a momentary upstream blip cascade-
+    // fails every downstream task. Retry the resolver up to N times when we
+    // detect a transient pattern AND the worktree is still in merge state.
+    const MAX_RESOLVER_ATTEMPTS = 3;
+    const RETRY_BACKOFF_MS = 5000;
+    const TRANSIENT_RE =
+      /(\b5(29|03)\b|Overloaded|Service Unavailable|temporarily unavailable|rate.?limit|ETIMEDOUT|ECONNRESET)/i;
+
+    let postStatus: { inMerge: boolean; unmergedPaths: string[]; headCommit: string } = preStatus;
+    let lastReason = 'resolver did not finalise merge';
+    let lastTransientSeen = false;
+
+    for (let attempt = 1; attempt <= MAX_RESOLVER_ATTEMPTS; attempt++) {
+      let resolverCrashed = false;
+      let transientSeen = false;
+
+      if (attempt > 1) {
+        this.deps.emit({
+          type: 'task.text-delta',
+          payload: {
+            taskId: node.id,
+            text: `[harness] retrying merge-resolver (attempt ${attempt}/${MAX_RESOLVER_ATTEMPTS}) after transient infra error\n`,
+          },
+        });
       }
-    } catch (err) {
-      resolverCrashed = true;
-      const errStr = err instanceof Error ? err.message : String(err);
-      this.deps.emit({
-        type: 'task.text-delta',
-        payload: { taskId: node.id, text: `[harness] resolver crashed: ${errStr}\n` },
-      });
+
+      try {
+        const iter = this.deps.pool.run({
+          cwd: worktreePath,
+          prompt: resolverPrompt,
+          systemPrompt:
+            'You are an automated merge-conflict resolver embedded in a multi-agent harness. You operate inside a worktree with an unfinished git merge. Your single job is to resolve every conflict and commit the merge. Be precise, brief, and stay strictly within scope.',
+          allowedTools: ['Read', 'Edit', 'Write', 'Bash'],
+          maxTurns: 25,
+          taskId: `${node.id}:merge-resolver`,
+          runId,
+        });
+        for await (const ev of iter) {
+          this.deps.emit(ev);
+          // Watch for transient infra error markers anywhere the CLI surfaces
+          // them — `claude -p` emits API 529/503 errors as text-delta frames
+          // (treated as model output) right before exiting non-zero. The
+          // detector here is intentionally narrow so an agent legitimately
+          // discussing rate limits in resolved code doesn't trigger a retry.
+          if (ev.type === 'task.text-delta' && TRANSIENT_RE.test(ev.payload.text)) {
+            transientSeen = true;
+          }
+          if (ev.type === 'task.failed' && TRANSIENT_RE.test(ev.payload.error)) {
+            transientSeen = true;
+          }
+          // Attribute resolver usage to the parent task so run-level totals
+          // include the resolver's tokens/turns. Without this, the resolver
+          // is invisible in the dashboard counters even though it consumed
+          // real quota.
+          if (ev.type === 'task.usage') {
+            const newTokensIn = Math.max(taskRuntime.tokensIn, ev.payload.tokensIn);
+            const newTokensOut = Math.max(taskRuntime.tokensOut, ev.payload.tokensOut);
+            const newTurns = Math.max(taskRuntime.turnsUsed, ev.payload.turns);
+            this.runTokensInTotal += newTokensIn - taskRuntime.lastReportedTokensIn;
+            this.runTokensOutTotal += newTokensOut - taskRuntime.lastReportedTokensOut;
+            this.runTurnsTotal += newTurns - taskRuntime.lastReportedTurns;
+            taskRuntime.tokensIn = newTokensIn;
+            taskRuntime.tokensOut = newTokensOut;
+            taskRuntime.turnsUsed = newTurns;
+            taskRuntime.lastReportedTokensIn = newTokensIn;
+            taskRuntime.lastReportedTokensOut = newTokensOut;
+            taskRuntime.lastReportedTurns = newTurns;
+            await this.deps.onTaskState(node.id, {
+              tokensIn: taskRuntime.tokensIn,
+              tokensOut: taskRuntime.tokensOut,
+              turnsUsed: taskRuntime.turnsUsed,
+            });
+          }
+        }
+      } catch (err) {
+        resolverCrashed = true;
+        const errStr = err instanceof Error ? err.message : String(err);
+        if (TRANSIENT_RE.test(errStr)) transientSeen = true;
+        this.deps.emit({
+          type: 'task.text-delta',
+          payload: { taskId: node.id, text: `[harness] resolver crashed: ${errStr}\n` },
+        });
+      }
+
+      postStatus = await getMergeStatus(worktreePath);
+      const clean = !postStatus.inMerge && postStatus.unmergedPaths.length === 0;
+      const headAdvanced = postStatus.headCommit !== preStatus.headCommit;
+
+      if (clean && headAdvanced) {
+        this.deps.emit({
+          type: 'task.text-delta',
+          payload: {
+            taskId: node.id,
+            text: `[harness] merge-resolver finalised the merge; continuing task\n`,
+          },
+        });
+        return { ok: true };
+      }
+
+      if (clean && !headAdvanced) {
+        // Resolver explicitly aborted the merge — no retry would help.
+        return { ok: false, reason: 'resolver aborted the merge instead of resolving' };
+      }
+
+      lastTransientSeen = transientSeen;
+      lastReason = resolverCrashed
+        ? 'resolver crashed mid-merge'
+        : `resolver did not finalise merge (still unmerged: ${postStatus.unmergedPaths.join(', ') || 'MERGE_HEAD set'})`;
+
+      // Retry only when the failure looks transient and we have attempts left.
+      // A "structurally impossible" merge would just consume the budget without
+      // changing outcome — give up early in that case.
+      if (transientSeen && attempt < MAX_RESOLVER_ATTEMPTS) {
+        await new Promise<void>((resolve) => {
+          this.deps.setTimeout(resolve, RETRY_BACKOFF_MS * attempt);
+        });
+        continue;
+      }
+      break;
     }
 
-    const postStatus = await getMergeStatus(worktreePath);
-    if (postStatus.inMerge || postStatus.unmergedPaths.length > 0) {
-      await abortMerge(worktreePath);
-      return {
-        ok: false,
-        reason: resolverCrashed
-          ? 'resolver crashed mid-merge'
-          : `resolver did not finalise merge (still unmerged: ${postStatus.unmergedPaths.join(', ') || 'MERGE_HEAD set'})`,
-      };
-    }
-    if (postStatus.headCommit === preStatus.headCommit) {
-      return { ok: false, reason: 'resolver aborted the merge instead of resolving' };
-    }
-
-    this.deps.emit({
-      type: 'task.text-delta',
-      payload: {
-        taskId: node.id,
-        text: `[harness] merge-resolver finalised the merge; continuing task\n`,
-      },
-    });
-    return { ok: true };
+    await abortMerge(worktreePath);
+    return {
+      ok: false,
+      reason: lastTransientSeen ? `${lastReason}; gave up after transient retries` : lastReason,
+    };
   }
 
   /**
