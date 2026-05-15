@@ -41,9 +41,22 @@ export const projects = sqliteTable('projects', {
     .default(true),
   runtimeVerifyDevCmd: text('runtime_verify_dev_cmd'),
   runtimeVerifyProbeUrl: text('runtime_verify_probe_url'),
+  // Native-packaging target (migration 0017, v1.9). 'web' is the default and
+  // means "no packaging step — the result is a git branch". Any other value
+  // enables the post-verify packager agent that scaffolds Tauri/Electron and
+  // produces a downloadable installer at `artifactPath`.
+  packageTarget: text('package_target', {
+    enum: ['web', 'tauri-exe', 'electron-exe', 'pkg-bin'] as const,
+  })
+    .notNull()
+    .default('web'),
+  artifactPath: text('artifact_path'),
 });
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+
+export const packageTargetValues = ['web', 'tauri-exe', 'electron-exe', 'pkg-bin'] as const;
+export type PackageTarget = (typeof packageTargetValues)[number];
 
 // ----- teams -----
 /**
@@ -84,6 +97,9 @@ export type NewTeam = typeof teams.$inferInsert;
 export const planStatusValues = ['draft', 'locked', 'running', 'done', 'failed'] as const;
 export type PlanStatus = (typeof planStatusValues)[number];
 
+export const planKindValues = ['initial', 'iteration', 'hardening'] as const;
+export type PlanKind = (typeof planKindValues)[number];
+
 export const plans = sqliteTable('plans', {
   id: text('id').primaryKey(),
   projectId: text('project_id')
@@ -94,6 +110,15 @@ export const plans = sqliteTable('plans', {
   // Nullable for root plans; set to the predecessor's id when this is a QA-replan child.
   // FK lives in the SQL migration (self-referential Drizzle .references() has ordering issues).
   parentPlanId: text('parent_plan_id'),
+  // v1.9 (migration 0016). Distinguishes greenfield plans ('initial') from
+  // user-driven follow-up plans that consume project-state + change-requests
+  // ('iteration') and from auto-spawned hardening passes ('hardening').
+  kind: text('kind', { enum: planKindValues }).notNull().default('initial'),
+  // v1.9 (migration 0016). For iteration plans: the project_states row this
+  // plan was built against, so we can debug what the planner thought the
+  // codebase looked like. NULL for initial plans. FK lives in SQL only to
+  // sidestep cross-table ordering issues at the Drizzle layer.
+  parentStateId: text('parent_state_id'),
 });
 export type Plan = typeof plans.$inferSelect;
 export type NewPlan = typeof plans.$inferInsert;
@@ -592,6 +617,145 @@ export const runtimeReports = sqliteTable('runtime_reports', {
 });
 export type RuntimeReport = typeof runtimeReports.$inferSelect;
 export type NewRuntimeReport = typeof runtimeReports.$inferInsert;
+
+// ----- project_briefs (v1.9: interview-agent output) -----
+//
+// One row per project (UNIQUE index on project_id). Populated by the
+// requirements-interviewer agent during the Brief phase. `completenessScore`
+// rises as the interviewer extracts more facts; `briefReady` flips to true
+// when the interviewer or the user explicitly finalises. The planner reads
+// this row + the docs/PRD.md file at `prdPath` and refuses to plan when
+// `briefReady` is false (override flag exists for power-users).
+
+export const projectBriefs = sqliteTable('project_briefs', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  targetAudience: text('target_audience'),
+  successCriteria: text('success_criteria'),
+  designPrefs: text('design_prefs'),
+  platform: text('platform'),
+  constraints: text('constraints'),
+  deadline: integer('deadline', { mode: 'timestamp_ms' }),
+  completenessScore: integer('completeness_score').notNull().default(0),
+  prdPath: text('prd_path'),
+  briefReady: integer('brief_ready', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type ProjectBrief = typeof projectBriefs.$inferSelect;
+export type NewProjectBrief = typeof projectBriefs.$inferInsert;
+
+// ----- change_requests (v1.9: visual-edit + text-mode iteration queue) -----
+//
+// User-authored "change this region" or "add this feature" notes captured
+// from the Preview tab. The user accumulates a queue of pending requests and
+// then clicks "Run Iteration", at which point a new run is created with
+// kind='iteration' and the relevant change_requests are linked via runId
+// and flipped to 'in-run'. After the run the runtime-verifier / lead agent
+// marks each one 'done' or 'dismissed'.
+
+export const changeRequestStatusValues = ['pending', 'in-run', 'done', 'dismissed'] as const;
+export type ChangeRequestStatus = (typeof changeRequestStatusValues)[number];
+
+export const changeRequestSourceValues = ['visual', 'text'] as const;
+export type ChangeRequestSource = (typeof changeRequestSourceValues)[number];
+
+/**
+ * Storage shape for `change_requests.rectJson`. Captured from the inspector
+ * script via the iframe DOMRect. Width/height are pixels at the time of
+ * capture (the preview viewport may have changed since).
+ */
+export interface ChangeRequestRectJson {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export const changeRequests = sqliteTable('change_requests', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  // Nullable: a pending request has no run yet. Set when the iteration run is
+  // started. SET NULL on cascade so the request survives a run-deletion (the
+  // user might still want the note even if the run is gone).
+  runId: text('run_id'),
+  status: text('status', { enum: changeRequestStatusValues }).notNull().default('pending'),
+  source: text('source', { enum: changeRequestSourceValues }).notNull(),
+  selector: text('selector'),
+  rectJson: text('rect_json', { mode: 'json' }).$type<ChangeRequestRectJson>(),
+  screenshotPath: text('screenshot_path'),
+  userPrompt: text('user_prompt').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  resolvedAt: integer('resolved_at', { mode: 'timestamp_ms' }),
+});
+export type ChangeRequest = typeof changeRequests.$inferSelect;
+export type NewChangeRequest = typeof changeRequests.$inferInsert;
+
+// ----- project_states (v1.9: post-run snapshot of where the project stands) -----
+//
+// After every successful run the runtime-verifier (or future lead agent)
+// writes docs/project-state.md inside the managed repo. We persist one row
+// per snapshot here so iteration planners can read the most recent state
+// without re-parsing markdown and so the UI can render a "where we stand"
+// card. `stateMd` is the relative path to the markdown inside the result
+// branch; the other columns are extracted into JSON arrays of short bullets.
+
+export const projectStates = sqliteTable('project_states', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  runId: text('run_id'),
+  stateMd: text('state_md'),
+  completedFeatures: text('completed_features', { mode: 'json' }).$type<string[]>().notNull(),
+  openTodos: text('open_todos', { mode: 'json' }).$type<string[]>().notNull(),
+  knownIssues: text('known_issues', { mode: 'json' }).$type<string[]>().notNull(),
+  architectureSnapshot: text('architecture_snapshot', { mode: 'json' }).$type<unknown>(),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type ProjectState = typeof projectStates.$inferSelect;
+export type NewProjectState = typeof projectStates.$inferInsert;
+
+// ----- project_agent_overrides (v1.9: per-project role customisation) -----
+//
+// One row per (project, role) where the user wants to deviate from the
+// shared agent definition in /agents/*.md. Additive — base prompt is still
+// loaded and the override tail is appended. Empty rows (all NULL fields)
+// are meaningless; callers enforce. `memoryNamespace` lets one role share a
+// memory bucket across all projects, while another role keeps its bucket
+// per-project — the org-chart UI exposes this.
+
+export const projectAgentOverrides = sqliteTable('project_agent_overrides', {
+  id: text('id').primaryKey(),
+  projectId: text('project_id')
+    .notNull()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  role: text('role').notNull(),
+  model: text('model', { enum: agentModelValues }),
+  extraSystemPrompt: text('extra_system_prompt'),
+  extraAllowedTools: text('extra_allowed_tools', { mode: 'json' }).$type<string[]>(),
+  memoryNamespace: text('memory_namespace'),
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+export type ProjectAgentOverride = typeof projectAgentOverrides.$inferSelect;
+export type NewProjectAgentOverride = typeof projectAgentOverrides.$inferInsert;
 
 // ----- rateWindows -----
 export const rateWindows = sqliteTable('rate_windows', {

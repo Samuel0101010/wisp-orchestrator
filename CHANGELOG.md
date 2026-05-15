@@ -1,5 +1,52 @@
 # Changelog
 
+## Unreleased — v1.9.0 production-loop pipeline (in progress)
+
+Lays the schema foundation for the v1.9 release that turns the harness into
+a full "Plan → Run → Preview → Iterate → Build .exe" pipeline. Phase 0 is
+DB-only — no behavior changes; new tables and columns sit empty until the
+following phases (Interview agent, Iteration planner, Preview tab, Visual
+edit, Org-chart, Packaging) land.
+
+### Added (Phase 0 — schema foundation)
+
+- **`project_briefs` table** (migration 0012) — holds the
+  requirements-interviewer agent's structured output (target audience,
+  success criteria, design prefs, platform, constraints, deadline) plus a
+  `completenessScore` and `briefReady` gate. One brief per project (UNIQUE
+  index). Planner will require `briefReady=true` before Phase 1 ships.
+- **`change_requests` table** (migration 0013) — queue of pending
+  "change this region" / "add this feature" notes captured from the
+  Preview tab. Supports both visual-mode (selector + rect + screenshot)
+  and text-mode (plain prompt). Status flow: pending → in-run → done /
+  dismissed. Iteration runs consume the pending set.
+- **`project_states` table** (migration 0014) — post-run snapshot of
+  what the project actually does today: completed features, open todos,
+  known issues, thin architecture snapshot. Iteration planners will
+  consume the most recent row for surgical (non-greenfield) plans.
+- **`project_agent_overrides` table** (migration 0015) — per-project
+  per-role customisation: extra system-prompt tail, model swap, extra
+  allowed-tools, dedicated memory-namespace. Additive over the shared
+  `/agents/*.md` definitions. UNIQUE on `(project_id, role)`.
+- **`plans.kind` + `plans.parent_state_id`** (migration 0016) — Plans
+  now carry their generation context: `initial` (greenfield), `iteration`
+  (consumes a `project_states` row + pending change-requests), or
+  `hardening` (auto-spawned by self-healing). `parent_state_id` links
+  iteration plans to the state snapshot they were built against.
+- **`projects.package_target` + `projects.artifact_path`** (migration
+  0017) — Optional native-packaging target. `'web'` (default) keeps the
+  current behaviour. `'tauri-exe'` / `'electron-exe'` / `'pkg-bin'`
+  enable the v1.9 packager agent that produces a downloadable installer
+  after the release-gate goes ready.
+- Schema types in `@agent-harness/schemas`: `ProjectBrief`,
+  `ChangeRequest`, `ProjectState`, `ProjectAgentOverride`, `PlanKind`,
+  `PackageTarget` plus their `New*` insert types and the matching enum
+  value arrays (`planKindValues`, `packageTargetValues`,
+  `changeRequestStatusValues`, `changeRequestSourceValues`).
+- Migration test coverage: 7 new assertions in `migrations.test.ts`
+  verifying the schema lands cleanly, defaults are correct, the UNIQUE
+  constraints fire, and project deletion cascades to `change_requests`.
+
 ## 1.8.0 — Runtime verification + Definition-of-Done release-gate
 
 Closes the largest gap between "the harness says it's done" and "the app
