@@ -9,6 +9,17 @@ export const projects = sqliteTable('projects', {
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .$defaultFn(() => new Date()),
+  // Production-loop toggles (migration 0009). When `autoMergeOnSuccess` is
+  // true the harness fast-forward-merges the result branch into main after
+  // every successful run so the user's working tree picks up the finished
+  // code without a manual `git merge`. When `selfHealingEnabled` is true
+  // the harness scans docs/security-review.md + docs/qa-report.md for
+  // HIGH/CRITICAL findings after every successful run and, if any remain
+  // AND chain_iteration < maxChainIterations, spawns a follow-up
+  // hardening run automatically.
+  autoMergeOnSuccess: integer('auto_merge_on_success', { mode: 'boolean' }).notNull().default(true),
+  selfHealingEnabled: integer('self_healing_enabled', { mode: 'boolean' }).notNull().default(false),
+  maxChainIterations: integer('max_chain_iterations').notNull().default(3),
 });
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
@@ -153,6 +164,14 @@ export const runs = sqliteTable('runs', {
   errorReason: text('error_reason'),
   retryCount: integer('retry_count').notNull().default(0),
   nextRetryAt: integer('next_retry_at', { mode: 'timestamp_ms' }),
+  // Self-healing chain pointers (migration 0009). `parentRunId` is set
+  // when this run was spawned automatically as a follow-up to another
+  // run. `chainIteration` is 0 for user-launched runs and N for the
+  // N-th self-healing follow-up. The chain stops growing when either
+  // (a) the result branch's docs/*.md contain no remaining HIGH+
+  // findings or (b) chainIteration >= project.maxChainIterations.
+  parentRunId: text('parent_run_id'),
+  chainIteration: integer('chain_iteration').notNull().default(0),
 });
 export type Run = typeof runs.$inferSelect;
 export type NewRun = typeof runs.$inferInsert;

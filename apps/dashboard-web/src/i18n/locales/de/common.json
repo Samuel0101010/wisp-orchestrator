@@ -699,6 +699,21 @@
       "editButton": "Bearbeiten",
       "placeholder": "Beschreibe, was die Agents erreichen sollen.",
       "hint": "Generiere den Plan neu nach dem Speichern, damit kommende Runs das neue Ziel nutzen."
+    },
+    "productionMode": {
+      "title": "Production-Modus",
+      "description": "Liefert in einem Goal eine wirklich fertige App: Auto-Merge in main + automatische Härtungs-Runs.",
+      "autoMerge": "Auto-Merge",
+      "autoMergeDescription": "Mergt das result-Branch nach jedem erfolgreichen Run fast-forward in main.",
+      "selfHealing": "Self-Healing",
+      "selfHealingDescription": "Scannt docs/security-review.md + docs/qa-report.md nach HIGH/CRITICAL und startet bei Bedarf einen Härtungs-Run.",
+      "maxIterations": "Max. Iterationen",
+      "maxIterationsDescription": "Obergrenze für aufeinanderfolgende Self-Healing-Runs (1–10). Verhindert Endlos-Schleifen.",
+      "saved": "Production-Modus gespeichert",
+      "saveFailed": "Production-Modus konnte nicht gespeichert werden",
+      "chainIteration": "Iteration {{current}}/{{max}}",
+      "chainIterationShort": "Härtungs-Iteration {{current}}",
+      "chainParent": "← Vorheriger Run im Chain"
     }
   },
   "applyTemplate": {

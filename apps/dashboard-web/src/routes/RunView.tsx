@@ -808,6 +808,23 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
               {run.outcome && run.outcome !== run.status ? ` (${statusLabel(run.outcome, t)})` : ''}
             </StatusPill>
           </span>
+          {(snapshot.run.chainIteration ?? 0) > 0 && (
+            <Link
+              to={
+                snapshot.run.parentRunId
+                  ? `/projects/${projectId}/run/${snapshot.run.parentRunId}`
+                  : '#'
+              }
+              className="inline-flex items-center gap-1 rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-700 hover:bg-indigo-500/20 dark:text-indigo-300"
+              data-testid="chain-iteration-badge"
+              title={t('projectDetail.productionMode.chainParent')}
+            >
+              <ShieldCheck className="h-3 w-3" />
+              {t('projectDetail.productionMode.chainIterationShort', {
+                current: snapshot.run.chainIteration,
+              })}
+            </Link>
+          )}
           {snapshot.run.errorReason === 'max_turns' && (
             <span
               className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400"

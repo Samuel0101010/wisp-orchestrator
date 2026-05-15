@@ -7,12 +7,16 @@ import {
   ClipboardList,
   ExternalLink,
   FolderGit2,
+  GitMerge,
   Pencil,
   Play,
+  RefreshCcw,
+  ShieldCheck,
   Target,
   Users,
   X,
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import {
   useGeneratedPlan,
   useProject,
@@ -163,6 +167,13 @@ export function ProjectDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <ProductionModeCard
+        projectId={p.id}
+        autoMergeOnSuccess={p.autoMergeOnSuccess}
+        selfHealingEnabled={p.selfHealingEnabled}
+        maxChainIterations={p.maxChainIterations}
+      />
 
       <Card>
         <CardHeader>
@@ -399,6 +410,161 @@ function GoalCard({ projectId, goal }: GoalCardProps) {
         ) : (
           <p className="text-sm leading-relaxed">{goal}</p>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface ProductionModeCardProps {
+  projectId: string;
+  autoMergeOnSuccess: boolean;
+  selfHealingEnabled: boolean;
+  maxChainIterations: number;
+}
+
+/**
+ * Production-Modus card on the project detail page.
+ *
+ * Three knobs that together turn a one-shot run into an auto-iterating
+ * "make me a production-ready app" pipeline:
+ *
+ *   1. autoMergeOnSuccess — fast-forward the result branch into main after
+ *      every successful run, so the user's working tree picks up the
+ *      finished code without a manual `git merge`.
+ *   2. selfHealingEnabled — scan the result branch for HIGH/CRITICAL
+ *      findings after every successful run; if any remain AND
+ *      chainIteration < maxChainIterations, auto-spawn a follow-up
+ *      hardening run with those findings baked into its goal.
+ *   3. maxChainIterations — hard ceiling on the chain depth (1–10).
+ *
+ * Behaves like AutopilotToggle: local form state, dirty/saved indicator,
+ * resync from server only when not dirty.
+ */
+function ProductionModeCard({
+  projectId,
+  autoMergeOnSuccess,
+  selfHealingEnabled,
+  maxChainIterations,
+}: ProductionModeCardProps) {
+  const { t } = useTranslation();
+  const update = useUpdateProject();
+  const [autoMerge, setAutoMerge] = useState(autoMergeOnSuccess);
+  const [selfHeal, setSelfHeal] = useState(selfHealingEnabled);
+  const [maxIter, setMaxIter] = useState<string>(String(maxChainIterations));
+  const [saved, setSaved] = useState({
+    autoMerge: autoMergeOnSuccess,
+    selfHeal: selfHealingEnabled,
+    maxIter: String(maxChainIterations),
+  });
+
+  const dirty =
+    autoMerge !== saved.autoMerge ||
+    selfHeal !== saved.selfHeal ||
+    maxIter !== saved.maxIter ||
+    !/^\d+$/.test(maxIter) ||
+    Number(maxIter) < 1 ||
+    Number(maxIter) > 10;
+
+  const valid = /^\d+$/.test(maxIter) && Number(maxIter) >= 1 && Number(maxIter) <= 10;
+
+  const handleSave = async (): Promise<void> => {
+    if (!valid) return;
+    try {
+      await update.mutateAsync({
+        id: projectId,
+        autoMergeOnSuccess: autoMerge,
+        selfHealingEnabled: selfHeal,
+        maxChainIterations: Number(maxIter),
+      });
+      setSaved({ autoMerge, selfHeal, maxIter });
+      toast({ title: t('projectDetail.productionMode.saved') });
+    } catch (err) {
+      toast({
+        title: t('projectDetail.productionMode.saveFailed'),
+        description: (err as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <Card data-testid="production-mode-card">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <div className="flex flex-col gap-0.5">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+            {t('projectDetail.productionMode.title')}
+          </CardTitle>
+          <CardDescription className="text-2xs">
+            {t('projectDetail.productionMode.description')}
+          </CardDescription>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => void handleSave()}
+          disabled={update.isPending || !dirty || !valid}
+          data-testid="production-mode-save"
+          data-dirty={dirty}
+        >
+          {!update.isPending && !dirty && <Check className="mr-1 h-3 w-3" />}
+          {update.isPending
+            ? t('buttons.saving')
+            : dirty
+              ? t('buttons.save')
+              : t('runView.autopilot.saved')}
+        </Button>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={autoMerge}
+            onChange={(e) => setAutoMerge(e.target.checked)}
+            data-testid="production-mode-automerge"
+          />
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <GitMerge className="h-3.5 w-3.5 text-muted-foreground" />
+            {t('projectDetail.productionMode.autoMerge')}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {t('projectDetail.productionMode.autoMergeDescription')}
+          </span>
+        </label>
+
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selfHeal}
+            onChange={(e) => setSelfHeal(e.target.checked)}
+            data-testid="production-mode-selfheal"
+          />
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <RefreshCcw className="h-3.5 w-3.5 text-muted-foreground" />
+            {t('projectDetail.productionMode.selfHealing')}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {t('projectDetail.productionMode.selfHealingDescription')}
+          </span>
+        </label>
+
+        <div className="flex items-center gap-3">
+          <Input
+            type="number"
+            min={1}
+            max={10}
+            className="w-20"
+            value={maxIter}
+            onChange={(e) => setMaxIter(e.target.value)}
+            disabled={!selfHeal}
+            data-testid="production-mode-maxiter"
+            aria-label={t('projectDetail.productionMode.maxIterations')}
+          />
+          <span className="text-sm">{t('projectDetail.productionMode.maxIterations')}</span>
+          <span className="text-xs text-muted-foreground">
+            {t('projectDetail.productionMode.maxIterationsDescription')}
+          </span>
+        </div>
       </CardContent>
     </Card>
   );
