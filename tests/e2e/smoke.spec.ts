@@ -85,6 +85,13 @@ test.describe('Phase F1 smoke', () => {
     await expect(page.getByRole('button', { name: tt(lang, 'buttons.generatePlan') })).toBeVisible({
       timeout: 10_000,
     });
+
+    // v1.9 brief-gate: plan generation requires a finalised brief (briefReady=1).
+    // The smoke test skips the interview UI, so finalise the brief directly via
+    // the API before clicking Generate Plan, otherwise the server returns 412.
+    const finalizeRes = await page.request.post(`/api/projects/${projectId}/interview/finalize`);
+    expect(finalizeRes.ok(), `finalize brief: ${finalizeRes.status()}`).toBeTruthy();
+
     await page.getByRole('button', { name: tt(lang, 'buttons.generatePlan') }).click();
 
     // Step 5: navigate to /projects/<id>/plan, plan rendered with 3 nodes.

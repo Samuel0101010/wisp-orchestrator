@@ -279,7 +279,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
                   <span>{t('preview.edit.selected')}</span>
                 </div>
                 <code
-                  className="block truncate rounded bg-muted px-2 py-1 font-mono text-[11px]"
+                  className="block truncate rounded bg-muted px-2 py-1 font-mono text-xs"
                   title={selectedElement.selector}
                 >
                   {selectedElement.selector}

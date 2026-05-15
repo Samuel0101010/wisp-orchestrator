@@ -143,7 +143,7 @@ export function PendingChangesPanel({ projectId }: PendingChangesPanelProps) {
                   <span className="line-clamp-2 break-words text-foreground">{row.userPrompt}</span>
                   {row.selector ? (
                     <code
-                      className="truncate font-mono text-[10px] text-muted-foreground"
+                      className="truncate font-mono text-xs text-muted-foreground"
                       title={row.selector}
                     >
                       {row.selector}

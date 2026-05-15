@@ -8,7 +8,10 @@ if (!m) {
   process.exit(1);
 }
 const count = (m[1].match(/path\.join/g) ?? []).length;
-const MAX_ALLOWED = 5;
+// v1.15.1 — raised from 5 to 7 to cover preview-inspector.ts (iframe-injected
+// inline-style hex literals, can't use CSS vars) + OrgChartView.test.tsx
+// (snapshot fixture asserts a specific hex). Both landed in Phases 4-5.
+const MAX_ALLOWED = 7;
 if (count > MAX_ALLOWED) {
   console.error(
     `validate-tokens.cjs allowFiles grew past ${MAX_ALLOWED}: ${count}. Re-justify before raising.`,

@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.15.1 — CI hotfix
+
+Fixes two pre-existing CI failures that landed on main during Phases 3–7
+but were missed because local gates were green:
+
+### Fixed
+- Typecheck on a fresh CI checkout (TS2307: `@agent-harness/memory-mcp`)
+  because the workflow ran `pnpm typecheck` before `pnpm build`. Added a
+  `Build shared packages` step that produces `packages/**/dist/` first,
+  and tightened `handoff-loader.ts` callback types to clear 4 TS7006
+  implicit-any warnings.
+- e2e Playwright smoke broke after the v1.9 brief-gate started returning
+  412 `brief_not_ready` on `POST /api/projects/:id/plan`. Updated
+  `tests/e2e/smoke.spec.ts` and `tests/e2e/wave3.spec.ts` to call
+  `POST /api/projects/:id/interview/finalize` before clicking Generate
+  Plan so the gate passes.
+- `tokens:check` violations from Phases 4–5: replaced two `text-[Npx]`
+  arbitrary-Tailwind values with the closest token (`text-xs`) and
+  added two files to the validator allowlist — `preview-inspector.ts`
+  (injected into the preview iframe; can't reach our CSS vars) and
+  `OrgChartView.test.tsx` (snapshot fixture asserting a literal hex).
+
 ## 1.15.0 — Native packaging (Tauri) (Phase 7)
 
 Closes the "I built it, now how do I ship it?" gap. Until now the harness
