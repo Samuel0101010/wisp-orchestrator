@@ -1,5 +1,113 @@
 # Changelog
 
+## 1.15.0 — Native packaging (Tauri) (Phase 7)
+
+Closes the "I built it, now how do I ship it?" gap. Until now the harness
+ended a run with a green branch in the user's repo. v1.15 adds an opt-in
+post-success step that turns that branch into a real native installer (MSI
+on Windows, DMG on macOS, AppImage / DEB on Linux) and exposes a one-click
+download from the dashboard. The agent role (`packager` / Riley) is seeded
+for parity with the rest of the team, but the v1 happy path doesn't go
+through a Claude subprocess — the build runs through a dedicated, testable
+runner that shells out to `pnpm tauri build` directly.
+
+The trade-offs are deliberate and explicit:
+
+- **Synchronous build endpoint.** `POST /api/projects/:id/build` blocks
+  until the build finishes. A native build can take 30s–5min; that's fine
+  for v1 with one user at a time. No new tables, no background workers.
+- **`sha256` is informational, computed via `fs.readFileSync`.** That is
+  safe up to ~500MB installers on a developer workstation. Streaming hash
+  is on the v1.15.x list if real-world installers grow.
+- **Only `tauri-exe` is implemented.** The other `packageTarget` values
+  (`electron-exe`, `pkg-bin`) ship as radio-button placeholders in the
+  Settings tab with a "not implemented in v1.15" hint so users see the
+  roadmap without being able to trip over half-built code paths.
+
+### Added
+
+- **`apps/dashboard-server/src/orchestrator/packager-runner.ts`** (new) —
+  `runPackager({ projectId, runId, repoPath, packageTarget, execImpl?,
+  dataDirOverride? })` returns a typed `PackagerResult`. Pipeline:
+  probe `tauri --version` → probe `cargo --version` → scaffold
+  `src-tauri/` if missing (`tauri init --ci`) → `pnpm build` → `pnpm
+  tauri build` → recursive bundle-dir sweep for the first `.msi` /
+  `.exe` / `.dmg` / `.appimage` / `.deb` / `.rpm` → copy under
+  `<dataDir>/artifacts/<projectId>/<runId>/<basename>` → write
+  `docs/build-manifest.json`. Every shellout flows through an `execImpl`
+  seam so unit tests never invoke `cargo`. Foreseen failure modes
+  (`tauri_cli_missing`, `rust_toolchain_missing`, `web_build_failed`,
+  `tauri_build_failed`, `artifact_not_found`, `unsupported_target`)
+  return `ok:false` instead of throwing.
+- **`apps/dashboard-server/src/routes/build.ts`** (new) — three routes
+  registered after `agentOverridesRoutes`:
+  - `POST /api/projects/:projectId/build` — preconditions check (project
+    exists, `packageTarget != 'web'`, ≥1 successful run, no pending
+    change-requests), then calls `runPackager` synchronously. On success
+    persists `projects.artifact_path`. On `ok:false` returns 422 with
+    the typed result body. On pending change-requests returns 409.
+  - `GET /api/projects/:projectId/build/status` — returns
+    `{ artifactPath, packageTarget, recentBuild }`. `recentBuild` is an
+    in-process cache of the last result; not persisted.
+  - `GET /api/projects/:projectId/artifact` — streams the installer
+    with `Content-Disposition: attachment`. Uses `fs.createReadStream`,
+    so 200MB+ installers don't OOM the server.
+- **`apps/dashboard-server/src/db/agents-seed.ts`** — new seed `packager`
+  (Riley, sonnet, orange) with a Tauri-focused system prompt + a
+  scoped `Bash(pnpm:*, npm:*, npx:*, cargo:*, tauri:*, git:*, node:*)`
+  allowlist. Seed is idempotent — re-runs refresh the prompt/description.
+- **`apps/dashboard-server/src/routes/projects.ts`** — PATCH accepts a
+  new `packageTarget` field, validated against the existing
+  `packageTargetValues` enum from `@agent-harness/schemas`.
+- **`apps/dashboard-web/src/api/queries.ts`** — `PackagerResult`,
+  `PackagerError`, `PackageTarget`, `BuildStatusResponse` types plus
+  `useBuildStatus` (5s refetch), `useStartBuild`, and
+  `useDownloadArtifact` hooks. `UpdateProjectInput` gains `packageTarget`.
+- **`apps/dashboard-web/src/components/BuildAppCard.tsx`** (new) —
+  Settings-tab card that renders the build button, status badge,
+  artifact basename + size + sha-prefix, and a Download button. Button
+  disables with localized tooltips: "Needs ≥1 successful run", "Resolve
+  N pending change-request(s) first", "Build already in progress". On
+  failure toasts a localized hint per `PackagerError`. data-testids:
+  `build-app-card`, `build-app-button`, `build-app-download`,
+  `build-status`, `build-error`.
+- **`apps/dashboard-web/src/components/BuildTargetSelect.tsx`** (new) —
+  4-option radio group with a "not implemented in v1.15" hint on the
+  electron/pkg rows. Saves via the existing `useUpdateProject`.
+  data-testid prefix: `build-target-option-<value>`.
+- **`apps/dashboard-web/src/routes/ProjectDetail.tsx`** — Settings tab
+  now renders `BuildTargetSelect` + `BuildAppCard` below the existing
+  Production-Modus-Karte.
+- **i18n** EN + DE under `buildApp.*` — `title`, `description`,
+  `disabledHint`, `status.*`, `disabled.*`, `actions.*`, `errors.*`
+  (one entry per `PackagerError` code), `toasts.*`, `target.*`.
+- **`scripts/doctor.mjs`** — two new non-fatal checks: `cargo --version`
+  with a "Install Rust: https://rustup.rs" hint, and `pnpm exec tauri
+  --version` with a "pnpm add -g @tauri-apps/cli" hint.
+
+### Tests
+
+- **`apps/dashboard-server/src/__tests__/packager-runner.test.ts`** —
+  7 cases using a mocked `execImpl`: tauri-cli missing,
+  rust-toolchain missing, web-build failure, unsupported target,
+  happy path (creates a fake installer in the bundle dir, runner
+  copies it to a temp dataDir, asserts sha256 / size / manifest),
+  artifact-not-found, idempotent re-run overwrites the destination
+  with new content + new sha256.
+- **`apps/dashboard-server/src/__tests__/build-route.test.ts`** —
+  8 cases injecting a fake packager: 404 unknown project, 400 web
+  target, 400 no-successful-run, happy 200 + artifactPath persisted,
+  422 packager failure, 409 pending change-requests, GET /build/status
+  shape, GET /artifact 404 when unset.
+- **`apps/dashboard-web/src/components/BuildAppCard.test.tsx`** —
+  4 cases: web-target renders the disabled copy, pending change-
+  requests disable the button (count shown), missing successful run
+  disables the button, happy path POSTs `/build` once and the
+  Download button + basename appear in the DOM.
+
+CI: 403 server / 120 web / 45 schemas / 33 memory-mcp / typecheck clean /
+lint clean / prettier clean.
+
 ## 1.14.0 — Agent communications upgrade (Phase 6)
 
 Closes three gaps in how agents communicate across a run: memory was per-run

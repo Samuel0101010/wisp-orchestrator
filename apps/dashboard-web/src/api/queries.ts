@@ -98,6 +98,80 @@ export interface UpdateProjectInput {
   runtimeVerifyEnabled?: boolean;
   runtimeVerifyDevCmd?: string | null;
   runtimeVerifyProbeUrl?: string | null;
+  // v1.15 (Phase 7) native-packaging target.
+  packageTarget?: PackageTarget;
+}
+
+// ---------- Native packaging (v1.15) ----------
+
+export type PackageTarget = 'web' | 'tauri-exe' | 'electron-exe' | 'pkg-bin';
+
+export type PackagerError =
+  | 'tauri_cli_missing'
+  | 'rust_toolchain_missing'
+  | 'web_build_failed'
+  | 'tauri_build_failed'
+  | 'artifact_not_found'
+  | 'unsupported_target';
+
+export interface PackagerResult {
+  ok: boolean;
+  artifactPath: string | null;
+  relativeBuildPath: string | null;
+  sizeBytes: number | null;
+  sha256: string | null;
+  error?: PackagerError;
+  buildLog: string;
+  durationMs: number;
+}
+
+export interface BuildStatusResponse {
+  artifactPath: string | null;
+  packageTarget: PackageTarget;
+  recentBuild: PackagerResult | null;
+}
+
+export function useBuildStatus(projectId: string | undefined) {
+  return useQuery<BuildStatusResponse | null>({
+    queryKey: ['build-status', projectId ?? null],
+    enabled: Boolean(projectId),
+    refetchInterval: 5000,
+    queryFn: async () => {
+      if (!projectId) return null;
+      try {
+        return await apiFetch<BuildStatusResponse>(`/api/projects/${projectId}/build/status`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
+  });
+}
+
+export function useStartBuild(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<PackagerResult, ApiError, void>({
+    mutationFn: async () => {
+      if (!projectId) throw new ApiError(0, 'No project id');
+      return apiFetch<PackagerResult>(`/api/projects/${projectId}/build`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ['build-status', projectId] });
+      void qc.invalidateQueries({ queryKey: ['project', projectId] });
+    },
+  });
+}
+
+export function useDownloadArtifact(projectId: string | undefined): () => void {
+  return () => {
+    if (!projectId) return;
+    // Browser-native download — open in a new tab so the user keeps their
+    // dashboard session intact.
+    window.open(`/api/projects/${projectId}/artifact`, '_blank', 'noopener,noreferrer');
+  };
 }
 
 // ---------- DoD criteria (v1.8) ----------
