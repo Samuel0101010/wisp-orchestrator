@@ -1,5 +1,55 @@
 # Changelog
 
+## 1.7.16 — Autopilot: pause-reason gating + resumeAt respect + decision log + watching banner
+
+Closes three behavioural gaps in the autopilot tick that surfaced once
+v1.7.15 made the feature actually reachable from project-level UI:
+
+### Fixed
+
+- **Pause-reason filter.** The cron handler `tickAutopilot` previously
+  picked up every `paused + autopilotMode=true` row and tried to resume
+  it. That meant a user-clicked Pause would silently bounce back on the
+  next tick, and a `consecutive-failures` pause (structural — the
+  walker just hit the threshold) would keep re-running into the same
+  wall. The tick now filters to `pausedReason ∈ {rate-limit, shutdown}`
+  only. User-pause + consecutive-failures require a manual Resume click.
+- **`resumeAt` respect for rate-limit.** Rate-limit pauses come with a
+  `resumeAt` timestamp from the rate-limit handler. The tick previously
+  ignored it and would hammer the API until the resume itself
+  re-tripped the limit. Now it waits silently until `resumeAt` is in
+  the past before claiming the run.
+
+### Added
+
+- **Decision audit log.** Every actionable decision the tick takes
+  (resumed, halted on budget, resume-failed, resume-errored) is now
+  persisted as an `autopilot.decision` row in the events table, scoped
+  to the run. Lets the user see what autopilot actually did instead of
+  guessing from the eventual outcome. Pure skips
+  (pause-reason-not-auto-resumable, rate-limit-window-still-open) are
+  intentionally NOT logged — they would spam the feed every minute.
+- **"Autopilot wacht" indicator** on the RunView. When a run is paused
+  with an auto-resumable reason AND autopilot is on, a small green
+  emerald banner shows under the AutopilotToggle: "Autopilot wacht —
+  wartet bis HH:MM:SS" with the resumeAt time, or "bereit zum
+  Auto-Resume" for shutdown pauses.
+- **AutopilotToggle tooltip.** A new `Info`-icon next to the label
+  shows on hover a one-liner explaining exactly what autopilot does:
+  what it auto-resumes, what it explicitly leaves alone, and where it
+  stops. Eliminates the common "autopilot = run the whole goal
+  autonomously" mental-model mismatch.
+
+### Tests
+
+5 new tick cases in `autopilot.test.ts`:
+- user-paused run → skipped, not resumed
+- consecutive-failures-paused run → skipped, not resumed
+- rate-limit run with `resumeAt` in the future → skipped (window open)
+- shutdown run with budget already blown → halted + decision event
+  with `action='halted'` persisted to the events table
+- autopilotMode=false run → ignored (not even in the candidate set)
+
 ## 1.7.15 — Project-level autopilot defaults + chain visualisation + harden-run endpoint
 
 Closes the UX gap exposed by the v1.7.14 wertzeit-app dry run: a 4-deep
