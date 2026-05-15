@@ -90,6 +90,35 @@ try {
   warn('npx', 'not on PATH', 'npx ships with npm — install Node.js with bundled npm');
 }
 
+// Rust toolchain — required by the v1.15 Tauri packager. Non-fatal: only
+// matters when the user wants to ship a native installer.
+try {
+  const v = execSync('cargo --version', { stdio: ['ignore', 'pipe', 'ignore'] })
+    .toString()
+    .trim();
+  ok('Rust (cargo)', v);
+} catch {
+  warn(
+    'Rust (cargo)',
+    'not on PATH',
+    'Install Rust: https://rustup.rs — required for Tauri native packaging.',
+  );
+}
+
+// Tauri CLI — required by the v1.15 packager.
+try {
+  const v = execSync('pnpm exec tauri --version', { stdio: ['ignore', 'pipe', 'ignore'] })
+    .toString()
+    .trim();
+  ok('Tauri CLI', v);
+} catch {
+  warn(
+    'Tauri CLI',
+    'not on PATH',
+    'Install Tauri CLI: pnpm add -g @tauri-apps/cli (only needed for tauri-exe packageTarget).',
+  );
+}
+
 const pad = (s, n) => (s.length >= n ? s : s + ' '.repeat(n - s.length));
 console.log('agent-harness doctor — runtime checks for v1.8\n');
 for (const c of checks) {

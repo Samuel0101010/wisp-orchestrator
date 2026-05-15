@@ -5,7 +5,7 @@ import path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { plans, projects, runs } from '@agent-harness/schemas';
+import { packageTargetValues, plans, projects, runs } from '@agent-harness/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import { actionableFindings, scanRefForFindings } from '../orchestrator/findings.js';
@@ -42,6 +42,8 @@ const patchProjectSchema = z
     runtimeVerifyEnabled: z.boolean().optional(),
     runtimeVerifyDevCmd: z.string().min(1).nullable().optional(),
     runtimeVerifyProbeUrl: z.string().min(1).nullable().optional(),
+    // v1.15 (Phase 7) — native-packaging target. 'web' disables packaging.
+    packageTarget: z.enum(packageTargetValues).optional(),
   })
   .refine(
     (v) =>
@@ -56,7 +58,8 @@ const patchProjectSchema = z
       v.defaultAutopilotBudgetTokens !== undefined ||
       v.runtimeVerifyEnabled !== undefined ||
       v.runtimeVerifyDevCmd !== undefined ||
-      v.runtimeVerifyProbeUrl !== undefined,
+      v.runtimeVerifyProbeUrl !== undefined ||
+      v.packageTarget !== undefined,
     {
       message: 'at least one editable field must be provided',
     },
@@ -154,6 +157,7 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         updates.runtimeVerifyDevCmd = patch.runtimeVerifyDevCmd;
       if (patch.runtimeVerifyProbeUrl !== undefined)
         updates.runtimeVerifyProbeUrl = patch.runtimeVerifyProbeUrl;
+      if (patch.packageTarget !== undefined) updates.packageTarget = patch.packageTarget;
       await db.update(projects).set(updates).where(eq(projects.id, params.id)).run();
       const updated = await db.select().from(projects).where(eq(projects.id, params.id)).get();
       return updated ?? existing;

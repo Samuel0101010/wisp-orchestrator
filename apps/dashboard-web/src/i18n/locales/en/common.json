@@ -1046,6 +1046,51 @@
     "initialsLabel": "Initials",
     "footer": "Pick a picture or use an initials fallback. The same picture can be reused across agents."
   },
+  "buildApp": {
+    "title": "Build App",
+    "description": "Package the current successful build into a native installer.",
+    "disabledHint": "Set packageTarget to a non-web value to enable native packaging.",
+    "status": {
+      "web": "Native packaging disabled — packageTarget is 'web'.",
+      "notReady": "Not ready",
+      "ready": "Ready to build",
+      "building": "Building…",
+      "built": "Installer ready"
+    },
+    "disabled": {
+      "noSuccess": "Needs at least one successful run.",
+      "pending": "Resolve {{count}} pending change-request(s) first.",
+      "inFlight": "Build already in progress."
+    },
+    "actions": {
+      "build": "Build App",
+      "building": "Building…",
+      "download": "Download"
+    },
+    "errors": {
+      "tauri_cli_missing": "Tauri CLI not found. Install it with: pnpm add -g @tauri-apps/cli",
+      "rust_toolchain_missing": "Rust toolchain not found. Install Rust: https://rustup.rs",
+      "web_build_failed": "Web build (pnpm build) failed. Check the project's build script.",
+      "tauri_build_failed": "Tauri build failed. Inspect docs/build-manifest.json + the run log.",
+      "artifact_not_found": "Tauri build finished but no installer was produced.",
+      "unsupported_target": "This packageTarget is not implemented yet."
+    },
+    "toasts": {
+      "success": "Build complete — installer ready to download.",
+      "failed": "Build failed"
+    },
+    "target": {
+      "title": "Build target",
+      "description": "Choose how the project should be shipped. Only tauri-exe is implemented in v1.15.",
+      "web": "Web only (no installer)",
+      "tauri-exe": "Tauri desktop installer (Windows / macOS / Linux)",
+      "electron-exe": "Electron installer",
+      "pkg-bin": "pkg standalone binary",
+      "placeholder": "Placeholder — not implemented in v1.15.",
+      "saved": "Build target saved",
+      "saveFailed": "Could not save build target"
+    }
+  },
   "tooltips": {
     "newThread": "New conversation",
     "sendMessage": "Send message (Ctrl+Enter)",

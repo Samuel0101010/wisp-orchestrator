@@ -43,6 +43,8 @@ import { BriefCard } from '@/components/BriefCard';
 import { ProjectStateCard } from '@/components/ProjectStateCard';
 import { PreviewFrame } from '@/components/PreviewFrame';
 import { OrgChartView } from '@/components/OrgChartView';
+import { BuildAppCard } from '@/components/BuildAppCard';
+import { BuildTargetSelect } from '@/components/BuildTargetSelect';
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
@@ -297,6 +299,8 @@ function ProjectTabs({
           defaultAutopilotBudgetMinutes={p.defaultAutopilotBudgetMinutes}
           defaultAutopilotBudgetTokens={p.defaultAutopilotBudgetTokens}
         />
+        <BuildTargetSelect projectId={projectId} packageTarget={p.packageTarget ?? 'web'} />
+        <BuildAppCard projectId={projectId} packageTarget={p.packageTarget ?? 'web'} />
       </TabsContent>
     </Tabs>
   );

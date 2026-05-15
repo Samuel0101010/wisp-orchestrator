@@ -1046,6 +1046,51 @@
     "initialsLabel": "Initialen",
     "footer": "Wähle ein Bild oder nutze den Initialen-Fallback. Das gleiche Bild kann für mehrere Agents verwendet werden."
   },
+  "buildApp": {
+    "title": "App bauen",
+    "description": "Den aktuellen erfolgreichen Build in einen nativen Installer paketieren.",
+    "disabledHint": "Setze packageTarget auf einen Wert ungleich 'web', um natives Paketieren zu aktivieren.",
+    "status": {
+      "web": "Natives Paketieren deaktiviert — packageTarget ist 'web'.",
+      "notReady": "Nicht bereit",
+      "ready": "Bereit zum Bauen",
+      "building": "Baue…",
+      "built": "Installer bereit"
+    },
+    "disabled": {
+      "noSuccess": "Mindestens ein erfolgreicher Run wird benötigt.",
+      "pending": "Erst {{count}} offene(n) Change-Request(s) abschließen.",
+      "inFlight": "Build läuft bereits."
+    },
+    "actions": {
+      "build": "App bauen",
+      "building": "Baue…",
+      "download": "Herunterladen"
+    },
+    "errors": {
+      "tauri_cli_missing": "Tauri-CLI nicht gefunden. Installiere mit: pnpm add -g @tauri-apps/cli",
+      "rust_toolchain_missing": "Rust-Toolchain nicht gefunden. Installiere Rust: https://rustup.rs",
+      "web_build_failed": "Web-Build (pnpm build) fehlgeschlagen. Prüfe das Build-Script des Projekts.",
+      "tauri_build_failed": "Tauri-Build fehlgeschlagen. Siehe docs/build-manifest.json + Run-Log.",
+      "artifact_not_found": "Tauri-Build beendet, aber kein Installer erzeugt.",
+      "unsupported_target": "Dieses packageTarget ist noch nicht implementiert."
+    },
+    "toasts": {
+      "success": "Build fertig — Installer steht zum Download bereit.",
+      "failed": "Build fehlgeschlagen"
+    },
+    "target": {
+      "title": "Build-Ziel",
+      "description": "Wähle das Auslieferungsformat. Nur tauri-exe ist in v1.15 implementiert.",
+      "web": "Nur Web (kein Installer)",
+      "tauri-exe": "Tauri-Desktop-Installer (Windows / macOS / Linux)",
+      "electron-exe": "Electron-Installer",
+      "pkg-bin": "pkg-Standalone-Binary",
+      "placeholder": "Platzhalter — in v1.15 nicht implementiert.",
+      "saved": "Build-Ziel gespeichert",
+      "saveFailed": "Build-Ziel konnte nicht gespeichert werden"
+    }
+  },
   "tooltips": {
     "newThread": "Neue Konversation",
     "sendMessage": "Nachricht senden (Strg+Eingabe)",
