@@ -1,8 +1,10 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import './setup.js';
+import { describe, expect, it, beforeAll, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { plans, projects, runs, tasks } from '@agent-harness/schemas';
 import { db } from '../db/index.js';
+import { runMigrations } from '../db/migrate.js';
 import { RunRuntime } from '../orchestrator/runtime.js';
 import { Walker } from '@agent-harness/orchestrator';
 
@@ -13,13 +15,16 @@ describe('project autopilot defaults → new run inheritance', () => {
   let projectId: string;
   let planId: string;
 
+  // The setup.ts sibling import wires HARNESS_DATA_DIR to a tmpdir but does
+  // NOT apply migrations — the production server runs them on boot from
+  // server.ts. We do the same here once, then each test seeds fresh rows.
+  beforeAll(() => {
+    runMigrations();
+  });
+
   beforeEach(async () => {
     projectId = randomUUID();
     planId = randomUUID();
-
-    // Use scratch tmpdir to keep this test from clobbering real data; the
-    // dashboard-server harness already sets HARNESS_DATA_DIR for tests so we
-    // just write to the shared scratch DB.
     db.delete(tasks).where(eq(tasks.planId, planId)).run();
     db.delete(plans).where(eq(plans.id, planId)).run();
     db.delete(projects).where(eq(projects.id, projectId)).run();
