@@ -70,6 +70,7 @@
       "enabled": "aktiv",
       "disabled": "deaktiviert"
     },
+    "disabledTooltip": "Worker ist deaktiviert (im Server-Config gesetzt)",
     "actions": {
       "runNow": "Jetzt ausführen",
       "running": "Läuft…"
