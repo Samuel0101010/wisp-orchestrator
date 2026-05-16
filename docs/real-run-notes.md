@@ -1,6 +1,6 @@
 # Real-Claude Smoke Run — M1.5 Stage G
 
-First end-to-end validation of Agent Harness against the real `claude` CLI on a
+First end-to-end validation of WISP against the real `claude` CLI on a
 Claude Max subscription, against a fresh empty git repository. Captures the gap
 between mock-CLI tests and reality, plus measured timings, surprises, and the
 foundation-level claims that real-Claude can confirm but mocks cannot.

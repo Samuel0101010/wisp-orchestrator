@@ -1,6 +1,6 @@
 # Memory MCP
 
-`@agent-harness/memory-mcp` is a stdio MCP server bundled with Agent Harness
+`@agent-harness/memory-mcp` is a stdio MCP server bundled with WISP
 that gives every task subprocess in a run access to a small shared key/value
 store. Tasks can drop notes for downstream tasks (e.g. the architect writes
 `arch.spec`, the developer reads it) without inventing ad-hoc file conventions.

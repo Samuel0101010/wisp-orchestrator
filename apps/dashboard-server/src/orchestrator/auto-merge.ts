@@ -37,7 +37,7 @@ const GIT_IDENT = [
   '-c',
   'user.email=harness@agent-harness.local',
   '-c',
-  'user.name=Agent Harness',
+  'user.name=WISP',
   '-c',
   'commit.gpgsign=false',
 ];

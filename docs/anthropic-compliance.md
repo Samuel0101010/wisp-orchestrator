@@ -2,7 +2,7 @@
 
 ## TL;DR
 
-Agent Harness wraps the official `claude` CLI. It does not extract
+WISP wraps the official `claude` CLI. It does not extract
 credentials, does not call Anthropic's API endpoints directly, and does not
 re-implement subscription auth. The runtime defaults are tuned to look like
 intensive human use rather than automated bulk traffic. CI enforces these

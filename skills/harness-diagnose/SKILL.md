@@ -1,9 +1,9 @@
 ---
 name: harness-diagnose
-description: Use when an Agent Harness run failed unexpectedly or is stuck — fetches the event timeline for a run, highlights failures, and prints the verify-failed payloads with full output so the user can see exactly why a task failed. Trigger on phrases like "why did the run fail", "diagnose the harness", "what went wrong with the run".
+description: Use when a WISP run failed unexpectedly or is stuck — fetches the event timeline for a run, highlights failures, and prints the verify-failed payloads with full output so the user can see exactly why a task failed. Trigger on phrases like "why did the run fail", "diagnose the harness", "what went wrong with the run".
 ---
 
-# Agent Harness — Diagnose Run
+# WISP — Diagnose Run
 
 Inspect a run's event timeline to figure out what failed and why.
 

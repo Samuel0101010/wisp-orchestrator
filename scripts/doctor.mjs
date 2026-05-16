@@ -34,7 +34,7 @@ const nodeMajor = Number(process.versions.node.split('.')[0]);
 if (nodeMajor >= 20) {
   ok('Node.js', `v${process.versions.node}`);
 } else {
-  warn('Node.js', `v${process.versions.node}`, 'Agent Harness requires Node >= 20.10');
+  warn('Node.js', `v${process.versions.node}`, 'WISP requires Node >= 20.10');
 }
 
 // pnpm

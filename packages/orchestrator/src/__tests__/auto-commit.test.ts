@@ -40,7 +40,7 @@ describe('commitWorktreeChanges', () => {
       const sha = await commitWorktreeChanges(wt, 'task-1');
       expect(sha).toMatch(/^[0-9a-f]{40}$/);
       const { stdout } = await execa('git', ['log', '--format=%ae|%an|%s', '-1'], { cwd: wt });
-      expect(stdout).toBe('harness@agent-harness.local|Agent Harness|harness: task-1');
+      expect(stdout).toBe('harness@agent-harness.local|WISP|harness: task-1');
       await rm(wt, { recursive: true, force: true });
     });
   });
