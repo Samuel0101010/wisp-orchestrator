@@ -105,7 +105,7 @@
     "reloading": "Lade neu…"
   },
   "promptBundles": {
-    "title": "Prompt-Bundle Cache",
+    "title": "Prompt-Bundles",
     "subtitle_one": "{{count}} gecachtes Bundle",
     "subtitle_other": "{{count}} gecachte Bundles",
     "explanation": "Jede Zeile ist ein stabiles Arbeitsverzeichnis + Claude-Session für eine einzigartige (System-Prompt, Tools, Model)-Kombination. Die Wiederverwendung hält den Server-Cache von Anthropic warm.",
