@@ -224,6 +224,7 @@ function SwitchRow({ label, checked, onChange, testId }: SwitchRowProps): React.
             borderRadius: '50%',
             background: 'var(--wisp-ink)',
             transform: checked ? 'translateX(18px)' : 'translateX(3px)',
+            pointerEvents: 'none',
           }}
         />
       </button>

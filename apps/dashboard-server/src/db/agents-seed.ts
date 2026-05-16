@@ -29,7 +29,12 @@ interface SeedDef {
   systemPrompt: string;
   description: string;
   allowedTools: string[];
-  avatarUrl: string;
+  /**
+   * Optional. Some seed personas (sarah/riley/theo) ship without a JPG so the UI
+   * falls back to initials — keeps the public/avatars/ payload small and avoids
+   * 404s on first paint of the Agents page.
+   */
+  avatarUrl?: string;
   color: string | null;
 }
 
@@ -392,7 +397,6 @@ const SEEDS: SeedDef[] = [
       'Grep',
       'Bash(pnpm:*, npm:*, npx:*, cargo:*, tauri:*, git:*, node:*)',
     ],
-    avatarUrl: '/avatars/seed-riley.jpg',
     color: '#F97316',
   },
   {
@@ -402,7 +406,6 @@ const SEEDS: SeedDef[] = [
     systemPrompt: leadPrompt(),
     description: 'Team Lead · synthesises state + events + handoffs into routing decisions.',
     allowedTools: READ_ONLY_TOOLS,
-    avatarUrl: '/avatars/seed-theo.jpg',
     color: '#8B5CF6',
   },
   {
@@ -413,7 +416,6 @@ const SEEDS: SeedDef[] = [
     description:
       'Requirements Interviewer · extracts a complete project brief before planning starts.',
     allowedTools: READ_ONLY_TOOLS,
-    avatarUrl: '/avatars/seed-sarah.jpg',
     color: '#10B981',
   },
 ];
@@ -445,7 +447,7 @@ export function seedAgents(): SeedStats {
             JSON.stringify(s.allowedTools),
             s.color,
             s.description,
-            s.avatarUrl,
+            s.avatarUrl ?? null,
             s.seedKey,
             now,
             now,
@@ -458,7 +460,7 @@ export function seedAgents(): SeedStats {
         // name/model/allowedTools/color alone if they've been edited.
         const promptChanged = existing.systemPrompt !== s.systemPrompt;
         const descChanged = (existing.description ?? '') !== s.description;
-        const avatarChanged = (existing.avatarUrl ?? '') !== s.avatarUrl;
+        const avatarChanged = (existing.avatarUrl ?? '') !== (s.avatarUrl ?? '');
         if (promptChanged || descChanged || avatarChanged) {
           sqlite
             .prepare(
@@ -466,7 +468,7 @@ export function seedAgents(): SeedStats {
                  SET system_prompt = ?, description = ?, avatar_url = ?, updated_at = ?
                WHERE id = ?`,
             )
-            .run(s.systemPrompt, s.description, s.avatarUrl, now, existing.id);
+            .run(s.systemPrompt, s.description, s.avatarUrl ?? null, now, existing.id);
           stats.refreshed += 1;
         }
       }
