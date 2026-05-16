@@ -284,7 +284,7 @@ Possible future directions, deliberately not pursued in v1.0:
 
 ## License
 
-Apache-2.0 — see [LICENSE](LICENSE). Repository is private at the moment; the license declaration takes effect whenever the repo (or the plugin via marketplace) becomes public.
+Apache-2.0 — see [LICENSE](LICENSE).
 
 ## Repo layout
 

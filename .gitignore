@@ -72,3 +72,15 @@ agents-page.png
 # Runtime per-run MCP configs / memory DBs (server only)
 apps/dashboard-server/mcp-configs/
 apps/dashboard-server/memory/
+
+# Internal planning / audit artifacts (not for public repo)
+PROJEKTSTRUKTURPLAN.md
+audit-artifacts/live-probe/
+# Root-only source artwork (published asset lives under docs/assets/)
+WISP_Figur.png
+
+# Local Claude session state inside workspaces
+apps/*/.claude/
+
+# Failed-test screenshots from interactive runs
+tests/e2e/*-failure.png
