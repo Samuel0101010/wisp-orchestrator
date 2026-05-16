@@ -49,7 +49,12 @@ test.describe('Phase F1 smoke', () => {
     await expect(page.getByTestId('sidebar-mission-control')).toBeVisible();
 
     // Step 2: + New Project. Fill name/goal/repoPath. Submit.
-    await page.getByRole('button', { name: tt(lang, 'navigation.newProject') }).click();
+    // Scope to the sidebar — the Wisp Home page also exposes a hero "New
+    // project" button, so an unscoped role-by-name match is ambiguous.
+    await page
+      .getByTestId('sidebar')
+      .getByRole('button', { name: tt(lang, 'navigation.newProject') })
+      .click();
     await expect(page.getByText(tt(lang, 'newProject.title'), { exact: true })).toBeVisible();
 
     await page.getByLabel(tt(lang, 'newProject.fields.name')).fill('smoke-todo');
