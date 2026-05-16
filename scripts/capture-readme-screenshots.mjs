@@ -54,13 +54,18 @@ async function main() {
     state: { theme, sidebarCollapsed: false, favoriteProjectIds: [] },
     version: 0,
   });
-  await ctx.addInitScript(({ key, value }) => {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch {
-      /* ignored — about:blank pages can throw */
-    }
-  }, { key: 'wisp-ui', value: persisted });
+  await ctx.addInitScript(
+    /* eslint-disable no-undef */
+    ({ key, value }) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        /* ignored — about:blank pages can throw */
+      }
+    },
+    /* eslint-enable no-undef */
+    { key: 'wisp-ui', value: persisted },
+  );
 
   const page = await ctx.newPage();
 
@@ -73,6 +78,7 @@ async function main() {
       // (App.tsx's useEffect runs after first paint).
       await page
         .waitForFunction(
+          // eslint-disable-next-line no-undef
           (expected) => document.documentElement.dataset.theme === expected,
           theme,
           { timeout: 5000 },
