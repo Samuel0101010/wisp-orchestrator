@@ -1,6 +1,38 @@
 # Changelog
 
-## 2.0.0 — Complete production loop · Lead agent (Phase 8 · final)
+## 2.0.0 — WISP rebrand · ship-ready release
+
+The plugin is now **WISP**, end-to-end. Same orchestrator, same plan-as-artifact discipline, but renamed across every layer so the brand is consistent from `claude plugin install wisp@wisp-local` down to the MCP server name the spawned agents see.
+
+### Breaking — identifier rename
+
+- **Plugin marketplace ID** `agent-harness` → `wisp`. Install command is now `claude plugin install wisp@wisp-local`. Marketplace name `agent-harness-local` → `wisp-local`. Existing installs at `agent-harness@agent-harness-local` are orphaned; uninstall the old one and reinstall the new.
+- **npm scope** `@agent-harness/*` → `@wisp/*` across all five workspace packages (`orchestrator`, `dashboard-server`, `dashboard-web`, `schemas`, `memory-mcp`). All cross-package imports + every `pnpm --filter` invocation updated.
+- **Env vars** `HARNESS_*` → `WISP_*`: `WISP_PORT`, `WISP_HOST`, `WISP_DATA_DIR`, `WISP_LOG_LEVEL`, `WISP_CORS_ORIGIN`, `WISP_MOCK_CLI`, `WISP_SERVE_WEB`, `WISP_INTER_TASK_PACING_MS`, `WISP_AUTO_RESUME_RATE_LIMIT`, `WISP_AUTH_MODE`, `WISP_HOOK_TOKEN`, `WISP_MEMORY_DB`, `WISP_E2E_*`. No fallback — update your `.env.local`.
+- **Slash commands** `/harness-*` → `/wisp-*`: `/wisp-dashboard`, `/wisp-new-run`, `/wisp-resume`, `/wisp-inspect`, `/wisp-diagnose`. Skill directories renamed accordingly.
+- **MCP server name** `agent-harness-memory` → `wisp-memory`. Tools spawned agents call: `mcp__wisp-memory__memory_set/get/list/delete`.
+- **Default data dir** `os.tmpdir()/agent-harness` → `os.tmpdir()/wisp`. **Existing runs/projects under the old default are stranded** — move them manually if you need the history, or set `WISP_DATA_DIR` explicitly.
+- **Playwright browser cache** `~/.cache/agent-harness/playwright-browsers` → `~/.cache/wisp/playwright-browsers`. First runtime-verify after upgrade re-downloads Chromium once.
+- **Internal**: commit-message prefix `harness: <task-id>` → `wisp: <task-id>`. Worktree branch prefix `harness/<role>` → `wisp/<role>`. Committer email `harness@agent-harness.local` → `wisp@wisp.local`. localStorage key `agent-harness-ui` → `wisp-ui` with one-time auto-migration so theme, sidebar-collapsed state, and favorites survive the upgrade.
+- **GitHub repo** `Samuel0101010/agent-harness` → `Samuel0101010/wisp-orchestrator` (the bare `wisp` slug was taken by a different project). GitHub redirects old URLs permanently.
+
+### Added — design + features
+
+- **Wisp design system** ([PR #43](https://github.com/Samuel0101010/wisp-orchestrator/pull/43)) — warm cream/black palette, Instrument Serif/Sans + JetBrains Mono fonts, coral accent, aurora background, glass-tinted sidebar. Every page (Mission Control, Chat, Agents, Skills, Workers, Insights, Goal Planner, Prompt Bundles, Run View, Project Detail) re-skinned 1:1 against the Claude Design handoff.
+- **Sidebar 3-dot project menu** ([PR #48](https://github.com/Samuel0101010/wisp-orchestrator/pull/48), [#51](https://github.com/Samuel0101010/wisp-orchestrator/pull/51)) — hover-revealed `MoreHorizontal` button per project row opens a portal-rendered dropdown with "Mark as favorite" + "Delete". Favorites sort to the top and persist via zustand. Delete opens a confirmation dialog and calls the new `DELETE /api/projects/:id` endpoint. Portal renders to `document.body` with `position:fixed` + z-index 1000 so the menu never bleeds through neighbouring project rows.
+- **Settings page** at `/settings` ([PR #48](https://github.com/Samuel0101010/wisp-orchestrator/pull/48)) — central place for theme + language + sidebar-collapsed default, plus selective data clearing across nine categories (Projects, Chat threads, Custom agents, Prompt bundles, Agent overrides, Change requests, DoD criteria, Insights, Runs). Each row shows a live count and a "Clear all" button with confirmation. Runs is intentionally read-only because the server has no DELETE for runs.
+- **Plan-budget label fix** — sidebar footer renamed from misleading "Plan budget · today" / "N runs" to consistent "Runs · today" / "N runs".
+- **README dashboard tour** ([PR #48](https://github.com/Samuel0101010/wisp-orchestrator/pull/48)) — 9 dashboard screenshots embedded (Mission Control, Chat, Agents, Skills, Workers, Insights, Goal Planner, Prompt Bundles, Settings). Capture script at `scripts/capture-readme-screenshots.mjs`.
+
+### Server
+
+- **`DELETE /api/projects/:id`** — new endpoint, cascade via FK constraints. Backs the sidebar delete action.
+
+### Verification
+
+- 421 unit tests pass, 51 e2e specs pass, lint/format/typecheck/validate-tokens all clean across the rebrand PR chain (#43–#51).
+
+## 2.0.0-rc — Complete production loop · Lead agent (Phase 8)
 
 This is the milestone release where the "Plan → Run → Preview → Iterate
 → Build → Lead" production loop is feature-complete end-to-end.
