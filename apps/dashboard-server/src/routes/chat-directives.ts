@@ -180,8 +180,7 @@ async function handleConsult(
   // content. Tag empty replies with errorReason='empty-response' so the UI
   // renders an error chip instead of showing the sentinel as a real message.
   const consultContent = turn.text || '';
-  const consultErrorReason =
-    turn.failed ?? (consultContent.length === 0 ? 'empty-response' : null);
+  const consultErrorReason = turn.failed ?? (consultContent.length === 0 ? 'empty-response' : null);
   sqlite
     .prepare(
       `INSERT INTO agent_messages

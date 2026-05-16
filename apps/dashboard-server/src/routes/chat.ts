@@ -695,8 +695,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
         // the row with errorReason='empty-response' so the UI renders an
         // error chip + retry affordance instead of showing the sentinel.
         const primaryContent = parsedDirectives.cleaned || turn.text || '';
-        const errorReason =
-          turn.failed ?? (primaryContent.length === 0 ? 'empty-response' : null);
+        const errorReason = turn.failed ?? (primaryContent.length === 0 ? 'empty-response' : null);
         await db
           .update(agentMessages)
           .set({

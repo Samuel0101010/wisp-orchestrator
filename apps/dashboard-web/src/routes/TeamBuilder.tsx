@@ -376,11 +376,7 @@ export function TeamBuilder() {
         <TeamJsonDialog team={draftTeam} />
         <Dialog open={tplOpen} onOpenChange={setTplOpen}>
           <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              disabled={!valid}
-              data-testid="save-as-template-trigger"
-            >
+            <Button variant="outline" disabled={!valid} data-testid="save-as-template-trigger">
               {t('buttons.saveAsTemplate')}
             </Button>
           </DialogTrigger>
