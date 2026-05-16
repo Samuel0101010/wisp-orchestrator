@@ -165,7 +165,7 @@
     }
   },
   "goap": {
-    "title": "GOAP Planner",
+    "title": "Goal Planner",
     "subtitle": "Goal-oriented action planning. Define start state, goal predicates, and available actions; the planner returns a sequence of actions.",
     "fields": {
       "start": "Start state (JSON)",
@@ -180,7 +180,7 @@
     "noResult": "Submit a problem to see the plan.",
     "result": "Plan result",
     "empty": {
-      "title": "GOAP planner ready",
+      "title": "Goal Planner ready",
       "description": "Enter an initial state, goal, and actions on the left to compute a plan."
     }
   },
@@ -314,7 +314,7 @@
     "skills": "Skills",
     "workers": "Workers",
     "insights": "Insights",
-    "goapPlanner": "GOAP Planner",
+    "goapPlanner": "Goal Planner",
     "promptBundles": "Prompt Bundles"
   },
   "topBar": {

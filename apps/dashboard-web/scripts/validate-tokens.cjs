@@ -20,6 +20,9 @@ const allowFiles = new Set([
   // Top-level layout shells with sticky viewport-height containers.
   path.join(root, 'routes', 'Chat.tsx'),
   path.join(root, 'routes', 'Home.tsx'),
+  // Goap canvas + 3-column grid needs a viewport-height container so the
+  // SVG fills the page after the fixed Wisp topbar (Wisp re-skin).
+  path.join(root, 'routes', 'Goap.tsx'),
   // Preview-inspector runs as injected script INSIDE the user's iframe and
   // sets inline element.style.* strings directly — it can't reference our
   // CSS variables because it lives outside our React tree. (v1.12 Phase 4.)
