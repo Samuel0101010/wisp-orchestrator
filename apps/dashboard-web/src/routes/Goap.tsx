@@ -42,6 +42,18 @@ interface Layout {
   start: { x: number; y: number };
   goal: { x: number; y: number };
   isUShape: boolean;
+  /** viewBox width — always 1100; carried here for symmetry with height. */
+  viewBoxW: number;
+  /**
+   * viewBox height. Single-row layouts use a tall viewBox (~950) so the
+   * SVG content's aspect ratio matches the typical canvas card (~1.16),
+   * which makes the SVG fill the card vertically instead of leaving big
+   * empty bands above/below the plan row.
+   * U-shape layouts keep the canonical 540 height (design parity).
+   */
+  viewBoxH: number;
+  /** Center y of the atmosphere ellipses (glows). Tracks the plan row. */
+  ambientY: number;
 }
 
 function shortFlag(rec: Record<string, boolean> | undefined, fallback: string) {
@@ -54,13 +66,12 @@ function shortFlag(rec: Record<string, boolean> | undefined, fallback: string) {
 
 /**
  * Layout the plan inside the W×H viewBox. ≤5 actions render as a single
- * horizontal row (start ─ n1 ─ n2 ─ … ─ goal); ≥6 wrap into a U-shape with
- * 5 nodes on the top row and the remainder running right-to-left on the
- * bottom row, which is the canonical Wisp design layout.
+ * horizontal row (start ─ n1 ─ n2 ─ … ─ goal) inside a near-square viewBox
+ * so the canvas card fills cleanly; ≥6 wrap into the canonical 5+3 U-shape
+ * (Wisp design parity) inside the original 1100×540 viewBox.
  */
 function layoutActions(actions: GoapAction[], doneCount: number, liveIndex: number): Layout {
   const W = 1100;
-  const H = 540;
   const n = Math.min(actions.length, 8);
   const meta = (a: GoapAction, i: number) => ({
     name: a.name,
@@ -73,17 +84,25 @@ function layoutActions(actions: GoapAction[], doneCount: number, liveIndex: numb
   });
 
   if (n === 0) {
+    const H = 540;
     return {
       nodes: [],
       start: { x: 120, y: H / 2 },
       goal: { x: W - 120, y: H / 2 },
       isUShape: false,
+      viewBoxW: W,
+      viewBoxH: H,
+      ambientY: H / 2,
     };
   }
 
   if (n <= 5) {
-    // Single horizontal row. Keep card spacing readable (≥220) and centre
-    // the band horizontally so the start/goal markers sit symmetric.
+    // Single horizontal row. Keep the viewBox at 540 (matches U-shape height)
+    // so the dot-grid spacing stays consistent. The route component clamps
+    // the canvas card height for single-row layouts so the SVG content fills
+    // the card without leaving 200+px of empty wallpaper above/below the
+    // plan row.
+    const H = 540;
     const cy = H / 2;
     const step = n > 1 ? Math.min(220, (W - 360) / (n - 1)) : 0;
     const totalSpan = step * (n - 1);
@@ -98,10 +117,14 @@ function layoutActions(actions: GoapAction[], doneCount: number, liveIndex: numb
       start: { x: Math.max(60, firstX - 180), y: cy },
       goal: { x: Math.min(W - 60, firstX + totalSpan + 180), y: cy },
       isUShape: false,
+      viewBoxW: W,
+      viewBoxH: H,
+      ambientY: cy,
     };
   }
 
   // U-shape for 6–8 actions — design's canonical 5+3 split.
+  const H = 540;
   const TOP_Y = 140;
   const BOT_Y = 400;
   const X_STEP = 180;
@@ -116,6 +139,9 @@ function layoutActions(actions: GoapAction[], doneCount: number, liveIndex: numb
     start: { x: 62, y: TOP_Y },
     goal: { x: 380, y: BOT_Y },
     isUShape: true,
+    viewBoxW: W,
+    viewBoxH: H,
+    ambientY: TOP_Y,
   };
 }
 
@@ -453,11 +479,9 @@ function GoapCanvas({
   summary: { done: number; running: number; queued: number; cost: number; eta: string };
   headlineState: 'ready' | 'planned' | 'empty';
 }) {
-  const W = 1100;
-  const H = 540;
   const HW = 78;
   const HH = 43;
-  const { nodes, start, goal: goalPos, isUShape } = layout;
+  const { nodes, start, goal: goalPos, isUShape, viewBoxW: W, viewBoxH: H, ambientY } = layout;
 
   // Build edges from the layout. Single-row layouts use straight horizontal
   // edges (start → n1 → … → goal); U-shapes use a curved bend between top
@@ -601,9 +625,10 @@ function GoapCanvas({
         </defs>
         <rect width={W} height={H} fill="url(#goap-dot)" />
 
-        {/* atmosphere blobs */}
-        <ellipse cx={560} cy={140} rx={140} ry={90} fill="url(#goap-now-glow)" />
-        <ellipse cx={290} cy={140} rx={160} ry={70} fill="url(#goap-done-glow)" />
+        {/* atmosphere blobs — anchored on the active plan row so the warm
+            wash sits behind the nodes regardless of single-row or U-shape. */}
+        <ellipse cx={W * 0.51} cy={ambientY} rx={180} ry={110} fill="url(#goap-now-glow)" />
+        <ellipse cx={W * 0.26} cy={ambientY} rx={160} ry={80} fill="url(#goap-done-glow)" />
 
         {edges.map((e, i) => (
           <GoapEdge key={i} from={e.from} to={e.to} state={e.state} bend={e.bend} />
@@ -937,7 +962,18 @@ export function GoapRoute() {
         </div>
 
         {/* Canvas */}
-        <div className="wisp-card relative overflow-hidden p-0">
+        {/* For single-row layouts (≤5 actions) the SVG canvas only needs a
+            short card height — the row + Start/Goal markers fit comfortably
+            in ~360px. self-start keeps the card anchored at the top of the
+            3-column grid row so the world-state column drives the row
+            height (it has more content) without stretching the canvas into
+            empty wallpaper. */}
+        <div
+          className={cn(
+            'wisp-card relative overflow-hidden p-0',
+            !layout.isUShape && 'h-[360px] self-start',
+          )}
+        >
           <GoapCanvas
             layout={layout}
             startLabel="Start"
