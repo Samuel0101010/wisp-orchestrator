@@ -176,6 +176,11 @@ async function handleConsult(
 
   const messageId = randomUUID();
   const createdAt = new Date();
+  // Bug 7: never persist a literal "(no response)" sentinel as user-visible
+  // content. Tag empty replies with errorReason='empty-response' so the UI
+  // renders an error chip instead of showing the sentinel as a real message.
+  const consultContent = turn.text || '';
+  const consultErrorReason = turn.failed ?? (consultContent.length === 0 ? 'empty-response' : null);
   sqlite
     .prepare(
       `INSERT INTO agent_messages
@@ -186,11 +191,11 @@ async function handleConsult(
     .run(
       messageId,
       ctx.threadId,
-      turn.text || '(no response)',
+      consultContent,
       turn.tokensIn || null,
       turn.tokensOut || null,
       turn.durationMs,
-      turn.failed,
+      consultErrorReason,
       target.id,
       createdAt.getTime(),
     );
@@ -199,12 +204,12 @@ async function handleConsult(
     id: messageId,
     threadId: ctx.threadId,
     role: 'assistant',
-    content: turn.text || '(no response)',
+    content: consultContent,
     authorAgentId: target.id,
     tokensIn: turn.tokensIn || null,
     tokensOut: turn.tokensOut || null,
     durationMs: turn.durationMs,
-    errorReason: turn.failed,
+    errorReason: consultErrorReason,
     createdAt,
   });
 

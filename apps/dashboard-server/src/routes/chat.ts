@@ -689,8 +689,13 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           : { directives: [], errors: [], cleaned: turn.text };
 
         // Persist primary assistant message (UPDATE the pending stub).
-        const primaryContent =
-          parsedDirectives.cleaned || turn.text || (turn.failed ? '' : '(no response)');
+        // Bug 7: never persist a literal "(no response)" sentinel as user-
+        // visible content — if the subprocess exited cleanly but produced no
+        // text (Claude returned tool-use only, or an empty result frame), tag
+        // the row with errorReason='empty-response' so the UI renders an
+        // error chip + retry affordance instead of showing the sentinel.
+        const primaryContent = parsedDirectives.cleaned || turn.text || '';
+        const errorReason = turn.failed ?? (primaryContent.length === 0 ? 'empty-response' : null);
         await db
           .update(agentMessages)
           .set({
@@ -698,7 +703,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
             tokensIn: turn.tokensIn || null,
             tokensOut: turn.tokensOut || null,
             durationMs: turn.durationMs,
-            errorReason: turn.failed,
+            errorReason,
             createdAt: new Date(),
           })
           .where(eq(agentMessages.id, assistantId))
@@ -751,7 +756,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           .where(eq(agentMessages.id, userMsgId))
           .get();
 
-        if (turn.failed) {
+        if (turn.failed || errorReason) {
           reply.code(502);
         } else {
           reply.code(201);

@@ -1341,6 +1341,10 @@ export function useAgentUsage(agentId: string | undefined) {
   return useQuery<AgentUsage>({
     queryKey: ['agent-usage', agentId ?? null],
     enabled: Boolean(agentId),
+    // Agents page renders N cards × 1 usage probe each → N requests on every
+    // navigation. Cache for 60s so re-mounts (route switches, tab focus) reuse
+    // the data instead of stampeding the server.
+    staleTime: 60_000,
     queryFn: async () => {
       if (!agentId) return { usage: [] };
       try {

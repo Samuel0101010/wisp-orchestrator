@@ -103,6 +103,12 @@ export function ChatRoute() {
   const [composer, setComposer] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
+  // Mention picker state. null = closed; '' or 'Le' = open with that query.
+  // mentionStart is the caret index of the `@` that opened the picker.
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionStart, setMentionStart] = useState<number | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   async function startNewThread() {
     if (!managerId) return;
@@ -147,7 +153,81 @@ export function ChatRoute() {
     }
   }
 
+  // Compute participants list once per render for mention filtering.
+  const mentionCandidates = useMemo(() => {
+    const list = detail.data?.participants ?? [];
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.toLowerCase();
+    const filtered = q === '' ? list : list.filter((p) => p.name.toLowerCase().includes(q));
+    return filtered.slice(0, 8);
+  }, [detail.data?.participants, mentionQuery]);
+
+  // Update mention picker state from the latest composer text + caret.
+  function syncMentionState(text: string, caret: number) {
+    // Walk backwards from caret to find the start of the current word.
+    let i = caret;
+    while (i > 0 && !/\s/.test(text[i - 1]!)) i--;
+    const word = text.slice(i, caret);
+    if (word.startsWith('@')) {
+      setMentionStart(i);
+      setMentionQuery(word.slice(1));
+      setMentionIndex(0);
+    } else if (mentionQuery !== null) {
+      setMentionQuery(null);
+      setMentionStart(null);
+    }
+  }
+
+  function onComposerChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const text = e.target.value;
+    setComposer(text);
+    syncMentionState(text, e.target.selectionStart ?? text.length);
+  }
+
+  function insertMention(name: string) {
+    const ta = composerRef.current;
+    if (mentionStart === null || !ta) return;
+    const caret = ta.selectionStart ?? composer.length;
+    const before = composer.slice(0, mentionStart);
+    const after = composer.slice(caret);
+    const inserted = `@${name} `;
+    const next = before + inserted + after;
+    setComposer(next);
+    setMentionQuery(null);
+    setMentionStart(null);
+    // Restore caret right after the inserted mention.
+    const newCaret = before.length + inserted.length;
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(newCaret, newCaret);
+    });
+  }
+
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionQuery !== null && mentionCandidates.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex((i) => (i + 1) % mentionCandidates.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex((i) => (i - 1 + mentionCandidates.length) % mentionCandidates.length);
+        return;
+      }
+      if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        const pick = mentionCandidates[mentionIndex] ?? mentionCandidates[0];
+        if (pick) insertMention(pick.name);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMentionQuery(null);
+        setMentionStart(null);
+        return;
+      }
+    }
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
       e.preventDefault();
       void send();
@@ -294,11 +374,58 @@ export function ChatRoute() {
                 {error}
               </div>
             )}
-            <div className="flex items-end gap-2 rounded-xl border bg-background p-2 shadow-sm">
+            <div className="relative flex items-end gap-2 rounded-xl border bg-background p-2 shadow-sm">
+              {mentionQuery !== null && mentionCandidates.length > 0 && (
+                <div
+                  role="listbox"
+                  aria-label="Mention picker"
+                  className="absolute bottom-full left-2 z-10 mb-1 w-64 overflow-hidden rounded-lg border bg-popover shadow-lg"
+                >
+                  {mentionCandidates.map((p, idx) => (
+                    <button
+                      key={p.agentId}
+                      type="button"
+                      role="option"
+                      aria-selected={idx === mentionIndex}
+                      onMouseDown={(e) => {
+                        // Prevent textarea blur before we insert.
+                        e.preventDefault();
+                        insertMention(p.name);
+                      }}
+                      onMouseEnter={() => setMentionIndex(idx)}
+                      className={cn(
+                        'flex w-full items-center gap-2 px-3 py-2 text-left text-sm',
+                        idx === mentionIndex ? 'bg-accent' : 'hover:bg-accent/60',
+                      )}
+                    >
+                      <span className="truncate font-medium">{p.name}</span>
+                      {p.role === 'manager' && (
+                        <span className="ml-auto text-3xs uppercase text-muted-foreground">
+                          {t('chat.participants.roleLead')}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
               <textarea
+                ref={composerRef}
                 aria-label={t('chat.composer.ariaLabel')}
                 value={composer}
-                onChange={(e) => setComposer(e.target.value)}
+                onChange={onComposerChange}
+                onKeyUp={(e) => {
+                  const ta = e.currentTarget;
+                  syncMentionState(ta.value, ta.selectionStart ?? ta.value.length);
+                }}
+                onClick={(e) => {
+                  const ta = e.currentTarget;
+                  syncMentionState(ta.value, ta.selectionStart ?? ta.value.length);
+                }}
+                onBlur={() => {
+                  // Close picker on blur (outside click). Slight delay so
+                  // mousedown on the listbox can fire first.
+                  setTimeout(() => setMentionQuery(null), 100);
+                }}
                 onKeyDown={handleKey}
                 placeholder={t('chat.composer.placeholder')}
                 rows={1}
@@ -853,6 +980,13 @@ function AddMemberDialog({
   const { t } = useTranslation();
   const [tab, setTab] = useState<'team' | 'custom'>('team');
   const list = tab === 'team' ? team : customAgents;
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
   return (
     <div className="fixed inset-0 z-[55] grid place-items-center bg-black/60 p-4" onClick={onClose}>
       <div
@@ -860,7 +994,9 @@ function AddMemberDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-baseline justify-between border-b px-5 py-3">
-          <h3 className="text-base font-semibold">{t('chat.addMember.title')}</h3>
+          <h3 className="text-base font-semibold">
+            {t('chat.addMember.title', 'Spezialist hinzufügen')}
+          </h3>
           <button
             onClick={onClose}
             className="font-mono text-xs text-muted-foreground hover:text-foreground"

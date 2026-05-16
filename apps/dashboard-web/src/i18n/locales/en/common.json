@@ -70,6 +70,7 @@
       "enabled": "enabled",
       "disabled": "disabled"
     },
+    "disabledTooltip": "Worker is disabled in server config",
     "actions": {
       "runNow": "Run now",
       "running": "Running…"

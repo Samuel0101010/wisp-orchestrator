@@ -89,21 +89,27 @@ export function SkillsRoute() {
         </button>
       </header>
 
-      <div className="flex flex-wrap gap-1.5 text-xs">
-        {(['all', 'seed', 'project', 'user', 'plugin'] as SourceFilter[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className={
-              'rounded-md border px-2.5 py-1 transition ' +
-              (filter === key
-                ? 'border-foreground bg-foreground text-background'
-                : 'border-border bg-card hover:bg-accent')
-            }
-          >
-            {t(`skills.filter.${key}`)} <span className="ml-1 opacity-60">{counts[key]}</span>
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-1.5 text-xs" role="tablist" aria-label={t('skills.title')}>
+        {(['all', 'seed', 'project', 'user', 'plugin'] as SourceFilter[]).map((key) => {
+          const isActive = filter === key;
+          return (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => setFilter(key)}
+              className={
+                'rounded-md border px-2.5 py-1 transition ' +
+                (isActive
+                  ? 'border-foreground bg-foreground text-background'
+                  : 'border-border bg-card hover:bg-accent')
+              }
+            >
+              {t(`skills.filter.${key}`)} <span className="ml-1 opacity-60">{counts[key]}</span>
+            </button>
+          );
+        })}
       </div>
 
       {visible.length === 0 ? (
