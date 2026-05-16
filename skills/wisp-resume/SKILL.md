@@ -1,5 +1,5 @@
 ---
-name: harness-resume
+name: wisp-resume
 description: Use when the user wants to resume a previously paused WISP run (e.g. paused by rate-limit, by /pause, or by an earlier shutdown). Lists resumable runs and resumes a chosen one. Trigger on phrases like "resume my run", "continue the harness", "pick up where we left off".
 ---
 
@@ -9,13 +9,13 @@ Resume a paused harness run.
 
 ## Preflight
 
-Health-check the server: `curl -s http://127.0.0.1:${HARNESS_PORT:-4400}/api/health`. Bail with a friendly error if not 200 — tell the user to run `/harness-dashboard` first.
+Health-check the server: `curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/health`. Bail with a friendly error if not 200 — tell the user to run `/wisp-dashboard` first.
 
 ## Steps
 
 1. **List resumable runs**:
    ```bash
-   curl -s "http://127.0.0.1:${HARNESS_PORT:-4400}/api/runs?resumable=true"
+   curl -s "http://127.0.0.1:${WISP_PORT:-4400}/api/runs?resumable=true"
    ```
    Response: `{"runs": [{"id":"...", "planId":"...", "status":"paused", "pausedReason":"...", "resumeAt": ..., ...}]}`.
 
@@ -27,11 +27,11 @@ Health-check the server: `curl -s http://127.0.0.1:${HARNESS_PORT:-4400}/api/hea
 
 5. **Resume the chosen run**:
    ```bash
-   curl -s -X POST "http://127.0.0.1:${HARNESS_PORT:-4400}/api/runs/<runId>/resume"
+   curl -s -X POST "http://127.0.0.1:${WISP_PORT:-4400}/api/runs/<runId>/resume"
    ```
    The response includes the resumed status. Print the run URL:
    ```
-   http://127.0.0.1:${HARNESS_PORT:-4400}/projects/<projectId>/run/<runId>
+   http://127.0.0.1:${WISP_PORT:-4400}/projects/<projectId>/run/<runId>
    ```
 
 ## Errors

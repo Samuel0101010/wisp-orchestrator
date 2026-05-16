@@ -56,8 +56,8 @@ import {
   sendMessageInputSchema,
   threadParticipants,
   type AgentModel,
-} from '@agent-harness/schemas';
-import { runClaude, type SubprocessRunner } from '@agent-harness/orchestrator';
+} from '@wisp/schemas';
+import { runClaude, type SubprocessRunner } from '@wisp/orchestrator';
 import { db, sqlite } from '../db/index.js';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
@@ -601,7 +601,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           return { error: 'no_responder_found' };
         }
 
-        if (env.HARNESS_AUTH_MODE === 'subscription' && !env.HARNESS_MOCK_CLI) {
+        if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
           const last = getLastAuthProbe();
           if (last && !last.ok) {
             reply.code(503);

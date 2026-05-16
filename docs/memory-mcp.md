@@ -1,6 +1,6 @@
 # Memory MCP
 
-`@agent-harness/memory-mcp` is a stdio MCP server bundled with WISP
+`@wisp/memory-mcp` is a stdio MCP server bundled with WISP
 that gives every task subprocess in a run access to a small shared key/value
 store. Tasks can drop notes for downstream tasks (e.g. the architect writes
 `arch.spec`, the developer reads it) without inventing ad-hoc file conventions.
@@ -15,7 +15,7 @@ RunRuntime
 
   Walker dispatches a task
     └─ SubprocessPool spawns `claude -p ... --mcp-config <file> --strict-mcp-config`
-         └─ claude spawns @agent-harness/memory-mcp's server.js
+         └─ claude spawns @wisp/memory-mcp's server.js
               └─ MemoryStore opens the SQLite file at HARNESS_MEMORY_DB
               └─ exposes memory.{set,get,list,delete} as MCP tools
 ```
@@ -76,7 +76,7 @@ When invoked outside of the harness (e.g. for debugging), set
 ## Where the data lives
 
 ```
-$HARNESS_DATA_DIR/
+$WISP_DATA_DIR/
 ├── harness.db                     # main app SQLite (projects, plans, runs, events, ...)
 ├── memory/
 │   ├── <runId>.db                 # one shared kv store per run
@@ -97,7 +97,7 @@ imports. The compliance test
 
 The values are stored as plain TEXT in SQLite. Don't put secrets in there if
 the data directory is shared with other users (it lives under
-`HARNESS_DATA_DIR`, which defaults to `os.tmpdir()/agent-harness` in development
+`WISP_DATA_DIR`, which defaults to `os.tmpdir()/wisp` in development
 and is required to be set explicitly in production).
 
 ## Inspecting a run's memory
@@ -106,13 +106,13 @@ After a run finishes, you can dump the kv table directly:
 
 ```powershell
 # PowerShell
-node -e "const D=require('better-sqlite3');const db=new D(process.argv[1]); console.log(db.prepare('SELECT key, length(value) AS size, value FROM kv ORDER BY key').all());" "$env:HARNESS_DATA_DIR\memory\<runId>.db"
+node -e "const D=require('better-sqlite3');const db=new D(process.argv[1]); console.log(db.prepare('SELECT key, length(value) AS size, value FROM kv ORDER BY key').all());" "$env:WISP_DATA_DIR\memory\<runId>.db"
 ```
 
 Or via the SQLite CLI if installed:
 
 ```sh
-sqlite3 "$HARNESS_DATA_DIR/memory/<runId>.db" \
+sqlite3 "$WISP_DATA_DIR/memory/<runId>.db" \
   "SELECT key, length(value), substr(value,1,80) FROM kv ORDER BY key;"
 ```
 

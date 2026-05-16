@@ -7,7 +7,7 @@ import {
   teamSchema,
   type Plan as PlanShape,
   type Team,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { db } from '../db/index.js';
 import {
   defaultRunner,

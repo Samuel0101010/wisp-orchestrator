@@ -25,7 +25,7 @@ import {
   type ProjectRunRow,
   type PromptBundleRow,
 } from '@/api/queries';
-import type { Agent, AgentThread, Project } from '@agent-harness/schemas';
+import type { Agent, AgentThread, Project } from '@wisp/schemas';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

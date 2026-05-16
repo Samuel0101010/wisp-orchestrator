@@ -122,7 +122,7 @@ Fixes two pre-existing CI failures that landed on main during Phases 3–7
 but were missed because local gates were green:
 
 ### Fixed
-- Typecheck on a fresh CI checkout (TS2307: `@agent-harness/memory-mcp`)
+- Typecheck on a fresh CI checkout (TS2307: `@wisp/memory-mcp`)
   because the workflow ran `pnpm typecheck` before `pnpm build`. Added a
   `Build shared packages` step that produces `packages/**/dist/` first,
   and tightened `handoff-loader.ts` callback types to clear 4 TS7006
@@ -196,7 +196,7 @@ The trade-offs are deliberate and explicit:
   allowlist. Seed is idempotent — re-runs refresh the prompt/description.
 - **`apps/dashboard-server/src/routes/projects.ts`** — PATCH accepts a
   new `packageTarget` field, validated against the existing
-  `packageTargetValues` enum from `@agent-harness/schemas`.
+  `packageTargetValues` enum from `@wisp/schemas`.
 - **`apps/dashboard-web/src/api/queries.ts`** — `PackagerResult`,
   `PackagerError`, `PackageTarget`, `BuildStatusResponse` types plus
   `useBuildStatus` (5s refetch), `useStartBuild`, and
@@ -261,7 +261,7 @@ all three:
   behavior (per-run SQLite file). `scope='project'` resolves to a separate
   per-project DB at `<dataDir>/memory/project-<projectId>.db` that survives
   across runs of the same project. The MCP server picks up `HARNESS_PROJECT_ID`
-  + `HARNESS_DATA_DIR` from the subprocess env that the dashboard-server
+  + `WISP_DATA_DIR` from the subprocess env that the dashboard-server
   exports via `writeMemoryMcpConfig`. A small in-process LRU keyed by db
   path avoids reopening the same SQLite file on every tool call.
 - **Hand-off helpers** (`loadHandoffsForProject` + `renderHandoffsSection`)
@@ -305,7 +305,7 @@ constructor surface. Marked clearly in code with `TODO(phase-6-followup)`.
   the server constructs the resolver once from env and threads it through.
 - **`apps/dashboard-server/src/orchestrator/mcp-config.ts`** — accepts a
   new `projectId` field. When set, the generated MCP config exports
-  `HARNESS_PROJECT_ID` + `HARNESS_DATA_DIR` in the memory-mcp env block
+  `HARNESS_PROJECT_ID` + `WISP_DATA_DIR` in the memory-mcp env block
   so the per-task subprocess can resolve the right project DB.
 - **`apps/dashboard-server/src/orchestrator/handoff-loader.ts`** (new) —
   `loadHandoffsForProject` + `renderHandoffsSection`. Skips malformed
@@ -351,7 +351,7 @@ constructor surface. Marked clearly in code with `TODO(phase-6-followup)`.
   limit caps results.
 - **`apps/dashboard-server/src/__tests__/mcp-config.test.ts`** — 2 new
   cases for the projectId branch: env carries `HARNESS_PROJECT_ID` +
-  `HARNESS_DATA_DIR` when supplied, omits both when not.
+  `WISP_DATA_DIR` when supplied, omits both when not.
 - **`apps/dashboard-web/src/components/OrgChartView.test.tsx`** — 1 new
   case: clicking a node opens the `AgentOverrideDialog` and prefills the
   existing override fields from the fetched row.
@@ -486,10 +486,10 @@ selector plus a bounding rect is enough for the planner to act on.
   body is idempotent (early-exits on a re-injection via a window-scoped
   flag), draws a 2px outline + a font-mono selector label on mouseover,
   builds stable CSS selectors as `#id` or `tag.class:nth-of-type(N)` up
-  to 5 segments deep, and posts `harness:pick` payloads to
+  to 5 segments deep, and posts `wisp:pick` payloads to
   `window.parent` on click (with `preventDefault` + `stopPropagation` so
   the click doesn't navigate the page inside the iframe). Listens for
-  `harness:set-edit-mode` from the parent so the inspector can be
+  `wisp:set-edit-mode` from the parent so the inspector can be
   toggled without re-injection.
 - **`PreviewFrame.tsx`** gains an **Edit toggle** (lucide `Edit3`,
   disabled when the preview isn't running) and a **side panel** that
@@ -723,7 +723,7 @@ generate a plan until the brief is finalised (override via
   `<<BRIEF_PATCH>>{...}<<END>>` JSON block every turn and an optional
   `<<BRIEF_COMPLETE>>` marker when she has ≥80% coverage.
 - **`briefPatchSchema` + `parseBriefPatchFromText`** in
-  `@agent-harness/schemas` — strict Zod validation of agent patches, plus
+  `@wisp/schemas` — strict Zod validation of agent patches, plus
   a tolerant text extractor that strips machine markers before the user
   sees the assistant message.
 - **`interviewer-engine.ts`** — pure async runner over the existing
@@ -784,7 +784,7 @@ generate a plan until the brief is finalised (override via
   current behaviour. `'tauri-exe'` / `'electron-exe'` / `'pkg-bin'`
   enable the v1.9 packager agent that produces a downloadable installer
   after the release-gate goes ready.
-- Schema types in `@agent-harness/schemas`: `ProjectBrief`,
+- Schema types in `@wisp/schemas`: `ProjectBrief`,
   `ChangeRequest`, `ProjectState`, `ProjectAgentOverride`, `PlanKind`,
   `PackageTarget` plus their `New*` insert types and the matching enum
   value arrays (`planKindValues`, `packageTargetValues`,
@@ -832,7 +832,7 @@ criteria the user declared.
   Idempotent, refuses on the 8-role team cap, returns the unchanged
   plan when injection isn't applicable.
 - **Playwright cache management.** `ensurePlaywrightCached()` installs
-  Chromium once into `~/.cache/agent-harness/playwright-browsers`
+  Chromium once into `~/.cache/wisp/playwright-browsers`
   pointed to by `PLAYWRIGHT_BROWSERS_PATH`. Every worktree shares
   the cache so the first download pays the cost and subsequent runs
   are instant.
@@ -992,7 +992,7 @@ that no one ever picked up. v1.7.14 turns these into automated steps.
 
 - **`projects.auto_merge_on_success`** (default `true`). After every
   successful run the runtime's post-run hook fast-forwards
-  `harness/<runId>/result` into `main`. Strategy: prefer `git update-ref`
+  `wisp/<runId>/result` into `main`. Strategy: prefer `git update-ref`
   (no working-tree touch, atomic compare-and-swap from old main SHA) for
   the FF case; fall back to a detached worktree at the current main
   commit + `git merge --no-ff` when main has diverged. Conflicts leave
@@ -1826,13 +1826,13 @@ test).
 ### Fixed — runtime
 
 - **MCP config path is now absolute** (`apps/dashboard-server/src/orchestrator/mcp-config.ts`,
-  `runtime.ts`). The previous code read `process.env.HARNESS_DATA_DIR ?? '.'`
+  `runtime.ts`). The previous code read `process.env.WISP_DATA_DIR ?? '.'`
   directly, bypassing the Zod default in `env.ts`. When the env var was
   unset the per-run config landed at `./mcp-configs/<runId>.json` —
   relative to whatever cwd the server started in. Claude was then spawned
   from the task's worktree cwd and ENOENT'd on the path. Every fresh
-  real run was failing on the first task. Switched all `HARNESS_DATA_DIR`
-  reads to `env.HARNESS_DATA_DIR` (post-Zod default) and resolve
+  real run was failing on the first task. Switched all `WISP_DATA_DIR`
+  reads to `env.WISP_DATA_DIR` (post-Zod default) and resolve
   `mcpConfigPath` to absolute up front. Snapshots dir + templates dir
   got the same treatment.
 - **`worker-runs-prune` worker** (weekly, 30-day retention) prevents
@@ -1940,7 +1940,7 @@ seed-agent + 20 generic profile pictures got a clean new generation.
 ## 1.3.0 — Paperclip-port (6 features)
 
 Ports six high-leverage ideas from the paperclip analysis into the
-harness: cheaper Claude calls (prompt-bundle cache), continuity across
+wisp: cheaper Claude calls (prompt-bundle cache), continuity across
 runs (per-project summary), robustness under load (max-turns retry +
 atomic checkout), cost-aware orchestration routing (phase-based
 Thompson roles), and a CI regression safety net (promptfoo evals).
@@ -1976,7 +1976,7 @@ unit/integration tests; full suite stays green (206 dashboard-server,
 
 - `prompt_bundles` table keyed by SHA-256 of
   `(systemPrompt, sortedAllowedTools, model)`. Each bundle owns a
-  stable cwd + Claude session id under `<HARNESS_DATA_DIR>/prompt-bundles/`.
+  stable cwd + Claude session id under `<WISP_DATA_DIR>/prompt-bundles/`.
 - `RunAgentTurnOpts` gains `cwd?`, `resumeSessionId?`, `bundleKey?`.
   `runAgentTurn` reuses the bundle's cwd (skips `mkdtemp`/`rm` when
   stable) and records captured `task.session-id` events back via
@@ -2177,7 +2177,7 @@ all succeed.
   when `apps/dashboard-server/dist/server.js` is missing. Solves
   the previous "Dashboard server not built" dead-end every fresh
   `claude plugin install` user hit.
-- Both launchers now set `HARNESS_SERVE_WEB=1` so `/` serves the
+- Both launchers now set `WISP_SERVE_WEB=1` so `/` serves the
   SPA instead of returning 404.
 - README install path uses the GitHub source
   (`Samuel0101010/agent-harness`) and the correct marketplace
@@ -2257,13 +2257,13 @@ plugin skills. Six real-Claude validation runs documented under
 
 ### Added — M3: shared-memory MCP
 
-- New workspace package `@agent-harness/memory-mcp`: stdio MCP
+- New workspace package `@wisp/memory-mcp`: stdio MCP
   server exposing `memory.{set,get,list,delete}` backed by per-run
   SQLite WAL.
 - Walker spawns the server per task via `claude -p --mcp-config
   --strict-mcp-config`. `SubprocessPool.defaultMcpConfigPath`
   injects the config path so the walker stays oblivious.
-- Per-run config + DB live under `<HARNESS_DATA_DIR>/{mcp-configs,
+- Per-run config + DB live under `<WISP_DATA_DIR>/{mcp-configs,
   memory}/<runId>.{json,db}`.
 - Default team `allowedTools` include the fully-qualified
   `mcp__agent-harness-memory__memory_set/get/list` (delete
@@ -2279,7 +2279,7 @@ plugin skills. Six real-Claude validation runs documented under
 - `GET /api/team-templates` returns built-ins + on-disk user
   templates merged & sorted (on-disk wins on id collision).
 - `POST /api/team-templates` writes to
-  `<HARNESS_DATA_DIR>/templates/<id>.json`.
+  `<WISP_DATA_DIR>/templates/<id>.json`.
 - Web `TemplatePicker` in NewProject dialog (max-h-48, scrollable).
   Goal pre-fills from template's first `suggestedGoal`. "Save as
   Template" Dialog on TeamBuilder.
@@ -2296,7 +2296,7 @@ plugin skills. Six real-Claude validation runs documented under
   pointing at the failed plan, and returns it for the walker to
   swap in. Capped at 1 replan per run (`MAX_REPLANS_PER_RUN`).
 - Branches namespaced by `v<N>` after replan: v1 keeps the original
-  `harness/<runId>/<taskId>` form; v2+ get `harness/<runId>/vN/<taskId>`
+  `wisp/<runId>/<taskId>` form; v2+ get `wisp/<runId>/vN/<taskId>`
   to avoid `git worktree add -b` collisions on reused task ids.
 - Two new events: `qa.replan-triggered`, `qa.replan-exhausted`.
 - `GET /api/plans/:id/chain` walks `parent_plan_id` ancestors
@@ -2346,7 +2346,7 @@ plugin skills. Six real-Claude validation runs documented under
   consolidated artifacts in `<repoPath>` instead of evaporating with
   the worktree (Stage A).
 - Rate-limit pause no longer auto-resumes by default
-  (`HARNESS_AUTO_RESUME_RATE_LIMIT` to opt in); auth-probe failure
+  (`WISP_AUTO_RESUME_RATE_LIMIT` to opt in); auth-probe failure
   blocks `POST /api/runs` with HTTP 503; walker pauses with
   `pausedReason='consecutive-failures'` after 3 consecutive task
   failures.
@@ -2365,11 +2365,11 @@ plugin skills. Six real-Claude validation runs documented under
   acknowledgment modal explaining ToS responsibility.
 - `docs/anthropic-compliance.md`; README "Anthropic Terms of Service"
   section.
-- `HARNESS_AUTO_RESUME_RATE_LIMIT`, `HARNESS_INTER_TASK_PACING_MS`,
-  `HARNESS_AUTH_MODE` env vars.
+- `WISP_AUTO_RESUME_RATE_LIMIT`, `WISP_INTER_TASK_PACING_MS`,
+  `WISP_AUTH_MODE` env vars.
 - Diamond-dep merge support: multi-parent tasks merge other parents
   into the dependent task's worktree via `git merge --no-ff`.
-- Final result branch `harness/<runId>/result` consolidating all leaf
+- Final result branch `wisp/<runId>/result` consolidating all leaf
   task branches at run end.
 
 ## 0.1.0 - M1 vertical slice (unreleased)
@@ -2378,7 +2378,7 @@ The first end-to-end milestone: a single goal can drive a 3-role team through pl
 
 ### Added
 
-- Claude Code plugin manifest (`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`) plus four agent specs in `agents/` (architect, developer, qa, planner), the `/harness-dashboard` slash-command, `hooks/hooks.json` with `PreCompact` + `SessionStart` wiring, and cross-platform launcher scripts in `scripts/`.
+- Claude Code plugin manifest (`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`) plus four agent specs in `agents/` (architect, developer, qa, planner), the `/wisp-dashboard` slash-command, `hooks/hooks.json` with `PreCompact` + `SessionStart` wiring, and cross-platform launcher scripts in `scripts/`.
 - `packages/schemas` — Drizzle schema with 9 tables (`projects`, `teams`, `plans`, `tasks`, `runs`, `events`, `checkpoints`, `rate_windows`) plus Zod schemas for `Plan`, `HarnessEvent`, `AgentSpec`, `Team`, including `validateDag` for structural plan invariants.
 - `packages/orchestrator`:
   - `runClaude` subprocess runner that spawns `claude -p`, parses NDJSON to `HarnessEvent`s, and supports a `__mockBin` test seam.
@@ -2411,7 +2411,7 @@ The first end-to-end milestone: a single goal can drive a 3-role team through pl
 - Fixed: rate-limit pauses no longer auto-resume after server restart; `fixUpAbruptCrashes` rewrites them to `paused/shutdown` so the user explicitly resumes (C1).
 - Fixed: `task.usage` now treated as cumulative (`Math.max`) on per-task counters; run-level totals updated by delta to match `claude -p --output-format stream-json` semantics (H1).
 - Fixed: dropped unused `'concerns' | 'fail'` task-outcome enum values; `task.completed` is `'pass'` only in M1 (H2).
-- Fixed: bootstrap now runs a one-shot subscription-auth probe and surfaces the result via `GET /api/health.authProbe` (skipped when `HARNESS_MOCK_CLI=1`); never fails bootstrap (H3).
+- Fixed: bootstrap now runs a one-shot subscription-auth probe and surfaces the result via `GET /api/health.authProbe` (skipped when `WISP_MOCK_CLI=1`); never fails bootstrap (H3).
 - Fixed: `teams.rolesJson` stores the slotted `Team` object directly; dropped the legacy array<->object conversion helpers (H4).
 - Fixed: walker forwards the per-task abort signal to `runVerification` so cancel/pause halts verifier subprocesses promptly (M1).
 - Fixed: documented `runVerification` SIGTERM→SIGKILL escalation (5s grace via execa's `forceKillAfterTimeout`); migrated to execa v9's `cancelSignal` option (M2).

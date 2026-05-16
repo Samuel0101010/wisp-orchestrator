@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { agents, teams, type NewAgent } from '@agent-harness/schemas';
+import { agents, teams, type NewAgent } from '@wisp/schemas';
 import { db, sqlite } from './index.js';
 
 interface InlineRole {

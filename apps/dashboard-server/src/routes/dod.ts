@@ -22,7 +22,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { asc, desc, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { dodCriteria, projects, runtimeReports, type DodKind } from '@agent-harness/schemas';
+import { dodCriteria, projects, runtimeReports, type DodKind } from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 

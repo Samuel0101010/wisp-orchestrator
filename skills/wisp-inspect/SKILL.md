@@ -1,5 +1,5 @@
 ---
-name: harness-inspect
+name: wisp-inspect
 description: Use when the user wants to inspect the result branch of a completed WISP run — shows files in the result branch, the per-task git log graph, and a brief summary. Trigger on phrases like "what did harness produce", "show the run output", "inspect the result branch".
 ---
 

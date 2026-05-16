@@ -33,7 +33,7 @@ describe('playwright-installer', () => {
   it('defaultCachePath points under the home directory', () => {
     const p = defaultCachePath();
     expect(p.startsWith(os.homedir())).toBe(true);
-    expect(p).toContain('agent-harness');
+    expect(p).toContain('wisp');
   });
 
   it('isPlaywrightCached returns false for an empty directory', () => {

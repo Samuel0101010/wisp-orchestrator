@@ -3,7 +3,7 @@
  * Set by server.bootstrap(); read by /api/health and by tests.
  */
 
-import type { AuthProbeResult } from '@agent-harness/orchestrator';
+import type { AuthProbeResult } from '@wisp/orchestrator';
 
 let lastAuthProbe: AuthProbeResult | null = null;
 

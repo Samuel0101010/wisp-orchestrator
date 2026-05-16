@@ -12,7 +12,7 @@ import {
   projects as projectsTable,
   runs as runsTable,
   runtimeReports as runtimeReportsTable,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import {
@@ -23,7 +23,7 @@ import {
 } from '../orchestrator/runtime-report-loader.js';
 import { RUNTIME_VERIFIER_ROLE } from '../orchestrator/runtime-verifier.js';
 import { evaluateReleaseGate } from '../orchestrator/release-gate.js';
-import type { Plan } from '@agent-harness/schemas';
+import type { Plan } from '@wisp/schemas';
 import type { RuntimeReportJson } from '../orchestrator/runtime-verifier.js';
 
 beforeAll(() => {

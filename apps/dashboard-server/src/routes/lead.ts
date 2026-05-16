@@ -13,7 +13,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { and, desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { leadNotes, projects } from '@agent-harness/schemas';
+import { leadNotes, projects } from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import { runLeadTick, type RunLeadTickArgs } from '../orchestrator/lead-runner.js';

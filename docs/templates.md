@@ -45,13 +45,13 @@ POST /api/team-templates         → { id }                      (user-saved)
 ```
 
 To remove a user-saved template, delete the file directly:
-`<HARNESS_DATA_DIR>/templates/<id>.json`. There is no DELETE endpoint
+`<WISP_DATA_DIR>/templates/<id>.json`. There is no DELETE endpoint
 today.
 
 The handler is in
 [`apps/dashboard-server/src/routes/team-templates.ts`](../apps/dashboard-server/src/routes/team-templates.ts).
 Built-ins cannot be modified or deleted via the API — only user-saved templates
-under `<HARNESS_DATA_DIR>/templates/<id>.json` are mutable. The on-disk format
+under `<WISP_DATA_DIR>/templates/<id>.json` are mutable. The on-disk format
 matches the schema above; the loader is at
 [`apps/dashboard-server/src/templates/disk-store.ts`](../apps/dashboard-server/src/templates/disk-store.ts).
 
@@ -75,7 +75,7 @@ not in SQLite.
 
 1. Add a JSON file to `apps/dashboard-server/src/templates/`.
 2. Import + register it in `index.ts`.
-3. Run `pnpm --filter @agent-harness/dashboard-server test` to verify the
+3. Run `pnpm --filter @wisp/dashboard-server test` to verify the
    schema parser accepts it.
 4. The build script (`scripts/copy-templates.mjs`) copies the JSON to
    `dist/templates/` automatically.

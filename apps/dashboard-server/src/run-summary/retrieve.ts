@@ -1,6 +1,6 @@
 import { eq, desc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { runSummaries, type RunSummary } from '@agent-harness/schemas';
+import { runSummaries, type RunSummary } from '@wisp/schemas';
 
 export function getLatestSummaryForProject(projectId: string): RunSummary | undefined {
   return db

@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { db } from '../db/index.js';
-import { workerRuns } from '@agent-harness/schemas';
+import { workerRuns } from '@wisp/schemas';
 import type { WorkerRegistry } from './registry.js';
 
 export class WorkerDaemon {

@@ -26,7 +26,7 @@ import {
   changeRequestStatusValues,
   changeRequestSourceValues,
   projects,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 

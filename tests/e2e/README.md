@@ -1,8 +1,8 @@
-# @agent-harness/e2e — Playwright end-to-end smoke tests
+# @wisp/e2e — Playwright end-to-end smoke tests
 
 This package hosts the Phase F1 end-to-end smoke test. It boots the dashboard
 in **mock-CLI mode** (no real `claude` subprocess), serves the UI from the
-dashboard-server (`HARNESS_SERVE_WEB=1`) on a single port, and drives the
+dashboard-server (`WISP_SERVE_WEB=1`) on a single port, and drives the
 full happy-path through the React UI:
 
 ```
@@ -44,7 +44,7 @@ pnpm test:e2e
 Or directly via the workspace filter:
 
 ```bash
-pnpm --filter @agent-harness/e2e test
+pnpm --filter @wisp/e2e test
 ```
 
 Or from inside this directory:
@@ -76,11 +76,11 @@ pnpm exec playwright show-report
 
 - `globalSetup` (`global-setup.ts`):
   - Verifies `apps/dashboard-server/dist/server.js` and `apps/dashboard-web/dist/index.html` exist.
-  - Creates an isolated tmp `HARNESS_DATA_DIR`.
+  - Creates an isolated tmp `WISP_DATA_DIR`.
   - Initializes a tmp git repo with one initial commit so `git worktree add` succeeds.
 - `webServer` (`playwright.config.ts`):
   - Spawns `node apps/dashboard-server/dist/server.js` on port 4499.
-  - Sets `HARNESS_MOCK_CLI=1`, `HARNESS_SERVE_WEB=1`, points `HARNESS_DATA_DIR` at the tmp dir.
+  - Sets `WISP_MOCK_CLI=1`, `WISP_SERVE_WEB=1`, points `WISP_DATA_DIR` at the tmp dir.
   - Waits on `/api/health` to return 200.
 - `smoke.spec.ts`: drives the UI through the full happy path and asserts:
   - The UI lands on `/projects/<id>/teams` after project creation.

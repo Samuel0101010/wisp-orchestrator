@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { eq, and } from 'drizzle-orm';
 import { db, sqlite } from '../db/index.js';
-import { runs, type RunStatus } from '@agent-harness/schemas';
+import { runs, type RunStatus } from '@wisp/schemas';
 
 export type CheckoutResult =
   | { ok: true; token: string }

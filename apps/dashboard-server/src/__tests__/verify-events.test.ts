@@ -2,11 +2,11 @@ import './setup.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { events as eventsTable, plans, projects } from '@agent-harness/schemas';
+import { events as eventsTable, plans, projects } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { RunRuntime } from '../orchestrator/runtime.js';
-import type { Walker, WalkerDeps } from '@agent-harness/orchestrator';
+import type { Walker, WalkerDeps } from '@wisp/orchestrator';
 
 beforeAll(() => {
   runMigrations();

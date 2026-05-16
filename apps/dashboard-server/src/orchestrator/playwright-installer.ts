@@ -6,7 +6,7 @@
  * (~170 MB per platform) and we don't want to redownload them per worktree.
  * Compromise: a single shared cache at
  *
- *   ~/.cache/agent-harness/playwright-browsers
+ *   ~/.cache/wisp/playwright-browsers
  *
  * pointed to by the PLAYWRIGHT_BROWSERS_PATH env var. Every worktree shares
  * this cache, so the first `npx playwright install chromium` pays the
@@ -26,7 +26,7 @@ import path from 'node:path';
 import { execa } from 'execa';
 
 export interface EnsurePlaywrightArgs {
-  /** Override the cache root. Defaults to ~/.cache/agent-harness/playwright-browsers. */
+  /** Override the cache root. Defaults to ~/.cache/wisp/playwright-browsers. */
   cachePath?: string;
   /** Working dir to invoke `npx` in. Defaults to a tmp dir so we don't pollute the harness repo. */
   cwd?: string;
@@ -48,7 +48,7 @@ export interface EnsurePlaywrightResult {
 }
 
 export function defaultCachePath(): string {
-  return path.join(os.homedir(), '.cache', 'agent-harness', 'playwright-browsers');
+  return path.join(os.homedir(), '.cache', 'wisp', 'playwright-browsers');
 }
 
 /**

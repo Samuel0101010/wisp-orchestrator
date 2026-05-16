@@ -16,7 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { agents, createAgentInputSchema, updateAgentInputSchema } from '@agent-harness/schemas';
+import { agents, createAgentInputSchema, updateAgentInputSchema } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { wrap } from './wrap.js';
 

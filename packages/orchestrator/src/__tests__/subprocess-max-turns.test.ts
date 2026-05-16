@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { HarnessEvent } from '@agent-harness/schemas';
+import type { HarnessEvent } from '@wisp/schemas';
 import { runClaude } from '../subprocess.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

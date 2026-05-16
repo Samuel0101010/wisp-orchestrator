@@ -25,8 +25,8 @@ import {
   runs as runsTable,
   type LeadDecision,
   type LeadDecisionsJson,
-} from '@agent-harness/schemas';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+} from '@wisp/schemas';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 import { db } from '../db/index.js';
 import { runAgentTurn, type RunAgentTurnResult } from '../routes/chat-engine.js';
 import { loadHandoffsForProject } from './handoff-loader.js';
@@ -300,7 +300,7 @@ export async function runLeadTick(args: RunLeadTickArgs): Promise<RunLeadTickRes
     throw new Error(`project_not_found: ${args.projectId}`);
   }
 
-  const dataDir = args.dataDirOverride ?? env.HARNESS_DATA_DIR;
+  const dataDir = args.dataDirOverride ?? env.WISP_DATA_DIR;
   const scopedRun = resolveScopedRun({ projectId: args.projectId, runId: args.runId });
   const bundle = buildBundle({ projectId: args.projectId, project, scopedRun, dataDir });
 

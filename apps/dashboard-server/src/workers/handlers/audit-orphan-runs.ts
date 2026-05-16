@@ -1,5 +1,5 @@
 import { db } from '../../db/index.js';
-import { runs, events } from '@agent-harness/schemas';
+import { runs, events } from '@wisp/schemas';
 import { eq, sql } from 'drizzle-orm';
 
 export async function auditOrphanRuns(): Promise<{ orphans: string[] }> {

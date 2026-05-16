@@ -27,7 +27,7 @@ Onboarding for contributors. Assumes you have already run `pnpm install` and `pn
 │           ├── api/           # client + ws + react-query hooks
 │           └── store/         # zustand stores (run, ui)
 ├── commands/
-│   └── harness-dashboard.md   # /harness-dashboard slash-command spec
+│   └── harness-dashboard.md   # /wisp-dashboard slash-command spec
 ├── docs/                      # this directory
 ├── hooks/
 │   └── hooks.json             # PreCompact + SessionStart wiring
@@ -72,7 +72,7 @@ All run from repo root unless noted.
 | `pnpm format`     | `prettier --write .`                                                        |
 | `pnpm format:check` | `prettier --check .` — what CI runs.                                      |
 
-Per-package: `pnpm --filter @agent-harness/<name> <script>`.
+Per-package: `pnpm --filter @wisp/<name> <script>`.
 
 ## Adding a new agent role
 
@@ -106,7 +106,7 @@ The walker tests use a fake `WalkerDeps` that swaps the entire pool, worktree, a
 
 ### End-to-end harness
 
-A Playwright project in [`tests/e2e/`](../tests/e2e) drives the full stack with `HARNESS_SERVE_WEB=1` and `HARNESS_MOCK_CLI=1`, so a single `node dist/server.js` hosts UI + API + WS while subprocesses use the deterministic mock fixture.
+A Playwright project in [`tests/e2e/`](../tests/e2e) drives the full stack with `WISP_SERVE_WEB=1` and `WISP_MOCK_CLI=1`, so a single `node dist/server.js` hosts UI + API + WS while subprocesses use the deterministic mock fixture.
 
 ```sh
 pnpm install                             # installs @playwright/test
@@ -123,9 +123,9 @@ The dashboard server owns the schema (`packages/schemas` declares the tables but
 
 | Step                | Command                                                                       |
 | ------------------- | ----------------------------------------------------------------------------- |
-| Generate migration  | `pnpm --filter @agent-harness/dashboard-server db:generate`                   |
-| Run migrations      | `pnpm --filter @agent-harness/dashboard-server db:migrate`                    |
-| Inspect             | Open the SQLite file at `${HARNESS_DATA_DIR}/harness.db` with any SQLite GUI. |
+| Generate migration  | `pnpm --filter @wisp/dashboard-server db:generate`                   |
+| Run migrations      | `pnpm --filter @wisp/dashboard-server db:migrate`                    |
+| Inspect             | Open the SQLite file at `${WISP_DATA_DIR}/harness.db` with any SQLite GUI. |
 
 Migrations are committed under `apps/dashboard-server/drizzle/`. They run automatically at server boot via [`runMigrations()`](../apps/dashboard-server/src/db/migrate.ts).
 
@@ -162,10 +162,10 @@ The WS bus is a per-process in-memory pub/sub keyed by `runId`. There is no serv
    Or use `wscat -c ws://127.0.0.1:4400/ws/runs/<runId>`.
 2. Tail persisted events:
    ```sh
-   sqlite3 "${HARNESS_DATA_DIR}/harness.db" \
+   sqlite3 "${WISP_DATA_DIR}/harness.db" \
      "SELECT ts, type, payload FROM events WHERE run_id = '<runId>' ORDER BY ts;"
    ```
-3. Server logs: set `HARNESS_LOG_LEVEL=debug` for verbose route + WS tracing.
+3. Server logs: set `WISP_LOG_LEVEL=debug` for verbose route + WS tracing.
 
 ## Common gotchas
 
@@ -203,7 +203,7 @@ Per-task worktrees live under `<repoPath>/../worktrees/`. The Walker removes the
 
 ### Vite + Fastify CORS
 
-The dashboard-server allows `HARNESS_CORS_ORIGIN` (default `http://localhost:5173`) for the Vite dev server. If you change Vite's port, update this env var or the dashboard will fail with CORS errors at every fetch.
+The dashboard-server allows `WISP_CORS_ORIGIN` (default `http://localhost:5173`) for the Vite dev server. If you change Vite's port, update this env var or the dashboard will fail with CORS errors at every fetch.
 
 ## Cross-references
 

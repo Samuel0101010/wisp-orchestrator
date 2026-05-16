@@ -1,6 +1,6 @@
 /**
  * Deterministic role → color mapping. Roles are free-form kebab-case strings
- * (see `Role = string` in @agent-harness/schemas), so we can't enumerate them.
+ * (see `Role = string` in @wisp/schemas), so we can't enumerate them.
  * Canonical roles get curated colors; arbitrary roles fall back to a stable
  * hash bucket. All values picked so white text on the color passes WCAG-AA
  * (lightness ≤ ~45%), making the badge readable in both themes.

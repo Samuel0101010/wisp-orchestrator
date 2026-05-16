@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { HarnessEvent, Run, Task } from '@agent-harness/schemas';
+import type { HarnessEvent, Run, Task } from '@wisp/schemas';
 import { RunView } from './RunView';
 import { useRunStore } from '@/store/run';
 import { TooltipProvider } from '@/components/ui/tooltip';

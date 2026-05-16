@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
-import { probeSubscriptionAuth, type AuthProbeResult } from '@agent-harness/orchestrator';
+import { probeSubscriptionAuth, type AuthProbeResult } from '@wisp/orchestrator';
 import { buildApp } from './app.js';
 import { env } from './env.js';
 import { setLastAuthProbe } from './auth-status.js';
@@ -69,7 +69,7 @@ export async function bootstrap(): Promise<FastifyInstance> {
 }
 
 async function runBootAuthProbe(): Promise<void> {
-  if (env.HARNESS_MOCK_CLI) {
+  if (env.WISP_MOCK_CLI) {
     console.log(JSON.stringify({ event: 'auth-probe', skipped: 'mock-cli' }));
     setLastAuthProbe(null);
     return;
@@ -157,7 +157,7 @@ async function main(): Promise<void> {
     void shutdown(app, 'SIGINT');
   });
 
-  const address = await app.listen({ host: env.HARNESS_HOST, port: env.HARNESS_PORT });
+  const address = await app.listen({ host: env.WISP_HOST, port: env.WISP_PORT });
   app.log.info({ address }, 'dashboard-server listening');
 }
 

@@ -23,16 +23,10 @@ import path from 'node:path';
 import { and, asc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import {
-  agentMessages,
-  agentThreads,
-  agents,
-  projects,
-  type BriefPatch,
-} from '@agent-harness/schemas';
+import { agentMessages, agentThreads, agents, projects, type BriefPatch } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { wrap } from './wrap.js';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 import type { HistoryMessage, RunAgentTurnResult } from './chat-engine.js';
 import {
   applyBriefPatch,

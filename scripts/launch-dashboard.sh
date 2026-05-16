@@ -78,7 +78,7 @@ fi
 
 # Spawn node detached.
 log_file="${data_dir}/server.log"
-HARNESS_PORT="$chosen_port" HARNESS_DATA_DIR="$data_dir" HARNESS_SERVE_WEB=1 \
+WISP_PORT="$chosen_port" WISP_DATA_DIR="$data_dir" WISP_SERVE_WEB=1 \
   nohup node "$server_entry" >"$log_file" 2>&1 &
 server_pid=$!
 disown "$server_pid" 2>/dev/null || true

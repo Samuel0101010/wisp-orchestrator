@@ -6,15 +6,15 @@
  * already covered by chat-v2.test.ts.
  *
  * The DB interaction (INSERT INTO agent_messages) is live because the
- * test setup module configures a temp HARNESS_DATA_DIR and seeds the DB.
+ * test setup module configures a temp WISP_DATA_DIR and seeds the DB.
  */
 import './setup.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessEvent } from '@agent-harness/schemas';
-import type { RunClaudeOpts } from '@agent-harness/orchestrator';
+import type { HarnessEvent } from '@wisp/schemas';
+import type { RunClaudeOpts } from '@wisp/orchestrator';
 import { SkillRegistry } from '../skills/registry.js';
 import { executeDirective } from '../routes/chat-directives.js';
 import { runMigrations } from '../db/migrate.js';

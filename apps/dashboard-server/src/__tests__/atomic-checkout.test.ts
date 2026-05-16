@@ -3,7 +3,7 @@ import { describe, expect, it, beforeAll, beforeEach } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { tryCheckoutRun } from '../checkout/atomic-checkout.js';
 import { db, sqlite } from '../db/index.js';
-import { runs, plans, projects, teams } from '@agent-harness/schemas';
+import { runs, plans, projects, teams } from '@wisp/schemas';
 import { runMigrations } from '../db/migrate.js';
 import { randomUUID } from 'node:crypto';
 

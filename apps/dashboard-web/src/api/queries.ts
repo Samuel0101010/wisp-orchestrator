@@ -15,7 +15,7 @@ import type {
   Task,
   Team,
   UpdateAgentInput,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { ApiError, apiFetch } from './client';
 
 export interface HealthResponse {

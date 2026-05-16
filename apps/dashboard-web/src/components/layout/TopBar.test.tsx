@@ -6,7 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { ReactNode } from 'react';
 import { TopBar } from './TopBar';
 import { useRunStore } from '@/store/run';
-import type { Run, Task } from '@agent-harness/schemas';
+import type { Run, Task } from '@wisp/schemas';
 
 vi.mock('@/api/client', () => ({
   apiFetch: vi.fn(async () => ({ totalLast24h: 0, byProject: {} })),

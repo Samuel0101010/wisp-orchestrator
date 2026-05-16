@@ -21,8 +21,8 @@
  * we return the plan unchanged and log; the gate then degrades to the
  * legacy path (no verifier in plan → no DoD enforcement for that plan).
  */
-import type { DodCriterion, Plan } from '@agent-harness/schemas';
-import { planSchema } from '@agent-harness/schemas';
+import type { DodCriterion, Plan } from '@wisp/schemas';
+import { planSchema } from '@wisp/schemas';
 import { planHasRuntimeVerifier } from './runtime-report-loader.js';
 import { RUNTIME_VERIFIER_ROLE, buildRuntimeVerifyNode } from './runtime-verifier.js';
 

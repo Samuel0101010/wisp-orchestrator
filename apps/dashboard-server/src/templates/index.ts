@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { teamSchema, type Team } from '@agent-harness/schemas';
+import { teamSchema, type Team } from '@wisp/schemas';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';

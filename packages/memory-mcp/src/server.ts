@@ -18,7 +18,7 @@ if (!DB_PATH || DB_PATH.trim().length === 0) {
 // projectId. Both are propagated by the dashboard-server via mcp-config.ts.
 // Run scope still works exactly as before — HARNESS_PROJECT_ID is only needed
 // when an agent passes scope='project' on a tool call.
-const DATA_DIR = process.env.HARNESS_DATA_DIR ?? '';
+const DATA_DIR = process.env.WISP_DATA_DIR ?? '';
 const PROJECT_ID = process.env.HARNESS_PROJECT_ID ?? '';
 
 const resolver: ScopeResolver = (scope): MemoryStore => {

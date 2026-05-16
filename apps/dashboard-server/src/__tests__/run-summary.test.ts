@@ -2,14 +2,14 @@ import './setup.js';
 import { describe, expect, it, beforeAll, beforeEach } from 'vitest';
 import { buildTranscript, summarizeRun } from '../run-summary/summarizer.js';
 import { db, sqlite } from '../db/index.js';
-import { runs, plans, projects, teams, events, runSummaries } from '@agent-harness/schemas';
+import { runs, plans, projects, teams, events, runSummaries } from '@wisp/schemas';
 import { runMigrations } from '../db/migrate.js';
 import { SkillRegistry } from '../skills/registry.js';
 import { randomUUID } from 'node:crypto';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 
 beforeAll(() => {
   runMigrations();

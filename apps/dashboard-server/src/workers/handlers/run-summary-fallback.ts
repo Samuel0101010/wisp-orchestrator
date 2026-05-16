@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { runs, plans as plansTable, runSummaries } from '@agent-harness/schemas';
+import { runs, plans as plansTable, runSummaries } from '@wisp/schemas';
 import { summarizeRun } from '../../run-summary/summarizer.js';
 
 let injectedRegistry: import('../../skills/registry.js').SkillRegistry | null = null;

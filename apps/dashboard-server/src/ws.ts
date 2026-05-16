@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { WebSocket } from 'ws';
 import { eq } from 'drizzle-orm';
-import { harnessEventSchema, runs, type HarnessEvent } from '@agent-harness/schemas';
+import { harnessEventSchema, runs, type HarnessEvent } from '@wisp/schemas';
 import { db } from './db/index.js';
 
 const HEARTBEAT_INTERVAL_MS = 30_000;

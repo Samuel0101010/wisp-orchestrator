@@ -19,7 +19,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { agentModelValues, projectAgentOverrides, projects } from '@agent-harness/schemas';
+import { agentModelValues, projectAgentOverrides, projects } from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 

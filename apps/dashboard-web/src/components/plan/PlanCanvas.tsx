@@ -13,7 +13,7 @@ import ReactFlow, {
 } from 'reactflow';
 import dagre from 'dagre';
 import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
-import type { Plan, TaskNode } from '@agent-harness/schemas';
+import type { Plan, TaskNode } from '@wisp/schemas';
 import { rolePillStyle } from '@/lib/role-color';
 import { IconButton } from '@/components/ui/icon-button';
 import 'reactflow/dist/style.css';

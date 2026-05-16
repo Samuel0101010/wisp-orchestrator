@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
-import { plans, projects, runs } from '@agent-harness/schemas';
+import { plans, projects, runs } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { createRunsRouter } from '../routes/runs.js';

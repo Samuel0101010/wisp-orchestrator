@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { safeParseHarnessEvent, type HarnessEvent } from '@agent-harness/schemas';
+import { safeParseHarnessEvent, type HarnessEvent } from '@wisp/schemas';
 
 export type WsStatus = 'idle' | 'open' | 'closed' | 'error';
 

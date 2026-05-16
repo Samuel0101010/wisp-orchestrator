@@ -2,11 +2,11 @@ import './setup.js';
 import { describe, expect, it, beforeAll, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { plans, projects, runs, tasks } from '@agent-harness/schemas';
+import { plans, projects, runs, tasks } from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { RunRuntime } from '../orchestrator/runtime.js';
-import { Walker } from '@agent-harness/orchestrator';
+import { Walker } from '@wisp/orchestrator';
 
 // Test that project-level autopilot defaults propagate into new run rows.
 // Uses a Walker stub that never actually starts so we can inspect the
@@ -15,7 +15,7 @@ describe('project autopilot defaults → new run inheritance', () => {
   let projectId: string;
   let planId: string;
 
-  // The setup.ts sibling import wires HARNESS_DATA_DIR to a tmpdir but does
+  // The setup.ts sibling import wires WISP_DATA_DIR to a tmpdir but does
   // NOT apply migrations — the production server runs them on boot from
   // server.ts. We do the same here once, then each test seeds fresh rows.
   beforeAll(() => {

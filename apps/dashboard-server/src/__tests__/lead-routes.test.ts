@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { eq } from 'drizzle-orm';
-import { leadNotes as leadNotesTable, projects as projectsTable } from '@agent-harness/schemas';
+import { leadNotes as leadNotesTable, projects as projectsTable } from '@wisp/schemas';
 import { projectRoutes } from '../routes/projects.js';
 import { createLeadRouter } from '../routes/lead.js';
 import { runMigrations } from '../db/migrate.js';

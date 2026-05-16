@@ -35,4 +35,4 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return (await res.json()) as T;
 }
 
-export type { HarnessEvent, Plan, Project, Team, AgentSpec, Role } from '@agent-harness/schemas';
+export type { HarnessEvent, Plan, Project, Team, AgentSpec, Role } from '@wisp/schemas';

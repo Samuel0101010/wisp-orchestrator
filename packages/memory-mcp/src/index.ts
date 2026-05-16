@@ -13,4 +13,4 @@ export {
   type ProjectMemoryEntry,
 } from './project-store.js';
 
-export const PACKAGE_NAME = '@agent-harness/memory-mcp';
+export const PACKAGE_NAME = '@wisp/memory-mcp';

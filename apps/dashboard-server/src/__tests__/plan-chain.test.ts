@@ -2,7 +2,7 @@ import './setup.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
-import { plans, projects } from '@agent-harness/schemas';
+import { plans, projects } from '@wisp/schemas';
 import { buildApp } from '../app.js';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';

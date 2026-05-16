@@ -35,7 +35,7 @@ export type AutoMergeOutcome =
 
 const GIT_IDENT = [
   '-c',
-  'user.email=harness@agent-harness.local',
+  'user.email=wisp@wisp.local',
   '-c',
   'user.name=WISP',
   '-c',
@@ -101,7 +101,7 @@ export async function autoMergeResultIntoMain(args: AutoMergeArgs): Promise<Auto
       [
         'update-ref',
         '-m',
-        'harness: auto-merge result (ff)',
+        'wisp: auto-merge result (ff)',
         `refs/heads/${mainBranch}`,
         resultSha,
         mainSha,
@@ -124,14 +124,7 @@ export async function autoMergeResultIntoMain(args: AutoMergeArgs): Promise<Auto
     try {
       await execa(
         'git',
-        [
-          ...GIT_IDENT,
-          'merge',
-          '--no-ff',
-          '-m',
-          `harness: auto-merge ${resultBranch}`,
-          resultBranch,
-        ],
+        [...GIT_IDENT, 'merge', '--no-ff', '-m', `wisp: auto-merge ${resultBranch}`, resultBranch],
         { cwd: wtPath },
       );
       const newSha = (await execa('git', ['rev-parse', 'HEAD'], { cwd: wtPath })).stdout.trim();
@@ -142,7 +135,7 @@ export async function autoMergeResultIntoMain(args: AutoMergeArgs): Promise<Auto
         [
           'update-ref',
           '-m',
-          `harness: auto-merge ${resultBranch}`,
+          `wisp: auto-merge ${resultBranch}`,
           `refs/heads/${mainBranch}`,
           newSha,
           mainSha,

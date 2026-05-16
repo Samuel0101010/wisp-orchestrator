@@ -1,9 +1,9 @@
 import { eq, asc } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { events, runSummaries, type NewRunSummary } from '@agent-harness/schemas';
+import { events, runSummaries, type NewRunSummary } from '@wisp/schemas';
 import { invokeSkill } from '../skills/invoker.js';
 import type { SkillRegistry } from '../skills/registry.js';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 
 const TRANSCRIPT_BUDGET_CHARS = 24_000;
 const SUMMARY_MAX_CHARS = 8_000;

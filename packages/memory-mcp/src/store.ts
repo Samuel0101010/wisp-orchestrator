@@ -182,7 +182,7 @@ export function resolveStore(args: ResolveStoreArgs): MemoryStore {
   if (args.scope === 'project') {
     if (!args.dataDir || !args.projectId) {
       throw new Error(
-        'resolveStore: project scope requires HARNESS_DATA_DIR and HARNESS_PROJECT_ID to be set in the subprocess environment',
+        'resolveStore: project scope requires WISP_DATA_DIR and HARNESS_PROJECT_ID to be set in the subprocess environment',
       );
     }
     const p = resolveProjectDbPath({ dataDir: args.dataDir, projectId: args.projectId });

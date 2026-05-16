@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { TemplatePicker } from '@/components/TemplatePicker';
-import type { Team } from '@agent-harness/schemas';
+import type { Team } from '@wisp/schemas';
 import { useTemplates } from '@/api/queries';
 
 interface Props {

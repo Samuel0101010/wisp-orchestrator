@@ -64,7 +64,7 @@ Defaults are picked to mirror "intensive interactive use" rather than
 
 - _Vector_: shipping the harness as a "Claude API replacement" for
   business workloads.
-- _Mitigation_: `HARNESS_AUTH_MODE=api` (forward-compatible flag stub
+- _Mitigation_: `WISP_AUTH_MODE=api` (forward-compatible flag stub
   in M1.5) signals that production / commercial use should provide an
   `ANTHROPIC_API_KEY` and pay per token. README ToS section
   documents the user's responsibility.
@@ -75,10 +75,10 @@ Defaults are picked to mirror "intensive interactive use" rather than
 2. `pause('rate-limit', resumeAt)` is called — this aborts running
    tasks, persists the pause to SQLite, broadcasts `run.paused` over WS,
    and stores `resumeAt` so the UI can show a countdown.
-3. With `HARNESS_AUTO_RESUME_RATE_LIMIT=false` (default), the walker
+3. With `WISP_AUTO_RESUME_RATE_LIMIT=false` (default), the walker
    waits indefinitely. The user must click "Resume Now" in the UI
    (which calls `POST /api/runs/:id/resume`).
-4. With `HARNESS_AUTO_RESUME_RATE_LIMIT=true`, an in-process timer
+4. With `WISP_AUTO_RESUME_RATE_LIMIT=true`, an in-process timer
    schedules a `walker.resume()` for `resumeAt`.
 
 The rationale: when Anthropic signals "slow down," firing the same
@@ -97,7 +97,7 @@ rate-limit pause, no auto-resume, user must click Resume.
 
 ## Known limitations
 
-- API mode (`HARNESS_AUTH_MODE=api`) is a forward-compatible flag stub
+- API mode (`WISP_AUTH_MODE=api`) is a forward-compatible flag stub
   in M1.5; the boot-time auth-probe + startRun gate respect it (skip
   the probe and the gate) but no API-tier-specific code paths exist
   yet. M2+ may add direct-API support if the architectural review
