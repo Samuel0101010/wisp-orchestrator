@@ -80,6 +80,18 @@ export function useCreateProject() {
   });
 }
 
+export function useDeleteProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      await apiFetch(`/api/projects/${projectId}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+}
+
 export interface UpdateProjectInput {
   id: string;
   name?: string;

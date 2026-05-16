@@ -302,7 +302,7 @@
     "running": "Running…"
   },
   "navigation": {
-    "appName": "Agent Harness",
+    "appName": "WISP",
     "projects": "Projects",
     "newProject": "New project",
     "noProjectsYet": "No projects yet",
@@ -315,7 +315,22 @@
     "workers": "Workers",
     "insights": "Insights",
     "goapPlanner": "Goal Planner",
-    "promptBundles": "Prompt Bundles"
+    "promptBundles": "Prompt Bundles",
+    "todayRuns": "Runs · today",
+    "runsLabel": "runs",
+    "settings": "Settings"
+  },
+  "projectMenu": {
+    "trigger": "Project options",
+    "favorite": "Mark as favorite",
+    "unfavorite": "Remove favorite",
+    "delete": "Delete",
+    "deleteConfirmTitle": "Delete project?",
+    "deleteConfirmBody": "{{name}} will be permanently removed — runs, plans, and team configuration will be lost.",
+    "deleteCancel": "Cancel",
+    "deleteConfirm": "Delete",
+    "deleted": "Project deleted",
+    "deleteFailed": "Failed to delete project"
   },
   "topBar": {
     "activeRun": "Active run",
@@ -565,7 +580,7 @@
     }
   },
   "firstRunModal": {
-    "title": "Agent Harness uses your Claude subscription",
+    "title": "WISP uses your Claude subscription",
     "description": "This tool spawns claude -p subprocesses inheriting your ~/.claude/ credentials. Long-running runs consume your subscription quota. Review the Anthropic ToS — running intensive headless workflows is your responsibility.",
     "footnote": "You will see this once. Acknowledgment is stored in browser localStorage.",
     "acknowledge": "I understand, continue"

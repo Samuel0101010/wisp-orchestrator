@@ -128,6 +128,23 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
     }),
   );
 
+  app.delete(
+    '/api/projects/:id',
+    wrap(async (req, reply) => {
+      const params = z.object({ id: z.string() }).parse(req.params);
+      const existing = await db.select().from(projects).where(eq(projects.id, params.id)).get();
+      if (!existing) {
+        reply.code(404);
+        return { error: 'project not found' };
+      }
+      // Cascade is owned by the DB schema (drizzle FKs); deleting the project
+      // row removes its plans, runs, and chats automatically.
+      await db.delete(projects).where(eq(projects.id, params.id)).run();
+      reply.code(204);
+      return null;
+    }),
+  );
+
   app.patch(
     '/api/projects/:id',
     wrap(async (req, reply) => {
@@ -319,7 +336,7 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
           });
         } catch {
           git('config', 'user.email', 'harness@local');
-          git('config', 'user.name', 'Agent Harness');
+          git('config', 'user.name', 'WISP');
         }
         // Disable signing for the bootstrap commit so it works regardless of
         // user's global signing config.
