@@ -16,7 +16,7 @@ RunRuntime
   Walker dispatches a task
     └─ SubprocessPool spawns `claude -p ... --mcp-config <file> --strict-mcp-config`
          └─ claude spawns @wisp/memory-mcp's server.js
-              └─ MemoryStore opens the SQLite file at HARNESS_MEMORY_DB
+              └─ MemoryStore opens the SQLite file at WISP_MEMORY_DB
               └─ exposes memory.{set,get,list,delete} as MCP tools
 ```
 
@@ -49,29 +49,29 @@ value (useful for guarding against bloat).
 The default team in `apps/dashboard-web/src/data/defaultTeam.ts` allows all
 three roles to call:
 
-- `mcp__agent-harness-memory__memory_set`
-- `mcp__agent-harness-memory__memory_get`
-- `mcp__agent-harness-memory__memory_list`
+- `mcp__wisp-memory__memory_set`
+- `mcp__wisp-memory__memory_get`
+- `mcp__wisp-memory__memory_list`
 
-`mcp__agent-harness-memory__memory_delete` is **intentionally** absent from
+`mcp__wisp-memory__memory_delete` is **intentionally** absent from
 defaults — letting agents silently drop shared state by default is too
 footgun-y. Add it manually to a role's `allowedTools` if you want it.
 
 **Naming convention.** Claude exposes MCP tools as
 `mcp__<server-name>__<tool-name>`, replacing dots in the tool name with
 underscores. So our `memory.set` tool (registered in `tools.ts`) becomes
-`mcp__agent-harness-memory__memory_set` from the agent's perspective. The
-server name `agent-harness-memory` comes from `server.ts`'s
-`new Server({ name: 'agent-harness-memory', ... })`.
+`mcp__wisp-memory__memory_set` from the agent's perspective. The
+server name `wisp-memory` comes from `server.ts`'s
+`new Server({ name: 'wisp-memory', ... })`.
 
 ## Environment variables
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `HARNESS_MEMORY_DB` | Path to the SQLite file the server opens. Set by the runtime per run. | `./harness-memory.db` |
+| `WISP_MEMORY_DB` | Path to the SQLite file the server opens. Set by the runtime per run. | `./harness-memory.db` |
 
 When invoked outside of the harness (e.g. for debugging), set
-`HARNESS_MEMORY_DB` yourself before spawning the binary.
+`WISP_MEMORY_DB` yourself before spawning the binary.
 
 ## Where the data lives
 

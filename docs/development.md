@@ -169,15 +169,15 @@ The WS bus is a per-process in-memory pub/sub keyed by `runId`. There is no serv
 
 ## Common gotchas
 
-### Windows paths with spaces
+### Windows paths
 
-The default repo path `C:\Users\samue\Agent Harness` contains a space. Always quote it in shell commands:
+The recommended local checkout path is `C:\Users\samue\WISP`:
 
 ```sh
-claude plugin marketplace add "C:\Users\samue\Agent Harness"
+claude plugin marketplace add C:\Users\samue\WISP
 ```
 
-The PowerShell launcher in `scripts/launch-dashboard.ps1` already handles this; if you write new shell scripts, pass paths as quoted args.
+If your clone lives at a path that contains a space, quote it in shell commands. The PowerShell launcher in `scripts/launch-dashboard.ps1` handles either case.
 
 ### `better-sqlite3` native build
 

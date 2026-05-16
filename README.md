@@ -76,7 +76,7 @@ There are two supported paths.
 ### As a Claude Code plugin (preferred)
 
 ```sh
-claude plugin marketplace add Samuel0101010/agent-harness
+claude plugin marketplace add Samuel0101010/wisp-orchestrator
 claude plugin install wisp@wisp-local
 claude /wisp-dashboard
 ```

@@ -6,10 +6,10 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { closeAllStores, resolveStore, type MemoryStore } from './store.js';
 import { findTool, tools, type ToolName, type ScopeResolver } from './tools.js';
 
-const DB_PATH = process.env.HARNESS_MEMORY_DB;
+const DB_PATH = process.env.WISP_MEMORY_DB;
 if (!DB_PATH || DB_PATH.trim().length === 0) {
   process.stderr.write(
-    'agent-harness-memory: HARNESS_MEMORY_DB is required (per-run SQLite path). Refusing to start with a default path because that would silently lose memory across runs.\n',
+    'wisp-memory: WISP_MEMORY_DB is required (per-run SQLite path). Refusing to start with a default path because that would silently lose memory across runs.\n',
   );
   process.exit(1);
 }
@@ -42,12 +42,12 @@ try {
   resolver('run');
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
-  process.stderr.write(`agent-harness-memory: failed to open SQLite at ${DB_PATH}: ${message}\n`);
+  process.stderr.write(`wisp-memory: failed to open SQLite at ${DB_PATH}: ${message}\n`);
   process.exit(1);
 }
 
 const server = new Server(
-  { name: 'agent-harness-memory', version: '1.0.0' },
+  { name: 'wisp-memory', version: '1.0.0' },
   { capabilities: { tools: {} } },
 );
 

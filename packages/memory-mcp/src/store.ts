@@ -11,7 +11,7 @@ export interface MemoryListEntry {
  * SQLite-backed key/value store for the memory-mcp server. Two scopes coexist:
  *
  *   - run-scoped (default) — one DB file per run at <dataDir>/memory/<runId>.db.
- *     Set by the runtime via the HARNESS_MEMORY_DB env var.
+ *     Set by the runtime via the WISP_MEMORY_DB env var.
  *   - project-scoped (v1.14) — one DB file per project at
  *     <dataDir>/memory/project-<projectId>.db. Resolved on demand when a tool
  *     call carries `scope: 'project'`. The runtime exports HARNESS_PROJECT_ID
@@ -97,7 +97,7 @@ export class MemoryStore {
  * Resolve the DB file path for a given scope.
  *
  * - run scope: caller provides the path directly (the server boots with one
- *   path from HARNESS_MEMORY_DB). The path is opaque to this helper.
+ *   path from WISP_MEMORY_DB). The path is opaque to this helper.
  * - project scope: derived from `<dataDir>/memory/project-<projectId>.db`.
  *   The runtime guarantees `dataDir` and `projectId` are both set when the
  *   project-scoped tools are reachable; absence is a hard error so we never

@@ -49,22 +49,22 @@ export const TOOL_CATALOG: ToolCategory[] = [
   {
     id: 'memory',
     title: 'Memory MCP (per-run shared store)',
-    description: 'Cross-task context via the agent-harness-memory MCP server.',
+    description: 'Cross-task context via the wisp-memory MCP server.',
     tools: [
       {
-        name: 'mcp__agent-harness-memory__memory_set',
+        name: 'mcp__wisp-memory__memory_set',
         description: 'Persist a string under a key (e.g. arch.spec).',
       },
       {
-        name: 'mcp__agent-harness-memory__memory_get',
+        name: 'mcp__wisp-memory__memory_get',
         description: 'Read a previously-set value.',
       },
       {
-        name: 'mcp__agent-harness-memory__memory_list',
+        name: 'mcp__wisp-memory__memory_list',
         description: 'List all keys with their value sizes.',
       },
       {
-        name: 'mcp__agent-harness-memory__memory_delete',
+        name: 'mcp__wisp-memory__memory_delete',
         description: 'Remove a key from memory.',
       },
     ],
