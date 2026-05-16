@@ -73,7 +73,8 @@
     "disabledTooltip": "Worker ist deaktiviert (im Server-Config gesetzt)",
     "actions": {
       "runNow": "Jetzt ausführen",
-      "running": "Läuft…"
+      "running": "Läuft…",
+      "runWorker": "Worker {{name}} jetzt ausführen"
     },
     "history": "Run-Historie",
     "loading": "Lade Workers…",

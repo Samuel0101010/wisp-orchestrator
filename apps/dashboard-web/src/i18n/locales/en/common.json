@@ -73,7 +73,8 @@
     "disabledTooltip": "Worker is disabled in server config",
     "actions": {
       "runNow": "Run now",
-      "running": "Running…"
+      "running": "Running…",
+      "runWorker": "Run worker {{name}}"
     },
     "history": "Run history",
     "loading": "Loading workers…",
