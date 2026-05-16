@@ -23,7 +23,7 @@ export interface WriteMemoryMcpConfigResult {
 }
 
 /**
- * Writes a per-run MCP config JSON pointing at the agent-harness-memory
+ * Writes a per-run MCP config JSON pointing at the wisp-memory
  * stdio server, with a per-run SQLite DB path. The runtime calls this before
  * walker.start; the file is consumed by every claude -p subprocess via
  * --mcp-config (passed by the SubprocessPool's defaultMcpConfigPath).
@@ -49,7 +49,7 @@ export function writeMemoryMcpConfig(args: WriteMemoryMcpConfigArgs): WriteMemor
   mkdirSync(memDir, { recursive: true });
   const dbPath = path.join(memDir, `${args.runId}.db`);
   const env: Record<string, string> = {
-    HARNESS_MEMORY_DB: dbPath,
+    WISP_MEMORY_DB: dbPath,
   };
   if (args.projectId) {
     if (!PROJECT_ID_RE.test(args.projectId)) {
@@ -62,7 +62,7 @@ export function writeMemoryMcpConfig(args: WriteMemoryMcpConfigArgs): WriteMemor
   }
   const cfg = {
     mcpServers: {
-      'agent-harness-memory': {
+      'wisp-memory': {
         command: process.execPath,
         args: [args.memoryMcpEntrypoint],
         env,

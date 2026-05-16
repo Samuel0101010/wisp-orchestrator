@@ -35,13 +35,13 @@ export const PROMPT_SNIPPETS: Snippet[] = [
     id: 'memory-write-arch',
     title: 'Write decisions to arch.* keys',
     category: 'memory',
-    body: 'Drop key decisions into shared memory under arch.* keys via mcp__agent-harness-memory__memory_set so downstream developers can read them via mcp__agent-harness-memory__memory_get.',
+    body: 'Drop key decisions into shared memory under arch.* keys via mcp__wisp-memory__memory_set so downstream developers can read them via mcp__wisp-memory__memory_get.',
   },
   {
     id: 'memory-read-arch',
     title: 'Read arch.* before implementing',
     category: 'memory',
-    body: "Call mcp__agent-harness-memory__memory_get for 'arch.spec' and similar arch.* keys before implementing.",
+    body: "Call mcp__wisp-memory__memory_get for 'arch.spec' and similar arch.* keys before implementing.",
   },
   {
     id: 'verify-build-test-lint',

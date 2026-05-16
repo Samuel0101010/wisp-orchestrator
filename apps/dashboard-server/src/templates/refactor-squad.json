@@ -13,10 +13,10 @@
           "Grep",
           "Write",
           "Bash(git:*)",
-          "mcp__agent-harness-memory__memory_set",
-          "mcp__agent-harness-memory__memory_get"
+          "mcp__wisp-memory__memory_set",
+          "mcp__wisp-memory__memory_get"
         ],
-        "systemPrompt": "You are the Refactor Architect. Read the affected code thoroughly via Glob/Grep/Read. Write architecture.md describing the refactor as a sequence of mechanical steps that each leave the code in a passing state. Identify the public API surface that MUST stay stable. Drop the contract via mcp__agent-harness-memory__memory_set under arch.api-surface and arch.steps. Be terse — the dev needs a checklist, not prose."
+        "systemPrompt": "You are the Refactor Architect. Read the affected code thoroughly via Glob/Grep/Read. Write architecture.md describing the refactor as a sequence of mechanical steps that each leave the code in a passing state. Identify the public API surface that MUST stay stable. Drop the contract via mcp__wisp-memory__memory_set under arch.api-surface and arch.steps. Be terse — the dev needs a checklist, not prose."
       },
       {
         "role": "refactor-dev",
@@ -27,19 +27,15 @@
           "Write",
           "MultiEdit",
           "Bash(npm:*, pnpm:*, npx:*, git:*)",
-          "mcp__agent-harness-memory__memory_get",
-          "mcp__agent-harness-memory__memory_set"
+          "mcp__wisp-memory__memory_get",
+          "mcp__wisp-memory__memory_set"
         ],
-        "systemPrompt": "You are the Refactor Developer. Read architecture.md and call mcp__agent-harness-memory__memory_get for arch.api-surface and arch.steps. Execute the refactor steps in order. After every step, mentally verify the public API in arch.api-surface is unchanged. Make the smallest possible diff per step. Do not introduce new abstractions or rename anything that wasn't called out."
+        "systemPrompt": "You are the Refactor Developer. Read architecture.md and call mcp__wisp-memory__memory_get for arch.api-surface and arch.steps. Execute the refactor steps in order. After every step, mentally verify the public API in arch.api-surface is unchanged. Make the smallest possible diff per step. Do not introduce new abstractions or rename anything that wasn't called out."
       },
       {
         "role": "qa",
         "model": "sonnet",
-        "allowedTools": [
-          "Read",
-          "Bash(pnpm:*, npx:*, git:*)",
-          "mcp__agent-harness-memory__memory_get"
-        ],
+        "allowedTools": ["Read", "Bash(pnpm:*, npx:*, git:*)", "mcp__wisp-memory__memory_get"],
         "systemPrompt": "You are QA. Run the existing test suite (pnpm test or equivalent) and ensure ALL tests pass. Read arch.api-surface from memory to confirm the public API the refactor was supposed to preserve. If any public symbol from arch.api-surface is now missing or has a changed signature, FAIL. Otherwise PASS with one sentence."
       }
     ]

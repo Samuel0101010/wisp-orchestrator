@@ -489,7 +489,7 @@ matches the spec by reading memory.get(arch.spec) and running pnpm
 test."
 
 Three-role haiku team — architect / developer / qa, each with
-`mcp__agent-harness-memory__memory_*` tools whitelisted. Fresh repo
+`mcp__wisp-memory__memory_*` tools whitelisted. Fresh repo
 `harness-r4`, port 4506, run id `a43046ff-5c06-41b7-9049-c9eec66274e4`
 on plan `3179097f` (second attempt; first failed silently because the
 default team's allowedTools used the wrong tool-name format — fixed
@@ -534,7 +534,7 @@ memory. Direct evidence the developer read the spec from memory and
 turned each example into a test case. This is end-to-end proof that:
 
 1. The MCP config JSON is generated and accepted by claude
-2. The agent-harness-memory stdio server boots in the subprocess
+2. The wisp-memory stdio server boots in the subprocess
 3. memory.set persists to the per-run SQLite DB
 4. memory.get retrieves across tasks (different worktrees, different
    subprocesses) within the same run
@@ -551,13 +551,13 @@ them.
 Root cause: claude exposes MCP tools as `mcp__<server>__<tool>` with
 dots in the tool name converted to underscores. So our `memory.set`
 tool registered in `tools.ts` becomes
-`mcp__agent-harness-memory__memory_set` from the agent's
+`mcp__wisp-memory__memory_set` from the agent's
 perspective. The default team allowedTools whitelisted `memory.set`
 verbatim, which silently matched nothing. Agents saw the tools in
 their toolbox listing but were blocked from calling them.
 
 A 30-second probe with `claude -p --mcp-config ... --allowedTools
-mcp__agent-harness-memory__memory_set` confirmed the convention:
+mcp__wisp-memory__memory_set` confirmed the convention:
 calling the fully-qualified name returns `{ok: true}` and the kv
 row appears.
 

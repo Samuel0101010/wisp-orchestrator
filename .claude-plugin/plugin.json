@@ -7,7 +7,7 @@
     "name": "Samuel Heftberger",
     "email": "215513082+Samuel0101010@users.noreply.github.com"
   },
-  "homepage": "https://github.com/Samuel0101010/agent-harness",
+  "homepage": "https://github.com/Samuel0101010/wisp-orchestrator",
   "license": "Apache-2.0",
   "keywords": ["agents", "orchestration", "kanban", "dag", "subscription"]
 }

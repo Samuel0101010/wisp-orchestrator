@@ -2180,7 +2180,7 @@ all succeed.
 - Both launchers now set `WISP_SERVE_WEB=1` so `/` serves the
   SPA instead of returning 404.
 - README install path uses the GitHub source
-  (`Samuel0101010/agent-harness`) and the correct marketplace
+  (`Samuel0101010/wisp-orchestrator`) and the correct marketplace
   name (`agent-harness-local`).
 
 ### Fixed — modern stream-json + tool-use events (#22, #23)
@@ -2193,7 +2193,7 @@ all succeed.
   tool-use stream were silently empty during real-Claude runs.
 - `runtime.ts` `task.tool-use` filter removed — events now persist
   + broadcast like every other event type. Live verified against
-  `mcp__agent-harness-memory__memory_set` and `Write` calls.
+  `mcp__wisp-memory__memory_set` and `Write` calls.
 
 ### Fixed — PowerShell launcher logging (#22)
 
@@ -2266,7 +2266,7 @@ plugin skills. Six real-Claude validation runs documented under
 - Per-run config + DB live under `<WISP_DATA_DIR>/{mcp-configs,
   memory}/<runId>.{json,db}`.
 - Default team `allowedTools` include the fully-qualified
-  `mcp__agent-harness-memory__memory_set/get/list` (delete
+  `mcp__wisp-memory__memory_set/get/list` (delete
   intentionally excluded).
 - `docs/memory-mcp.md` — usage, security note, on-disk layout,
   inspection guide.

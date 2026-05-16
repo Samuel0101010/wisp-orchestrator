@@ -27,7 +27,7 @@ export interface RunClaudeOpts {
   /**
    * Optional MCP config JSON file path. When set, the subprocess is invoked
    * with `--mcp-config <path> --strict-mcp-config`, exposing the configured
-   * MCP servers (e.g. agent-harness-memory) as tools to the agent.
+   * MCP servers (e.g. wisp-memory) as tools to the agent.
    */
   mcpConfigPath?: string;
   /** Override the executable. If it ends in .js/.mjs, spawned via node. */

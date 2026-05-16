@@ -35,7 +35,7 @@ describe('built-in templates', () => {
         for (const tool of role.allowedTools) {
           if (tool.startsWith('memory.')) {
             throw new Error(
-              `template ${t.id} role ${role.role} uses legacy 'memory.' name: '${tool}' (use mcp__agent-harness-memory__... instead)`,
+              `template ${t.id} role ${role.role} uses legacy 'memory.' name: '${tool}' (use mcp__wisp-memory__... instead)`,
             );
           }
         }

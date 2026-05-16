@@ -23,7 +23,7 @@ interface JsonRpcChild {
 
 function startServer(dbPath: string): JsonRpcChild {
   const child = spawn(process.execPath, [SERVER_BIN], {
-    env: { ...process.env, HARNESS_MEMORY_DB: dbPath },
+    env: { ...process.env, WISP_MEMORY_DB: dbPath },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
