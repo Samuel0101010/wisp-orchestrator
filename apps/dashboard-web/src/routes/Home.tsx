@@ -1,7 +1,7 @@
-import { lazy, Suspense, useMemo } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Sparkles } from 'lucide-react';
+import { Bolt, ChevronRight, FolderOpen, Plus } from 'lucide-react';
 import { useGlobalRuns, useProjects, useRunsSummary } from '@/api/queries';
 import type { GlobalRunRow } from '@/api/queries';
 import { cn } from '@/lib/utils';
@@ -48,15 +48,122 @@ function classify(r: { status: string; outcome?: string | null }) {
   return 'pending' as const;
 }
 
+type ToneTrend = 'up' | 'down' | 'flat';
+const TREND_GLYPH: Record<ToneTrend, string> = { up: '↗', down: '↘', flat: '→' };
+
+interface KpiSpec {
+  id: string;
+  label: string;
+  value: string;
+  suffix?: string;
+  trend: ToneTrend;
+  spark: number[];
+  tone: '' | 'coral' | 'mint' | 'violet' | 'amber' | 'rose';
+  live?: boolean;
+}
+
+function KpiSpark({ points, tone }: { points: number[]; tone: KpiSpec['tone'] }) {
+  if (!points?.length) return null;
+  const w = 200;
+  const h = 36;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const step = points.length > 1 ? w / (points.length - 1) : w;
+  const path = points
+    .map((v, i) => `${i === 0 ? 'M' : 'L'} ${i * step} ${h - ((v - min) / range) * h}`)
+    .join(' ');
+  const area = `${path} L ${w} ${h} L 0 ${h} Z`;
+  const colorVar = {
+    coral: 'var(--coral)',
+    mint: 'var(--mint)',
+    violet: 'var(--violet)',
+    amber: 'var(--amber)',
+    rose: 'var(--rose)',
+    '': 'var(--coral)',
+  }[tone];
+  const gid = `wisp-spark-${tone || 'coral'}-${Math.random().toString(36).slice(2, 7)}`;
+  const last = points[points.length - 1] ?? 0;
+  return (
+    <svg
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      style={{ display: 'block', width: '100%', height: h }}
+      aria-hidden
+    >
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={colorVar} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={colorVar} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={path} fill="none" stroke={colorVar} strokeWidth="1.6" />
+      <circle cx={w} cy={h - ((last - min) / range) * h} r="2.5" fill={colorVar} />
+    </svg>
+  );
+}
+
+function KpiCard({ kpi, delay = 0 }: { kpi: KpiSpec; delay?: number }) {
+  const trendColor =
+    kpi.trend === 'up' ? 'var(--mint)' : kpi.trend === 'down' ? 'var(--rose)' : 'var(--wisp-ink-3)';
+  return (
+    <div
+      className={cn('wisp-card wisp-lift', kpi.tone === 'coral' && 'glow-coral')}
+      style={{
+        animation: `wisp-fade-up .55s var(--wisp-easing) ${delay}ms backwards`,
+        padding: 18,
+      }}
+      data-testid={`kpi-${kpi.id}`}
+    >
+      <div className="mb-2.5 flex items-center justify-between">
+        <span className="t-eyebrow">{kpi.label}</span>
+        <span className="t-mono" style={{ fontSize: 11, color: trendColor }}>
+          {TREND_GLYPH[kpi.trend]}
+        </span>
+      </div>
+      <div className="mb-3 flex items-baseline gap-2">
+        <span
+          style={{
+            fontFamily: 'var(--f-display)',
+            fontSize: 40,
+            lineHeight: 1,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {kpi.value}
+        </span>
+        {kpi.suffix && (
+          <span
+            style={{
+              fontFamily: 'var(--f-display)',
+              fontSize: 28,
+              color: 'var(--wisp-ink-3)',
+              fontStyle: 'italic',
+              lineHeight: 1,
+            }}
+          >
+            {kpi.suffix}
+          </span>
+        )}
+        {kpi.live && (
+          <span className="wisp-dot coral pulse" style={{ width: 10, height: 10, marginLeft: 6 }} />
+        )}
+      </div>
+      <KpiSpark points={kpi.spark} tone={kpi.tone} />
+    </div>
+  );
+}
+
 function Sparkline({ data, w = 96, h = 22 }: { data: number[]; w?: number; h?: number }) {
-  if (!data.length) return <span className="text-muted-foreground-soft">—</span>;
+  if (!data.length) return <span className="text-[color:var(--wisp-ink-4)]">—</span>;
   const max = Math.max(...data, 1);
   const step = data.length > 1 ? w / (data.length - 1) : w;
   const pts = data
     .map((v, i) => `${(i * step).toFixed(1)},${(h - (v / max) * h).toFixed(1)}`)
     .join(' ');
   return (
-    <svg width={w} height={h} className="text-info">
+    <svg width={w} height={h} className="text-[color:var(--coral)]" aria-hidden>
       <polyline
         points={pts}
         fill="none"
@@ -68,9 +175,110 @@ function Sparkline({ data, w = 96, h = 22 }: { data: number[]; w?: number; h?: n
   );
 }
 
+type Period = '24h' | '7d' | '30d';
+
+function HeroHeader({
+  activeCount,
+  totalToday,
+  period,
+  onPeriod,
+}: {
+  activeCount: number;
+  totalToday: number;
+  period: Period;
+  onPeriod: (p: Period) => void;
+}) {
+  const { t } = useTranslation();
+  const lang = t('lang', 'en') as string;
+  const dateLabel = useMemo(() => {
+    try {
+      return new Date().toLocaleDateString(lang === 'de' ? 'de-DE' : undefined, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      });
+    } catch {
+      return new Date().toDateString();
+    }
+  }, [lang]);
+  const greeting = useMemo(() => {
+    const hr = new Date().getHours();
+    if (hr < 11) return t('home.greeting.morning', 'Good morning, Samuel.');
+    if (hr < 18) return t('home.greeting.afternoon', 'Good afternoon, Samuel.');
+    return t('home.greeting.evening', 'Good evening, Samuel.');
+  }, [t]);
+
+  return (
+    <section className="mb-6 flex items-end justify-between gap-5">
+      <div className="min-w-0 flex-1">
+        <div className="t-eyebrow mb-1.5">
+          {t('home.eyebrow', 'Mission Control')} · {dateLabel}
+        </div>
+        <h1
+          className="m-0"
+          style={{
+            fontFamily: 'var(--f-display)',
+            fontSize: 44,
+            lineHeight: 1.08,
+            fontWeight: 400,
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {greeting}{' '}
+          <span style={{ color: 'var(--wisp-ink-3)', fontStyle: 'italic' }}>
+            {t('home.greeting.suffix', '{{count}} runs today.', { count: totalToday })}
+          </span>
+        </h1>
+        <div
+          className="mt-2.5 flex flex-wrap items-center gap-1.5"
+          style={{ color: 'var(--wisp-ink-3)', fontSize: 13 }}
+        >
+          {activeCount > 0 ? (
+            <>
+              <span className="wisp-dot mint pulse" style={{ width: 6, height: 6 }} />
+              <span>
+                {t('home.greeting.workingShort', '{{count}} agents working', {
+                  count: activeCount,
+                })}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="wisp-dot dim" style={{ width: 6, height: 6 }} />
+              <span>{t('home.greeting.idle', 'No live agents · ready when you are.')}</span>
+            </>
+          )}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <div className="wisp-segment" role="tablist">
+          {(['24h', '7d', '30d'] as Period[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              className={cn(period === p && 'on')}
+              onClick={() => onPeriod(p)}
+              aria-pressed={period === p}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="wisp-btn">
+          <Plus className="h-3.5 w-3.5" /> {t('home.actions.newProject', 'New project')}
+        </button>
+        <button type="button" className="wisp-btn primary">
+          <Bolt className="h-3.5 w-3.5" /> {t('home.actions.quickRun', 'Quick run')}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function Home() {
   const { t } = useTranslation();
-  const summary = useRunsSummary(7);
+  const [period, setPeriod] = useState<Period>('7d');
+  const summary = useRunsSummary(period === '24h' ? 1 : period === '30d' ? 30 : 7);
   const globalRuns = useGlobalRuns(100);
   const projects = useProjects();
 
@@ -83,8 +291,87 @@ export function Home() {
   const successPercent = summary.data ? Math.round(summary.data.successRate * 100) : 0;
   const tokensByDay = summary.data?.tokensByDay ?? [];
   const outcomeCounts = summary.data?.outcomeCounts ?? {};
+  const totalToday = summary.data?.totalRuns ?? 0;
+  const activeCount = summary.data?.activeCount ?? 0;
+  const totalTokens = summary.data?.totalTokens ?? 0;
+  const avgDuration = summary.data?.avgDurationMs ?? 0;
 
-  // Per-project rollup
+  // Compute spark series for KPIs from `tokensByDay`.
+  const tokenSpark = useMemo(() => tokensByDay.map((d) => d?.tokens ?? 0).slice(-7), [tokensByDay]);
+  // Daily totals: fallback to a flat 0-series so the spark stays a rendered shape.
+  const runsSpark = useMemo(() => {
+    const buckets = Array.from({ length: 7 }, () => 0);
+    (globalRuns.data ?? []).forEach((r) => {
+      if (!r.startedAt) return;
+      const days = Math.floor(
+        (Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000,
+      );
+      if (days >= 0 && days < 7) buckets[6 - days] = (buckets[6 - days] ?? 0) + 1;
+    });
+    return buckets;
+  }, [globalRuns.data]);
+  const successSpark = useMemo(() => {
+    // approximated trend: success-rate per day from the runs window
+    const ok = Array.from({ length: 7 }, () => 0);
+    const tot = Array.from({ length: 7 }, () => 0);
+    (globalRuns.data ?? []).forEach((r) => {
+      if (!r.startedAt) return;
+      const days = Math.floor(
+        (Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000,
+      );
+      if (days < 0 || days >= 7) return;
+      const idx = 6 - days;
+      tot[idx] = (tot[idx] ?? 0) + 1;
+      if (classify(r) === 'success') ok[idx] = (ok[idx] ?? 0) + 1;
+    });
+    return ok.map((o, i) => (tot[i] ? Math.round((o / (tot[i] ?? 1)) * 100) : 0));
+  }, [globalRuns.data]);
+
+  const kpis: KpiSpec[] = [
+    {
+      id: 'live',
+      label: t('home.kpis.activeRuns', 'Live runs'),
+      value: String(activeCount),
+      trend: activeCount > 0 ? 'up' : 'flat',
+      spark: runsSpark.length ? runsSpark : [0, 0, 0, 0, 0, 0, 0],
+      tone: 'coral',
+      live: activeCount > 0,
+    },
+    {
+      id: 'today',
+      label: t('home.kpis.today', 'Today'),
+      value: String(totalToday),
+      trend: totalToday > 0 ? 'up' : 'flat',
+      spark: runsSpark.length ? runsSpark : [0, 0, 0, 0, 0, 0, 0],
+      tone: '',
+    },
+    {
+      id: 'tokens',
+      label: t('home.kpis.tokensWindow', 'Tokens · 7d'),
+      value: formatTokensCompact(totalTokens),
+      trend: tokenSpark.at(-1)! > (tokenSpark.at(-2) ?? 0) ? 'up' : 'flat',
+      spark: tokenSpark.length ? tokenSpark : [0, 0, 0, 0, 0, 0, 0],
+      tone: 'violet',
+    },
+    {
+      id: 'success',
+      label: t('home.kpis.successRate', 'Success · 7d'),
+      value: `${successPercent}`,
+      suffix: '%',
+      trend: successPercent >= 80 ? 'up' : successPercent >= 50 ? 'flat' : 'down',
+      spark: successSpark.length ? successSpark : [0, 0, 0, 0, 0, 0, 0],
+      tone: successPercent >= 80 ? 'mint' : successPercent >= 50 ? '' : 'rose',
+    },
+    {
+      id: 'avg',
+      label: t('home.kpis.avgDuration', 'Avg duration'),
+      value: formatDuration(avgDuration),
+      trend: 'flat',
+      spark: runsSpark.length ? runsSpark : [0, 0, 0, 0, 0, 0, 0],
+      tone: '',
+    },
+  ];
+
   const perProject = useMemo(() => {
     const byId = new Map<string, GlobalRunRow[]>();
     (globalRuns.data ?? []).forEach((r) => {
@@ -125,127 +412,101 @@ export function Home() {
 
   return (
     <div
-      className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]"
+      className="wisp-fade-up grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]"
       data-testid="mission-control"
     >
       {/* MAIN COLUMN */}
       <div className="flex flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t('home.title', 'Mission Control')}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t('home.subtitle', 'Live overview of all agent runs across your projects.')}
-          </p>
-        </header>
+        <HeroHeader
+          activeCount={activeCount}
+          totalToday={totalToday}
+          period={period}
+          onPeriod={setPeriod}
+        />
 
-        {/* Metric strip — aggregate across all projects */}
-        {(() => {
-          const activeRuns = summary.data?.activeCount ?? 0;
-          const metrics: Array<{
-            key: string;
-            label: string;
-            value: string;
-            caption?: string;
-            headline?: boolean;
-            testId: string;
-          }> = [
-            {
-              key: 'active',
-              label: t('home.kpis.activeRuns', 'Active runs'),
-              value: String(activeRuns),
-              caption: t('home.kpis.activeCaption', 'currently running or paused'),
-              headline: true,
-              testId: 'kpi-active-runs',
-            },
-            {
-              key: 'tokens',
-              label: t('home.kpis.tokensWindow', 'Tokens · 7 days'),
-              value: formatTokensCompact(summary.data?.totalTokens ?? 0),
-              caption: t('home.kpis.totalRunsCaption', '{{count}} runs in window', {
-                count: summary.data?.totalRuns ?? 0,
-              }),
-              testId: 'kpi-tokens',
-            },
-            {
-              key: 'success',
-              label: t('home.kpis.successRate', 'Success rate · 7 days'),
-              value: `${Math.round(successPercent)}%`,
-              caption: t('home.kpis.successCaption', '{{ok}}/{{total}} successful', {
-                ok: outcomeCounts.success ?? 0,
-                total: summary.data?.totalRuns ?? 0,
-              }),
-              testId: 'kpi-success-rate',
-            },
-            {
-              key: 'duration',
-              label: t('home.kpis.avgDuration', 'Avg duration · 7 days'),
-              value: formatDuration(summary.data?.avgDurationMs ?? 0),
-              caption: t('home.kpis.avgCaption', 'across completed runs'),
-              testId: 'kpi-avg-duration',
-            },
-          ];
-          return (
-            <section
-              className={cn('-mx-2 border-y', activeRuns > 0 && 'bg-success/5')}
-              aria-label={t('home.kpiSection', 'Key metrics')}
-              data-testid="home-metric-strip"
-            >
-              <div className="grid grid-cols-2 divide-x divide-y xl:grid-cols-4 xl:divide-y-0">
-                {metrics.map((m) => (
-                  <div key={m.key} className="flex flex-col gap-1 px-6 py-4" data-testid={m.testId}>
-                    <span className="text-2xs uppercase tracking-widest text-muted-foreground">
-                      {m.label}
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      <span
-                        className={cn(
-                          'tabular-nums font-semibold leading-none',
-                          m.headline ? 'text-3xl' : 'text-2xl',
-                        )}
-                      >
-                        {m.value}
-                      </span>
-                      {m.key === 'active' && activeRuns > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-xs font-medium text-success">
-                          <ArrowUpRight className="h-3.5 w-3.5" />
-                        </span>
-                      )}
-                    </div>
-                    {m.caption && (
-                      <span className="text-xs text-muted-foreground">{m.caption}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          );
-        })()}
+        {/* KPI strip — 5 cards, matches the Wisp design 1:1. */}
+        <section
+          className="grid grid-cols-2 gap-3.5 md:grid-cols-3 xl:grid-cols-5"
+          aria-label={t('home.kpiSection', 'Key metrics')}
+          data-testid="home-metric-strip"
+        >
+          {kpis.map((k, i) => (
+            <KpiCard key={k.id} kpi={k} delay={i * 80} />
+          ))}
+        </section>
 
-        {/* Charts row — token throughput + outcome donut */}
+        {/* Live operations header — segment + status chip strip. */}
+        <section className="flex items-center justify-between">
+          <h2
+            className="m-0"
+            style={{ fontFamily: 'var(--f-head)', fontSize: 18, fontWeight: 500 }}
+          >
+            {t('home.live.title', 'Live operations')}
+          </h2>
+          <div className="flex items-center gap-2">
+            <span className="wisp-chip">
+              <span className="wisp-dot coral pulse" />{' '}
+              {t('home.live.runningCount', '{{n}} running', {
+                n: liveRuns.filter((r) => r.status === 'running').length,
+              })}
+            </span>
+            <span className="wisp-chip">
+              <span className="wisp-dot amber" />{' '}
+              {t('home.live.pausedCount', '{{n}} paused', {
+                n: liveRuns.filter((r) => r.status === 'paused').length,
+              })}
+            </span>
+          </div>
+        </section>
+
+        {/* Live now grid — preserved widget, sits in the design HUD slot. */}
+        <LiveNowGrid
+          runs={liveRuns}
+          emptyMessage={t('home.live.empty', 'No active runs — kick one off from a project.')}
+        />
+
+        {/* Charts row — token throughput + outcomes, re-skinned with Wisp card. */}
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="rounded-lg border bg-card p-5 lg:col-span-2">
+          <div className="wisp-card lg:col-span-2">
             <header className="mb-3 flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold">
+                <div className="t-eyebrow">
                   {t('home.charts.tokenThroughput', 'Token throughput')}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {t('home.charts.tokenThroughputDesc', 'last 7 days · all projects')}
-                </p>
+                </div>
+                <div style={{ fontFamily: 'var(--f-head)', fontSize: 16, fontWeight: 500 }}>
+                  <span style={{ fontFamily: 'var(--f-display)', fontSize: 22 }}>
+                    {formatTokensCompact(totalTokens)}
+                  </span>
+                  <span style={{ color: 'var(--wisp-ink-3)' }}>
+                    {' '}
+                    · {t('home.charts.tokenThroughputDesc', 'last 7 days · all projects')}
+                  </span>
+                </div>
               </div>
-              <Sparkles className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <span className="wisp-chip">
+                  <span className="wisp-dot coral" />
+                  {t('home.charts.tokensIn', 'in')}
+                </span>
+                <span className="wisp-chip">
+                  <span className="wisp-dot violet" />
+                  {t('home.charts.tokensOut', 'out')}
+                </span>
+              </div>
             </header>
             <Suspense fallback={<ChartFallback />}>
               <TokenAreaChart data={tokensByDay} />
             </Suspense>
           </div>
-          <div className="rounded-lg border bg-card p-5">
+          <div className="wisp-card">
             <header className="mb-3">
-              <h2 className="text-sm font-semibold">{t('home.charts.outcomes', 'Run outcomes')}</h2>
-              <p className="text-xs text-muted-foreground">
-                {t('home.charts.outcomesDesc', 'last 7 days')}
-              </p>
+              <div className="t-eyebrow">{t('home.charts.outcomes', 'Run outcomes')}</div>
+              <div style={{ fontFamily: 'var(--f-head)', fontSize: 16, fontWeight: 500 }}>
+                {totalToday}{' '}
+                <span style={{ color: 'var(--wisp-ink-3)' }}>
+                  · {successPercent}% {t('home.charts.successRate', 'success')}
+                </span>
+              </div>
             </header>
             <Suspense fallback={<ChartFallback />}>
               <OutcomeDonut counts={outcomeCounts} />
@@ -253,60 +514,113 @@ export function Home() {
           </div>
         </section>
 
-        {/* Per-project rollup — NEW */}
+        {/* Per-project rollup — design table with sparklines + dots */}
         <section className="flex flex-col gap-3">
           <header className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">{t('home.byProject.title')}</h2>
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <h2
+              className="m-0"
+              style={{ fontFamily: 'var(--f-head)', fontSize: 18, fontWeight: 500 }}
+            >
+              {t('home.byProject.title')}
+            </h2>
+            <span className="t-faint text-xs tabular-nums">
               {t('home.byProject.count', { count: perProject.length })}
             </span>
           </header>
           {perProject.length === 0 ? (
-            <div className="flex h-24 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+            <div className="wisp-card flex h-24 items-center justify-center text-sm text-[color:var(--wisp-ink-3)]">
               {t('home.byProject.empty')}
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border bg-card">
-              <div className="grid grid-cols-[1fr_72px_64px_84px_64px_56px_36px] items-center gap-3 border-b bg-muted/40 px-4 py-2 text-xs2 font-medium uppercase tracking-wider text-muted-foreground">
-                <span>{t('home.byProject.cols.project')}</span>
-                <span className="text-right">{t('home.byProject.cols.runs')}</span>
-                <span className="text-right">{t('home.byProject.cols.live')}</span>
-                <span className="text-right">{t('home.byProject.cols.tokens')}</span>
-                <span className="text-right">{t('home.byProject.cols.ok')}</span>
-                <span className="text-right">{t('home.byProject.cols.sevenDay')}</span>
-                <span aria-hidden />
+            <div className="wisp-card overflow-hidden p-0">
+              <div className="grid grid-cols-[1.6fr_72px_64px_84px_64px_72px_36px] items-center gap-3 border-b border-[color:var(--wisp-hairline)] px-4 py-2.5">
+                {[
+                  t('home.byProject.cols.project'),
+                  t('home.byProject.cols.runs'),
+                  t('home.byProject.cols.live'),
+                  t('home.byProject.cols.tokens'),
+                  t('home.byProject.cols.ok'),
+                  t('home.byProject.cols.sevenDay'),
+                  '',
+                ].map((h, i) => (
+                  <span
+                    key={i}
+                    className="t-eyebrow"
+                    style={{ textAlign: i === 0 ? 'left' : 'right' }}
+                  >
+                    {h}
+                  </span>
+                ))}
               </div>
               <ul>
-                {perProject.map((p) => (
-                  <li key={p.project.id} className="border-b last:border-b-0">
+                {perProject.map((p, i) => (
+                  <li
+                    key={p.project.id}
+                    className={cn(
+                      'border-[color:var(--wisp-hairline)]',
+                      i < perProject.length - 1 && 'border-b',
+                    )}
+                  >
                     <Link
                       to={`/projects/${p.project.id}`}
-                      className="grid grid-cols-[1fr_72px_64px_84px_64px_56px_36px] items-center gap-3 px-4 py-2.5 hover:bg-muted/50"
+                      className="grid grid-cols-[1.6fr_72px_64px_84px_64px_72px_36px] items-center gap-3 px-4 py-3 transition-colors hover:bg-[color:var(--wisp-glass-hover)]"
                     >
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="truncate text-sm font-medium">{p.project.name}</span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {p.project.goal}
+                      <div className="flex min-w-0 items-center gap-2">
+                        <FolderOpen className="h-3.5 w-3.5 text-[color:var(--wisp-ink-3)]" />
+                        <span
+                          className="truncate"
+                          style={{ fontFamily: 'var(--f-head)', fontSize: 13.5 }}
+                        >
+                          {p.project.name}
                         </span>
+                        {p.live > 0 && (
+                          <span
+                            className="wisp-chip coral"
+                            style={{ padding: '0 6px', fontSize: 10 }}
+                          >
+                            <span
+                              className="wisp-dot coral pulse"
+                              style={{ width: 5, height: 5 }}
+                            />
+                            live
+                          </span>
+                        )}
                       </div>
-                      <span className="text-right font-mono text-sm tabular-nums">{p.runs}</span>
+                      <span className="t-mono text-right" style={{ fontSize: 13 }}>
+                        {p.runs}
+                      </span>
                       <span
-                        className={`text-right font-mono text-sm tabular-nums ${p.live > 0 ? 'text-info font-semibold' : 'text-muted-foreground'}`}
+                        className="t-mono text-right"
+                        style={{
+                          fontSize: 13,
+                          color: p.live > 0 ? 'var(--coral)' : 'var(--wisp-ink-4)',
+                        }}
                       >
                         {p.live > 0 ? p.live : '—'}
                       </span>
-                      <span className="text-right font-mono text-sm tabular-nums">
+                      <span className="t-mono text-right" style={{ fontSize: 13 }}>
                         {formatTokensCompact(p.tokens)}
                       </span>
                       <span
-                        className={`text-right font-mono text-sm tabular-nums ${p.successRate === null ? 'text-muted-foreground' : p.successRate >= 80 ? 'text-success' : p.successRate >= 50 ? 'text-warning' : 'text-destructive'}`}
+                        className="t-mono text-right"
+                        style={{
+                          fontSize: 13,
+                          color:
+                            p.successRate === null
+                              ? 'var(--wisp-ink-4)'
+                              : p.successRate >= 80
+                                ? 'var(--mint)'
+                                : p.successRate <= 40
+                                  ? 'var(--rose)'
+                                  : 'var(--wisp-ink-2)',
+                        }}
                       >
                         {p.successRate === null ? '—' : `${p.successRate}%`}
                       </span>
-                      <span className="text-right">
-                        <Sparkline data={p.spark} w={48} h={18} />
-                      </span>
-                      <span className="text-right text-muted-foreground">↗</span>
+                      <div className="flex justify-end">
+                        <Sparkline data={p.spark} w={64} h={20} />
+                      </div>
+                      <ChevronRight className="h-3.5 w-3.5 justify-self-end text-[color:var(--wisp-ink-4)]" />
                     </Link>
                   </li>
                 ))}
@@ -315,25 +629,16 @@ export function Home() {
           )}
         </section>
 
-        {/* Live now */}
-        <section className="flex flex-col gap-3" aria-label={t('home.live.title', 'Live now')}>
-          <header className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">{t('home.live.title', 'Live now')}</h2>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {liveRuns.length} {t('home.live.active', 'active')}
-            </span>
-          </header>
-          <LiveNowGrid
-            runs={liveRuns}
-            emptyMessage={t('home.live.empty', 'No active runs — kick one off from a project.')}
-          />
-        </section>
-
-        {/* Recent runs table */}
+        {/* Recent runs table — preserved */}
         <section className="flex flex-col gap-3" aria-label={t('home.recent.title', 'Recent runs')}>
           <header className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">{t('home.recent.title', 'Recent runs')}</h2>
-            <span className="text-xs text-muted-foreground">
+            <h2
+              className="m-0"
+              style={{ fontFamily: 'var(--f-head)', fontSize: 18, fontWeight: 500 }}
+            >
+              {t('home.recent.title', 'Recent runs')}
+            </h2>
+            <span className="t-faint text-xs">
               {t('home.recent.subtitle', 'all projects · sortable')}
             </span>
           </header>
@@ -343,7 +648,7 @@ export function Home() {
 
       {/* RIGHT RAIL — Agent Chat (sticky on xl+) */}
       <aside className="hidden xl:block">
-        <div className="sticky top-6 h-[calc(100vh-3.5rem)] overflow-hidden rounded-lg border bg-card">
+        <div className="wisp-card sticky top-6 h-[calc(100vh-3.5rem)] overflow-hidden p-0">
           <AgentChat compact />
         </div>
       </aside>
