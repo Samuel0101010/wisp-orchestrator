@@ -227,27 +227,34 @@ export function PromptBundlesRoute() {
       <header className="flex items-end justify-between gap-5">
         <div className="min-w-0">
           <div className="t-eyebrow mb-1">{t('promptBundles.eyebrow', 'Warm session cache')}</div>
-          <h1
-            className="m-0"
-            style={{
-              fontFamily: 'var(--f-display)',
-              fontSize: 44,
-              fontWeight: 400,
-              letterSpacing: '-0.02em',
-              lineHeight: 1.08,
-            }}
-          >
-            {t('promptBundles.title')}
-            <span
-              className="ml-2"
+          <div className="flex items-baseline gap-3">
+            <h1
+              className="m-0"
               style={{
+                fontFamily: 'var(--f-display)',
+                fontSize: 44,
+                fontWeight: 400,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.08,
+              }}
+            >
+              {t('promptBundles.title')}
+            </h1>
+            {/* Count sits next to the H1 (not inside) so e2e assertions on
+                the accessible heading name stay stable across data. */}
+            <span
+              aria-hidden
+              style={{
+                fontFamily: 'var(--f-display)',
+                fontSize: 36,
                 color: 'var(--wisp-ink-3)',
                 fontStyle: 'italic',
+                lineHeight: 1,
               }}
             >
               {rows.length}
             </span>
-          </h1>
+          </div>
           <div className="mt-1.5 max-w-2xl text-sm-tight text-[color:var(--wisp-ink-3)]">
             {t('promptBundles.explanation')}
           </div>
