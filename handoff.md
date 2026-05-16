@@ -209,7 +209,7 @@ When working on this codebase, expect:
 - **OS**: Windows 11 Pro (developer machine). PowerShell shell + bash via the harness.
 - **Node**: `v22.16.0` reported during the last run.
 - **Package manager**: `pnpm@10.33.2`. Workspaces enabled via `pnpm-workspace.yaml`.
-- **Repo URL**: `https://github.com/Samuel0101010/agent-harness`. Default branch `main`. No protected-branch rules in evidence (direct pushes to `main` succeed; not best practice but matches the user's chosen workflow).
+- **Repo URL**: `https://github.com/Samuel0101010/wisp-orchestrator`. Default branch `main`. No protected-branch rules in evidence (direct pushes to `main` succeed; not best practice but matches the user's chosen workflow).
 - **CI**: `.github/workflows/ci.yml`. Three jobs (`verify` / `e2e` / `evals`). Node 20 actions (deprecation warning — bump to Node 24 before June 2026).
 
 ---

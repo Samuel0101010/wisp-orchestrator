@@ -35,7 +35,7 @@ at server boot — CI fails if any drifts.
 `AgentSpec.systemPrompt` must be 40–4000 chars; `AgentSpec.role` matches
 `^[a-z][a-z0-9-]*$`. Templates carry the same allowedTools strings the
 TeamBuilder uses, including the fully-qualified MCP tools
-(`mcp__agent-harness-memory__memory_set`, …).
+(`mcp__wisp-memory__memory_set`, …).
 
 ## API
 

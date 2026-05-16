@@ -237,7 +237,7 @@ The same M1 core (Walker / SubprocessPool / Worktree / Verification) carries eve
 
 ### M3 — shared-memory MCP
 
-A separate workspace package `@wisp/memory-mcp` ships a stdio MCP server exposing `memory.{set,get,list,delete}` backed by per-run SQLite WAL. The runtime's `writeMemoryMcpConfig` writes a per-run config JSON; `SubprocessPool.defaultMcpConfigPath` injects `--mcp-config + --strict-mcp-config` into every `claude -p` call. Each run has its own `<WISP_DATA_DIR>/memory/<runId>.db` — no cross-run sharing, no network. Tools are exposed to agents as `mcp__agent-harness-memory__memory_*` (claude converts `.` to `_` in MCP tool names).
+A separate workspace package `@wisp/memory-mcp` ships a stdio MCP server exposing `memory.{set,get,list,delete}` backed by per-run SQLite WAL. The runtime's `writeMemoryMcpConfig` writes a per-run config JSON; `SubprocessPool.defaultMcpConfigPath` injects `--mcp-config + --strict-mcp-config` into every `claude -p` call. Each run has its own `<WISP_DATA_DIR>/memory/<runId>.db` — no cross-run sharing, no network. Tools are exposed to agents as `mcp__wisp-memory__memory_*` (claude converts `.` to `_` in MCP tool names).
 
 ### M4 — team templates
 

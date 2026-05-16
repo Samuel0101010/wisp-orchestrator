@@ -12,7 +12,7 @@ related:
 ## Problem
 
 Per-run `memory.db` was opened by N parallel task subprocesses at once
-(each task spawned its own `agent-harness-memory` MCP server pointing at the
+(each task spawned its own `wisp-memory` MCP server pointing at the
 same file). With the pool's `maxParallel=2` default, two concurrent
 `INSERT ... ON CONFLICT` writes raced for SQLite's write lock; the second
 writer's `.run()` threw `SQLITE_BUSY` immediately, surfaced to the agent as
