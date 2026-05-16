@@ -14,7 +14,7 @@
  * is the thread agent, which auto-promotes them as participant.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -980,6 +980,8 @@ function AddMemberDialog({
   const { t } = useTranslation();
   const [tab, setTab] = useState<'team' | 'custom'>('team');
   const list = tab === 'team' ? team : customAgents;
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose();
@@ -987,14 +989,26 @@ function AddMemberDialog({
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const focusables = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button, [href], input, [tabindex]:not([tabindex="-1"])',
+    );
+    focusables?.[0]?.focus();
+    return () => previouslyFocused?.focus();
+  }, []);
   return (
     <div className="fixed inset-0 z-[55] grid place-items-center bg-black/60 p-4" onClick={onClose}>
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-xl border bg-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-baseline justify-between border-b px-5 py-3">
-          <h3 className="text-base font-semibold">
+          <h3 id={titleId} className="text-base font-semibold">
             {t('chat.addMember.title', 'Spezialist hinzufügen')}
           </h3>
           <button

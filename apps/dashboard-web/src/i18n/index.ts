@@ -7,6 +7,17 @@ import de from './locales/de/common.json';
 export const SUPPORTED_LANGUAGES = ['en', 'de'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
+// One-time migration: rename legacy localStorage key to wisp-lang.
+// Mirrors the wisp-ui migration in store/ui.ts.
+if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+  const legacy = window.localStorage.getItem('agent-harness-lang');
+  const current = window.localStorage.getItem('wisp-lang');
+  if (legacy && !current) {
+    window.localStorage.setItem('wisp-lang', legacy);
+    window.localStorage.removeItem('agent-harness-lang');
+  }
+}
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -18,7 +29,7 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
-      lookupLocalStorage: 'agent-harness-lang',
+      lookupLocalStorage: 'wisp-lang',
     },
     resources: {
       en: { common: en },
