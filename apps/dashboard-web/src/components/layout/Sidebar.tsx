@@ -673,11 +673,7 @@ function ProjectRow({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteOpen(false)}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
               {t('projectMenu.deleteCancel', 'Cancel')}
             </Button>
             <Button

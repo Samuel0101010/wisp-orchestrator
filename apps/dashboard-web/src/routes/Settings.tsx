@@ -112,10 +112,7 @@ function CategoryRow({
   };
 
   return (
-    <div
-      className="flex items-center gap-3 py-2.5"
-      data-testid={`settings-category-${category}`}
-    >
+    <div className="flex items-center gap-3 py-2.5" data-testid={`settings-category-${category}`}>
       <div
         className="flex shrink-0 items-center justify-center"
         style={{
@@ -181,9 +178,7 @@ function CategoryRow({
               disabled={busy}
               data-testid={`settings-confirm-${category}`}
             >
-              {busy
-                ? t('settings.data.actions.clearing')
-                : t('settings.data.confirm.confirm')}
+              {busy ? t('settings.data.actions.clearing') : t('settings.data.confirm.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -262,9 +257,7 @@ function useAllAgentOverrides(projects: Project[]) {
       const lists = await Promise.all(
         projects.map(async (p) => {
           try {
-            return await apiFetch<AgentOverrideRow[]>(
-              `/api/projects/${p.id}/agent-overrides`,
-            );
+            return await apiFetch<AgentOverrideRow[]>(`/api/projects/${p.id}/agent-overrides`);
           } catch {
             return [] as AgentOverrideRow[];
           }

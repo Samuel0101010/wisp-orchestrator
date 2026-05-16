@@ -18,13 +18,13 @@ WISP is a local-first orchestrator for Claude Code that delivers exactly that ve
 
 Six screenshots from the running app, dark theme.
 
-| ![Mission Control](docs/assets/screenshots/mission-control.png) | ![Goal Planner](docs/assets/screenshots/goal-planner.png) |
-| :--: | :--: |
-| **Mission Control** — KPIs, live runs, project pulse. | **Goal Planner** — interactive DAG canvas for plan editing. |
-| ![Agents](docs/assets/screenshots/agents.png) | ![Chat](docs/assets/screenshots/chat.png) |
-| **Agents** — registry of roles available to teams. | **Chat** — team conversation surface. |
-| ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png) | ![Settings](docs/assets/screenshots/settings.png) |
-| **Prompt Bundles** — cached bundles for re-use. | **Settings** — theme, language, selective data clearing. |
+| ![Mission Control](docs/assets/screenshots/mission-control.png) |  ![Goal Planner](docs/assets/screenshots/goal-planner.png)  |
+| :-------------------------------------------------------------: | :---------------------------------------------------------: |
+|      **Mission Control** — KPIs, live runs, project pulse.      | **Goal Planner** — interactive DAG canvas for plan editing. |
+|          ![Agents](docs/assets/screenshots/agents.png)          |          ![Chat](docs/assets/screenshots/chat.png)          |
+|       **Agents** — registry of roles available to teams.        |            **Chat** — team conversation surface.            |
+|  ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png)  |      ![Settings](docs/assets/screenshots/settings.png)      |
+|         **Prompt Bundles** — cached bundles for re-use.         |  **Settings** — theme, language, selective data clearing.   |
 
 ## Status
 
