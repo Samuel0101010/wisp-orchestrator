@@ -273,7 +273,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      <nav className="flex flex-col gap-1" aria-label="primary">
+      <nav className="flex shrink-0 flex-col gap-1" aria-label="primary">
         {navItems.map((item) => {
           const active = item.matchPath(location.pathname, hasProject);
           return (
@@ -292,8 +292,11 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-5">
-        <div className="flex items-center gap-1.5 px-1 pt-1 pb-2 text-[color:var(--wisp-ink-3)]">
+      {/* Projects section grows to fill the remaining space and scrolls its
+          list internally, so the plan-budget footer below stays anchored to
+          the bottom of the viewport even with 20+ projects. */}
+      <div className="mt-5 flex min-h-0 flex-1 flex-col">
+        <div className="flex shrink-0 items-center gap-1.5 px-1 pt-1 pb-2 text-[color:var(--wisp-ink-3)]">
           <button
             type="button"
             onClick={() => setProjectsOpen((o) => !o)}
@@ -375,7 +378,7 @@ export function Sidebar() {
 
         {projectsOpen && (
           <nav
-            className="flex max-h-[40vh] flex-col gap-1 overflow-y-auto pr-1"
+            className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1"
             aria-label="projects"
           >
             {isLoading && (
@@ -439,8 +442,9 @@ export function Sidebar() {
       </div>
 
       {/* Plan budget block — design parity. Uses dailyTotal as today's-runs
-          stand-in until a real budget API exists. */}
-      <div className="mt-auto flex flex-col gap-2 pt-4">
+          stand-in until a real budget API exists. `shrink-0` keeps the
+          footer fully visible even when the projects list overflows. */}
+      <div className="flex shrink-0 flex-col gap-2 pt-4">
         <div className="wisp-surface" style={{ padding: 12 }}>
           <div className="t-eyebrow mb-1.5">
             {t('navigation.todayBudget', 'Plan budget · today')}
