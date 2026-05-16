@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 — WISP rebrand · ship-ready release
+## 2.0.1 — WISP rebrand · ship-ready release
 
 The plugin is now **WISP**, end-to-end. Same orchestrator, same plan-as-artifact discipline, but renamed across every layer so the brand is consistent from `claude plugin install wisp@wisp-local` down to the MCP server name the spawned agents see.
 
