@@ -34,6 +34,9 @@ const GoapRoute = lazy(() => import('@/routes/Goap').then((m) => ({ default: m.G
 const PromptBundlesRoute = lazy(() =>
   import('@/routes/PromptBundles').then((m) => ({ default: m.PromptBundlesRoute })),
 );
+const SettingsRoute = lazy(() =>
+  import('@/routes/Settings').then((m) => ({ default: m.SettingsRoute })),
+);
 
 // Minimal fallback while a route chunk loads. Stays out of the visual
 // hierarchy so accessibility tooling doesn't trip over it.
@@ -94,6 +97,7 @@ export function App() {
         <Route path="/insights" element={<InsightsRoute />} />
         <Route path="/goap" element={<GoapRoute />} />
         <Route path="/prompt-bundles" element={<PromptBundlesRoute />} />
+        <Route path="/settings" element={<SettingsRoute />} />
       </Route>
     </Routes>
   );

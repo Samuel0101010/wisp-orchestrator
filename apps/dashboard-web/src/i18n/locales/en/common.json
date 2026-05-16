@@ -1165,5 +1165,53 @@
     "statusPending": "Pending — waiting on a dependency",
     "reloadSkills": "Reload skills from disk",
     "resetBundle": "Reset cached bundle (next call will re-warm)"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Theme, language, and data management.",
+    "appearance": {
+      "title": "Appearance",
+      "theme": "Theme",
+      "themeDark": "Dark",
+      "themeLight": "Light",
+      "language": "Language"
+    },
+    "sidebar": {
+      "title": "Sidebar",
+      "collapsed": "Start with sidebar collapsed"
+    },
+    "data": {
+      "title": "Manage data",
+      "explanation": "Delete collected data by category. This is permanent — no undo.",
+      "categories": {
+        "projects": "Projects",
+        "chats": "Chat threads",
+        "agents": "Custom agents",
+        "bundles": "Prompt bundles",
+        "overrides": "Agent overrides",
+        "changeRequests": "Change requests",
+        "dod": "DoD criteria",
+        "insights": "Insights",
+        "runs": "Run history"
+      },
+      "actions": {
+        "clearAll": "Clear all",
+        "clearing": "Clearing…"
+      },
+      "confirm": {
+        "title": "Really clear all {{category}}?",
+        "body": "All {{count}} entries in '{{category}}' will be permanently removed.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "toasts": {
+        "cleared": "Cleared {{category}}",
+        "clearFailed": "Failed to clear {{category}}",
+        "alreadyEmpty": "No {{category}} data"
+      },
+      "notes": {
+        "runs": "Run history is read-only — runs are derived from projects. Delete projects to remove their runs."
+      }
+    }
   }
 }

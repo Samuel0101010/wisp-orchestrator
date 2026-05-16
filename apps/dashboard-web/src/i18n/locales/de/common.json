@@ -1165,5 +1165,53 @@
     "statusPending": "Ausstehend — wartet auf Abhängigkeit",
     "reloadSkills": "Skills von Festplatte neu laden",
     "resetBundle": "Gecachtes Bundle zurücksetzen (nächster Aufruf füllt es neu)"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Theme, Sprache und Datenverwaltung.",
+    "appearance": {
+      "title": "Erscheinungsbild",
+      "theme": "Theme",
+      "themeDark": "Dunkel",
+      "themeLight": "Hell",
+      "language": "Sprache"
+    },
+    "sidebar": {
+      "title": "Seitenleiste",
+      "collapsed": "Seitenleiste eingeklappt starten"
+    },
+    "data": {
+      "title": "Daten verwalten",
+      "explanation": "Lösche gesammelte Daten kategorienweise. Das ist endgültig — kein Undo.",
+      "categories": {
+        "projects": "Projekte",
+        "chats": "Chat-Threads",
+        "agents": "Eigene Agents",
+        "bundles": "Prompt-Bundles",
+        "overrides": "Agent-Overrides",
+        "changeRequests": "Change-Requests",
+        "dod": "DoD-Kriterien",
+        "insights": "Insights",
+        "runs": "Run-Historie"
+      },
+      "actions": {
+        "clearAll": "Alle löschen",
+        "clearing": "Lösche…"
+      },
+      "confirm": {
+        "title": "{{category}} wirklich löschen?",
+        "body": "Alle {{count}} Einträge in '{{category}}' werden permanent entfernt.",
+        "cancel": "Abbrechen",
+        "confirm": "Löschen"
+      },
+      "toasts": {
+        "cleared": "{{category}} geleert",
+        "clearFailed": "{{category}} konnte nicht geleert werden",
+        "alreadyEmpty": "Keine {{category}}-Daten"
+      },
+      "notes": {
+        "runs": "Run-Historie ist read-only — Runs hängen an Projekten. Lösche Projekte, um Runs zu entfernen."
+      }
+    }
   }
 }
