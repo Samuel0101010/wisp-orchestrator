@@ -251,7 +251,11 @@ function HeroHeader({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <div className="wisp-segment" role="tablist">
+        <div
+          className="wisp-segment"
+          role="group"
+          aria-label={t('home.periodGroup', 'Time period')}
+        >
           {(['24h', '7d', '30d'] as Period[]).map((p) => (
             <button
               key={p}

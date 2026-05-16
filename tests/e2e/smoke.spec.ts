@@ -42,10 +42,11 @@ test.describe('Phase F1 smoke', () => {
 
     // Step 1: Visit /. Sidebar visible.
     // Wisp re-skin (PR #43): the sidebar header is the mascot/wordmark image
-    // pair, not text — assert the sidebar landmark + Projects section instead.
+    // pair, not text — assert the sidebar landmark + Mission Control nav
+    // (scoped to the sidebar to avoid the breadcrumb collision).
     await page.goto('/');
     await expect(page.getByTestId('sidebar')).toBeVisible();
-    await expect(page.getByText(tt(lang, 'navigation.projects'), { exact: false })).toBeVisible();
+    await expect(page.getByTestId('sidebar-mission-control')).toBeVisible();
 
     // Step 2: + New Project. Fill name/goal/repoPath. Submit.
     await page.getByRole('button', { name: tt(lang, 'navigation.newProject') }).click();
