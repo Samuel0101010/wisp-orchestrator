@@ -1,0 +1,862 @@
+/*
+ * Wisp theme — Claude Design handoff (kSh9k4g-wVwW3DlwB6i7fw).
+ * Warm cream / warm near-black palette, single coral accent, muted state
+ * colours. Co-exists with the shadcn token layer in index.css: the variables
+ * declared here are consumed by the new aurora/glass utilities and by the
+ * sidebar/topbar/home re-skin, while the legacy shadcn vars keep all other
+ * shadcn components working until each is migrated. Mapping bridges in the
+ * bottom block let the existing components inherit the Wisp palette without
+ * a wholesale rewrite.
+ */
+
+:root,
+[data-theme='dark'] {
+  /* surfaces — warm near-black, not pure dark */
+  --wisp-bg-0: #18130c;
+  --wisp-bg-1: #1e1810;
+  --wisp-bg-2: #251e15;
+  --wisp-glass: rgba(255, 248, 236, 0.028);
+  --wisp-glass-hover: rgba(255, 248, 236, 0.055);
+  --wisp-glass-strong: rgba(255, 248, 236, 0.075);
+  --wisp-glass-inset: rgba(255, 248, 236, 0.02);
+
+  /* chrome surfaces */
+  --wisp-sidebar-bg: rgba(24, 19, 12, 0.65);
+  --wisp-topbar-bg: rgba(24, 19, 12, 0.5);
+
+  /* borders */
+  --wisp-hairline: rgba(255, 245, 225, 0.07);
+  --wisp-hairline-strong: rgba(255, 245, 225, 0.13);
+  --wisp-hairline-bright: rgba(255, 245, 225, 0.24);
+
+  /* SVG card surfaces */
+  --wisp-svg-card: rgba(24, 19, 12, 0.62);
+  --wisp-svg-card-strong: rgba(24, 19, 12, 0.82);
+  --wisp-svg-card-soft: rgba(24, 19, 12, 0.42);
+  --wisp-svg-grid-dot: rgba(246, 240, 230, 0.06);
+
+  /* ink — warm off-white */
+  --wisp-ink: rgba(246, 240, 230, 0.98);
+  --wisp-ink-2: rgba(246, 240, 230, 0.82);
+  --wisp-ink-3: rgba(246, 240, 230, 0.64);
+  --wisp-ink-4: rgba(246, 240, 230, 0.46);
+  --wisp-ink-5: rgba(246, 240, 230, 0.24);
+
+  /* accents — desaturated, Claude-like. h/s/l components so live tweaks
+     can shift them independently. */
+  --coral-h: 15;
+  --coral-s: 63%;
+  --coral-l: 60%;
+  --coral: hsl(var(--coral-h) var(--coral-s) var(--coral-l));
+  --coral-2: hsl(calc(var(--coral-h) - 6) calc(var(--coral-s) - 2%) calc(var(--coral-l) - 8%));
+
+  --mint-h: 150;
+  --mint-s: 30%;
+  --mint-l: 54%;
+  --mint: hsl(var(--mint-h) var(--mint-s) var(--mint-l));
+
+  --violet-h: 260;
+  --violet-s: 22%;
+  --violet-l: 62%;
+  --violet: hsl(var(--violet-h) var(--violet-s) var(--violet-l));
+
+  --amber-h: 32;
+  --amber-s: 60%;
+  --amber-l: 58%;
+  --amber: hsl(var(--amber-h) var(--amber-s) var(--amber-l));
+
+  --rose-h: 0;
+  --rose-s: 50%;
+  --rose-l: 62%;
+  --rose: hsl(var(--rose-h) var(--rose-s) var(--rose-l));
+
+  --sky-h: 210;
+  --sky-s: 32%;
+  --sky-l: 58%;
+  --sky: hsl(var(--sky-h) var(--sky-s) var(--sky-l));
+
+  /* shadows */
+  --wisp-shadow-1: 0 1px 0 rgba(255, 245, 225, 0.03) inset, 0 12px 30px -12px rgba(0, 0, 0, 0.55);
+  --wisp-shadow-2:
+    0 1px 0 rgba(255, 245, 225, 0.05) inset, 0 24px 60px -24px rgba(0, 0, 0, 0.7),
+    0 0 0 1px var(--wisp-hairline);
+  --wisp-shadow-pop: 0 12px 50px -10px hsl(var(--coral-h) var(--coral-s) 55% / 0.32);
+  --wisp-glow-coral: 0 0 30px -6px hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.45);
+  --wisp-glow-mint: 0 0 30px -6px hsl(var(--mint-h) var(--mint-s) var(--mint-l) / 0.4);
+  --wisp-glow-violet: 0 0 30px -6px hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.4);
+
+  /* radius */
+  --r-1: 8px;
+  --r-2: 12px;
+  --r-3: 18px;
+  --r-4: 24px;
+  --r-pill: 999px;
+
+  /* typography */
+  --f-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --f-head: 'Instrument Sans', 'Inter', system-ui, sans-serif;
+  --f-body: 'Instrument Sans', 'Inter', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* motion */
+  --wisp-easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --wisp-easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* LIGHT theme — warm cream paper, ink-dark text */
+[data-theme='light'] {
+  --wisp-bg-0: #f6f3eb;
+  --wisp-bg-1: #efebe0;
+  --wisp-bg-2: #e6e0d1;
+  --wisp-glass: rgba(255, 252, 244, 0.55);
+  --wisp-glass-hover: rgba(255, 252, 244, 0.78);
+  --wisp-glass-strong: rgba(255, 252, 244, 0.88);
+  --wisp-glass-inset: rgba(30, 22, 14, 0.025);
+
+  --wisp-sidebar-bg: rgba(246, 243, 235, 0.72);
+  --wisp-topbar-bg: rgba(246, 243, 235, 0.58);
+
+  --wisp-hairline: rgba(40, 28, 16, 0.09);
+  --wisp-hairline-strong: rgba(40, 28, 16, 0.18);
+  --wisp-hairline-bright: rgba(40, 28, 16, 0.32);
+
+  --wisp-svg-card: rgba(255, 253, 247, 0.7);
+  --wisp-svg-card-strong: rgba(255, 253, 247, 0.92);
+  --wisp-svg-card-soft: rgba(255, 253, 247, 0.48);
+  --wisp-svg-grid-dot: rgba(28, 22, 14, 0.08);
+
+  --wisp-ink: rgba(28, 22, 14, 0.96);
+  --wisp-ink-2: rgba(28, 22, 14, 0.8);
+  --wisp-ink-3: rgba(28, 22, 14, 0.62);
+  --wisp-ink-4: rgba(28, 22, 14, 0.44);
+  --wisp-ink-5: rgba(28, 22, 14, 0.22);
+
+  --wisp-shadow-1: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 12px 30px -12px rgba(60, 40, 20, 0.18);
+  --wisp-shadow-2:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 24px 60px -24px rgba(60, 40, 20, 0.28),
+    0 0 0 1px var(--wisp-hairline);
+  --wisp-shadow-pop: 0 12px 50px -10px hsl(var(--coral-h) var(--coral-s) 55% / 0.28);
+}
+
+/* Body adopts the warm palette. Existing shadcn vars still drive components
+   that reference `--background`/`--foreground` directly; the mapping block
+   at the end of this file aliases them onto Wisp tokens. */
+html,
+body {
+  background: var(--wisp-bg-0);
+}
+body {
+  font-family: var(--f-body);
+  color: var(--wisp-ink);
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Aurora background — calmer warm radial wash + drifting coral accent + grain. */
+.wisp-aurora-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse 70% 50% at 85% -5%,
+      hsl(var(--coral-h) 40% 25% / 0.42),
+      transparent 55%
+    ),
+    radial-gradient(ellipse 60% 50% at 0% 110%, hsl(30 25% 14% / 0.55), transparent 60%),
+    var(--wisp-bg-0);
+  transition: background 0.4s var(--wisp-easing);
+}
+[data-theme='light'] .wisp-aurora-root {
+  background:
+    radial-gradient(
+      ellipse 70% 50% at 85% -5%,
+      hsl(var(--coral-h) 80% 88% / 0.55),
+      transparent 55%
+    ),
+    radial-gradient(ellipse 60% 50% at 0% 110%, hsl(38 50% 92% / 0.7), transparent 60%),
+    var(--wisp-bg-0);
+}
+.wisp-aurora-accent {
+  position: absolute;
+  top: -10%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.08) 0%,
+    transparent 60%
+  );
+  filter: blur(60px);
+  animation: wisp-drift 44s ease-in-out infinite;
+}
+[data-theme='light'] .wisp-aurora-accent {
+  background: radial-gradient(
+    circle at center,
+    hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.1) 0%,
+    transparent 60%
+  );
+}
+.wisp-aurora-grain {
+  position: absolute;
+  inset: -20px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px;
+  opacity: 0.32;
+  mix-blend-mode: overlay;
+}
+[data-theme='light'] .wisp-aurora-grain {
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  filter: invert(1);
+}
+
+/* --- utilities ---------------------------------------------------------- */
+.wisp-glass {
+  background: var(--wisp-glass);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--wisp-hairline);
+  border-radius: var(--r-3);
+  box-shadow: var(--wisp-shadow-1);
+}
+.wisp-glass-strong {
+  background: var(--wisp-glass-strong);
+  backdrop-filter: blur(30px) saturate(160%);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  border: 1px solid var(--wisp-hairline-strong);
+  border-radius: var(--r-3);
+  box-shadow: var(--wisp-shadow-2);
+}
+.wisp-surface {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0));
+  border: 1px solid var(--wisp-hairline);
+  border-radius: var(--r-2);
+}
+.wisp-hairline {
+  border-bottom: 1px solid var(--wisp-hairline);
+}
+
+/* keyframes */
+@keyframes wisp-drift {
+  0%,
+  100% {
+    transform: translate3d(-6%, -4%, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(6%, 3%, 0) scale(1);
+  }
+}
+@keyframes wisp-halo {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+@keyframes wisp-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes wisp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes wisp-bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--w, 0.5));
+  }
+}
+
+.wisp-fade-up {
+  animation: wisp-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.wisp-fade-in {
+  animation: wisp-fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* status dot */
+.wisp-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 0 2px hsl(var(--mint-h) var(--mint-s) var(--mint-l) / 0.15);
+  flex-shrink: 0;
+}
+.wisp-dot.coral {
+  background: var(--coral);
+  box-shadow: 0 0 0 2px hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.18);
+}
+.wisp-dot.amber {
+  background: var(--amber);
+  box-shadow: 0 0 0 2px hsl(var(--amber-h) var(--amber-s) var(--amber-l) / 0.18);
+}
+.wisp-dot.rose {
+  background: var(--rose);
+  box-shadow: 0 0 0 2px hsl(var(--rose-h) var(--rose-s) var(--rose-l) / 0.18);
+}
+.wisp-dot.violet {
+  background: var(--violet);
+  box-shadow: 0 0 0 2px hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.18);
+}
+.wisp-dot.sky {
+  background: var(--sky);
+  box-shadow: 0 0 0 2px hsl(var(--sky-h) var(--sky-s) var(--sky-l) / 0.18);
+}
+.wisp-dot.dim {
+  background: var(--wisp-ink-4);
+  box-shadow: none;
+}
+.wisp-dot.pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: wisp-halo 1.6s ease-out infinite;
+}
+
+/* chips */
+.wisp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--wisp-hairline-strong);
+  background: var(--wisp-glass);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--wisp-ink-2);
+  font-family: var(--f-head);
+  letter-spacing: 0.01em;
+}
+.wisp-chip.solid {
+  background: var(--wisp-ink);
+  color: #07050d;
+  border-color: transparent;
+}
+.wisp-chip.coral {
+  background: hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.14);
+  color: hsl(var(--coral-h) var(--coral-s) 78%);
+  border-color: hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.3);
+}
+.wisp-chip.mint {
+  background: hsl(var(--mint-h) var(--mint-s) var(--mint-l) / 0.12);
+  color: hsl(var(--mint-h) var(--mint-s) 75%);
+  border-color: hsl(var(--mint-h) var(--mint-s) var(--mint-l) / 0.28);
+}
+.wisp-chip.amber {
+  background: hsl(var(--amber-h) var(--amber-s) var(--amber-l) / 0.14);
+  color: hsl(var(--amber-h) var(--amber-s) 78%);
+  border-color: hsl(var(--amber-h) var(--amber-s) var(--amber-l) / 0.3);
+}
+.wisp-chip.rose {
+  background: hsl(var(--rose-h) var(--rose-s) var(--rose-l) / 0.14);
+  color: hsl(var(--rose-h) var(--rose-s) 80%);
+  border-color: hsl(var(--rose-h) var(--rose-s) var(--rose-l) / 0.3);
+}
+.wisp-chip.violet {
+  background: hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.14);
+  color: hsl(var(--violet-h) var(--violet-s) 82%);
+  border-color: hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.3);
+}
+[data-theme='light'] .wisp-chip.solid {
+  color: #f6f3eb;
+}
+[data-theme='light'] .wisp-chip.coral {
+  color: hsl(var(--coral-h) 60% 34%);
+}
+[data-theme='light'] .wisp-chip.mint {
+  color: hsl(var(--mint-h) 45% 30%);
+}
+[data-theme='light'] .wisp-chip.amber {
+  color: hsl(var(--amber-h) 55% 30%);
+}
+[data-theme='light'] .wisp-chip.rose {
+  color: hsl(var(--rose-h) 50% 36%);
+}
+[data-theme='light'] .wisp-chip.violet {
+  color: hsl(var(--violet-h) 32% 36%);
+}
+
+/* buttons */
+.wisp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--wisp-hairline-strong);
+  background: var(--wisp-glass);
+  color: var(--wisp-ink);
+  font-family: var(--f-head);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.18s var(--wisp-easing),
+    transform 0.18s var(--wisp-easing),
+    border-color 0.18s var(--wisp-easing);
+}
+.wisp-btn:hover {
+  background: var(--wisp-glass-hover);
+  border-color: var(--wisp-hairline-bright);
+}
+.wisp-btn:active {
+  transform: translateY(1px);
+}
+.wisp-btn.primary {
+  background: linear-gradient(
+    180deg,
+    hsl(var(--coral-h) var(--coral-s) calc(var(--coral-l) + 4%)),
+    hsl(calc(var(--coral-h) - 4) var(--coral-s) calc(var(--coral-l) - 6%))
+  );
+  color: #1a0c08;
+  border-color: hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.5);
+  box-shadow: var(--wisp-shadow-pop);
+}
+.wisp-btn.primary:hover {
+  filter: brightness(1.08);
+}
+.wisp-btn.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.wisp-btn.ghost:hover {
+  background: var(--wisp-glass);
+}
+.wisp-btn.sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.wisp-btn.icon {
+  padding: 6px;
+  width: 30px;
+  height: 30px;
+  justify-content: center;
+}
+
+/* text helpers */
+.t-display {
+  font-family: var(--f-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.t-mono {
+  font-family: var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+.t-dim {
+  color: var(--wisp-ink-3);
+}
+.t-faint {
+  color: var(--wisp-ink-4);
+}
+.t-eyebrow {
+  font-family: var(--f-head);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--wisp-ink-3);
+}
+.t-label {
+  font-family: var(--f-head);
+  font-size: 11px;
+  color: var(--wisp-ink-3);
+  letter-spacing: 0.04em;
+}
+
+/* hover-lift */
+.wisp-lift {
+  transition:
+    transform 0.35s var(--wisp-easing),
+    border-color 0.35s var(--wisp-easing),
+    box-shadow 0.35s var(--wisp-easing);
+}
+.wisp-lift:hover {
+  transform: translateY(-2px);
+  border-color: var(--wisp-hairline-bright);
+}
+
+/* segmented control */
+.wisp-segment {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--wisp-glass);
+  border: 1px solid var(--wisp-hairline);
+  gap: 2px;
+}
+.wisp-segment > button {
+  border: none;
+  background: transparent;
+  color: var(--wisp-ink-2);
+  padding: 5px 12px;
+  border-radius: 9px;
+  font-family: var(--f-head);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 0.18s var(--wisp-easing),
+    color 0.18s var(--wisp-easing);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.wisp-segment > button:hover {
+  color: var(--wisp-ink);
+}
+.wisp-segment > button.on {
+  background: var(--wisp-glass-strong);
+  color: var(--wisp-ink);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+/* tabs */
+.wisp-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--wisp-hairline);
+}
+.wisp-tabs > button {
+  border: none;
+  background: transparent;
+  padding: 10px 14px 11px;
+  color: var(--wisp-ink-3);
+  font-family: var(--f-head);
+  font-size: 13px;
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.wisp-tabs > button:hover {
+  color: var(--wisp-ink-2);
+}
+.wisp-tabs > button.on {
+  color: var(--wisp-ink);
+}
+.wisp-tabs > button.on::after {
+  content: '';
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--coral), var(--coral-2));
+  border-radius: 2px;
+}
+
+/* progress bar */
+.wisp-bar {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--wisp-glass-inset);
+  border: 1px solid var(--wisp-hairline);
+  position: relative;
+  overflow: hidden;
+}
+.wisp-bar > i {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--coral), var(--coral-2));
+  transform-origin: left;
+  border-radius: inherit;
+  animation: wisp-bar-fill 1.2s var(--wisp-easing) both;
+}
+.wisp-bar.mint > i {
+  background: linear-gradient(
+    90deg,
+    var(--mint),
+    hsl(calc(var(--mint-h) + 8) var(--mint-s) calc(var(--mint-l) - 10%))
+  );
+}
+.wisp-bar.violet > i {
+  background: linear-gradient(
+    90deg,
+    var(--violet),
+    hsl(calc(var(--violet-h) + 18) var(--violet-s) calc(var(--violet-l) - 5%))
+  );
+}
+.wisp-bar.amber > i {
+  background: linear-gradient(
+    90deg,
+    var(--amber),
+    hsl(calc(var(--amber-h) - 10) var(--amber-s) calc(var(--amber-l) - 4%))
+  );
+}
+.wisp-bar.rose > i {
+  background: linear-gradient(
+    90deg,
+    var(--rose),
+    hsl(calc(var(--rose-h) - 9) var(--rose-s) calc(var(--rose-l) - 6%))
+  );
+}
+
+/* link */
+.wisp-link {
+  color: var(--coral);
+  text-decoration: none;
+  cursor: pointer;
+}
+.wisp-link:hover {
+  color: hsl(var(--coral-h) var(--coral-s) 78%);
+}
+
+/* kbd in wisp surfaces */
+.wisp-kbd {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--wisp-glass);
+  border: 1px solid var(--wisp-hairline-strong);
+  color: var(--wisp-ink-2);
+  letter-spacing: 0.02em;
+}
+
+/* sidebar item */
+.wisp-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  color: var(--wisp-ink-2);
+  font-family: var(--f-head);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s var(--wisp-easing),
+    color 0.15s var(--wisp-easing);
+  position: relative;
+  background: transparent;
+  border: none;
+  text-align: left;
+  width: 100%;
+}
+.wisp-nav-item:hover {
+  background: var(--wisp-glass-hover);
+  color: var(--wisp-ink);
+}
+.wisp-nav-item.on {
+  background: var(--wisp-glass-strong);
+  color: var(--wisp-ink);
+}
+.wisp-nav-item.on::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--coral), var(--coral-2));
+  box-shadow: var(--wisp-glow-coral);
+}
+
+/* avatar */
+.wisp-av {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--f-head);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--wisp-glass-strong);
+  border: 1px solid var(--wisp-hairline-strong);
+  color: var(--wisp-ink);
+  flex-shrink: 0;
+}
+.wisp-av.coral {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--coral-h) var(--coral-s) calc(var(--coral-l) - 4%)),
+    hsl(calc(var(--coral-h) - 4) var(--coral-s) calc(var(--coral-l) - 14%))
+  );
+  color: #1a0c08;
+}
+.wisp-av.mint {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--mint-h) var(--mint-s) calc(var(--mint-l) - 5%)),
+    hsl(calc(var(--mint-h) + 8) var(--mint-s) calc(var(--mint-l) - 15%))
+  );
+  color: #06231d;
+}
+.wisp-av.violet {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--violet-h) var(--violet-s) calc(var(--violet-l) - 5%)),
+    hsl(calc(var(--violet-h) + 18) var(--violet-s) calc(var(--violet-l) - 15%))
+  );
+  color: #14082b;
+}
+.wisp-av.amber {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--amber-h) var(--amber-s) var(--amber-l)),
+    hsl(calc(var(--amber-h) - 10) var(--amber-s) calc(var(--amber-l) - 10%))
+  );
+  color: #221207;
+}
+.wisp-av.sky {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--sky-h) var(--sky-s) var(--sky-l)),
+    hsl(calc(var(--sky-h) + 14) calc(var(--sky-s) - 10%) calc(var(--sky-l) - 9%))
+  );
+  color: #061629;
+}
+.wisp-av.rose {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--rose-h) var(--rose-s) var(--rose-l)),
+    hsl(calc(var(--rose-h) - 9) calc(var(--rose-s) - 4%) calc(var(--rose-l) - 10%))
+  );
+  color: #2a070f;
+}
+.wisp-av-stack {
+  display: inline-flex;
+}
+.wisp-av-stack > .wisp-av:not(:first-child) {
+  margin-left: -8px;
+}
+
+/* card */
+.wisp-card {
+  background: var(--wisp-glass);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid var(--wisp-hairline);
+  border-radius: var(--r-3);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.wisp-card.glow-coral::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 80% -20%,
+    hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.18),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* scrollbars (Webkit) */
+.wisp-aurora-scope *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.wisp-aurora-scope *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.wisp-aurora-scope *::-webkit-scrollbar-thumb {
+  background: var(--wisp-hairline-strong);
+  border-radius: 4px;
+}
+.wisp-aurora-scope *::-webkit-scrollbar-thumb:hover {
+  background: var(--wisp-hairline-bright);
+}
+
+/* ---------- shadcn bridge ----------
+   Re-alias the legacy shadcn variables so existing components inherit the
+   Wisp palette automatically. Done in a separate block (overrides the values
+   from index.css) so the visual update reaches every Dialog, Button, Tooltip
+   etc. without touching their files.
+   Values are HSL components (matching the shadcn convention so `hsl(var(...))`
+   in tailwind utilities resolves correctly).
+*/
+:root,
+[data-theme='dark'],
+.dark {
+  --background: 31 33% 7%;
+  --foreground: 38 49% 93%;
+  --card: 31 30% 9%;
+  --card-foreground: 38 49% 93%;
+  --popover: 31 33% 8%;
+  --popover-foreground: 38 49% 93%;
+  --primary: 15 63% 60%;
+  --primary-foreground: 12 60% 8%;
+  --secondary: 31 18% 14%;
+  --secondary-foreground: 38 49% 93%;
+  --muted: 31 18% 14%;
+  --muted-foreground: 38 30% 75%;
+  --muted-foreground-soft: 38 25% 60%;
+  --accent: 31 22% 17%;
+  --accent-foreground: 38 49% 93%;
+  /* Lightness on the state colours is tuned up so `text-{state}` clears WCAG
+     4.5:1 over the warm card surface (~#292928) when used on `bg-{state}/15`
+     chips — the previous values landed at ~4.14 in axe. */
+  --destructive: 0 70% 68%;
+  --destructive-foreground: 38 49% 96%;
+  --success: 150 45% 65%;
+  --success-foreground: 150 40% 8%;
+  --warning: 32 75% 68%;
+  --warning-foreground: 32 50% 8%;
+  --info: 210 55% 72%;
+  --info-foreground: 210 40% 8%;
+  --border: 38 40% 16%;
+  --input: 38 40% 16%;
+  --ring: 15 63% 60%;
+}
+
+[data-theme='light'] {
+  --background: 41 33% 94%;
+  --foreground: 31 30% 11%;
+  --card: 41 40% 97%;
+  --card-foreground: 31 30% 11%;
+  --popover: 41 40% 97%;
+  --popover-foreground: 31 30% 11%;
+  --primary: 15 63% 50%;
+  --primary-foreground: 41 33% 96%;
+  --secondary: 38 25% 86%;
+  --secondary-foreground: 31 30% 11%;
+  --muted: 38 25% 88%;
+  --muted-foreground: 31 22% 32%;
+  --muted-foreground-soft: 31 16% 44%;
+  --accent: 38 25% 86%;
+  --accent-foreground: 31 30% 11%;
+  --destructive: 0 60% 48%;
+  --destructive-foreground: 41 33% 96%;
+  --success: 150 30% 36%;
+  --success-foreground: 0 0% 100%;
+  --warning: 32 60% 42%;
+  --warning-foreground: 0 0% 100%;
+  --info: 210 32% 42%;
+  --info-foreground: 0 0% 100%;
+  --border: 31 22% 80%;
+  --input: 31 22% 80%;
+  --ring: 15 63% 50%;
+}

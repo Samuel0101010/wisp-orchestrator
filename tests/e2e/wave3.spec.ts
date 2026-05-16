@@ -184,7 +184,11 @@ test.describe('Wave 3 — Manager-agent project happy-path', () => {
     await expect(page.getByTestId('sidebar-mission-control')).toBeVisible({ timeout: 20_000 });
 
     // Open the new-project dialog.
-    await page.getByRole('button', { name: tt(lang, 'navigation.newProject') }).click();
+    // Scope to the sidebar — Wisp Home page also has a hero "New project".
+    await page
+      .getByTestId('sidebar')
+      .getByRole('button', { name: tt(lang, 'navigation.newProject') })
+      .click();
     await expect(page.getByText(tt(lang, 'newProject.title'), { exact: true })).toBeVisible();
 
     // Fill name + goal + repo. Default template is fine.

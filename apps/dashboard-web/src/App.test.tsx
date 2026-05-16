@@ -51,8 +51,10 @@ function renderAt(path: string) {
 describe('App', () => {
   it('renders the sidebar and Mission Control at root', () => {
     renderAt('/');
-    expect(screen.getByText('Agent Harness')).toBeInTheDocument();
-    // The new Home page shows the Mission Control heading.
+    // Wisp re-skin: the sidebar header is an image (mascot + wordmark) rather
+    // than text. Assert the sidebar landmark + Mission Control nav item.
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-mission-control')).toBeInTheDocument();
     expect(screen.getByTestId('mission-control')).toBeInTheDocument();
   });
 
