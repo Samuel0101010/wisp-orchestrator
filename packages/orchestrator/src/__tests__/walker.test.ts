@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { HarnessEvent, Plan, Team, TaskNode } from '@agent-harness/schemas';
+import type { HarnessEvent, Plan, Team, TaskNode } from '@wisp/schemas';
 import {
   Walker,
   composeTaskPrompt,
@@ -1224,9 +1224,9 @@ describe('Walker — QA-driven replan (M5)', () => {
     const plan = makePlan([node('q', 'qa')]);
     await h.walker.start({ runId: 'r-prefix', plan, repoPath: '/fake', budget: DEFAULT_BUDGET });
     // First plan's task added under the v1 prefix (no version segment).
-    expect(h.deps.worktree.added).toContain('harness/r-prefix/q');
+    expect(h.deps.worktree.added).toContain('wisp/r-prefix/q');
     // After replan, the new plan's task adds under v2.
-    expect(h.deps.worktree.added).toContain('harness/r-prefix/v2/q');
+    expect(h.deps.worktree.added).toContain('wisp/r-prefix/v2/q');
   });
 });
 

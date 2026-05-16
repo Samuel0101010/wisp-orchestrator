@@ -19,7 +19,7 @@
  * WalkerDeps signature settles.
  */
 import { eq } from 'drizzle-orm';
-import { projectAgentOverrides, type AgentModel } from '@agent-harness/schemas';
+import { projectAgentOverrides, type AgentModel } from '@wisp/schemas';
 import { db as defaultDb } from '../db/index.js';
 
 export interface AgentOverrideMerge {

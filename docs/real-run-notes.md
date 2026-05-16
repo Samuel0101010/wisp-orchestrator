@@ -15,8 +15,8 @@ foundation-level claims that real-Claude can confirm but mocks cannot.
 - Goal: "Add an exported `hello(name)` function returning 'Hello, <name>' to a
   TypeScript module at `src/hello.ts` plus a vitest test"
 - Server: `node apps/dashboard-server/dist/server.js` on port 4502 with
-  `HARNESS_INTER_TASK_PACING_MS=5000`,
-  `HARNESS_DATA_DIR=$PWD/data/dev-store-real`
+  `WISP_INTER_TASK_PACING_MS=5000`,
+  `WISP_DATA_DIR=$PWD/data/dev-store-real`
 
 ## What the foundation needed to prove
 
@@ -29,19 +29,19 @@ nothing — so the entire vertical slice depends on real-Claude evidence.
 
 ```
 $ git -C C:/Users/samue/AppData/Local/Temp/harness-real-1 branch --all
-  harness/93478bd3.../architect-plan
-+ harness/93478bd3.../dev-hello-module
+  wisp/93478bd3.../architect-plan
++ wisp/93478bd3.../dev-hello-module
 * main
 
 $ git log --oneline --graph --all
-* ac51b0f harness: architect-plan
+* ac51b0f wisp: architect-plan
 * 7d03b53 init
 ```
 
-The `harness/.../architect-plan` branch carries the architect's auto-commit
-(`harness: architect-plan`) on top of the original `init`. The
-`harness/.../dev-hello-module` branch was created off
-`harness/.../architect-plan` (Stage A2 chaining) and inherited `architecture.md`
+The `wisp/.../architect-plan` branch carries the architect's auto-commit
+(`wisp: architect-plan`) on top of the original `init`. The
+`wisp/.../dev-hello-module` branch was created off
+`wisp/.../architect-plan` (Stage A2 chaining) and inherited `architecture.md`
 + `tasks.md` produced by the architect. The developer wrote `package.json`,
 `tsconfig.json`, `vitest.config.ts`, `.gitignore`, `src/hello.ts`, and
 `src/hello.test.ts` in that worktree — visible on disk under
@@ -224,7 +224,7 @@ repo `harness-r1`, port 4503, run id `6447176a-3ec2-47e7-8294-8539dfa3244e`
 (third attempt on plan `1a7305bb`).
 
 **Outcome:** ✅ `status=completed, outcome=success`. Result branch
-`harness/6447176a-3ec2-47e7-8294-8539dfa3244e/result` created and contains
+`wisp/6447176a-3ec2-47e7-8294-8539dfa3244e/result` created and contains
 `architecture.md`, `tasks.md`, `result.txt` (= "HELLO WORLD").
 
 | Task | Status | Tokens in | Tokens out | Turns | Duration |
@@ -266,7 +266,7 @@ The first two attempts on the same goal failed and exercised the new
 | `harness.verify-failed` event with full payload | ✅ fired on every miss with `kind`, `cmd`, `exitCode`, `tail`, `output` |
 | Worktree chaining (Stage A1-A3) | ✅ developer worktree carried architect's commits |
 | Auto-commit after success (Stage A2) | ✅ each task committed by harness, no manual git inside agents |
-| Result branch finalize on success (Stage A5) | ✅ first-ever validation — `harness/<runId>/result` is the merge of qa-1's branch |
+| Result branch finalize on success (Stage A5) | ✅ first-ever validation — `wisp/<runId>/result` is the merge of qa-1's branch |
 | Cancel downstream tasks on upstream failure (Stage G3) | ✅ attempts 1 & 2 cancelled developer + qa with `cancelled: upstream dep failed` |
 | Retry-error truncation in retry prompt | not visible (small diffs); machinery in place |
 
@@ -295,7 +295,7 @@ attempt; first failed with the `CI=true` bug fixed in commit `1851e7e`
 below).
 
 **Outcome:** ✅ `status=completed, outcome=success`. Result branch
-`harness/07f1c0e0-36fc-4546-b610-a34312cf6bac/result` carries:
+`wisp/07f1c0e0-36fc-4546-b610-a34312cf6bac/result` carries:
 `architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
 `pnpm-lock.yaml`, `src/hello.ts`, `src/hello.test.ts`.
 
@@ -381,7 +381,7 @@ attempt; first failed with the platform-detection bug fixed in
 commit `ba364bc` below).
 
 **Outcome:** ✅ `status=completed, outcome=success`. Result branch
-`harness/abd5e092-d99b-4b7f-a84f-83222c2da459/result` carries:
+`wisp/abd5e092-d99b-4b7f-a84f-83222c2da459/result` carries:
 `architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
 `README.md`, `src/calc.ts`, `src/calc.test.ts`, `node_modules/`.
 
@@ -409,10 +409,10 @@ The planner emitted `qa-verify.deps = ['backend-implementation', 'frontend-readm
 a true diamond / fan-in topology. Resulting git log:
 
 ```
-*   merge harness/<runId>/qa-verify       ← Stage A5 result-branch finalize
+*   merge wisp/<runId>/qa-verify       ← Stage A5 result-branch finalize
 |\
 | * qa-verify
-| *   merge harness/<runId>/frontend-readme  ← Stage A4 dep-branch fan-in
+| *   merge wisp/<runId>/frontend-readme  ← Stage A4 dep-branch fan-in
 | |\
 | | * frontend-readme
 | |/
@@ -422,7 +422,7 @@ a true diamond / fan-in topology. Resulting git log:
 * init
 ```
 
-The inner merge commit ("merge harness/.../frontend-readme") is the
+The inner merge commit ("merge wisp/.../frontend-readme") is the
 first-ever real-Claude validation of `mergeBranchesInWorktree` — when
 qa-verify started, the walker added a worktree from the
 backend-implementation branch (its first dep) and merged the
@@ -496,7 +496,7 @@ default team's allowedTools used the wrong tool-name format — fixed
 in commit `07e384c` below).
 
 **Outcome:** ✅ `status=completed, outcome=success`. Result branch
-`harness/a43046ff-5c06-41b7-9049-c9eec66274e4/result` carries:
+`wisp/a43046ff-5c06-41b7-9049-c9eec66274e4/result` carries:
 `architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
 `src/greet.ts`, `src/greet.test.ts`.
 
@@ -516,7 +516,7 @@ export function greet(name: string): string {
 
 ## Memory DB contents (the real validation)
 
-`<HARNESS_DATA_DIR>/memory/<runId>.db` after the run:
+`<WISP_DATA_DIR>/memory/<runId>.db` after the run:
 
 ```
 keys: 2
@@ -599,7 +599,7 @@ core-dev=sonnet, test-dev=sonnet, qa=sonnet). Fresh repo `harness-r5`,
 port 4507, run id `0dc0678b-4390-4e3f-801c-8604c35d71a9`.
 
 **Outcome:** ✅ `status=completed, outcome=success`. Result branch
-`harness/0dc0678b-4390-4e3f-801c-8604c35d71a9/result` carries:
+`wisp/0dc0678b-4390-4e3f-801c-8604c35d71a9/result` carries:
 `architecture.md`, `tasks.md`, `package.json`, `tsconfig.json`,
 `src/hello.ts`, `src/hello.test.ts`. Every task done first-attempt.
 
@@ -784,20 +784,20 @@ swapped into the walker. But its very first task failed:
 ```
 task.failed task=qa-verify
   err=worktree add failed: Command failed with exit code 255:
-      git worktree add -b harness/<runId>/architect-spec ...
+      git worktree add -b wisp/<runId>/architect-spec ...
 ```
 
 Root cause: the walker's `branchPrefix` was hardcoded to
-`harness/<runId>` regardless of replan attempt. The new plan's
+`wisp/<runId>` regardless of replan attempt. The new plan's
 `architect-spec` task tried to claim a branch name that the FAILED
 plan's `architect-spec` already owned.
 
 **Foundation patch** (commit `6d79d48`): walker now namespaces
 branches by replan attempt. v1 (the original plan) keeps the
-unprefixed `harness/<runId>/<taskId>` form to preserve all existing
+unprefixed `wisp/<runId>/<taskId>` form to preserve all existing
 tests + the result-branch finalize logic. v2 (after first replan)
-becomes `harness/<runId>/v2/<taskId>`, v3 would be `v3/`, etc. The
-result branch (`harness/<runId>/result`) stays unprefixed since it's
+becomes `wisp/<runId>/v2/<taskId>`, v3 would be `v3/`, etc. The
+result branch (`wisp/<runId>/result`) stays unprefixed since it's
 always the final merge target. The leaf-branch list used by finalize
 honors the current prefix so the result correctly merges the v2 work.
 
@@ -856,9 +856,9 @@ acceptance is split into:
    - 404 on a nonexistent runId.
 
 3. **Manual user smoke** — install the updated plugin, then in a
-   Claude Code session type `/harness-new-run` and walk the prompts.
-   Then `/harness-diagnose <runId>` during the run, then
-   `/harness-inspect <runId>` after. Each skill's body documents the
+   Claude Code session type `/wisp-new-run` and walk the prompts.
+   Then `/wisp-diagnose <runId>` during the run, then
+   `/wisp-inspect <runId>` after. Each skill's body documents the
    exact API calls so the model can follow them deterministically.
    The user runs this test when they next install the plugin —
    no harness compute cost.
@@ -1022,7 +1022,7 @@ method per the suggestedGoal.
 | Preflight runs once before build/test/lint | ✅ core-dev verify gate ran preflight (existing pattern, also seen r2/r5) |
 | Token telemetry non-zero | ✅ 81k in / 19k out across the 2 completed tasks |
 | Result branch finalized | not yet (run paused before qa); already validated 6× in r1-r6 |
-| **Bonus**: Rate-limit pause path | ✅ first-ever — Walker emits `rate-limit.hit` (source=stdout-marker), persists `paused_reason='rate-limit'` + `resume_at` epoch, refuses auto-resume per `HARNESS_AUTO_RESUME_RATE_LIMIT=false` default |
+| **Bonus**: Rate-limit pause path | ✅ first-ever — Walker emits `rate-limit.hit` (source=stdout-marker), persists `paused_reason='rate-limit'` + `resume_at` epoch, refuses auto-resume per `WISP_AUTO_RESUME_RATE_LIMIT=false` default |
 
 ## To complete the run manually
 
@@ -1056,10 +1056,10 @@ POST `/api/runs/fdbd17a8-7644-4f1d-99a0-9f883a911fc9/resume` accepted, walker re
 ```
 task.failed task=test-1
   err=worktree add failed: Command failed with exit code 255:
-      git worktree add -b harness/<runId>/test-1 <wt-path> harness/<runId>/core-1
+      git worktree add -b wisp/<runId>/test-1 <wt-path> wisp/<runId>/core-1
 ```
 
-Root cause: when test-1 was first dispatched (before the rate-limit hit), the walker created branch `harness/<runId>/test-1` AND a worktree at the path. The rate-limit interrupted before any commit. On resume, walker re-tried `git worktree add -b` — the `-b` flag REQUIRES the branch be new, but it already existed. Walker's resume path needs to either:
+Root cause: when test-1 was first dispatched (before the rate-limit hit), the walker created branch `wisp/<runId>/test-1` AND a worktree at the path. The rate-limit interrupted before any commit. On resume, walker re-tried `git worktree add -b` — the `-b` flag REQUIRES the branch be new, but it already existed. Walker's resume path needs to either:
 
 - **(a)** Detect and reuse the existing branch + worktree (cleanest)
 - **(b)** Add `--force` to the worktree-add (clobbers but works)
@@ -1069,15 +1069,15 @@ This is genuinely a v1.0.x foundation gap. M1.5's resume (Stage E2) covered the 
 
 ### Finding 2 (Anthropic-side, not a harness bug): rate-limit resumeAt windows are per-task, not per-account
 
-After cleaning the stale branches manually (`git worktree prune` + `git branch -D harness/...`) and starting a fresh run on the same plan, run id `aee26adc-681f-47f5-81aa-034796e7cfd6` paused on its very first task (architect-1) within ~30s with a NEW rate-limit hit and `resumeAt=2026-05-06T19:59:55Z` — 5 more hours out.
+After cleaning the stale branches manually (`git worktree prune` + `git branch -D wisp/...`) and starting a fresh run on the same plan, run id `aee26adc-681f-47f5-81aa-034796e7cfd6` paused on its very first task (architect-1) within ~30s with a NEW rate-limit hit and `resumeAt=2026-05-06T19:59:55Z` — 5 more hours out.
 
 Interpretation: the original 5h window expired at 14:51 (per Anthropic's per-window quota), but the cumulative subscription usage across r1-r7 + r7-attempt-2 had us bumping a higher-tier rolling-budget limit. Anthropic's rate-limiting is multi-window — per-prompt (5h reset) + daily quota + maybe 24h rolling — and waiting through one window doesn't guarantee fresh quota on all dimensions.
 
-This is exactly the scenario `HARNESS_AUTO_RESUME_RATE_LIMIT=false` (default) is for: don't auto-retry; let the user decide. The harness behaved correctly — paused, persisted state, refused to spin.
+This is exactly the scenario `WISP_AUTO_RESUME_RATE_LIMIT=false` (default) is for: don't auto-retry; let the user decide. The harness behaved correctly — paused, persisted state, refused to spin.
 
 ### What this means for v1.0 acceptance
 
 - v1.0 SHIP STATUS: unchanged. All 9 PRs (#3-#11) merged. Tag `v1.0.0` on `928b194`. Test count 309+ green.
 - Resume path validates structurally: walker reload + DB state preservation work. Failed at the worktree-add step, which is the foundation gap above.
-- Original r7 work (architect + core-dev's typed `debounce` + 3 memory keys) remains intact on `harness/fdbd17a8-7644-4f1d-99a0-9f883a911fc9/{arch-1,core-1}` branches in `C:\Users\samue\AppData\Local\Temp\harness-r7`. Inspectable any time.
+- Original r7 work (architect + core-dev's typed `debounce` + 3 memory keys) remains intact on `wisp/fdbd17a8-7644-4f1d-99a0-9f883a911fc9/{arch-1,core-1}` branches in `C:\Users\samue\AppData\Local\Temp\harness-r7`. Inspectable any time.
 - Cumulative cost ~$0.30 across both resume attempts (architect + core-dev didn't re-run; only the first turn of architect-1 in attempt 2).

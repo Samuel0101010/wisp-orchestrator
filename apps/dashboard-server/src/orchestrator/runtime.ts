@@ -26,7 +26,7 @@ import {
   type RunStatus,
   type TaskRole,
   type TaskStatus,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import {
   SubprocessPool,
   Walker,
@@ -42,7 +42,7 @@ import {
   type SubprocessRunner,
   type TaskState,
   type WalkerDeps,
-} from '@agent-harness/orchestrator';
+} from '@wisp/orchestrator';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
@@ -71,7 +71,7 @@ import {
   persistProjectState,
   PROJECT_STATE_MD_PATH,
 } from './project-state-loader.js';
-import type { RunOutcome } from '@agent-harness/schemas';
+import type { RunOutcome } from '@wisp/schemas';
 
 function resolveMemoryMcpEntrypoint(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
@@ -87,7 +87,7 @@ export interface WsBus {
 export interface RunRuntimeDeps {
   db: BetterSQLite3Database;
   ws: WsBus;
-  /** Where to write checkpoint snapshots; defaults to <HARNESS_DATA_DIR>/snapshots. */
+  /** Where to write checkpoint snapshots; defaults to <WISP_DATA_DIR>/snapshots. */
   snapshotsDir?: string;
   /** Test seam: build the Walker with a swapped pool/runner. */
   buildWalker?: (args: { walkerDeps: WalkerDeps; runId: string }) => Walker;
@@ -96,7 +96,7 @@ export interface RunRuntimeDeps {
   /**
    * Optional subprocess runner. When provided, the SubprocessPool inside each
    * Walker uses this runner instead of the real `runClaude`. Used by the F1
-   * mock-CLI mode (see env.HARNESS_MOCK_CLI) and for tests.
+   * mock-CLI mode (see env.WISP_MOCK_CLI) and for tests.
    */
   runner?: SubprocessRunner;
   /** Optional skill registry — when present, terminal runs trigger
@@ -169,7 +169,7 @@ export class RunRuntime {
   constructor(deps: RunRuntimeDeps) {
     this.db = deps.db;
     this.ws = deps.ws;
-    this.snapshotsDir = deps.snapshotsDir ?? path.join(env.HARNESS_DATA_DIR, 'snapshots');
+    this.snapshotsDir = deps.snapshotsDir ?? path.join(env.WISP_DATA_DIR, 'snapshots');
     this.buildWalker = deps.buildWalker ?? (({ walkerDeps }) => new Walker(walkerDeps));
     this.snapshotIntervalMs = deps.snapshotIntervalMs ?? DEFAULT_SNAPSHOT_INTERVAL_MS;
     this.runner = deps.runner;
@@ -186,15 +186,15 @@ export class RunRuntime {
     maxParallel: number,
     projectId?: string,
   ): WalkerDeps {
-    const mcpConfigPath = env.HARNESS_MOCK_CLI
+    const mcpConfigPath = env.WISP_MOCK_CLI
       ? undefined
       : writeMemoryMcpConfig({
           runId,
-          // env.HARNESS_DATA_DIR has the os.tmpdir() default applied by the
+          // env.WISP_DATA_DIR has the os.tmpdir() default applied by the
           // Zod schema in env.ts; reading process.env directly would lose it
           // and produce a relative './mcp-configs/...' path that fails when
           // claude resolves it from a worktree cwd.
-          dataDir: env.HARNESS_DATA_DIR,
+          dataDir: env.WISP_DATA_DIR,
           memoryMcpEntrypoint: resolveMemoryMcpEntrypoint(),
           projectId,
         }).path;
@@ -214,7 +214,7 @@ export class RunRuntime {
         // the parser to read `assistant.message.content[type=tool_use]` —
         // tool-use events now carry real signal (Write, Edit, memory.set,
         // ...), so persist + broadcast them like every other event. The
-        // /harness-diagnose skill and any future per-task timeline UI both
+        // /wisp-diagnose skill and any future per-task timeline UI both
         // consume them.
         this.persistEvent(runId, ev);
         try {
@@ -239,8 +239,8 @@ export class RunRuntime {
       mergeBranches: mergeBranchesInWorktree,
       abortMerge: abortMergeInWorktree,
       getMergeStatus: getMergeStatusInWorktree,
-      interTaskPacingMs: env.HARNESS_INTER_TASK_PACING_MS,
-      autoResumeRateLimit: env.HARNESS_AUTO_RESUME_RATE_LIMIT,
+      interTaskPacingMs: env.WISP_INTER_TASK_PACING_MS,
+      autoResumeRateLimit: env.WISP_AUTO_RESUME_RATE_LIMIT,
       // M5 — parentPlanId is captured here as the original plan id from
       // startRun/resumeRun. Walker's MAX_REPLANS_PER_RUN = 1, so the chain
       // depth is at most root → child; both children of distinct runs
@@ -248,7 +248,7 @@ export class RunRuntime {
       // If the cap is ever raised above 1, this closure will need to track
       // the live "current plan id" for proper grandchild → child → root
       // linkage instead of grandchild → root.
-      replanOnQAFailure: env.HARNESS_MOCK_CLI
+      replanOnQAFailure: env.WISP_MOCK_CLI
         ? undefined
         : async ({ failedPlan, failedTaskId, qaError }) => {
             const result = await replanOnQAFailure({
@@ -312,7 +312,7 @@ export class RunRuntime {
       };
     }
 
-    if (env.HARNESS_AUTH_MODE === 'subscription' && !env.HARNESS_MOCK_CLI) {
+    if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
       const last = getLastAuthProbe();
       if (last && !last.ok) {
         return {

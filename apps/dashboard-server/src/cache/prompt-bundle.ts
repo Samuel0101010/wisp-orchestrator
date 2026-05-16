@@ -4,7 +4,7 @@ import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { eq, lt } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { promptBundles, type PromptBundle } from '@agent-harness/schemas';
+import { promptBundles, type PromptBundle } from '@wisp/schemas';
 import { env } from '../env.js';
 import type { BundleKeyInput, UpsertResult } from './types.js';
 
@@ -52,7 +52,7 @@ export async function upsertBundle(
   if (existing) {
     return { bundleKey, cwd: existing.cwd, isNew: false };
   }
-  const cwd = join(env.HARNESS_DATA_DIR, 'prompt-bundles', bundleKey.slice(0, 16));
+  const cwd = join(env.WISP_DATA_DIR, 'prompt-bundles', bundleKey.slice(0, 16));
   await mkdir(cwd, { recursive: true });
   const now = new Date();
   db.insert(promptBundles)

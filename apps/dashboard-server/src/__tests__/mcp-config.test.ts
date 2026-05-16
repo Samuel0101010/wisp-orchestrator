@@ -43,7 +43,7 @@ describe('writeMemoryMcpConfig', () => {
     }
   });
 
-  it('exports HARNESS_DATA_DIR + HARNESS_PROJECT_ID when projectId is supplied', async () => {
+  it('exports WISP_DATA_DIR + HARNESS_PROJECT_ID when projectId is supplied', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'mcp-cfg-'));
     try {
       const result = writeMemoryMcpConfig({
@@ -56,13 +56,13 @@ describe('writeMemoryMcpConfig', () => {
       const env = cfg.mcpServers['agent-harness-memory'].env;
       expect(env.HARNESS_MEMORY_DB).toBe(result.dbPath);
       expect(env.HARNESS_PROJECT_ID).toBe('proj-1');
-      expect(env.HARNESS_DATA_DIR).toBeDefined();
+      expect(env.WISP_DATA_DIR).toBeDefined();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
   });
 
-  it('omits HARNESS_PROJECT_ID + HARNESS_DATA_DIR when projectId is not supplied', async () => {
+  it('omits HARNESS_PROJECT_ID + WISP_DATA_DIR when projectId is not supplied', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'mcp-cfg-'));
     try {
       const result = writeMemoryMcpConfig({
@@ -73,7 +73,7 @@ describe('writeMemoryMcpConfig', () => {
       const cfg = JSON.parse(await readFile(result.path, 'utf8'));
       const env = cfg.mcpServers['agent-harness-memory'].env;
       expect(env.HARNESS_PROJECT_ID).toBeUndefined();
-      expect(env.HARNESS_DATA_DIR).toBeUndefined();
+      expect(env.WISP_DATA_DIR).toBeUndefined();
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

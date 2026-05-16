@@ -49,7 +49,7 @@ import {
   useThreadDetail,
   useThreadMessages,
 } from '@/api/queries';
-import type { Agent, AgentMessage, AgentThread } from '@agent-harness/schemas';
+import type { Agent, AgentMessage, AgentThread } from '@wisp/schemas';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';

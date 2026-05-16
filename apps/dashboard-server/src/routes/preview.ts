@@ -22,7 +22,7 @@ import http, { type IncomingMessage } from 'node:http';
 import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { projects } from '@agent-harness/schemas';
+import { projects } from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import { detectProjectType } from '../orchestrator/detect-project-type.js';

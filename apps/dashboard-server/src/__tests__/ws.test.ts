@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { buildApp } from '../app.js';
 import { runMigrations } from '../db/migrate.js';
 import { db, sqlite } from '../db/index.js';
-import { plans, projects, runs, teams } from '@agent-harness/schemas';
+import { plans, projects, runs, teams } from '@wisp/schemas';
 import { __getRegistry, __resetWsState, publishToRun } from '../ws.js';
 
 async function seedRun(): Promise<string> {

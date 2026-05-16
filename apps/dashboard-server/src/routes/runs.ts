@@ -11,7 +11,7 @@ import {
   projects,
   runs,
   tasks,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { env } from '../env.js';
 import { wrap } from './wrap.js';
@@ -55,7 +55,7 @@ function defaultRuntimeInstance(): RunRuntime {
     defaultRuntime = new RunRuntime({
       db,
       ws: { publishToRun },
-      runner: env.HARNESS_MOCK_CLI ? makeMockRunner() : undefined,
+      runner: env.WISP_MOCK_CLI ? makeMockRunner() : undefined,
       skillRegistry: _runtimeSkillRegistry ?? undefined,
     });
   }

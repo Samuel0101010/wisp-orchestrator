@@ -21,7 +21,7 @@ import { randomUUID } from 'node:crypto';
 import { execa } from 'execa';
 import { desc, eq } from 'drizzle-orm';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
-import { projectStates as projectStatesTable } from '@agent-harness/schemas';
+import { projectStates as projectStatesTable } from '@wisp/schemas';
 
 export const PROJECT_STATE_MD_PATH = 'docs/project-state.md';
 

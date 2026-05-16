@@ -10,7 +10,7 @@ import {
   useSendMessage,
   useThreadMessages,
 } from '@/api/queries';
-import type { Agent, AgentThread } from '@agent-harness/schemas';
+import type { Agent, AgentThread } from '@wisp/schemas';
 import { fmtRel } from '@/lib/fmt-rel';
 
 export interface AgentChatProps {
@@ -342,7 +342,7 @@ function MessageBubble({
   message,
   agent,
 }: {
-  message: import('@agent-harness/schemas').AgentMessage;
+  message: import('@wisp/schemas').AgentMessage;
   agent: Agent | null;
 }) {
   const { t } = useTranslation();

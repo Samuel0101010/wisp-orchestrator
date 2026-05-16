@@ -87,14 +87,14 @@ jobs:
 
       - name: Install Playwright Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @agent-harness/e2e exec playwright install --with-deps chromium
+        run: pnpm --filter @wisp/e2e exec playwright install --with-deps chromium
 
       - name: Install Playwright system deps (cache hit)
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @agent-harness/e2e exec playwright install-deps chromium
+        run: pnpm --filter @wisp/e2e exec playwright install-deps chromium
 
       - name: Run Playwright smoke
-        run: pnpm --filter @agent-harness/e2e run test
+        run: pnpm --filter @wisp/e2e run test
 
       - name: Upload Playwright report on failure
         if: failure()

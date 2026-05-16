@@ -2,8 +2,8 @@ import './setup.js';
 import { describe, expect, it } from 'vitest';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
 import { RUNTIME_VERIFIER_ROLE } from '../orchestrator/runtime-verifier.js';
-import { planSchema, validateDag } from '@agent-harness/schemas';
-import type { AgentSpec, DodCriterion, Plan } from '@agent-harness/schemas';
+import { planSchema, validateDag } from '@wisp/schemas';
+import type { AgentSpec, DodCriterion, Plan } from '@wisp/schemas';
 
 function basePlan(over: Partial<Plan> = {}): Plan {
   const developer: AgentSpec = {

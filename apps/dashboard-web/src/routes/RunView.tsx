@@ -13,7 +13,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import type { HarnessEvent, RunPausedReason } from '@agent-harness/schemas';
+import type { HarnessEvent, RunPausedReason } from '@wisp/schemas';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

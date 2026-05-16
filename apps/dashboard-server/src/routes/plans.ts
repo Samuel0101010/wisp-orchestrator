@@ -11,7 +11,7 @@ import {
   teamSchema,
   validateDag,
   type Team,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
@@ -31,7 +31,7 @@ import {
   projectBriefs,
   type ChangeRequestStatus,
   type PlanKind,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
 import { injectLeadCheckpoint } from '../orchestrator/inject-lead-checkpoint.js';
 import { detectProjectType } from '../orchestrator/detect-project-type.js';

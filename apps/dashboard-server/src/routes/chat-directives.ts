@@ -24,11 +24,11 @@ import {
   type ChatActionStatus,
   type ManagerDirective,
   type Team,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { resolveAgentRef } from '../db/agents-seed.js';
 import { runAgentTurn, composePrompt, type HistoryMessage } from './chat-engine.js';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 import type { SkillRegistry } from '../skills/registry.js';
 import { invokeSkill } from '../skills/invoker.js';
 import { ensureBriefRow } from './interview.js';

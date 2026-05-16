@@ -9,7 +9,7 @@
  * and run-level state belong in a later phase.
  */
 
-import type { HarnessEvent } from '@agent-harness/schemas';
+import type { HarnessEvent } from '@wisp/schemas';
 import { runClaude, type RunClaudeOpts } from './subprocess.js';
 
 export type SubprocessRunner = (opts: RunClaudeOpts) => AsyncIterable<HarnessEvent>;

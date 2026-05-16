@@ -1,8 +1,8 @@
 import './setup.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import type { HarnessEvent } from '@agent-harness/schemas';
-import type { RunClaudeOpts } from '@agent-harness/orchestrator';
+import type { HarnessEvent } from '@wisp/schemas';
+import type { RunClaudeOpts } from '@wisp/orchestrator';
 import { agentRoutes } from '../routes/agents.js';
 import { createChatRouter } from '../routes/chat.js';
 import { runMigrations } from '../db/migrate.js';

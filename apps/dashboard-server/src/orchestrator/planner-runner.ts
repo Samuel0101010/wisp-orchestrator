@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { mkdtempSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { safeParsePlan, validateDag, type Plan, type Team } from '@agent-harness/schemas';
-import { runClaude } from '@agent-harness/orchestrator';
-import type { RunClaudeOpts } from '@agent-harness/orchestrator';
-import type { HarnessEvent } from '@agent-harness/schemas';
+import { safeParsePlan, validateDag, type Plan, type Team } from '@wisp/schemas';
+import { runClaude } from '@wisp/orchestrator';
+import type { RunClaudeOpts } from '@wisp/orchestrator';
+import type { HarnessEvent } from '@wisp/schemas';
 import { env } from '../env.js';
 import { publishToRun } from '../ws.js';
 import { buildPlannerPrompt, plannerSpecFor } from './planner.js';
@@ -48,7 +48,7 @@ async function runPlannerOnce(
   projectId: string,
 ): Promise<{ rateLimit: { resetAt: number | null } | null; failed: string | null }> {
   const spec = plannerSpecFor(team);
-  // `planner-` prefix lets HARNESS_MOCK_CLI mode distinguish planner calls
+  // `planner-` prefix lets WISP_MOCK_CLI mode distinguish planner calls
   // from task calls (see apps/dashboard-server/src/orchestrator/mock-runner.ts).
   const taskId = `planner-${randomUUID()}`;
   const wsRunId = `planner:${projectId}`;
@@ -96,7 +96,7 @@ export async function generatePlan(
   projectId: string,
   additionalContext?: string,
 ): Promise<PlannerOutcome> {
-  const cwd = mkdtempSync(path.join(env.HARNESS_DATA_DIR, 'planner-'));
+  const cwd = mkdtempSync(path.join(env.WISP_DATA_DIR, 'planner-'));
   const planJsonPath = path.join(cwd, 'plan.json');
   const basePrompt = additionalContext
     ? `${buildPlannerPrompt(goal, team)}\n\n${additionalContext}`
@@ -171,7 +171,7 @@ export async function generatePlan(
 }
 
 export function defaultRunner(): Runner {
-  if (env.HARNESS_MOCK_CLI) {
+  if (env.WISP_MOCK_CLI) {
     return makeMockRunner();
   }
   return (opts: RunClaudeOpts) => runClaude(opts);

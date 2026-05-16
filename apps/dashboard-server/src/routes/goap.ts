@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { wrap } from './wrap.js';
-import { planGoap, type Action } from '@agent-harness/orchestrator';
+import { planGoap, type Action } from '@wisp/orchestrator';
 
 const actionSchema = z.object({
   name: z.string().min(1),

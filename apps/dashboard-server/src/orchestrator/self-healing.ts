@@ -28,7 +28,7 @@ import {
   tasks as tasksTable,
   type Plan,
   type TaskRole,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import type { Finding } from './findings.js';
 import { formatFindingsForGoal } from './findings.js';
 

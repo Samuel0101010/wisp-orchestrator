@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { plans as plansTable } from '@agent-harness/schemas';
+import { plans as plansTable } from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 

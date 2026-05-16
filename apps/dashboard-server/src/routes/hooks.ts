@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { wrap } from './wrap.js';
 import { db } from '../db/index.js';
-import { hookEvents } from '@agent-harness/schemas';
+import { hookEvents } from '@wisp/schemas';
 import { desc } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
@@ -26,10 +26,10 @@ export const createHooksRouter: FastifyPluginAsync = async (app) => {
   app.post(
     '/api/hooks/event',
     wrap(async (req, reply) => {
-      const expected = process.env.HARNESS_HOOK_TOKEN;
+      const expected = process.env.WISP_HOOK_TOKEN;
       if (!expected) {
         reply.code(503);
-        return { error: 'hooks_disabled', message: 'HARNESS_HOOK_TOKEN unset' };
+        return { error: 'hooks_disabled', message: 'WISP_HOOK_TOKEN unset' };
       }
       const got = req.headers['x-harness-token'];
       if (got !== expected) {

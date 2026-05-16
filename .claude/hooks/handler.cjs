@@ -2,7 +2,7 @@
 /**
  * Claude Code hook handler — forwards events from local Claude Code sessions
  * (running inside the harness repo) to the harness server's /api/hooks/event
- * endpoint. Silently no-ops when HARNESS_HOOK_TOKEN is not set so it never
+ * endpoint. Silently no-ops when WISP_HOOK_TOKEN is not set so it never
  * blocks claude code execution. Exits 0 in all cases.
  */
 const subcommand = process.argv[2] || 'unknown';
@@ -19,12 +19,12 @@ process.stdin.on('data', (chunk) => {
   payload += chunk;
 });
 process.stdin.on('end', async () => {
-  const token = process.env.HARNESS_HOOK_TOKEN;
+  const token = process.env.WISP_HOOK_TOKEN;
   if (!token) {
     process.exit(0);
     return;
   }
-  const port = process.env.HARNESS_PORT || '4400';
+  const port = process.env.WISP_PORT || '4400';
   const body = {
     event,
     toolName: extractTool(payload),

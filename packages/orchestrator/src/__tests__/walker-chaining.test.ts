@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Walker } from '../walker.js';
-import type { Plan } from '@agent-harness/schemas';
+import type { Plan } from '@wisp/schemas';
 
 function makeFakeDeps() {
   const calls: Array<{ branchName: string; baseBranch?: string }> = [];
@@ -90,10 +90,10 @@ describe('walker chaining', () => {
       budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 1 },
     });
     expect(calls).toEqual([
-      { branchName: 'harness/r1/a', baseBranch: undefined },
-      { branchName: 'harness/r1/d', baseBranch: 'harness/r1/a' },
-      { branchName: 'harness/r1/q', baseBranch: 'harness/r1/d' },
-      { branchName: 'harness/r1/result', baseBranch: undefined },
+      { branchName: 'wisp/r1/a', baseBranch: undefined },
+      { branchName: 'wisp/r1/d', baseBranch: 'wisp/r1/a' },
+      { branchName: 'wisp/r1/q', baseBranch: 'wisp/r1/d' },
+      { branchName: 'wisp/r1/result', baseBranch: undefined },
     ]);
   });
 
@@ -106,8 +106,8 @@ describe('walker chaining', () => {
       repoPath: '/tmp/repo',
       budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 2 },
     });
-    // q has deps ['b1', 'b2']. baseBranch should be harness/rdiamond/b1; mergeBranches called with ['harness/rdiamond/b2'].
-    expect(deps.mergeBranches).toHaveBeenCalledWith(expect.any(String), ['harness/rdiamond/b2']);
+    // q has deps ['b1', 'b2']. baseBranch should be wisp/rdiamond/b1; mergeBranches called with ['wisp/rdiamond/b2'].
+    expect(deps.mergeBranches).toHaveBeenCalledWith(expect.any(String), ['wisp/rdiamond/b2']);
   });
 
   it('calls autoCommit after subprocess success and before worktree.remove', async () => {
@@ -129,16 +129,16 @@ describe('walker chaining', () => {
     });
     expect(order).toEqual([
       'commit:a',
-      'remove:/tmp/harness-r2-a',
+      'remove:/tmp/wisp-r2-a',
       'commit:d',
-      'remove:/tmp/harness-r2-d',
+      'remove:/tmp/wisp-r2-d',
       'commit:q',
-      'remove:/tmp/harness-r2-q',
-      'remove:/tmp/harness-r2-result',
+      'remove:/tmp/wisp-r2-q',
+      'remove:/tmp/wisp-r2-result',
     ]);
   });
 
-  it('on success, creates harness/<runId>/result merging all leaf branches', async () => {
+  it('on success, creates wisp/<runId>/result merging all leaf branches', async () => {
     const { deps } = makeFakeDeps();
     const walker = new Walker(deps as never);
     await walker.start({
@@ -149,9 +149,9 @@ describe('walker chaining', () => {
     });
     // Linear plan: only leaf is 'q'.
     expect(deps.worktree.add).toHaveBeenCalledWith(
-      expect.objectContaining({ branchName: 'harness/r3/result' }),
+      expect.objectContaining({ branchName: 'wisp/r3/result' }),
     );
-    expect(deps.mergeBranches).toHaveBeenLastCalledWith(expect.any(String), ['harness/r3/q']);
+    expect(deps.mergeBranches).toHaveBeenLastCalledWith(expect.any(String), ['wisp/r3/q']);
   });
 
   it('diamond plan: result branch merges both leaf branches', async () => {
@@ -177,8 +177,8 @@ describe('walker chaining', () => {
       budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 2 },
     });
     expect(deps.mergeBranches).toHaveBeenLastCalledWith(expect.any(String), [
-      'harness/r4/l1',
-      'harness/r4/l2',
+      'wisp/r4/l1',
+      'wisp/r4/l2',
     ]);
   });
 });

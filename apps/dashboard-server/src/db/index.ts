@@ -10,8 +10,8 @@ function ensureDir(dir: string): void {
   }
 }
 
-ensureDir(env.HARNESS_DATA_DIR);
-const dbPath = path.join(env.HARNESS_DATA_DIR, 'harness.db');
+ensureDir(env.WISP_DATA_DIR);
+const dbPath = path.join(env.WISP_DATA_DIR, 'harness.db');
 
 export const sqlite: DatabaseType = new Database(dbPath);
 sqlite.pragma('journal_mode = WAL');

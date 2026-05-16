@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { trajectories } from '@agent-harness/schemas';
+import { trajectories } from '@wisp/schemas';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { tokenize, computeTfidf, cosineSim, type SparseVec } from './tfidf.js';

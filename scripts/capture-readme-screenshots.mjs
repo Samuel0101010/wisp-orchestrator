@@ -1,6 +1,6 @@
 // Captures dashboard screenshots for the README.
 // Requires the dashboard server running on http://localhost:4400 with
-// HARNESS_SERVE_WEB=1 (single-port mode). Outputs PNGs into
+// WISP_SERVE_WEB=1 (single-port mode). Outputs PNGs into
 // docs/assets/screenshots/.
 //
 // Usage:

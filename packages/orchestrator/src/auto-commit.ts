@@ -16,7 +16,7 @@ import { execa } from 'execa';
 
 const GIT_OVERRIDES = [
   '-c',
-  'user.email=harness@agent-harness.local',
+  'user.email=wisp@wisp.local',
   '-c',
   'user.name=WISP',
   '-c',
@@ -27,7 +27,7 @@ const GIT_OVERRIDES = [
 
 export async function commitWorktreeChanges(worktreePath: string, taskId: string): Promise<string> {
   await execa('git', ['add', '-A'], { cwd: worktreePath });
-  await execa('git', [...GIT_OVERRIDES, 'commit', '--allow-empty', '-m', `harness: ${taskId}`], {
+  await execa('git', [...GIT_OVERRIDES, 'commit', '--allow-empty', '-m', `wisp: ${taskId}`], {
     cwd: worktreePath,
   });
   const { stdout } = await execa('git', ['rev-parse', 'HEAD'], { cwd: worktreePath });

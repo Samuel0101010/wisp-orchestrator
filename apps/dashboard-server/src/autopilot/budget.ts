@@ -1,4 +1,4 @@
-import type { Run } from '@agent-harness/schemas';
+import type { Run } from '@wisp/schemas';
 
 export interface BudgetVerdict {
   exceeded: boolean;

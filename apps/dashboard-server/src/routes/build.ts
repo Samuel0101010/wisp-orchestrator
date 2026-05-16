@@ -25,7 +25,7 @@ import {
   plans as plansTable,
   projects as projectsTable,
   runs as runsTable,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import {

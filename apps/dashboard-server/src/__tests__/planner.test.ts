@@ -1,7 +1,7 @@
 import './setup.js';
 import { describe, it, expect } from 'vitest';
 import { buildPlannerPrompt } from '../orchestrator/planner.js';
-import type { Team } from '@agent-harness/schemas';
+import type { Team } from '@wisp/schemas';
 
 const longPrompt = (s: string): string => s + ' '.repeat(Math.max(0, 60 - s.length));
 

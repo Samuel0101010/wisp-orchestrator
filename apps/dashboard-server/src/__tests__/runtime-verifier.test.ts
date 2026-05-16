@@ -5,8 +5,8 @@ import {
   buildRuntimeVerifyNode,
   parseRuntimeReportJson,
 } from '../orchestrator/runtime-verifier.js';
-import { agentSpecSchema, taskNodeSchema } from '@agent-harness/schemas';
-import type { DodCriterion } from '@agent-harness/schemas';
+import { agentSpecSchema, taskNodeSchema } from '@wisp/schemas';
+import type { DodCriterion } from '@wisp/schemas';
 
 function criterion(over: Partial<DodCriterion> = {}): DodCriterion {
   return {

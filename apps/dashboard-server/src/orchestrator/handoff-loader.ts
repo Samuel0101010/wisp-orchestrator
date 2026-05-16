@@ -19,7 +19,7 @@
  * in `packages/orchestrator/src/walker.ts` and will be wired in v1.14.x when
  * the walker's WalkerDeps gain a `projectId` + `dataDir` field.
  */
-import { readProjectMemoryEntries, type ProjectMemoryEntry } from '@agent-harness/memory-mcp';
+import { readProjectMemoryEntries, type ProjectMemoryEntry } from '@wisp/memory-mcp';
 
 export interface Handoff {
   taskId: string;

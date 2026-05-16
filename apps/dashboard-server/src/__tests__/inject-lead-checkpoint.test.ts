@@ -1,8 +1,8 @@
 import './setup.js';
 import { describe, expect, it } from 'vitest';
 import { injectLeadCheckpoint, LEAD_ROLE } from '../orchestrator/inject-lead-checkpoint.js';
-import { planSchema, validateDag } from '@agent-harness/schemas';
-import type { AgentSpec, Plan } from '@agent-harness/schemas';
+import { planSchema, validateDag } from '@wisp/schemas';
+import type { AgentSpec, Plan } from '@wisp/schemas';
 
 function basePlan(over: Partial<Plan> = {}): Plan {
   const developer: AgentSpec = {

@@ -14,8 +14,8 @@
  * The injection is gated by the caller — `plans.ts` only calls this when
  * `project.leadEnabled === true`. Reversible by flipping the flag back.
  */
-import type { AgentSpec, Plan, TaskNode } from '@agent-harness/schemas';
-import { planSchema } from '@agent-harness/schemas';
+import type { AgentSpec, Plan, TaskNode } from '@wisp/schemas';
+import { planSchema } from '@wisp/schemas';
 
 export const LEAD_ROLE: AgentSpec = {
   role: 'lead',

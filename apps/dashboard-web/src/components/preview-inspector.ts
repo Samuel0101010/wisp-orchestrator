@@ -5,8 +5,8 @@
  * DOM listeners directly without postMessage indirection for capture.
  *
  * Protocol (parent ↔ frame):
- *   parent → frame:  { kind: 'harness:set-edit-mode', value: boolean }
- *   frame  → parent: { kind: 'harness:pick', selector, rect, html, version }
+ *   parent → frame:  { kind: 'wisp:set-edit-mode', value: boolean }
+ *   frame  → parent: { kind: 'wisp:pick', selector, rect, html, version }
  *
  * Keep the body small and dependency-free: it is shipped to the iframe as a
  * raw JS string and evaluated there, so no TS / imports / closures over
@@ -137,7 +137,7 @@ export const INSPECTOR_SCRIPT = `(function() {
       e.stopPropagation();
       var rect = t.getBoundingClientRect();
       var payload = {
-        kind: 'harness:pick',
+        kind: 'wisp:pick',
         selector: buildSelector(t),
         rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
         html: (t.outerHTML || '').slice(0, 500),
@@ -155,7 +155,7 @@ export const INSPECTOR_SCRIPT = `(function() {
   window.addEventListener('message', function (e) {
     var data = e.data;
     if (!data || typeof data !== 'object') return;
-    if (data.kind === 'harness:set-edit-mode') {
+    if (data.kind === 'wisp:set-edit-mode') {
       editMode = !!data.value;
       if (!editMode) hideOverlay();
     }

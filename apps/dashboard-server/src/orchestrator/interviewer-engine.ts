@@ -11,14 +11,14 @@
  * mock SubprocessRunner and assert the merged brief is correct.
  */
 
-import { parseBriefPatchFromText, type BriefPatch } from '@agent-harness/schemas';
+import { parseBriefPatchFromText, type BriefPatch } from '@wisp/schemas';
 import {
   composePrompt,
   runAgentTurn,
   type HistoryMessage,
   type RunAgentTurnResult,
 } from '../routes/chat-engine.js';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 
 export interface BriefState {
   targetAudience: string | null;

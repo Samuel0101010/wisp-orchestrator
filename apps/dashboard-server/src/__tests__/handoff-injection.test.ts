@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { writeProjectMemoryEntry, closeAllStores } from '@agent-harness/memory-mcp';
+import { writeProjectMemoryEntry, closeAllStores } from '@wisp/memory-mcp';
 import { loadHandoffsForProject, renderHandoffsSection } from '../orchestrator/handoff-loader.js';
 
 let dataDir: string;

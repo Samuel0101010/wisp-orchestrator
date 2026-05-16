@@ -13,7 +13,7 @@ const booleanLike = z.union([z.string(), z.boolean(), z.undefined()]).transform(
   return ['1', 'true', 'yes', 'on'].includes(v.toLowerCase());
 });
 
-describe('env flag parsing (HARNESS_MOCK_CLI / HARNESS_SERVE_WEB)', () => {
+describe('env flag parsing (WISP_MOCK_CLI / WISP_SERVE_WEB)', () => {
   it('parses "1" as true', () => {
     expect(booleanLike.parse('1')).toBe(true);
   });
@@ -37,10 +37,10 @@ describe('env flag parsing (HARNESS_MOCK_CLI / HARNESS_SERVE_WEB)', () => {
 /**
  * Smoke check: the env module exposes both flags with the expected types.
  */
-describe('env module exports HARNESS_MOCK_CLI and HARNESS_SERVE_WEB', () => {
+describe('env module exports WISP_MOCK_CLI and WISP_SERVE_WEB', () => {
   it('exposes booleans (default false in the test setup)', async () => {
     const mod = await import('../env.js');
-    expect(typeof mod.env.HARNESS_MOCK_CLI).toBe('boolean');
-    expect(typeof mod.env.HARNESS_SERVE_WEB).toBe('boolean');
+    expect(typeof mod.env.WISP_MOCK_CLI).toBe('boolean');
+    expect(typeof mod.env.WISP_SERVE_WEB).toBe('boolean');
   });
 });

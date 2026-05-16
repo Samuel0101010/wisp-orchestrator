@@ -14,9 +14,9 @@ import path from 'node:path';
  * effects land before sibling imports.
  */
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-harness-test-'));
-process.env.HARNESS_DATA_DIR = dir;
-process.env.HARNESS_LOG_LEVEL = 'silent';
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'wisp-test-'));
+process.env.WISP_DATA_DIR = dir;
+process.env.WISP_LOG_LEVEL = 'silent';
 process.env.NODE_ENV = 'test';
 
 export const TEST_DATA_DIR = dir;

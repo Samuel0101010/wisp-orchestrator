@@ -59,7 +59,7 @@ describe('POST /api/team-templates', () => {
   beforeAll(async () => {
     app = await buildApp();
     await app.ready();
-    templatesDir = path.join(process.env.HARNESS_DATA_DIR ?? '.', 'templates');
+    templatesDir = path.join(process.env.WISP_DATA_DIR ?? '.', 'templates');
   });
 
   afterAll(async () => {

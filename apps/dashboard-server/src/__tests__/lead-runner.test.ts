@@ -7,7 +7,7 @@ import {
   projectBriefs,
   projects as projectsTable,
   projectStates,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import type { RunAgentTurnResult } from '../routes/chat-engine.js';
 import { runLeadTick } from '../orchestrator/lead-runner.js';
 import { runMigrations } from '../db/migrate.js';

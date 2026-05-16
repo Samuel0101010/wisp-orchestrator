@@ -1,8 +1,8 @@
 import './setup.js';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import type { HarnessEvent } from '@agent-harness/schemas';
-import type { RunClaudeOpts } from '@agent-harness/orchestrator';
+import type { HarnessEvent } from '@wisp/schemas';
+import type { RunClaudeOpts } from '@wisp/orchestrator';
 import { probePromptRoutes } from '../routes/probe-prompt.js';
 import { setLastAuthProbe } from '../auth-status.js';
 
@@ -127,7 +127,7 @@ describe('POST /api/probe-prompt', () => {
   });
 
   it('returns 503 when subscription auth probe last failed', async () => {
-    if (process.env.HARNESS_MOCK_CLI === '1') {
+    if (process.env.WISP_MOCK_CLI === '1') {
       // Auth gate is bypassed in mock-cli mode; mirrors the runs-route
       // auth-block test's skip behavior.
       return;

@@ -24,7 +24,7 @@ import type {
   RunOutcome,
   RunPausedReason,
   TaskNode,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import type { SubprocessPool } from './pool.js';
 import type { SuccessCriteria, VerificationResult } from './verification.js';
 
@@ -681,7 +681,7 @@ export class Walker {
       `  2. Edit the file to a single coherent version that preserves BOTH intents wherever they don't logically collide. Never blindly delete one side's work.\n` +
       `  3. Run "git add <file>" for each resolved file.\n` +
       `  4. After every conflict is resolved, run:\n` +
-      `       git -c user.email=harness@agent-harness.local -c user.name=WISP -c commit.gpgsign=false -c tag.gpgsign=false commit --no-edit\n` +
+      `       git -c user.email=wisp@wisp.local -c user.name=WISP -c commit.gpgsign=false -c tag.gpgsign=false commit --no-edit\n` +
       `     to finalise the merge.\n\n` +
       `Hard rules:\n` +
       `  - Do NOT run "git merge --abort". Resolving the conflict is the only acceptable outcome.\n` +
@@ -869,17 +869,17 @@ export class Walker {
    * tasks don't collide with the predecessor plan's branches.
    */
   private branchPrefix(): string {
-    if (this.replanCount === 0) return `harness/${this.runId}`;
+    if (this.replanCount === 0) return `wisp/${this.runId}`;
     const version = this.replanCount + 1;
-    return `harness/${this.runId}/v${version}`;
+    return `wisp/${this.runId}/v${version}`;
   }
 
   /**
    * Resolve the actual git branch name for a dependency. Carried-over `done`
    * tasks after a replan have branches under the OLD prefix (e.g.
-   * `harness/<runId>/B` from the original plan), while new tasks live under
+   * `wisp/<runId>/B` from the original plan), while new tasks live under
    * the v<N> prefix. Recomputing from `branchPrefix()` here would synthesise
-   * non-existent refs like `harness/<runId>/v2/B` and any new task that
+   * non-existent refs like `wisp/<runId>/v2/B` and any new task that
    * depends on a carried-over done task would fail at `git worktree add`
    * with "fatal: invalid reference". Use the runtime's stored branchName
    * for done deps; fall back to the current prefix for everything else.
@@ -1432,7 +1432,7 @@ export class Walker {
 
   /**
    * After a successful run, consolidate all leaf-task branches into a single
-   * `harness/<runId>/result` branch on top of the repo's HEAD. The user can
+   * `wisp/<runId>/result` branch on top of the repo's HEAD. The user can
    * inspect this one branch to see every task's contribution as a merge commit.
    *
    * Best-effort: if anything fails (worktree creation, merge conflict), the
@@ -1457,7 +1457,7 @@ export class Walker {
       if (t?.status === 'done') {
         // Use the stored branchName, not branchPrefix() — after a replan,
         // carried-over 'done' tasks have branches under the OLD prefix
-        // (`harness/<runId>/...`) while branchPrefix() now returns the v<N>
+        // (`wisp/<runId>/...`) while branchPrefix() now returns the v<N>
         // prefix. Recomputing would silently drop those carried-over commits
         // from the result merge.
         const branch = t.branchName ?? `${this.branchPrefix()}/${n.id}`;
@@ -1466,7 +1466,7 @@ export class Walker {
     }
     if (leafBranches.length === 0) return;
 
-    const resultBranch = `harness/${runId}/result`;
+    const resultBranch = `wisp/${runId}/result`;
     let resultPath: string;
     try {
       resultPath = await this.deps.worktree.add({

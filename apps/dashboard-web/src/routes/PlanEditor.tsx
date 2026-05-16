@@ -2,13 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FirstRunModal, hasAckedFirstRun } from '@/components/FirstRunModal';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  type Edge,
-  type Plan,
-  type Role,
-  type TaskNode,
-  validateDag,
-} from '@agent-harness/schemas';
+import { type Edge, type Plan, type Role, type TaskNode, validateDag } from '@wisp/schemas';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

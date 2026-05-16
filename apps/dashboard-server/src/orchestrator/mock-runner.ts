@@ -1,7 +1,7 @@
 /**
  * Mock-CLI mode for the dashboard-server (F1 — end-to-end smoke test).
  *
- * When `HARNESS_MOCK_CLI=1`, the server swaps the real `claude` subprocess for
+ * When `WISP_MOCK_CLI=1`, the server swaps the real `claude` subprocess for
  * the existing fixture at `packages/orchestrator/tests/fixtures/mock-claude.mjs`.
  * The fixture supports per-call modes ("plan" for planner calls, "task" for
  * role-task calls); we pick one based on the `taskId` prefix.
@@ -13,7 +13,7 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runClaude, type RunClaudeOpts, type SubprocessRunner } from '@agent-harness/orchestrator';
+import { runClaude, type RunClaudeOpts, type SubprocessRunner } from '@wisp/orchestrator';
 
 const PLANNER_TASK_PREFIX = 'planner-';
 

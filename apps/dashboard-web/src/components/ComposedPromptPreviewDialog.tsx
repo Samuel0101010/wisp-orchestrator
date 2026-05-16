@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { Team } from '@agent-harness/schemas';
+import type { Team } from '@wisp/schemas';
 import { composeTaskPromptPreview } from '@/data/composedPrompt';
 
 interface Props {

@@ -5,7 +5,7 @@ import path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { packageTargetValues, plans, projects, runs } from '@agent-harness/schemas';
+import { packageTargetValues, plans, projects, runs } from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import { actionableFindings, scanRefForFindings } from '../orchestrator/findings.js';

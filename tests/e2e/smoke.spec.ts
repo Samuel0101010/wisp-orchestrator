@@ -2,7 +2,7 @@
  * Phase F1 — End-to-end smoke test.
  *
  * Boots the full dashboard (UI + API + WS on a single port via
- * HARNESS_SERVE_WEB=1) with HARNESS_MOCK_CLI=1 so the planner subprocess and
+ * WISP_SERVE_WEB=1) with WISP_MOCK_CLI=1 so the planner subprocess and
  * each role-task subprocess are routed through `mock-claude.mjs`. Drives the
  * UI through the full happy-path:
  *
@@ -22,10 +22,10 @@ test.describe('Phase F1 smoke', () => {
     const lang = testInfo.project.metadata.lang as 'en' | 'de';
     await setLang(page, lang);
 
-    const REPO_PATH = process.env.HARNESS_E2E_REPO_PATH;
+    const REPO_PATH = process.env.WISP_E2E_REPO_PATH;
     if (!REPO_PATH) {
       throw new Error(
-        'HARNESS_E2E_REPO_PATH not set. Did the Playwright config run? Invoke via `pnpm test:e2e` or `pnpm exec playwright test --config tests/e2e/playwright.config.ts`.',
+        'WISP_E2E_REPO_PATH not set. Did the Playwright config run? Invoke via `pnpm test:e2e` or `pnpm exec playwright test --config tests/e2e/playwright.config.ts`.',
       );
     }
 

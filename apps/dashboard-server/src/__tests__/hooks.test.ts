@@ -9,15 +9,15 @@ runMigrations();
 describe('POST /api/hooks/event', () => {
   let originalToken: string | undefined;
   beforeEach(() => {
-    originalToken = process.env.HARNESS_HOOK_TOKEN;
+    originalToken = process.env.WISP_HOOK_TOKEN;
   });
   afterEach(() => {
-    if (originalToken === undefined) delete process.env.HARNESS_HOOK_TOKEN;
-    else process.env.HARNESS_HOOK_TOKEN = originalToken;
+    if (originalToken === undefined) delete process.env.WISP_HOOK_TOKEN;
+    else process.env.WISP_HOOK_TOKEN = originalToken;
   });
 
   it('rejects without token', async () => {
-    process.env.HARNESS_HOOK_TOKEN = 's3cret';
+    process.env.WISP_HOOK_TOKEN = 's3cret';
     const app = Fastify({ logger: false });
     await app.register(createHooksRouter);
     const res = await app.inject({
@@ -30,7 +30,7 @@ describe('POST /api/hooks/event', () => {
   });
 
   it('accepts with correct token and persists', async () => {
-    process.env.HARNESS_HOOK_TOKEN = 's3cret';
+    process.env.WISP_HOOK_TOKEN = 's3cret';
     const app = Fastify({ logger: false });
     await app.register(createHooksRouter);
     const res = await app.inject({
@@ -43,8 +43,8 @@ describe('POST /api/hooks/event', () => {
     await app.close();
   });
 
-  it('returns 503 when HARNESS_HOOK_TOKEN is unset', async () => {
-    delete process.env.HARNESS_HOOK_TOKEN;
+  it('returns 503 when WISP_HOOK_TOKEN is unset', async () => {
+    delete process.env.WISP_HOOK_TOKEN;
     const app = Fastify({ logger: false });
     await app.register(createHooksRouter);
     const res = await app.inject({

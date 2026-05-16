@@ -38,13 +38,13 @@ importers:
 
   apps/dashboard-server:
     dependencies:
-      '@agent-harness/memory-mcp':
+      '@wisp/memory-mcp':
         specifier: workspace:*
         version: link:../../packages/memory-mcp
-      '@agent-harness/orchestrator':
+      '@wisp/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
-      '@agent-harness/schemas':
+      '@wisp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
       '@fastify/cors':
@@ -120,7 +120,7 @@ importers:
 
   apps/dashboard-web:
     dependencies:
-      '@agent-harness/schemas':
+      '@wisp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
       '@dnd-kit/core':
@@ -296,7 +296,7 @@ importers:
 
   packages/orchestrator:
     dependencies:
-      '@agent-harness/schemas':
+      '@wisp/schemas':
         specifier: workspace:*
         version: link:../schemas
       execa:

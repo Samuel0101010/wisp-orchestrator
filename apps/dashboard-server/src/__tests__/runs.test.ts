@@ -9,7 +9,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
 import { eq } from 'drizzle-orm';
-import { events as eventsTable, plans, projects, runs as runsTable } from '@agent-harness/schemas';
+import { events as eventsTable, plans, projects, runs as runsTable } from '@wisp/schemas';
 import { healthRoutes } from '../routes/health.js';
 import { projectRoutes } from '../routes/projects.js';
 import { createRunsRouter } from '../routes/runs.js';

@@ -3,6 +3,18 @@ import { persist } from 'zustand/middleware';
 
 export type Theme = 'dark' | 'light';
 
+/* One-time migration from the legacy 'agent-harness-ui' localStorage key to
+   'wisp-ui'. Runs at module load (before zustand reads the new key) so user
+   state (theme, sidebar-collapsed, favorites) survives the rename. */
+if (typeof window !== 'undefined' && typeof window.localStorage !== 'undefined') {
+  const legacy = window.localStorage.getItem('agent-harness-ui');
+  const current = window.localStorage.getItem('wisp-ui');
+  if (legacy && !current) {
+    window.localStorage.setItem('wisp-ui', legacy);
+    window.localStorage.removeItem('agent-harness-ui');
+  }
+}
+
 interface UiState {
   selectedProjectId: string | null;
   theme: Theme;
@@ -38,9 +50,7 @@ export const useUiStore = create<UiState>()(
         })),
     }),
     {
-      // Renaming would wipe existing localStorage for all users — keep the
-      // legacy key from the project's "Agent Harness" era.
-      name: 'agent-harness-ui',
+      name: 'wisp-ui',
       partialize: (state) => ({
         theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,

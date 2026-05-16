@@ -1,6 +1,6 @@
 import { eq, and, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { runs } from '@agent-harness/schemas';
+import { runs } from '@wisp/schemas';
 import { tryCheckoutRun, releaseCheckout } from '../../checkout/atomic-checkout.js';
 
 const MAX_RETRIES = 4;

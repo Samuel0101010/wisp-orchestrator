@@ -17,8 +17,8 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { directiveSchema, type AgentModel, type ManagerDirective } from '@agent-harness/schemas';
-import { runClaude, type SubprocessRunner } from '@agent-harness/orchestrator';
+import { directiveSchema, type AgentModel, type ManagerDirective } from '@wisp/schemas';
+import { runClaude, type SubprocessRunner } from '@wisp/orchestrator';
 
 const CHAT_MAX_TURNS = 4;
 const CHAT_TIMEOUT_MS = 180_000;

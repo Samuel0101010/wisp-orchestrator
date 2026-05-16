@@ -21,7 +21,7 @@ import {
   useDeleteAgent,
   useUpdateAgent,
 } from '@/api/queries';
-import type { Agent, CreateAgentInput, UpdateAgentInput } from '@agent-harness/schemas';
+import type { Agent, CreateAgentInput, UpdateAgentInput } from '@wisp/schemas';
 import { Avatar } from '@/components/Avatar';
 import { AvatarPicker } from '@/components/AvatarPicker';
 import { Skeleton } from '@/components/ui/skeleton';

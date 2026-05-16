@@ -6,7 +6,7 @@ import {
   runInterviewerTurn,
   type BriefState,
 } from '../orchestrator/interviewer-engine.js';
-import type { HarnessEvent } from '@agent-harness/schemas';
+import type { HarnessEvent } from '@wisp/schemas';
 
 const EMPTY_BRIEF: BriefState = {
   targetAudience: null,

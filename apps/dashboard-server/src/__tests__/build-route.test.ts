@@ -9,7 +9,7 @@ import {
   plans as plansTable,
   projects as projectsTable,
   runs as runsTable,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { projectRoutes } from '../routes/projects.js';
 import { createBuildRouter, _resetBuildCache } from '../routes/build.js';
 import { runMigrations } from '../db/migrate.js';

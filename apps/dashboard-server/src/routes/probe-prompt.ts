@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 import type { FastifyPluginAsync } from 'fastify';
-import { runClaude, type SubprocessRunner } from '@agent-harness/orchestrator';
+import { runClaude, type SubprocessRunner } from '@wisp/orchestrator';
 import { wrap } from './wrap.js';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
@@ -51,7 +51,7 @@ export function probePromptRoutes(deps: ProbePromptDeps = {}): FastifyPluginAsyn
         }
         const { systemPrompt, sampleGoal, model, allowedTools } = parsed.data;
 
-        if (env.HARNESS_AUTH_MODE === 'subscription' && !env.HARNESS_MOCK_CLI) {
+        if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
           const last = getLastAuthProbe();
           if (last && !last.ok) {
             reply.code(503);

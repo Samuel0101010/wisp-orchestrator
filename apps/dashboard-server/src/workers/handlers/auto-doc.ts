@@ -1,5 +1,5 @@
 import { db } from '../../db/index.js';
-import { runs } from '@agent-harness/schemas';
+import { runs } from '@wisp/schemas';
 import { eq } from 'drizzle-orm';
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';

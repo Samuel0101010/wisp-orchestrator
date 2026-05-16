@@ -9,7 +9,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { extname } from 'node:path';
 import process from 'node:process';
-import type { HarnessEvent } from '@agent-harness/schemas';
+import type { HarnessEvent } from '@wisp/schemas';
 import { detectRateLimit, type RateLimitHit } from './rate-limit.js';
 
 export interface RunClaudeOpts {

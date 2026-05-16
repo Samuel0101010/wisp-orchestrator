@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
 /**
- * End-to-end-ish test: with HARNESS_SERVE_WEB=true, a GET / returns the built
+ * End-to-end-ish test: with WISP_SERVE_WEB=true, a GET / returns the built
  * dashboard-web index.html. Skips silently when the web dist isn't present
  * (typical in CI before `pnpm build`).
  *
@@ -23,7 +23,7 @@ describe.skipIf(!haveDist)('serve-web mode', () => {
   let sqliteRef: { close(): void } | null = null;
 
   beforeAll(async () => {
-    process.env.HARNESS_SERVE_WEB = '1';
+    process.env.WISP_SERVE_WEB = '1';
     const dbMod = await import('../db/index.js');
     const migrateMod = await import('../db/migrate.js');
     migrateMod.runMigrations();
@@ -36,10 +36,10 @@ describe.skipIf(!haveDist)('serve-web mode', () => {
   afterAll(async () => {
     await app.close();
     sqliteRef?.close();
-    delete process.env.HARNESS_SERVE_WEB;
+    delete process.env.WISP_SERVE_WEB;
   });
 
-  it('GET / returns index.html when HARNESS_SERVE_WEB=1', async () => {
+  it('GET / returns index.html when WISP_SERVE_WEB=1', async () => {
     const res = await app.inject({ method: 'GET', url: '/' });
     expect(res.statusCode).toBe(200);
     const body = res.body;

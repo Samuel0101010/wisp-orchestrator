@@ -1,5 +1,5 @@
 {
-  "name": "@agent-harness/dashboard-server",
+  "name": "@wisp/dashboard-server",
   "version": "2.0.0",
   "private": true,
   "license": "Apache-2.0",
@@ -16,9 +16,9 @@
     "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
-    "@agent-harness/memory-mcp": "workspace:*",
-    "@agent-harness/orchestrator": "workspace:*",
-    "@agent-harness/schemas": "workspace:*",
+    "@wisp/memory-mcp": "workspace:*",
+    "@wisp/orchestrator": "workspace:*",
+    "@wisp/schemas": "workspace:*",
     "@fastify/cors": "^10.0.0",
     "@fastify/static": "^8.3.0",
     "@fastify/websocket": "^11.0.0",

@@ -19,7 +19,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { agents, type AgentModel } from '@agent-harness/schemas';
+import { agents, type AgentModel } from '@wisp/schemas';
 import { db, sqlite } from './index.js';
 
 interface SeedDef {
