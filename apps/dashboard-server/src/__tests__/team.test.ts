@@ -54,12 +54,13 @@ describe('team routes', () => {
     sqlite.close();
   });
 
-  it('GET on a project with no team returns 404', async () => {
+  it('GET on a project with no team returns 200 + null', async () => {
     const res = await app.inject({
       method: 'GET',
       url: `/api/projects/${projectId}/team`,
     });
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toBeNull();
   });
 
   it('GET on nonexistent project returns 404', async () => {

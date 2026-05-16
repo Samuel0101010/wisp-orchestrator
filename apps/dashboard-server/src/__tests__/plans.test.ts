@@ -325,7 +325,7 @@ describe('plan generation route', () => {
     expect(res.json().resetAt).toBe(resetAt);
   });
 
-  it('GET plan returns 404 when none exists', async () => {
+  it('GET plan returns 200 + null when none exists', async () => {
     const { runner } = makeRunner([]);
     app = await buildAppWithRunner(runner);
     await app.ready();
@@ -334,7 +334,8 @@ describe('plan generation route', () => {
       method: 'GET',
       url: `/api/projects/${projectId}/plan`,
     });
-    expect(res.statusCode).toBe(404);
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toBeNull();
   });
 });
 
