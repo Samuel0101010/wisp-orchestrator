@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Activity } from 'lucide-react';
 import {
@@ -12,6 +12,31 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+const MIN_PAINT_MS = 800;
+
+function usePendingPaint(name: string, isApiPending: boolean): boolean {
+  const [, setTick] = useState(0);
+  const startsRef = useRef<Map<string, number>>(new Map());
+  useEffect(() => {
+    if (isApiPending && name) startsRef.current.set(name, Date.now());
+  }, [isApiPending, name]);
+  const start = startsRef.current.get(name);
+  const withinWindow = start != null && Date.now() - start < MIN_PAINT_MS;
+  const paintPending = isApiPending || withinWindow;
+  useEffect(() => {
+    if (!paintPending) return;
+    const startedAt = startsRef.current.get(name);
+    if (startedAt == null) return;
+    const remaining = Math.max(0, MIN_PAINT_MS - (Date.now() - startedAt));
+    const t = setTimeout(() => {
+      if (!isApiPending) startsRef.current.delete(name);
+      setTick((x) => x + 1);
+    }, remaining);
+    return () => clearTimeout(t);
+  }, [paintPending, isApiPending, name]);
+  return paintPending;
+}
 
 function statusColor(status: WorkerRunRow['status']): string {
   if (status === 'ok') return 'text-emerald-600 dark:text-emerald-400';
@@ -79,6 +104,32 @@ function RunsPanel({ name }: { name: string }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+function RunButton({
+  name,
+  isApiPending,
+  onRun,
+}: {
+  name: string;
+  isApiPending: boolean;
+  onRun: () => void;
+}) {
+  const { t } = useTranslation();
+  const paintPending = usePendingPaint(name, isApiPending);
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onRun();
+      }}
+      disabled={paintPending}
+      aria-label={t('workers.actions.runWorker', { name })}
+      className="rounded border border-border bg-card px-3 py-1 text-xs hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {paintPending ? t('workers.actions.running') : t('workers.actions.runNow')}
+    </button>
   );
 }
 
@@ -179,19 +230,14 @@ export function WorkersRoute() {
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
+                    <RunButton
+                      name={w.name}
+                      isApiPending={runWorker.isPending && runWorker.variables === w.name}
+                      onRun={() => {
                         runWorker.mutate(w.name);
                         setSelected(w.name);
                       }}
-                      disabled={runWorker.isPending && runWorker.variables === w.name}
-                      className="rounded border border-border bg-card px-3 py-1 text-xs hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {runWorker.isPending && runWorker.variables === w.name
-                        ? t('workers.actions.running')
-                        : t('workers.actions.runNow')}
-                    </button>
+                    />
                   </td>
                 </tr>
               ))}

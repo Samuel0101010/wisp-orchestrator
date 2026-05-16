@@ -118,8 +118,9 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         }
         const row = await db.select().from(teams).where(eq(teams.projectId, projectId)).get();
         if (!row) {
-          reply.code(404);
-          return { error: 'team not found' };
+          // No team configured yet. Return 200 + null so the client can treat
+          // "fresh project" as a normal empty state instead of an error.
+          return null;
         }
         return safeTeamFromRow(row.rolesJson) ?? row.rolesJson;
       }),
@@ -198,8 +199,9 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           .orderBy(desc(plans.id))
           .get();
         if (!row) {
-          reply.code(404);
-          return { error: 'plan not found' };
+          // No plan generated yet. Return 200 + null so fresh projects don't
+          // surface as console errors on Project Detail / Team Builder.
+          return null;
         }
         return row;
       }),

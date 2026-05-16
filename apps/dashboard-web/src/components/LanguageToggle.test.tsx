@@ -42,7 +42,7 @@ describe('LanguageToggle', () => {
       fireEvent.click(screen.getByTestId('language-toggle-de'));
     });
     expect(i18n.language).toBe('de');
-    expect(localStorage.getItem('agent-harness-lang')).toBe('de');
+    expect(localStorage.getItem('wisp-lang')).toBe('de');
     expect(screen.getByTestId('language-toggle')).toHaveTextContent('DE');
   });
 

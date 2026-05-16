@@ -345,6 +345,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-3">
+      <h1 className="sr-only">{t('planEditor.title')}</h1>
       <BackToProject />
       {repoNotInit && (
         <div
@@ -386,7 +387,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
       )}
       <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold">{projectName}</h1>
+          <h2 className="text-lg font-semibold">{projectName}</h2>
           <Badge variant={statusBadgeVariant(planRow.status)} data-testid="plan-status">
             {statusLabel(planRow.status, t)}
           </Badge>

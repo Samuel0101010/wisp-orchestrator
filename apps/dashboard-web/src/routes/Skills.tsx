@@ -98,7 +98,22 @@ export function SkillsRoute() {
               role="tab"
               aria-selected={isActive}
               tabIndex={isActive ? 0 : -1}
+              data-filter={key}
               onClick={() => setFilter(key)}
+              onKeyDown={(e) => {
+                if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+                e.preventDefault();
+                const dir = e.key === 'ArrowRight' ? 1 : -1;
+                const filtered: SourceFilter[] = ['all', 'seed', 'project', 'user', 'plugin'];
+                const idx = filtered.indexOf(filter);
+                const nextKey = filtered[(idx + dir + filtered.length) % filtered.length]!;
+                setFilter(nextKey);
+                requestAnimationFrame(() => {
+                  document
+                    .querySelector<HTMLElement>(`[role="tab"][data-filter="${nextKey}"]`)
+                    ?.focus();
+                });
+              }}
               className={
                 'rounded-md border px-2.5 py-1 transition ' +
                 (isActive
@@ -133,7 +148,7 @@ export function SkillsRoute() {
                   <span
                     className={`rounded px-2 py-0.5 text-xs font-medium ${sourceBadgeClasses(s.source)}`}
                   >
-                    {s.source}
+                    {t(`skills.filter.${sourceBucket(s.source)}`)}
                   </span>
                   <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium uppercase text-secondary-foreground">
                     {s.model}
