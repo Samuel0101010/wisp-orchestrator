@@ -44,7 +44,7 @@ describe.skipIf(!haveDist)('serve-web mode', () => {
     expect(res.statusCode).toBe(200);
     const body = res.body;
     expect(body.toLowerCase()).toContain('<!doctype html>');
-    expect(body.toLowerCase()).toContain('agent harness');
+    expect(body.toLowerCase()).toContain('wisp');
   });
 
   it('SPA fallback: an unknown UI route returns index.html', async () => {
