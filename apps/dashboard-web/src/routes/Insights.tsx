@@ -59,8 +59,10 @@ export function InsightsRoute() {
         </p>
       </header>
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">{t('insights.trajectoriesTitle')}</h2>
+      <section className="space-y-2" aria-labelledby="insights-trajectories">
+        <h2 id="insights-trajectories" className="text-lg font-semibold">
+          {t('insights.trajectoriesTitle')}
+        </h2>
         {trajQ.isLoading ? (
           <LoadingRows />
         ) : trajQ.error ? (
@@ -116,8 +118,10 @@ export function InsightsRoute() {
         )}
       </section>
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">{t('insights.summariesTitle')}</h2>
+      <section className="space-y-2" aria-labelledby="insights-summaries">
+        <h2 id="insights-summaries" className="text-lg font-semibold">
+          {t('insights.summariesTitle')}
+        </h2>
         {summariesQ.isLoading ? (
           <LoadingRows />
         ) : summariesQ.error ? (
@@ -148,8 +152,10 @@ export function InsightsRoute() {
         )}
       </section>
 
-      <section className="space-y-2">
-        <h2 className="text-lg font-semibold">{t('insights.priorsTitle')}</h2>
+      <section className="space-y-2" aria-labelledby="insights-priors">
+        <h2 id="insights-priors" className="text-lg font-semibold">
+          {t('insights.priorsTitle')}
+        </h2>
         {priorsQ.isLoading ? (
           <LoadingRows />
         ) : priorsQ.error ? (
