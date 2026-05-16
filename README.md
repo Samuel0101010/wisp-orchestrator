@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/wisp-figure.png" alt="Wisp — Agent Harness mascot" width="240">
+  <img src="docs/assets/wisp-figure.png" alt="WISP mascot" width="240">
 </p>
 
 Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.
@@ -12,7 +12,19 @@ Visual team-builder, plan-as-artifact, and live execution graph for autonomous C
 
 The agent ecosystem today fragments across three categories that do not compose: chat UIs that run a single agent at a time; orchestrators that hide the plan as opaque internal state; and notebooks that demand babysitting. Nothing combines an editable team specification, a plan you can inspect and edit before it runs, and a live execution graph that survives across rate-limit windows and machine restarts.
 
-Agent Harness is a local-first orchestrator for Claude Code that delivers exactly that vertical slice. You describe a goal, configure a team of 1–8 roles (architect, developers, QA, reviewers — whatever your workflow needs), optionally seed it from a built-in template, generate a plan as a directed acyclic graph, optionally edit it, then lock and run. A `Walker` dispatches tasks via `claude -p` subprocesses pinned to per-task git worktrees, parses streamed events, and persists everything to SQLite. Tasks share state via a per-run memory MCP. When QA fails terminally, the planner is invoked again with the QA error context and the run continues on a corrected plan. The browser dashboard renders the live state: a kanban board, a streaming text tail, a resource-budget meter, a rate-limit countdown that survives server restarts, and a plan-version badge for replanned runs.
+WISP is a local-first orchestrator for Claude Code that delivers exactly that vertical slice. You describe a goal, configure a team of 1–8 roles (architect, developers, QA, reviewers — whatever your workflow needs), optionally seed it from a built-in template, generate a plan as a directed acyclic graph, optionally edit it, then lock and run. A `Walker` dispatches tasks via `claude -p` subprocesses pinned to per-task git worktrees, parses streamed events, and persists everything to SQLite. Tasks share state via a per-run memory MCP. When QA fails terminally, the planner is invoked again with the QA error context and the run continues on a corrected plan. The browser dashboard renders the live state: a kanban board, a streaming text tail, a resource-budget meter, a rate-limit countdown that survives server restarts, and a plan-version badge for replanned runs.
+
+## Dashboard tour
+
+Six screenshots from the running app, dark theme.
+
+| ![Mission Control](docs/assets/screenshots/mission-control.png) | ![Goal Planner](docs/assets/screenshots/goal-planner.png) |
+| :--: | :--: |
+| **Mission Control** — KPIs, live runs, project pulse. | **Goal Planner** — interactive DAG canvas for plan editing. |
+| ![Agents](docs/assets/screenshots/agents.png) | ![Chat](docs/assets/screenshots/chat.png) |
+| **Agents** — registry of roles available to teams. | **Chat** — team conversation surface. |
+| ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png) | ![Settings](docs/assets/screenshots/settings.png) |
+| **Prompt Bundles** — cached bundles for re-use. | **Settings** — theme, language, selective data clearing. |
 
 ## Status
 
@@ -37,7 +49,7 @@ Agent Harness is a local-first orchestrator for Claude Code that delivers exactl
 
 ## Anthropic Terms of Service
 
-Agent Harness invokes only the official `claude` binary as a subprocess. It
+WISP invokes only the official `claude` binary as a subprocess. It
 never reads `~/.claude/credentials`, never extracts subscription OAuth tokens,
 never calls `api.anthropic.com` endpoints directly, and actively unsets
 `ANTHROPIC_API_KEY` before each spawn so subscription auth is the only path.
@@ -94,15 +106,15 @@ The Vite dev server runs at `http://localhost:5173` and proxies API/WS calls to 
 
 1. **Create a project.** Open the dashboard, click "New project" in the sidebar, and fill in name, goal, and `repoPath`. The repo path must point at an existing git-initialized directory; the orchestrator creates per-task worktrees inside it.
 
-   _TODO: GIF/screenshot here_
+   ![Create a project](docs/assets/screenshots/mission-control.png)
 
 2. **Configure the team.** The TeamBuilder shows three role cards (architect, developer, QA). Defaults are sensible: opus for architect and planner, sonnet for developer and QA. Edit the `model`, `allowedTools`, and `systemPrompt` per role if you need to.
 
-   _TODO: GIF/screenshot here_
+   ![Configure the team](docs/assets/screenshots/agents.png)
 
 3. **Generate, review, run.** Hit "Generate plan" — the planner agent emits a DAG which renders in the PlanEditor (React Flow + dagre). Click any node to edit its prompt, dependencies, success criteria, or `maxTurns` in the side panel. When the plan looks right, click "Lock & Run". The RunView opens; the kanban fills as tasks transition.
 
-   _TODO: GIF/screenshot here_
+   ![Generate, review, run](docs/assets/screenshots/goal-planner.png)
 
 ## Runtime verification (v1.8)
 
