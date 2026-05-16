@@ -11,6 +11,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorBanner } from '@/components/ui/error-banner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 function statusColor(status: WorkerRunRow['status']): string {
   if (status === 'ok') return 'text-emerald-600 dark:text-emerald-400';
@@ -159,16 +160,23 @@ export function WorkersRoute() {
                     {w.cronSpec}
                   </td>
                   <td className="px-4 py-2.5">
-                    <span
-                      className={
-                        'rounded px-2 py-0.5 text-xs font-medium ' +
-                        (w.enabled
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : 'bg-secondary text-secondary-foreground')
-                      }
-                    >
-                      {w.enabled ? t('workers.badge.enabled') : t('workers.badge.disabled')}
-                    </span>
+                    {w.enabled ? (
+                      <span className="rounded px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                        {t('workers.badge.enabled')}
+                      </span>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            tabIndex={0}
+                            className="rounded px-2 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground cursor-help"
+                          >
+                            {t('workers.badge.disabled')}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('workers.disabledTooltip')}</TooltipContent>
+                      </Tooltip>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-right">
                     <button

@@ -376,7 +376,7 @@ export function TeamBuilder() {
         <TeamJsonDialog team={draftTeam} />
         <Dialog open={tplOpen} onOpenChange={setTplOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" disabled={!valid}>
+            <Button variant="outline" disabled={!valid} data-testid="save-as-template-trigger">
               {t('buttons.saveAsTemplate')}
             </Button>
           </DialogTrigger>
@@ -428,7 +428,11 @@ export function TeamBuilder() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Button onClick={handleSave} disabled={!valid || saveTeam.isPending}>
+        <Button
+          onClick={handleSave}
+          disabled={!dirty || !valid || saveTeam.isPending}
+          data-testid="save-team"
+        >
           {saveTeam.isPending ? t('buttons.saving') : t('buttons.saveTeam')}
         </Button>
         <Button

@@ -1,13 +1,34 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Bolt, ChevronRight, FolderOpen, Plus } from 'lucide-react';
-import { useGlobalRuns, useProjects, useRunsSummary } from '@/api/queries';
+import {
+  useCreateProject,
+  useGlobalRuns,
+  useProjects,
+  useRunsSummary,
+  useTemplates,
+} from '@/api/queries';
 import type { GlobalRunRow } from '@/api/queries';
+import { ApiError, apiFetch } from '@/api/client';
 import { cn } from '@/lib/utils';
 import { LiveNowGrid } from '@/components/home/LiveNowGrid';
 import { GlobalRunsTable } from '@/components/home/GlobalRunsTable';
 import { AgentChat } from '@/components/AgentChat';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/components/ui/use-toast';
+import { TemplatePicker } from '@/components/TemplatePicker';
 
 // Charts pull in recharts (~120 kB gzip). Defer them off the initial paint so
 // the rest of the dashboard renders first; the charts swap in within a tick.
@@ -182,11 +203,15 @@ function HeroHeader({
   totalToday,
   period,
   onPeriod,
+  onNewProject,
+  onQuickRun,
 }: {
   activeCount: number;
   totalToday: number;
   period: Period;
   onPeriod: (p: Period) => void;
+  onNewProject: () => void;
+  onQuickRun: () => void;
 }) {
   const { t } = useTranslation();
   const lang = t('lang', 'en') as string;
@@ -268,10 +293,20 @@ function HeroHeader({
             </button>
           ))}
         </div>
-        <button type="button" className="wisp-btn">
+        <button
+          type="button"
+          className="wisp-btn"
+          onClick={onNewProject}
+          data-testid="home-new-project"
+        >
           <Plus className="h-3.5 w-3.5" /> {t('home.actions.newProject', 'New project')}
         </button>
-        <button type="button" className="wisp-btn primary">
+        <button
+          type="button"
+          className="wisp-btn primary"
+          onClick={onQuickRun}
+          data-testid="home-quick-run"
+        >
           <Bolt className="h-3.5 w-3.5" /> {t('home.actions.quickRun', 'Quick run')}
         </button>
       </div>
@@ -281,10 +316,78 @@ function HeroHeader({
 
 export function Home() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('7d');
   const summary = useRunsSummary(period === '24h' ? 1 : period === '30d' ? 30 : 7);
   const globalRuns = useGlobalRuns(100);
   const projects = useProjects();
+  const { data: templates = [] } = useTemplates();
+  const createProject = useCreateProject();
+
+  // New-project dialog state — duplicated from Sidebar.tsx by design so the
+  // hero "+ New project" and "Quick run" buttons stay decoupled from the
+  // sidebar's internal state.
+  const [npOpen, setNpOpen] = useState(false);
+  const [npName, setNpName] = useState('');
+  const [npGoal, setNpGoal] = useState('');
+  const [npRepoPath, setNpRepoPath] = useState('');
+  const [npTemplateId, setNpTemplateId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!npTemplateId) return;
+    const tpl = templates.find((x) => x.id === npTemplateId);
+    if (tpl && npGoal.trim() === '') {
+      setNpGoal(tpl.suggestedGoals[0] ?? '');
+    }
+  }, [npTemplateId, templates, npGoal]);
+
+  const npReset = (): void => {
+    setNpName('');
+    setNpGoal('');
+    setNpRepoPath('');
+    setNpTemplateId(null);
+  };
+  const npValid = npName.trim() && npGoal.trim() && npRepoPath.trim();
+
+  const handleCreateProject = async (): Promise<void> => {
+    if (!npValid) return;
+    try {
+      const project = await createProject.mutateAsync({
+        name: npName.trim(),
+        goal: npGoal.trim(),
+        repoPath: npRepoPath.trim(),
+      });
+      if (npTemplateId) {
+        const tpl = templates.find((x) => x.id === npTemplateId);
+        if (tpl) {
+          try {
+            await apiFetch(`/api/projects/${project.id}/team`, {
+              method: 'PUT',
+              body: JSON.stringify(tpl.team),
+            });
+          } catch (err) {
+            console.warn('template team save failed', err);
+          }
+        }
+      }
+      toast({ title: t('newProject.toasts.created'), description: project.name });
+      setNpOpen(false);
+      npReset();
+      navigate(`/projects/${project.id}/teams`);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? typeof err.body === 'object' && err.body && 'message' in err.body
+            ? String((err.body as { message: unknown }).message)
+            : err.message
+          : (err as Error).message;
+      toast({
+        title: t('newProject.toasts.createFailed'),
+        description: msg,
+        variant: 'destructive',
+      });
+    }
+  };
 
   const liveRuns = useMemo(
     () => (globalRuns.data ?? []).filter((r) => r.status === 'running' || r.status === 'paused'),
@@ -426,6 +529,8 @@ export function Home() {
           totalToday={totalToday}
           period={period}
           onPeriod={setPeriod}
+          onNewProject={() => setNpOpen(true)}
+          onQuickRun={() => setNpOpen(true)}
         />
 
         {/* KPI strip — 5 cards, matches the Wisp design 1:1. */}
@@ -656,6 +761,66 @@ export function Home() {
           <AgentChat compact />
         </div>
       </aside>
+
+      {/* New-project dialog — wired to hero "+ New project" and "Quick run". */}
+      <Dialog
+        open={npOpen}
+        onOpenChange={(o) => {
+          setNpOpen(o);
+          if (!o) npReset();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('newProject.title')}</DialogTitle>
+            <DialogDescription>{t('newProject.description')}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="home-np-name">{t('newProject.fields.name')}</Label>
+              <Input
+                id="home-np-name"
+                placeholder={t('newProject.fields.namePlaceholder')}
+                value={npName}
+                onChange={(e) => setNpName(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>{t('newProject.fields.template')}</Label>
+              <TemplatePicker selectedId={npTemplateId} onSelect={setNpTemplateId} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="home-np-goal">{t('newProject.fields.goal')}</Label>
+              <Textarea
+                id="home-np-goal"
+                rows={3}
+                placeholder={
+                  npTemplateId
+                    ? (templates.find((tpl) => tpl.id === npTemplateId)?.suggestedGoals[0] ??
+                      t('newProject.fields.goalPlaceholder'))
+                    : t('newProject.fields.goalPlaceholder')
+                }
+                value={npGoal}
+                onChange={(e) => setNpGoal(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="home-np-repo">{t('newProject.fields.repoPath')}</Label>
+              <Input
+                id="home-np-repo"
+                placeholder={t('newProject.fields.repoPathPlaceholder')}
+                value={npRepoPath}
+                onChange={(e) => setNpRepoPath(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleCreateProject} disabled={!npValid || createProject.isPending}>
+              {createProject.isPending ? t('buttons.creating') : t('buttons.create')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

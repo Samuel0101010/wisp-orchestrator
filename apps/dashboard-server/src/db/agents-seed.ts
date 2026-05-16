@@ -29,7 +29,12 @@ interface SeedDef {
   systemPrompt: string;
   description: string;
   allowedTools: string[];
-  avatarUrl: string;
+  /**
+   * Optional. Some seed personas (sarah/riley/theo) ship without a JPG so the UI
+   * falls back to initials — keeps the public/avatars/ payload small and avoids
+   * 404s on first paint of the Agents page.
+   */
+  avatarUrl?: string;
   color: string | null;
 }
 
@@ -392,8 +397,9 @@ const SEEDS: SeedDef[] = [
       'Grep',
       'Bash(pnpm:*, npm:*, npx:*, cargo:*, tauri:*, git:*, node:*)',
     ],
-    avatarUrl: '/avatars/seed-riley.jpg',
-    color: '#F97316',
+    // Darker orange (orange-700) so white initials on this background pass
+    // WCAG AA contrast (4.5:1). The original #F97316 only reaches 2.8:1.
+    color: '#C2410C',
   },
   {
     seedKey: 'lead',
@@ -402,8 +408,8 @@ const SEEDS: SeedDef[] = [
     systemPrompt: leadPrompt(),
     description: 'Team Lead · synthesises state + events + handoffs into routing decisions.',
     allowedTools: READ_ONLY_TOOLS,
-    avatarUrl: '/avatars/seed-theo.jpg',
-    color: '#8B5CF6',
+    // Darker violet (violet-700) — white initials pass 4.5:1 (original #8B5CF6 = 4.23:1).
+    color: '#6D28D9',
   },
   {
     seedKey: 'requirements-interviewer',
@@ -413,8 +419,8 @@ const SEEDS: SeedDef[] = [
     description:
       'Requirements Interviewer · extracts a complete project brief before planning starts.',
     allowedTools: READ_ONLY_TOOLS,
-    avatarUrl: '/avatars/seed-sarah.jpg',
-    color: '#10B981',
+    // Darker emerald (emerald-700) — white initials pass 4.5:1 (original #10B981 = 2.53:1).
+    color: '#047857',
   },
 ];
 
@@ -445,7 +451,7 @@ export function seedAgents(): SeedStats {
             JSON.stringify(s.allowedTools),
             s.color,
             s.description,
-            s.avatarUrl,
+            s.avatarUrl ?? null,
             s.seedKey,
             now,
             now,
@@ -455,18 +461,36 @@ export function seedAgents(): SeedStats {
         // Refresh persona fields without overwriting user-customised ones the
         // user might have changed via the UI. We refresh the system_prompt and
         // description (so persona tweaks ship with new releases) but leave
-        // name/model/allowedTools/color alone if they've been edited.
+        // name/model/allowedTools alone if they've been edited. Color is
+        // force-updated only when it matches a known WCAG-failing legacy value
+        // (the seeds shipped with white-text contrast violations on
+        // F97316/8B5CF6/10B981 — we move them to the WCAG-AA darker shades).
+        const LEGACY_BAD_COLORS: Record<string, string> = {
+          '#F97316': '#C2410C',
+          '#8B5CF6': '#6D28D9',
+          '#10B981': '#047857',
+        };
+        const upgradedColor = LEGACY_BAD_COLORS[(existing.color ?? '').toUpperCase()];
         const promptChanged = existing.systemPrompt !== s.systemPrompt;
         const descChanged = (existing.description ?? '') !== s.description;
-        const avatarChanged = (existing.avatarUrl ?? '') !== s.avatarUrl;
-        if (promptChanged || descChanged || avatarChanged) {
+        const avatarChanged = (existing.avatarUrl ?? '') !== (s.avatarUrl ?? '');
+        const colorChanged = upgradedColor && upgradedColor !== existing.color;
+        if (promptChanged || descChanged || avatarChanged || colorChanged) {
           sqlite
             .prepare(
               `UPDATE agents
-                 SET system_prompt = ?, description = ?, avatar_url = ?, updated_at = ?
+                 SET system_prompt = ?, description = ?, avatar_url = ?,
+                     color = ?, updated_at = ?
                WHERE id = ?`,
             )
-            .run(s.systemPrompt, s.description, s.avatarUrl, now, existing.id);
+            .run(
+              s.systemPrompt,
+              s.description,
+              s.avatarUrl ?? null,
+              upgradedColor ?? existing.color,
+              now,
+              existing.id,
+            );
           stats.refreshed += 1;
         }
       }

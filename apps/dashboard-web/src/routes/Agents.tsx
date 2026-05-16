@@ -432,10 +432,17 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                 <label className="block text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {t('agents.dialog.model')}
                 </label>
-                <div className="mt-1 flex gap-1">
+                <div
+                  className="mt-1 flex gap-1"
+                  role="radiogroup"
+                  aria-label={t('agents.dialog.model')}
+                >
                   {MODELS.map((m) => (
                     <button
                       key={m}
+                      type="button"
+                      role="radio"
+                      aria-checked={model === m}
                       onClick={() => setModel(m)}
                       className={`flex-1 rounded-md border px-2 py-1.5 text-sm font-medium ${model === m ? 'border-info bg-info/10 text-info' : 'hover:bg-muted'}`}
                     >
