@@ -3,6 +3,10 @@
 // WISP_SERVE_WEB=1 (single-port mode). Outputs PNGs into
 // docs/assets/screenshots/.
 //
+// By default captures in LIGHT theme — set WISP_SCREENSHOT_THEME=dark to
+// capture dark instead. Theme is seeded into localStorage via addInitScript
+// so zustand-persist hydrates with the requested mode before any paint.
+//
 // Usage:
 //   node scripts/capture-readme-screenshots.mjs
 import { chromium } from '../tests/e2e/node_modules/@playwright/test/index.mjs';
@@ -28,6 +32,12 @@ const ROUTES = [
 ];
 
 async function main() {
+  const theme = (process.env.WISP_SCREENSHOT_THEME || 'light').toLowerCase();
+  if (theme !== 'light' && theme !== 'dark') {
+    throw new Error(`WISP_SCREENSHOT_THEME must be 'light' or 'dark', got '${theme}'`);
+  }
+  console.log(`theme: ${theme}`);
+
   await mkdir(OUT_DIR, { recursive: true });
   const browser = await chromium.launch({ headless: true });
   const ctx = await browser.newContext({
@@ -35,6 +45,28 @@ async function main() {
     deviceScaleFactor: 2,
     locale: 'en-US',
   });
+
+  // Seed zustand-persist state BEFORE any page load so the dashboard
+  // hydrates with the requested theme. addInitScript runs in every new
+  // document; setItem on first navigation primes localStorage for this
+  // origin so subsequent navigations in the same context inherit it too.
+  const persisted = JSON.stringify({
+    state: { theme, sidebarCollapsed: false, favoriteProjectIds: [] },
+    version: 0,
+  });
+  await ctx.addInitScript(
+    /* eslint-disable no-undef */
+    ({ key, value }) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        /* ignored — about:blank pages can throw */
+      }
+    },
+    /* eslint-enable no-undef */
+    { key: 'wisp-ui', value: persisted },
+  );
+
   const page = await ctx.newPage();
 
   for (const [name, path] of ROUTES) {
@@ -42,6 +74,16 @@ async function main() {
     process.stdout.write(`-> ${name.padEnd(20)} ${url} ... `);
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      // Wait for the app to apply the persisted theme to the html element
+      // (App.tsx's useEffect runs after first paint).
+      await page
+        .waitForFunction(
+          // eslint-disable-next-line no-undef
+          (expected) => document.documentElement.dataset.theme === expected,
+          theme,
+          { timeout: 5000 },
+        )
+        .catch(() => {});
       await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
       await page.waitForTimeout(800);
       const out = resolve(OUT_DIR, `${name}.png`);
