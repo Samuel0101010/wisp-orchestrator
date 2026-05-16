@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -535,16 +536,33 @@ function ProjectRow({
 }: ProjectRowProps) {
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Anchor the portal-rendered menu to the trigger button on each open. The
+  // menu drops below-and-right-aligned; subtracting the menu's min-width keeps
+  // its right edge flush with the trigger.
+  useEffect(() => {
+    if (!menuOpen) {
+      setMenuPos(null);
+      return;
+    }
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    const MENU_MIN_W = 180;
+    setMenuPos({ top: r.bottom + 4, left: r.right - MENU_MIN_W });
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
     const onDocClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+      const tgt = e.target as Node;
+      const inMenu = menuRef.current?.contains(tgt) ?? false;
+      const inTrigger = triggerRef.current?.contains(tgt) ?? false;
+      if (!inMenu && !inTrigger) setMenuOpen(false);
     };
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setMenuOpen(false);
@@ -603,8 +621,9 @@ function ProjectRow({
         </TooltipTrigger>
         <TooltipContent side="right">{name}</TooltipContent>
       </Tooltip>
-      <div ref={menuRef} className="absolute right-1 top-1/2 -translate-y-1/2">
+      <div className="absolute right-1 top-1/2 -translate-y-1/2">
         <button
+          ref={triggerRef}
           type="button"
           aria-label={t('projectMenu.trigger', 'Project options')}
           aria-haspopup="menu"
@@ -622,11 +641,16 @@ function ProjectRow({
         >
           <MoreHorizontal className="h-3.5 w-3.5" />
         </button>
-        {menuOpen && (
+      </div>
+      {menuOpen &&
+        menuPos &&
+        createPortal(
           <div
+            ref={menuRef}
             role="menu"
             data-testid={`project-menu-${id}`}
-            className="absolute right-0 top-full z-50 mt-1 min-w-[180px] overflow-hidden rounded-md border border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-surface)] py-1 shadow-lg"
+            className="fixed z-[1000] min-w-[180px] overflow-hidden rounded-md border border-[color:var(--wisp-hairline-strong)] bg-[color:var(--wisp-bg-2)] py-1 shadow-xl"
+            style={{ top: menuPos.top, left: menuPos.left }}
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -657,9 +681,9 @@ function ProjectRow({
               <Trash2 className="h-3.5 w-3.5" />
               {t('projectMenu.delete', 'Delete')}
             </button>
-          </div>
+          </div>,
+          document.body,
         )}
-      </div>
       <Dialog open={deleteOpen} onOpenChange={(o) => !deleting && setDeleteOpen(o)}>
         <DialogContent>
           <DialogHeader>
