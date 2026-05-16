@@ -1,9 +1,9 @@
 ---
 name: harness-resume
-description: Use when the user wants to resume a previously paused Agent Harness run (e.g. paused by rate-limit, by /pause, or by an earlier shutdown). Lists resumable runs and resumes a chosen one. Trigger on phrases like "resume my run", "continue the harness", "pick up where we left off".
+description: Use when the user wants to resume a previously paused WISP run (e.g. paused by rate-limit, by /pause, or by an earlier shutdown). Lists resumable runs and resumes a chosen one. Trigger on phrases like "resume my run", "continue the harness", "pick up where we left off".
 ---
 
-# Agent Harness — Resume Run
+# WISP — Resume Run
 
 Resume a paused harness run.
 

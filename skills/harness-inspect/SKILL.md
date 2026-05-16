@@ -1,11 +1,11 @@
 ---
 name: harness-inspect
-description: Use when the user wants to inspect the result branch of a completed Agent Harness run — shows files in the result branch, the per-task git log graph, and a brief summary. Trigger on phrases like "what did harness produce", "show the run output", "inspect the result branch".
+description: Use when the user wants to inspect the result branch of a completed WISP run — shows files in the result branch, the per-task git log graph, and a brief summary. Trigger on phrases like "what did harness produce", "show the run output", "inspect the result branch".
 ---
 
-# Agent Harness — Inspect Result Branch
+# WISP — Inspect Result Branch
 
-Show what an Agent Harness run produced. Works on completed runs (success or failure) by inspecting the per-run git branches in the project's repo.
+Show what a WISP run produced. Works on completed runs (success or failure) by inspecting the per-run git branches in the project's repo.
 
 ## Inputs
 

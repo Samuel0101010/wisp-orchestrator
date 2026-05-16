@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Agent Harness dashboard launcher (POSIX)
+# WISP dashboard launcher (POSIX)
 # Idempotent: re-running picks a free port and writes a fresh state.json.
 # requires-exec: chmod +x scripts/launch-dashboard.sh
 
@@ -53,7 +53,7 @@ fi
 # Locate dashboard server entry. Auto-bootstrap on first launch.
 server_entry="${plugin_root}/apps/dashboard-server/dist/server.js"
 if [ ! -f "$server_entry" ]; then
-  echo "First launch: building Agent Harness (~1-2 minutes)..."
+  echo "First launch: building WISP (~1-2 minutes)..."
   if ! command -v pnpm >/dev/null 2>&1; then
     echo "pnpm not found on PATH. Install it first: npm install -g pnpm" >&2
     exit 1

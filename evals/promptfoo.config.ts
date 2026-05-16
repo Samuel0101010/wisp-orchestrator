@@ -1,7 +1,7 @@
 import type { TestSuiteConfig } from 'promptfoo';
 
 const config: TestSuiteConfig = {
-  description: 'Agent Harness — skill prompt regression',
+  description: 'WISP — skill prompt regression',
   prompts: ['file://./cases/*.yaml'],
   providers: [
     // Use Claude via Anthropic API for evals; assumes ANTHROPIC_API_KEY is set

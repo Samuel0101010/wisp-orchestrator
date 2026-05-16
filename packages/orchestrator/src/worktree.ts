@@ -146,7 +146,7 @@ const GIT_COMMIT_OVERRIDES = [
   '-c',
   'user.email=harness@agent-harness.local',
   '-c',
-  'user.name=Agent Harness',
+  'user.name=WISP',
   '-c',
   'commit.gpgsign=false',
   '-c',

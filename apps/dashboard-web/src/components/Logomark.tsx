@@ -7,7 +7,7 @@ interface LogomarkProps {
 }
 
 /**
- * Agent Harness logomark. Single-color (`currentColor`), 24×24 viewBox,
+ * WISP logomark. Single-color (`currentColor`), 24×24 viewBox,
  * sized by the consumer via `className` (e.g. `size-6`, `size-4`).
  * Inlined here so we don't depend on `vite-plugin-svgr` / `?react` imports.
  */

@@ -1,9 +1,9 @@
 ---
 name: harness-new-run
-description: Use when the user wants to create and start a new Agent Harness run from a goal — handles project creation, optional template selection, plan generation, lock + run, and prints the run URL. Trigger on phrases like "start a harness run", "new agent run", "kick off a harness project".
+description: Use when the user wants to create and start a new WISP run from a goal — handles project creation, optional template selection, plan generation, lock + run, and prints the run URL. Trigger on phrases like "start a harness run", "new agent run", "kick off a harness project".
 ---
 
-# Agent Harness — New Run
+# WISP — New Run
 
 Take the user from a freeform goal to a running harness execution.
 

@@ -1,7 +1,8 @@
 {
   "name": "agent-harness",
+  "displayName": "WISP",
   "version": "1.7.16",
-  "description": "Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.",
+  "description": "Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews with WISP. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.",
   "author": {
     "name": "Samuel Heftberger",
     "email": "215513082+Samuel0101010@users.noreply.github.com"
