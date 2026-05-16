@@ -27,7 +27,7 @@ WISP is a local-first orchestrator for Claude Code that delivers exactly that ve
 
 ## Dashboard tour
 
-Six screenshots from the running app, dark theme.
+Six screenshots from the running app, light theme.
 
 | ![Mission Control](docs/assets/screenshots/mission-control.png) |  ![Goal Planner](docs/assets/screenshots/goal-planner.png)  |
 | :-------------------------------------------------------------: | :---------------------------------------------------------: |
