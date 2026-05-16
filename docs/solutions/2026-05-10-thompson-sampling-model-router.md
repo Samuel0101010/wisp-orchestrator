@@ -88,7 +88,7 @@ import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite
 ```
 
 ## Verification
-- `pnpm --filter @agent-harness/schemas build` — clean
+- `pnpm --filter @wisp/schemas build` — clean
 - `pnpm --filter dashboard-server test` — 171/171 pass (30 test files), including 4 new thompson tests
 - `pnpm --filter dashboard-server typecheck` — clean
 - `pnpm --filter dashboard-server build` — clean
@@ -99,4 +99,4 @@ import { sqliteTable, text, integer, real, primaryKey } from 'drizzle-orm/sqlite
 - The planner-flow wiring tracks outcome data but does NOT yet swap the model in the team before calling `generatePlan`. The router picks a model and records its outcome relative to whatever the team was configured to use. Actual model swapping is deferred (it would require cloning the team and mutating the planner role's model).
 - Drizzle's `real` column type is not imported by default — must be added explicitly alongside `text`/`integer`/`primaryKey`.
 - The partial index `WHERE outcome IS NULL` was skipped because Drizzle's introspection doesn't always preserve it. A plain index on `outcome` is sufficient at current scale.
-- Test DB isolation: import `./setup.js` first (before any project code) to set `HARNESS_DATA_DIR` to a temp dir, then call `runMigrations()` in `beforeAll`. The same pattern as all other server tests.
+- Test DB isolation: import `./setup.js` first (before any project code) to set `WISP_DATA_DIR` to a temp dir, then call `runMigrations()` in `beforeAll`. The same pattern as all other server tests.

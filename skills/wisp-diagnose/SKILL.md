@@ -1,5 +1,5 @@
 ---
-name: harness-diagnose
+name: wisp-diagnose
 description: Use when a WISP run failed unexpectedly or is stuck — fetches the event timeline for a run, highlights failures, and prints the verify-failed payloads with full output so the user can see exactly why a task failed. Trigger on phrases like "why did the run fail", "diagnose the harness", "what went wrong with the run".
 ---
 
@@ -15,7 +15,7 @@ Inspect a run's event timeline to figure out what failed and why.
 
 1. **Fetch the events**:
    ```bash
-   curl -s "http://127.0.0.1:${HARNESS_PORT:-4400}/api/runs/<runId>/events?limit=500"
+   curl -s "http://127.0.0.1:${WISP_PORT:-4400}/api/runs/<runId>/events?limit=500"
    ```
    Response: `{"events": [{"type":"...", "payload":..., ...}, ...]}` ordered oldest-first.
 
@@ -48,5 +48,5 @@ Inspect a run's event timeline to figure out what failed and why.
 
 ## Notes
 
-- Events are persisted to SQLite under `<HARNESS_DATA_DIR>/harness.db`. If the API is down, you can read them directly with sqlite3 from the harness.db.
+- Events are persisted to SQLite under `<WISP_DATA_DIR>/harness.db`. If the API is down, you can read them directly with sqlite3 from the harness.db.
 - For runs that completed long ago, all event details are still in the DB — there's no retention policy.

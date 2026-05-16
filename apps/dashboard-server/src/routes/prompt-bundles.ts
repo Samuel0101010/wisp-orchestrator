@@ -4,7 +4,7 @@ import { eq, desc } from 'drizzle-orm';
 import { existsSync, rmSync } from 'node:fs';
 import { wrap } from './wrap.js';
 import { db } from '../db/index.js';
-import { promptBundles } from '@agent-harness/schemas';
+import { promptBundles } from '@wisp/schemas';
 
 export const promptBundlesRoutes: FastifyPluginAsync = async (app) => {
   app.get(

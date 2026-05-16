@@ -52,8 +52,8 @@ describe('SkillRegistry', () => {
 });
 
 import { invokeSkill } from '../skills/invoker.js';
-import type { RunClaudeOpts } from '@agent-harness/orchestrator';
-import type { HarnessEvent } from '@agent-harness/schemas';
+import type { RunClaudeOpts } from '@wisp/orchestrator';
+import type { HarnessEvent } from '@wisp/schemas';
 
 describe('invokeSkill', () => {
   it('runs the skill body as systemPrompt with the given args as user prompt', async () => {

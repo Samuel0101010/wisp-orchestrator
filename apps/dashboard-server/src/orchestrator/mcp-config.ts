@@ -57,7 +57,7 @@ export function writeMemoryMcpConfig(args: WriteMemoryMcpConfigArgs): WriteMemor
     }
     // Memory-mcp resolves the per-project DB from these two env vars; pass
     // them in so scope='project' works in the per-task subprocess.
-    env.HARNESS_DATA_DIR = dataDirAbs;
+    env.WISP_DATA_DIR = dataDirAbs;
     env.HARNESS_PROJECT_ID = args.projectId;
   }
   const cfg = {

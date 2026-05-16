@@ -7,7 +7,7 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { AgentSpec } from '@agent-harness/schemas';
+import type { AgentSpec } from '@wisp/schemas';
 import { ToolMultiSelect } from '@/components/ToolMultiSelect';
 import { SnippetMenu } from '@/components/SnippetMenu';
 import { MODEL_INFO, MODEL_LIST } from '@/data/modelInfo';

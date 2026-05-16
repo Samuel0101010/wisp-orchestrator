@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { eq, desc } from 'drizzle-orm';
 import { wrap } from './wrap.js';
 import { db } from '../db/index.js';
-import { workerRuns } from '@agent-harness/schemas';
+import { workerRuns } from '@wisp/schemas';
 import type { WorkerRegistry } from '../workers/registry.js';
 
 export interface WorkersRouterDeps {

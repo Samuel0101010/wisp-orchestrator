@@ -10,7 +10,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import type { Team } from '@agent-harness/schemas';
+import type { Team } from '@wisp/schemas';
 
 interface Props {
   team: Team;

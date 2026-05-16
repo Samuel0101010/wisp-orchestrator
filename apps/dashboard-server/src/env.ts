@@ -11,29 +11,29 @@ const booleanLike = z.union([z.string(), z.boolean(), z.undefined()]).transform(
 });
 
 const isProd = process.env.NODE_ENV === 'production';
-const defaultDataDir = path.join(os.tmpdir(), 'agent-harness');
+const defaultDataDir = path.join(os.tmpdir(), 'wisp');
 
 const envSchema = z.object({
-  HARNESS_PORT: z
+  WISP_PORT: z
     .string()
     .optional()
     .transform((v) => (v === undefined ? 4400 : Number.parseInt(v, 10)))
     .pipe(z.number().int().positive()),
-  HARNESS_HOST: z.string().default('127.0.0.1'),
-  HARNESS_DATA_DIR: isProd
-    ? z.string({ required_error: 'HARNESS_DATA_DIR is required in production' }).min(1)
+  WISP_HOST: z.string().default('127.0.0.1'),
+  WISP_DATA_DIR: isProd
+    ? z.string({ required_error: 'WISP_DATA_DIR is required in production' }).min(1)
     : z.string().min(1).default(defaultDataDir),
-  HARNESS_LOG_LEVEL: logLevelEnum.default('info'),
-  HARNESS_CORS_ORIGIN: z.string().default('http://localhost:5173'),
-  HARNESS_MOCK_CLI: booleanLike,
-  HARNESS_SERVE_WEB: booleanLike,
-  HARNESS_INTER_TASK_PACING_MS: z
+  WISP_LOG_LEVEL: logLevelEnum.default('info'),
+  WISP_CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  WISP_MOCK_CLI: booleanLike,
+  WISP_SERVE_WEB: booleanLike,
+  WISP_INTER_TASK_PACING_MS: z
     .string()
     .optional()
     .transform((v) => (v === undefined ? 5000 : Number.parseInt(v, 10)))
     .pipe(z.number().int().min(0).max(600_000)),
-  HARNESS_AUTO_RESUME_RATE_LIMIT: booleanLike,
-  HARNESS_AUTH_MODE: z.enum(['subscription', 'api']).default('subscription'),
+  WISP_AUTO_RESUME_RATE_LIMIT: booleanLike,
+  WISP_AUTH_MODE: z.enum(['subscription', 'api']).default('subscription'),
 });
 
 export type Env = z.infer<typeof envSchema>;

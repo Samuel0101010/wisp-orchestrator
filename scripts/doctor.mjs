@@ -3,7 +3,7 @@
  * agent-harness doctor — quick sanity check for the v1.8 runtime-verifier.
  *
  * The runtime-verifier needs Chromium on disk under
- * ~/.cache/agent-harness/playwright-browsers to drive the user's app in a
+ * ~/.cache/wisp/playwright-browsers to drive the user's app in a
  * real browser. This script reports whether the cache is warm, and if not,
  * prints the exact one-liner to populate it. Safe to run any time; never
  * downloads anything itself.
@@ -18,7 +18,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 
-const cachePath = path.join(os.homedir(), '.cache', 'agent-harness', 'playwright-browsers');
+const cachePath = path.join(os.homedir(), '.cache', 'wisp', 'playwright-browsers');
 
 const checks = [];
 

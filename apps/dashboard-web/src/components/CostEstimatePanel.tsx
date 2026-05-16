@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Team } from '@agent-harness/schemas';
+import type { Team } from '@wisp/schemas';
 import { MODEL_INFO } from '@/data/modelInfo';
 import { useProjectRuns } from '@/api/queries';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

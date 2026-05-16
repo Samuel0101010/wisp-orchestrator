@@ -75,7 +75,7 @@ A returned `null` (e.g. planner failure, malformed DAG) is treated like
 - `qa.replan-exhausted` — emitted when the cap was already reached or the
   callback returned `null`. Payload: same shape.
 
-The `/harness-diagnose` skill highlights both event types in its timeline
+The `/wisp-diagnose` skill highlights both event types in its timeline
 output.
 
 ## UI

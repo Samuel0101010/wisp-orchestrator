@@ -20,8 +20,8 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import {
   dodCriteria as dodCriteriaTable,
   runtimeReports as runtimeReportsTable,
-} from '@agent-harness/schemas';
-import type { Plan, RuntimeReportVerdict } from '@agent-harness/schemas';
+} from '@wisp/schemas';
+import type { Plan, RuntimeReportVerdict } from '@wisp/schemas';
 import { parseRuntimeReportJson, type RuntimeReportJson } from './runtime-verifier.js';
 import type { ReleaseGateResult } from './release-gate.js';
 

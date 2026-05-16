@@ -26,9 +26,9 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   const app = Fastify({
     logger: isProd
-      ? { level: env.HARNESS_LOG_LEVEL }
+      ? { level: env.WISP_LOG_LEVEL }
       : {
-          level: env.HARNESS_LOG_LEVEL,
+          level: env.WISP_LOG_LEVEL,
           transport: {
             target: 'pino-pretty',
             options: { translateTime: 'HH:MM:ss.l', ignore: 'pid,hostname' },
@@ -36,7 +36,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         },
   });
 
-  await app.register(cors, { origin: env.HARNESS_CORS_ORIGIN });
+  await app.register(cors, { origin: env.WISP_CORS_ORIGIN });
   await app.register(websocket);
 
   await app.register(registerRoutes);
@@ -44,16 +44,16 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   // Optional: serve the built dashboard-web app at `/` so a single port hosts
   // both UI + API + WS. Used by the F1 e2e harness mode.
-  if (env.HARNESS_SERVE_WEB) {
+  if (env.WISP_SERVE_WEB) {
     const webDist = resolveWebDistPath();
     // Fail fast at boot if the dist directory is missing — otherwise
     // @fastify/static accepts the registration silently and every browser
     // request 500s on first asset lookup. The most common cause is forgetting
-    // `pnpm --filter @agent-harness/dashboard-web build` before starting.
+    // `pnpm --filter @wisp/dashboard-web build` before starting.
     if (!fs.existsSync(webDist)) {
       throw new Error(
-        `HARNESS_SERVE_WEB=1 but dashboard-web dist directory not found at ${webDist}. ` +
-          `Build the web bundle first: pnpm --filter @agent-harness/dashboard-web build`,
+        `WISP_SERVE_WEB=1 but dashboard-web dist directory not found at ${webDist}. ` +
+          `Build the web bundle first: pnpm --filter @wisp/dashboard-web build`,
       );
     }
     await app.register(staticPlugin, {

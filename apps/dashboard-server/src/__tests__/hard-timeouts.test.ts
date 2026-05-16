@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { runAgentTurn } from '../routes/chat-engine.js';
-import type { HarnessEvent } from '@agent-harness/schemas';
-import type { RunClaudeOpts } from '@agent-harness/orchestrator';
+import type { HarnessEvent } from '@wisp/schemas';
+import type { RunClaudeOpts } from '@wisp/orchestrator';
 
 describe('runAgentTurn timeout', () => {
   it('returns failed="timeout" when runner exceeds timeoutMs', async () => {

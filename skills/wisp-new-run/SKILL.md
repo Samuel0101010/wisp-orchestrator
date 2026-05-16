@@ -1,5 +1,5 @@
 ---
-name: harness-new-run
+name: wisp-new-run
 description: Use when the user wants to create and start a new WISP run from a goal — handles project creation, optional template selection, plan generation, lock + run, and prints the run URL. Trigger on phrases like "start a harness run", "new agent run", "kick off a harness project".
 ---
 
@@ -16,14 +16,14 @@ Take the user from a freeform goal to a running harness execution.
 
 ## Preflight
 
-1. Confirm the harness server is up: `curl -s http://127.0.0.1:${HARNESS_PORT:-4400}/api/health`. If it returns non-200 or refuses connection, tell the user to run `/harness-dashboard` first to start the server, then re-run this skill.
+1. Confirm the harness server is up: `curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/health`. If it returns non-200 or refuses connection, tell the user to run `/wisp-dashboard` first to start the server, then re-run this skill.
 2. Confirm the repo path exists and is a git repo: `git -C <repoPath> rev-parse --git-dir`. If not, ask the user to fix the path or run `git init` in it.
 
 ## Steps
 
 1. **Create project**:
    ```bash
-   curl -s -X POST http://127.0.0.1:${HARNESS_PORT:-4400}/api/projects \
+   curl -s -X POST http://127.0.0.1:${WISP_PORT:-4400}/api/projects \
      -H 'content-type: application/json' \
      -d '{"name":"<name>","goal":"<goal>","repoPath":"<repoPath>"}'
    ```
@@ -32,9 +32,9 @@ Take the user from a freeform goal to a running harness execution.
 2. **Seed team from template** (only if template != none):
    ```bash
    # Fetch all templates and extract the chosen one's .team JSON inline.
-   TEAM=$(curl -s http://127.0.0.1:${HARNESS_PORT:-4400}/api/team-templates \
+   TEAM=$(curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/team-templates \
      | jq -c --arg id <template-id> '.templates[] | select(.id==$id) | .team')
-   curl -s -X PUT http://127.0.0.1:${HARNESS_PORT:-4400}/api/projects/<projectId>/team \
+   curl -s -X PUT http://127.0.0.1:${WISP_PORT:-4400}/api/projects/<projectId>/team \
      -H 'content-type: application/json' \
      -d "$TEAM"
    ```
@@ -43,18 +43,18 @@ Take the user from a freeform goal to a running harness execution.
 
 3. **Generate plan**:
    ```bash
-   curl -s -X POST http://127.0.0.1:${HARNESS_PORT:-4400}/api/projects/<projectId>/plan -H 'content-type: application/json' -d '{}'
+   curl -s -X POST http://127.0.0.1:${WISP_PORT:-4400}/api/projects/<projectId>/plan -H 'content-type: application/json' -d '{}'
    ```
    Capture `id` from the response — this is the planId.
 
 4. **Lock plan**:
    ```bash
-   curl -s -X POST http://127.0.0.1:${HARNESS_PORT:-4400}/api/plans/<planId>/lock
+   curl -s -X POST http://127.0.0.1:${WISP_PORT:-4400}/api/plans/<planId>/lock
    ```
 
 5. **Start run**:
    ```bash
-   curl -s -X POST http://127.0.0.1:${HARNESS_PORT:-4400}/api/runs \
+   curl -s -X POST http://127.0.0.1:${WISP_PORT:-4400}/api/runs \
      -H 'content-type: application/json' \
      -d '{"planId":"<planId>"}'
    ```
@@ -62,7 +62,7 @@ Take the user from a freeform goal to a running harness execution.
 
 6. **Print the run URL**:
    ```
-   http://127.0.0.1:${HARNESS_PORT:-4400}/projects/<projectId>/run/<runId>
+   http://127.0.0.1:${WISP_PORT:-4400}/projects/<projectId>/run/<runId>
    ```
    Tell the user the run is live and they can watch it in the dashboard.
 
@@ -74,5 +74,5 @@ Take the user from a freeform goal to a running harness execution.
 
 ## Notes
 
-- The default port is 4400; override with `HARNESS_PORT` env var.
+- The default port is 4400; override with `WISP_PORT` env var.
 - Long-running tasks (architect+dev+qa) take 1-10 minutes per role, so the run won't finish in the same Claude session — watch progress in the dashboard.

@@ -15,7 +15,7 @@ import { join } from 'node:path';
 import { runAgentTurn } from '../routes/chat-engine.js';
 import { invokeSkill } from '../skills/invoker.js';
 import { SkillRegistry } from '../skills/registry.js';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 
 beforeAll(() => {
   runMigrations();

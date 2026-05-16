@@ -7,7 +7,7 @@ import type {
   Task,
   TaskRole,
   TaskStatus,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 
 const MAX_DELTAS_PER_TASK = 200;
 

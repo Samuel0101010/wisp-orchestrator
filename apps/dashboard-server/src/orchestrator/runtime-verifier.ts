@@ -29,8 +29,8 @@
  * helper `buildRuntimeVerifyNode` returns a ready-to-insert TaskNode.
  */
 
-import type { AgentSpec, TaskNode } from '@agent-harness/schemas';
-import type { DodCriterion } from '@agent-harness/schemas';
+import type { AgentSpec, TaskNode } from '@wisp/schemas';
+import type { DodCriterion } from '@wisp/schemas';
 import { z } from 'zod';
 
 const RUNTIME_VERIFIER_TOOLS = [

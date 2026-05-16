@@ -1,5 +1,5 @@
 {
-  "name": "@agent-harness/memory-mcp",
+  "name": "@wisp/memory-mcp",
   "version": "2.0.0",
   "private": true,
   "license": "Apache-2.0",

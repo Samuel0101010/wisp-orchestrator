@@ -1,7 +1,7 @@
 /**
  * Playwright globalSetup — verifies the dashboard build is present.
  *
- * The actual tmp `HARNESS_DATA_DIR` and tmp git repo are created in
+ * The actual tmp `WISP_DATA_DIR` and tmp git repo are created in
  * `playwright.config.ts` (synchronous, at config-load time) so they are
  * available before the `webServer` block spawns the dashboard-server. This
  * file only does post-load asserts that don't affect server startup env.
@@ -30,6 +30,6 @@ export default async function globalSetup(): Promise<void> {
       ].join('\n'),
     );
   }
-  console.log(`[e2e] HARNESS_DATA_DIR=${process.env.HARNESS_E2E_DATA_DIR ?? '(unset)'}`);
-  console.log(`[e2e] repoPath=${process.env.HARNESS_E2E_REPO_PATH ?? '(unset)'}`);
+  console.log(`[e2e] WISP_DATA_DIR=${process.env.WISP_E2E_DATA_DIR ?? '(unset)'}`);
+  console.log(`[e2e] repoPath=${process.env.WISP_E2E_REPO_PATH ?? '(unset)'}`);
 }

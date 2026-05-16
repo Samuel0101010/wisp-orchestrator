@@ -2,11 +2,11 @@ import './setup.js';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { plans, projects, runs as runsTable, tasks as tasksTable } from '@agent-harness/schemas';
+import { plans, projects, runs as runsTable, tasks as tasksTable } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { RunRuntime } from '../orchestrator/runtime.js';
-import type { Walker, WalkerDeps } from '@agent-harness/orchestrator';
+import type { Walker, WalkerDeps } from '@wisp/orchestrator';
 
 beforeAll(() => {
   runMigrations();
@@ -314,7 +314,7 @@ describe('resume — sessionId edge cases (M4)', () => {
         title: 't',
         deps: [],
         status: 'pending',
-        worktreeBranch: 'harness/r/no-session-task',
+        worktreeBranch: 'wisp/r/no-session-task',
         sessionId: null,
       })
       .run();
@@ -330,6 +330,6 @@ describe('resume — sessionId edge cases (M4)', () => {
     expect(parsed.event).toBe('resume-no-session');
     expect(parsed.runId).toBe(runId);
     expect(parsed.taskId).toBe('no-session-task');
-    expect(parsed.worktreeBranch).toBe('harness/r/no-session-task');
+    expect(parsed.worktreeBranch).toBe('wisp/r/no-session-task');
   });
 });

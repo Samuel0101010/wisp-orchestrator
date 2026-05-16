@@ -11,7 +11,7 @@ import {
   runs as runsTable,
   type Run,
   type RunPausedReason,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 

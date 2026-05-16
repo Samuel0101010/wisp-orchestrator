@@ -5,7 +5,7 @@
  *   Spec 2: Manager-agent project happy-path (deeper than smoke.spec.ts).
  *
  * Both specs run only on chromium-en (i18n is already covered by i18n.spec.ts).
- * Boots through the shared Playwright webServer with HARNESS_MOCK_CLI=1, so the
+ * Boots through the shared Playwright webServer with WISP_MOCK_CLI=1, so the
  * planner + each role-task subprocess are routed through `mock-claude.mjs`.
  */
 
@@ -165,9 +165,9 @@ test.describe('Wave 3 — Manager-agent project happy-path', () => {
     test.setTimeout(180_000);
     const lang = testInfo.project.metadata.lang as 'en' | 'de';
 
-    const REPO_PATH = process.env.HARNESS_E2E_REPO_PATH;
+    const REPO_PATH = process.env.WISP_E2E_REPO_PATH;
     if (!REPO_PATH) {
-      throw new Error('HARNESS_E2E_REPO_PATH not set — invoke via `pnpm test:e2e`.');
+      throw new Error('WISP_E2E_REPO_PATH not set — invoke via `pnpm test:e2e`.');
     }
 
     // Pre-ack first-run ToS modal.

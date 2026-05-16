@@ -246,7 +246,7 @@ export async function runPackager(args: RunPackagerArgs): Promise<PackagerResult
   const sha256 = crypto.createHash('sha256').update(fs.readFileSync(installer)).digest('hex');
 
   // (h) Copy to <dataDir>/artifacts/<projectId>/<runId>/<basename>.
-  const dataDir = args.dataDirOverride ?? env.HARNESS_DATA_DIR;
+  const dataDir = args.dataDirOverride ?? env.WISP_DATA_DIR;
   const destDir = path.join(dataDir, 'artifacts', args.projectId, args.runId);
   fs.mkdirSync(destDir, { recursive: true });
   const basename = path.basename(installer);

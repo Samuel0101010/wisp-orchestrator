@@ -8,7 +8,7 @@ import {
   projects,
   runs as runsTable,
   tasks as tasksTable,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { findResumableRuns, fixUpAbruptCrashes } from '../orchestrator/recovery.js';

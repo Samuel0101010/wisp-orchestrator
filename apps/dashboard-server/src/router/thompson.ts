@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { modelRouterPriors, modelRouterSamples } from '@agent-harness/schemas';
+import { modelRouterPriors, modelRouterSamples } from '@wisp/schemas';
 import { sampleBeta } from './sampler.js';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';

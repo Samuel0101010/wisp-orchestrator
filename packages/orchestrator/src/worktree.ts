@@ -144,7 +144,7 @@ export async function listWorktrees(opts: ListWorktreesOpts): Promise<WorktreeEn
 
 const GIT_COMMIT_OVERRIDES = [
   '-c',
-  'user.email=harness@agent-harness.local',
+  'user.email=wisp@wisp.local',
   '-c',
   'user.name=WISP',
   '-c',
@@ -177,7 +177,7 @@ export async function mergeBranchesInWorktree(
     try {
       await execa(
         'git',
-        [...GIT_COMMIT_OVERRIDES, 'merge', '--no-ff', '-m', `harness: merge ${b}`, b],
+        [...GIT_COMMIT_OVERRIDES, 'merge', '--no-ff', '-m', `wisp: merge ${b}`, b],
         { cwd: worktreePath },
       );
     } catch (err) {

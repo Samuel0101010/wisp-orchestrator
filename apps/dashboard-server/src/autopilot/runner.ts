@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { db } from '../db/index.js';
-import { events as eventsTable, runs, type RunPausedReason } from '@agent-harness/schemas';
+import { events as eventsTable, runs, type RunPausedReason } from '@wisp/schemas';
 import { eq, and } from 'drizzle-orm';
 import { checkAutopilotBudget } from './budget.js';
 import { tryCheckoutRun, releaseCheckout } from '../checkout/atomic-checkout.js';

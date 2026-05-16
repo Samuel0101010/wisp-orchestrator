@@ -81,7 +81,7 @@ describe('buildHardeningPlan', () => {
   });
 
   it('produces a Plan that passes the planSchema parse round-trip', async () => {
-    const { parsePlan } = await import('@agent-harness/schemas');
+    const { parsePlan } = await import('@wisp/schemas');
     const plan = buildHardeningPlan({
       parentGoal: 'g',
       iteration: 1,

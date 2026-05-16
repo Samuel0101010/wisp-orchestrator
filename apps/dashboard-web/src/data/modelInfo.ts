@@ -7,7 +7,7 @@
  * consumption is visible in run-level token totals after a run completes.
  */
 
-import type { AgentSpec } from '@agent-harness/schemas';
+import type { AgentSpec } from '@wisp/schemas';
 
 export type Model = AgentSpec['model'];
 

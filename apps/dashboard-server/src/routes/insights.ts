@@ -3,12 +3,7 @@ import { z } from 'zod';
 import { eq, desc } from 'drizzle-orm';
 import { wrap } from './wrap.js';
 import { db } from '../db/index.js';
-import {
-  trajectories,
-  modelRouterPriors,
-  modelRouterSamples,
-  runSummaries,
-} from '@agent-harness/schemas';
+import { trajectories, modelRouterPriors, modelRouterSamples, runSummaries } from '@wisp/schemas';
 
 export const insightsRoutes: FastifyPluginAsync = async (app) => {
   app.get(

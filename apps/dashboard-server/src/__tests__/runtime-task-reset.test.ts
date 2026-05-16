@@ -2,11 +2,11 @@ import './setup.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import { plans, projects, tasks as tasksTable } from '@agent-harness/schemas';
+import { plans, projects, tasks as tasksTable } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { RunRuntime } from '../orchestrator/runtime.js';
-import type { Walker } from '@agent-harness/orchestrator';
+import type { Walker } from '@wisp/orchestrator';
 
 beforeAll(() => {
   runMigrations();
@@ -96,7 +96,7 @@ describe('RunRuntime.startRun — task state reset between runs', () => {
       .update(tasksTable)
       .set({
         status: 'failed',
-        worktreeBranch: 'harness/old/n1',
+        worktreeBranch: 'wisp/old/n1',
         sessionId: 'old-sess-1',
         tokensIn: 9000,
         tokensOut: 7000,
@@ -109,7 +109,7 @@ describe('RunRuntime.startRun — task state reset between runs', () => {
       .update(tasksTable)
       .set({
         status: 'done',
-        worktreeBranch: 'harness/old/n2',
+        worktreeBranch: 'wisp/old/n2',
         sessionId: 'old-sess-2',
         tokensIn: 500,
         tokensOut: 300,

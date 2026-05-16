@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { wrap } from './wrap.js';
 import { db } from '../db/index.js';
-import { modelRouterPriors, modelRouterSamples } from '@agent-harness/schemas';
+import { modelRouterPriors, modelRouterSamples } from '@wisp/schemas';
 
 export const routerRoutes: FastifyPluginAsync = async (app) => {
   app.get(

@@ -16,7 +16,7 @@ This document covers the v1.0 system. The first half describes the M1 vertical s
 
 - Multi-tenant deployment, hosted SaaS, or auth beyond local-loopback.
 - Anthropic-marketplace publication (private plugin only).
-- Direct-API mode beyond the existing `HARNESS_AUTH_MODE=api` stub.
+- Direct-API mode beyond the existing `WISP_AUTH_MODE=api` stub.
 
 The original M1 non-goals (variable team, shared memory, templates, QA replan) all shipped in M2–M5. See [v1.0 layers on top of M1](#v10-layers-on-top-of-m1).
 
@@ -69,7 +69,7 @@ The original M1 non-goals (variable team, shared memory, templates, QA replan) a
 | `apps/dashboard-server`     | Fastify routes, WS, Drizzle wiring, `RunRuntime` (DB + WS adapter for the Walker), recovery, planner-spawn glue.     |
 | `apps/dashboard-web`        | React dashboard.                                                                                                     |
 | `agents/`                   | Markdown agent specs consumed by Claude Code plugin loading.                                                         |
-| `commands/harness-dashboard.md` | Slash-command surfaced through the plugin manifest.                                                              |
+| `commands/wisp-dashboard.md` | Slash-command surfaced through the plugin manifest.                                                              |
 | `hooks/hooks.json`          | PreCompact + SessionStart hook config.                                                                               |
 | `scripts/`                  | Cross-platform launchers, hook scripts.                                                                              |
 
@@ -92,7 +92,7 @@ The original M1 non-goals (variable team, shared memory, templates, QA replan) a
    - **PASS:** task transitions to `done`, descendants whose deps are now satisfied become `ready`, dispatch loop kicks again.
    - **FAIL on first attempt:** task transitions back to `pending`, retries counter increments, the next attempt's prompt embeds the failure tail. Max retries: 1.
    - **FAIL on retry:** task transitions to `failed`. Descendants are skipped (status `skipped`); the branch is dead. Other independent branches keep running.
-9. **Snapshots.** A timer in `RunRuntime` calls `walker.snapshot()` every 10 minutes (configurable). Each snapshot writes a JSON file under `${HARNESS_DATA_DIR}/snapshots/` and inserts a `checkpoints` row.
+9. **Snapshots.** A timer in `RunRuntime` calls `walker.snapshot()` every 10 minutes (configurable). Each snapshot writes a JSON file under `${WISP_DATA_DIR}/snapshots/` and inserts a `checkpoints` row.
 10. **Run completion.** The Walker drains its queue; the run row gets `status='completed'`, `outcome='success'` (all leaf tasks done), `'failure'` (any leaf failed), `'cancelled'` (user cancel), or `'budget_exceeded'` (wallclock or turns cap hit).
 
 ## Worktree chaining
@@ -237,11 +237,11 @@ The same M1 core (Walker / SubprocessPool / Worktree / Verification) carries eve
 
 ### M3 — shared-memory MCP
 
-A separate workspace package `@agent-harness/memory-mcp` ships a stdio MCP server exposing `memory.{set,get,list,delete}` backed by per-run SQLite WAL. The runtime's `writeMemoryMcpConfig` writes a per-run config JSON; `SubprocessPool.defaultMcpConfigPath` injects `--mcp-config + --strict-mcp-config` into every `claude -p` call. Each run has its own `<HARNESS_DATA_DIR>/memory/<runId>.db` — no cross-run sharing, no network. Tools are exposed to agents as `mcp__agent-harness-memory__memory_*` (claude converts `.` to `_` in MCP tool names).
+A separate workspace package `@wisp/memory-mcp` ships a stdio MCP server exposing `memory.{set,get,list,delete}` backed by per-run SQLite WAL. The runtime's `writeMemoryMcpConfig` writes a per-run config JSON; `SubprocessPool.defaultMcpConfigPath` injects `--mcp-config + --strict-mcp-config` into every `claude -p` call. Each run has its own `<WISP_DATA_DIR>/memory/<runId>.db` — no cross-run sharing, no network. Tools are exposed to agents as `mcp__agent-harness-memory__memory_*` (claude converts `.` to `_` in MCP tool names).
 
 ### M4 — team templates
 
-`apps/dashboard-server/src/templates/` carries four built-in templates (`ts-library`, `python-backend`, `refactor-squad`, `data-pipeline`). `GET /api/team-templates` merges them with on-disk user templates from `<HARNESS_DATA_DIR>/templates/<id>.json`. The web UI's `TemplatePicker` (in the New Project dialog) lets users pick + the goal pre-fills from the template's `suggestedGoals[0]`. `apps/dashboard-server/scripts/copy-templates.mjs` ferries the JSONs into `dist/` on build (tsc doesn't copy non-TS files).
+`apps/dashboard-server/src/templates/` carries four built-in templates (`ts-library`, `python-backend`, `refactor-squad`, `data-pipeline`). `GET /api/team-templates` merges them with on-disk user templates from `<WISP_DATA_DIR>/templates/<id>.json`. The web UI's `TemplatePicker` (in the New Project dialog) lets users pick + the goal pre-fills from the template's `suggestedGoals[0]`. `apps/dashboard-server/scripts/copy-templates.mjs` ferries the JSONs into `dist/` on build (tsc doesn't copy non-TS files).
 
 ### M5 — QA-driven replan
 

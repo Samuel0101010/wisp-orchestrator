@@ -13,8 +13,8 @@ import type { RunAgentTurnResult } from '../routes/chat-engine.js';
 import { runMigrations } from '../db/migrate.js';
 import { seedAgents } from '../db/agents-seed.js';
 import { sqlite } from '../db/index.js';
-import type { HarnessEvent } from '@agent-harness/schemas';
-import type { RunClaudeOpts } from '@agent-harness/orchestrator';
+import type { HarnessEvent } from '@wisp/schemas';
+import type { RunClaudeOpts } from '@wisp/orchestrator';
 
 function noopRunner(_opts: RunClaudeOpts): AsyncIterable<HarnessEvent> {
   return (async function* () {

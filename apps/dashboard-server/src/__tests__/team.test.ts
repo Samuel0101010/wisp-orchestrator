@@ -2,7 +2,7 @@ import './setup.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { teams } from '@agent-harness/schemas';
+import { teams } from '@wisp/schemas';
 import { buildApp } from '../app.js';
 import { runMigrations } from '../db/migrate.js';
 import { db, sqlite } from '../db/index.js';

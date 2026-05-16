@@ -8,7 +8,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
-import { plans, projects, runs, tasks } from '@agent-harness/schemas';
+import { plans, projects, runs, tasks } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
 import { setLastAuthProbe } from '../auth-status.js';
@@ -110,7 +110,7 @@ describe('POST /api/runs — auth probe gate', () => {
   });
 
   it('returns 503 when auth probe last failed and mode=subscription', async () => {
-    if (process.env.HARNESS_MOCK_CLI === '1') {
+    if (process.env.WISP_MOCK_CLI === '1') {
       // Gate is bypassed in mock-cli mode; skip.
       return;
     }

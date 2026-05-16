@@ -28,7 +28,7 @@ import {
   tasks,
   type RunPausedReason,
   type RunStatus,
-} from '@agent-harness/schemas';
+} from '@wisp/schemas';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 
 export interface ResumableRunTaskCounts {
@@ -181,7 +181,7 @@ export async function findResumableRuns(db: BetterSQLite3Database): Promise<Resu
 export async function fixUpAbruptCrashes(db: BetterSQLite3Database): Promise<number> {
   // Wrap the read-then-update sequence in a transaction. The harness is
   // single-tenant by design, but a developer running `pnpm dev` while a
-  // separate test suite touches the same DB (without HARNESS_DATA_DIR
+  // separate test suite touches the same DB (without WISP_DATA_DIR
   // isolation) would otherwise see a window where the `tasks.status='running'`
   // update could clobber a row that another process just legitimately
   // promoted. Transaction is cheap; the fixup is idempotent so no behavior

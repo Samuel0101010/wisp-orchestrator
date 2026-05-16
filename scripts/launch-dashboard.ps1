@@ -81,9 +81,9 @@ if (-not (Test-Path -LiteralPath $serverEntry)) {
 
 # Spawn node detached, capture PID.
 $envBlock = @{
-    HARNESS_PORT      = "$chosenPort"
-    HARNESS_DATA_DIR  = "$dataDir"
-    HARNESS_SERVE_WEB = '1'
+    WISP_PORT      = "$chosenPort"
+    WISP_DATA_DIR  = "$dataDir"
+    WISP_SERVE_WEB = '1'
 }
 foreach ($k in $envBlock.Keys) {
     Set-Item -Path "Env:$k" -Value $envBlock[$k]

@@ -4,12 +4,12 @@ import { env } from '../env.js';
 import { templateSchema, type TeamTemplate } from './index.js';
 
 /**
- * Resolve the on-disk templates directory under HARNESS_DATA_DIR. The Zod
+ * Resolve the on-disk templates directory under WISP_DATA_DIR. The Zod
  * schema in env.ts applies the os.tmpdir() default; reading process.env
  * directly would lose it and produce a relative path.
  */
 function userTemplatesDir(): string {
-  return path.join(env.HARNESS_DATA_DIR, 'templates');
+  return path.join(env.WISP_DATA_DIR, 'templates');
 }
 
 /**

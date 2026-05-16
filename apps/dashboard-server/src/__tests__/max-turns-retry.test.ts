@@ -2,7 +2,7 @@ import './setup.js';
 import { describe, expect, it, beforeAll, beforeEach, vi } from 'vitest';
 import { runMigrations } from '../db/migrate.js';
 import { db, sqlite } from '../db/index.js';
-import { runs, plans, projects, teams } from '@agent-harness/schemas';
+import { runs, plans, projects, teams } from '@wisp/schemas';
 import { randomUUID } from 'node:crypto';
 
 beforeAll(() => {

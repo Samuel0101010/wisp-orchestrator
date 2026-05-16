@@ -8,8 +8,8 @@ State of the plugin and codebase as of **v1.7.0** (tag `v1.7.0`, commit `615250b
 
 A Claude Code plugin (`.claude-plugin/plugin.json`) that ships a self-hosted dashboard for running autonomous coding agents.
 
-- **`apps/dashboard-server`** — Fastify + `better-sqlite3` + `drizzle-orm`. Exposes 42 HTTP routes + 1 WebSocket route under `:4400` (config: `HARNESS_PORT`). Owns the orchestrator state machine, run/plan persistence, agent threads, and skills discovery (built-in + project + user + plugin).
-- **`apps/dashboard-web`** — React 19 + Vite 7 + Tailwind v4 + `i18next` + Radix UI. Single-page app served on `:5173` in dev. In production the dashboard-server serves the built bundle from `dist/public` when `HARNESS_SERVE_WEB=1`.
+- **`apps/dashboard-server`** — Fastify + `better-sqlite3` + `drizzle-orm`. Exposes 42 HTTP routes + 1 WebSocket route under `:4400` (config: `WISP_PORT`). Owns the orchestrator state machine, run/plan persistence, agent threads, and skills discovery (built-in + project + user + plugin).
+- **`apps/dashboard-web`** — React 19 + Vite 7 + Tailwind v4 + `i18next` + Radix UI. Single-page app served on `:5173` in dev. In production the dashboard-server serves the built bundle from `dist/public` when `WISP_SERVE_WEB=1`.
 - **`packages/orchestrator`** — Plan execution engine. Walks plan DAGs, spawns per-task `claude` subprocesses, handles pause/resume/cancel/replay-checkpoint, retries, autopilot, prompt bundles.
 - **`packages/schemas`** — `zod` types shared across all surfaces. The runtime contract.
 - **`packages/memory-mcp`** — MCP server exposing persistent project memory tools.

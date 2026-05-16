@@ -2,7 +2,7 @@ import './setup.js';
 import { describe, expect, it, beforeAll } from 'vitest';
 import { pickFixed, pickModel, recordOutcome } from '../router/thompson.js';
 import { db } from '../db/index.js';
-import { modelRouterSamples } from '@agent-harness/schemas';
+import { modelRouterSamples } from '@wisp/schemas';
 import { runMigrations } from '../db/migrate.js';
 
 beforeAll(() => {

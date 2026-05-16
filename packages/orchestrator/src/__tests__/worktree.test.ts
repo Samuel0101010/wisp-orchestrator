@@ -90,7 +90,7 @@ describe('worktree manager', () => {
       // before autoCommit could fire).
       const firstPath = await addWorktree({
         repoPath: repo,
-        branchName: 'harness/run-x/test-1',
+        branchName: 'wisp/run-x/test-1',
       });
       expect(existsSync(firstPath)).toBe(true);
 
@@ -98,7 +98,7 @@ describe('worktree manager', () => {
       // throw — it must clean up the prior dirty state and re-create.
       const secondPath = await addWorktree({
         repoPath: repo,
-        branchName: 'harness/run-x/test-1',
+        branchName: 'wisp/run-x/test-1',
       });
       expect(secondPath).toBe(firstPath);
       expect(existsSync(secondPath)).toBe(true);
@@ -106,7 +106,7 @@ describe('worktree manager', () => {
       // Sanity: the recovered worktree is on the expected branch.
       const list = await listWorktrees({ repoPath: repo });
       const found = list.find((e) => e.path.replace(/\\/g, '/') === secondPath.replace(/\\/g, '/'));
-      expect(found?.branch).toBe('harness/run-x/test-1');
+      expect(found?.branch).toBe('wisp/run-x/test-1');
 
       await removeWorktree({ repoPath: repo, worktreePath: secondPath, force: true });
     } finally {
@@ -124,9 +124,7 @@ describe('worktree manager', () => {
       // NOT fire on this; it should rethrow so the caller sees the real
       // problem.
       await execa('git', ['init', '-b', 'main', repo]);
-      await expect(
-        addWorktree({ repoPath: repo, branchName: 'harness/no-head/x' }),
-      ).rejects.toThrow();
+      await expect(addWorktree({ repoPath: repo, branchName: 'wisp/no-head/x' })).rejects.toThrow();
     } finally {
       await rm(root, { recursive: true, force: true });
     }

@@ -1,12 +1,12 @@
 {
-  "name": "agent-harness-local",
+  "name": "wisp-local",
   "owner": {
     "name": "Samuel Heftberger",
     "email": "215513082+Samuel0101010@users.noreply.github.com"
   },
   "plugins": [
     {
-      "name": "agent-harness",
+      "name": "wisp",
       "source": "./",
       "description": "Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.",
       "version": "1.1.0",

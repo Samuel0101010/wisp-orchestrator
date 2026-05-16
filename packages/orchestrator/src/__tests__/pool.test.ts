@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { HarnessEvent } from '@agent-harness/schemas';
+import type { HarnessEvent } from '@wisp/schemas';
 import type { RunClaudeOpts } from '../subprocess.js';
 import { PoolTerminatedError, SubprocessPool } from '../pool.js';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { HarnessEvent, Run, Task } from '@agent-harness/schemas';
+import type { HarnessEvent, Run, Task } from '@wisp/schemas';
 import { columnFor, computeAggregates, useRunStore } from './run';
 
 function makeRun(over: Partial<Run> = {}): Run {

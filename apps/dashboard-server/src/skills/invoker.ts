@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { runAgentTurn, type RunAgentTurnResult } from '../routes/chat-engine.js';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 import type { SkillRegistry } from './registry.js';
 import { buildBundleKey, lookupBundle, upsertBundle } from '../cache/prompt-bundle.js';
 

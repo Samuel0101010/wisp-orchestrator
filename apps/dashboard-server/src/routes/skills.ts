@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { wrap } from './wrap.js';
 import type { SkillRegistry } from '../skills/registry.js';
 import { invokeSkill } from '../skills/invoker.js';
-import type { SubprocessRunner } from '@agent-harness/orchestrator';
+import type { SubprocessRunner } from '@wisp/orchestrator';
 
 export interface SkillsRouterDeps {
   registry: SkillRegistry;
