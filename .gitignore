@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Scratch / local-only working dirs
+.tmp/
+
 # Build outputs
 dist/
 build/

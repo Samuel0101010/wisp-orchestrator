@@ -1,24 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
-  Plus,
-  FolderOpen,
-  LayoutGrid,
-  Bot,
-  MessagesSquare,
-  Wrench,
   Activity,
-  Sparkles,
-  GitBranch,
+  Bot,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Database,
+  GitBranch,
+  LayoutGrid,
+  MessagesSquare,
+  Plus,
+  Settings,
+  Sparkles,
+  Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IconButton } from '@/components/ui/icon-button';
-import { Separator } from '@/components/ui/separator';
-import { StatusDotBadge } from '@/components/StatusDotBadge';
-import { StatusPill } from '@/components/ui/status-pill';
-import { Logomark } from '@/components/Logomark';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Dialog,
@@ -33,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
+import { TemplatePicker } from '@/components/TemplatePicker';
 import {
   useCreateProject,
   useDailyRunCount,
@@ -42,15 +42,27 @@ import {
   useTemplates,
 } from '@/api/queries';
 import { ApiError, apiFetch } from '@/api/client';
-import { TemplatePicker } from '@/components/TemplatePicker';
+import { useUiStore } from '@/store/ui';
+import { cn } from '@/lib/utils';
+
+/* ----- Wisp project tones for the project list dots ------------------ */
+const PROJECT_TONES = ['coral', 'sky', 'violet', 'amber', 'mint', 'rose'] as const;
+function projectTone(id: string): (typeof PROJECT_TONES)[number] {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return PROJECT_TONES[Math.abs(h) % PROJECT_TONES.length]!;
+}
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: React.ReactNode;
+  testId: string;
+  matchPath: (pathname: string, hasProject: boolean) => boolean;
+}
 
 export function Sidebar() {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [goal, setGoal] = useState('');
-  const [repoPath, setRepoPath] = useState('');
-  const [templateId, setTemplateId] = useState<string | null>(null);
   const params = useParams<{ projectId?: string }>();
   const location = useLocation();
   const navigate = useNavigate();
@@ -59,10 +71,19 @@ export function Sidebar() {
   const createProject = useCreateProject();
   const activePlan = useGeneratedPlan(params.projectId);
   const dailyCounts = useDailyRunCount();
+  const collapsed = useUiStore((s) => s.sidebarCollapsed);
+  const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+
+  const [open, setOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(true);
+  const [name, setName] = useState('');
+  const [goal, setGoal] = useState('');
+  const [repoPath, setRepoPath] = useState('');
+  const [templateId, setTemplateId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!templateId) return;
-    const template = templates.find((t) => t.id === templateId);
+    const template = templates.find((tpl) => tpl.id === templateId);
     if (template && goal.trim() === '') {
       setGoal(template.suggestedGoals[0] ?? '');
     }
@@ -74,7 +95,6 @@ export function Sidebar() {
     setRepoPath('');
     setTemplateId(null);
   };
-
   const valid = name.trim() && goal.trim() && repoPath.trim();
 
   const handleCreate = async (): Promise<void> => {
@@ -86,7 +106,7 @@ export function Sidebar() {
         repoPath: repoPath.trim(),
       });
       if (templateId) {
-        const template = templates.find((t) => t.id === templateId);
+        const template = templates.find((tpl) => tpl.id === templateId);
         if (template) {
           try {
             await apiFetch(`/api/projects/${project.id}/team`, {
@@ -94,7 +114,6 @@ export function Sidebar() {
               body: JSON.stringify(template.team),
             });
           } catch (err) {
-            // Non-fatal — the user lands on the team page where they can manually retry.
             console.warn('template team save failed', err);
           }
         }
@@ -118,264 +137,365 @@ export function Sidebar() {
     }
   };
 
-  const isHomeActive = !params.projectId && location.pathname === '/';
-  const isAgentsActive = location.pathname.startsWith('/agents');
-  const isChatActive = location.pathname.startsWith('/chat');
-  const isSkillsActive = location.pathname.startsWith('/skills');
-  const isWorkersActive = location.pathname.startsWith('/workers');
-  const isInsightsActive = location.pathname.startsWith('/insights');
-  const isGoapActive = location.pathname.startsWith('/goap');
-  const isPromptBundlesActive = location.pathname.startsWith('/prompt-bundles');
+  const hasProject = Boolean(params.projectId);
+  const onHomeOrProject = (p: string) => p === '/' || p.startsWith('/projects');
 
-  return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r bg-card">
-      <div className="flex items-center gap-2.5 p-4">
-        <Logomark className="h-6 w-6 text-foreground" />
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold tracking-tight">{t('navigation.appName')}</span>
-          <span className="text-2xs font-mono tabular-nums text-muted-foreground-soft">
-            v{__APP_VERSION__}
-          </span>
-        </div>
-      </div>
-      <Separator />
-      <nav className="px-2 pt-3" aria-label="primary">
-        <Link
-          to="/"
-          className={
-            'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-            (isHomeActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-          }
-          data-testid="sidebar-mission-control"
-        >
-          <LayoutGrid className="h-4 w-4" />
-          <span>{t('topBar.missionControl')}</span>
-        </Link>
-        <Link
-          to="/chat"
-          className={
-            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-            (isChatActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-          }
-          data-testid="sidebar-chat"
-        >
-          <MessagesSquare className="h-4 w-4" />
-          <span>{t('navigation.teamChat')}</span>
-        </Link>
-        <Link
-          to="/agents"
-          className={
-            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-            (isAgentsActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-          }
-          data-testid="sidebar-agents"
-        >
-          <Bot className="h-4 w-4" />
-          <span>{t('navigation.agents')}</span>
-        </Link>
-        <Link
-          to="/skills"
-          className={
-            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-            (isSkillsActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-          }
-          data-testid="sidebar-skills"
-        >
-          <Wrench className="h-4 w-4" />
-          <span>{t('navigation.skills')}</span>
-        </Link>
-        <Link
-          to="/workers"
-          className={
-            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-            (isWorkersActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-          }
-          data-testid="sidebar-workers"
-        >
-          <Activity className="h-4 w-4" />
-          <span>{t('navigation.workers')}</span>
-        </Link>
-        <Link
-          to="/insights"
-          className={
-            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-            (isInsightsActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-          }
-          data-testid="sidebar-insights"
-        >
-          <Sparkles className="h-4 w-4" />
-          <span>{t('navigation.insights')}</span>
-        </Link>
-        <Link
-          to="/goap"
-          className={
-            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-            (isGoapActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-          }
-          data-testid="sidebar-goap"
-        >
-          <GitBranch className="h-4 w-4" />
-          <span>{t('navigation.goapPlanner')}</span>
-        </Link>
-        <Link
-          to="/prompt-bundles"
-          className={
-            'mt-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-            (isPromptBundlesActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-          }
-          data-testid="sidebar-prompt-bundles"
-        >
-          <Database className="h-4 w-4" />
-          <span>{t('navigation.promptBundles')}</span>
-        </Link>
-      </nav>
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">
-          {t('navigation.projects')}
-        </span>
-        <Dialog
-          open={open}
-          onOpenChange={(o) => {
-            setOpen(o);
-            if (!o) reset();
-          }}
-        >
-          <DialogTrigger asChild>
-            <IconButton icon={<Plus className="h-4 w-4" />} label={t('tooltips.newProject')} />
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t('newProject.title')}</DialogTitle>
-              <DialogDescription>{t('newProject.description')}</DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="np-name">{t('newProject.fields.name')}</Label>
-                <Input
-                  id="np-name"
-                  placeholder={t('newProject.fields.namePlaceholder')}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label>{t('newProject.fields.template')}</Label>
-                <TemplatePicker selectedId={templateId} onSelect={setTemplateId} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="np-goal">{t('newProject.fields.goal')}</Label>
-                <Textarea
-                  id="np-goal"
-                  rows={3}
-                  placeholder={
-                    templateId
-                      ? (templates.find((tpl) => tpl.id === templateId)?.suggestedGoals[0] ??
-                        t('newProject.fields.goalPlaceholder'))
-                      : t('newProject.fields.goalPlaceholder')
-                  }
-                  value={goal}
-                  onChange={(e) => setGoal(e.target.value)}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="np-repo">{t('newProject.fields.repoPath')}</Label>
-                <Input
-                  id="np-repo"
-                  placeholder={t('newProject.fields.repoPathPlaceholder')}
-                  value={repoPath}
-                  onChange={(e) => setRepoPath(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleCreate} disabled={!valid || createProject.isPending}>
-                {createProject.isPending ? t('buttons.creating') : t('buttons.create')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <nav
-        className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-4"
-        aria-label="projects"
-      >
-        {isLoading && (
-          <span className="px-3 py-2 text-xs text-muted-foreground">{t('buttons.loading')}</span>
-        )}
-        {!isLoading && projects.length === 0 && (
-          <span className="px-3 py-2 text-xs text-muted-foreground">
-            {t('navigation.noProjectsYet')}
-          </span>
-        )}
-        {projects.map((p) => {
-          const active = params.projectId === p.id;
-          const status = active ? activePlan.data?.status : undefined;
-          const count = dailyCounts.data?.byProject[p.id] ?? 0;
-          const lastModified = p.createdAt
-            ? new Date(p.createdAt).toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })
-            : null;
-          return (
-            <div key={p.id} className="flex flex-col">
-              <Tooltip>
+  const navItems: NavItem[] = useMemo(
+    () => [
+      {
+        to: '/',
+        label: t('topBar.missionControl'),
+        icon: <LayoutGrid className="h-4 w-4" />,
+        testId: 'sidebar-mission-control',
+        matchPath: (p) => p === '/' && !hasProject,
+      },
+      {
+        to: '/chat',
+        label: t('navigation.teamChat'),
+        icon: <MessagesSquare className="h-4 w-4" />,
+        testId: 'sidebar-chat',
+        matchPath: (p) => p.startsWith('/chat'),
+      },
+      {
+        to: '/agents',
+        label: t('navigation.agents'),
+        icon: <Bot className="h-4 w-4" />,
+        testId: 'sidebar-agents',
+        matchPath: (p) => p.startsWith('/agents'),
+      },
+      {
+        to: '/skills',
+        label: t('navigation.skills'),
+        icon: <Wrench className="h-4 w-4" />,
+        testId: 'sidebar-skills',
+        matchPath: (p) => p.startsWith('/skills'),
+      },
+      {
+        to: '/workers',
+        label: t('navigation.workers'),
+        icon: <Activity className="h-4 w-4" />,
+        testId: 'sidebar-workers',
+        matchPath: (p) => p.startsWith('/workers'),
+      },
+      {
+        to: '/insights',
+        label: t('navigation.insights'),
+        icon: <Sparkles className="h-4 w-4" />,
+        testId: 'sidebar-insights',
+        matchPath: (p) => p.startsWith('/insights'),
+      },
+      {
+        to: '/goap',
+        label: t('navigation.goapPlanner'),
+        icon: <GitBranch className="h-4 w-4" />,
+        testId: 'sidebar-goap',
+        matchPath: (p) => p.startsWith('/goap'),
+      },
+      {
+        to: '/prompt-bundles',
+        label: t('navigation.promptBundles'),
+        icon: <Database className="h-4 w-4" />,
+        testId: 'sidebar-prompt-bundles',
+        matchPath: (p) => p.startsWith('/prompt-bundles'),
+      },
+    ],
+    [t, hasProject],
+  );
+
+  const dailyTotal = useMemo(() => {
+    if (!dailyCounts.data) return 0;
+    return Object.values(dailyCounts.data.byProject).reduce((s, n) => s + n, 0);
+  }, [dailyCounts.data]);
+  void onHomeOrProject;
+
+  if (collapsed) {
+    return (
+      <aside className="wisp-aurora-scope relative z-[2] flex h-full w-16 shrink-0 flex-col items-center gap-2 border-r border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-sidebar-bg)] px-2.5 py-4 backdrop-blur-[30px]">
+        <WispLogo small />
+        <div className="mt-4 flex w-full flex-col gap-1">
+          {navItems.map((item) => {
+            const active = item.matchPath(location.pathname, hasProject);
+            return (
+              <Tooltip key={item.to}>
                 <TooltipTrigger asChild>
                   <Link
-                    to={`/projects/${p.id}`}
-                    className={
-                      'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground ' +
-                      (active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground')
-                    }
-                  >
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <FolderOpen className="h-4 w-4 shrink-0" />
-                      <span className="truncate">{p.name}</span>
-                    </div>
-                    {status &&
-                      (status === 'locked' ? (
-                        <span className="ml-auto" data-testid={`sidebar-plan-status-${p.id}`}>
-                          <StatusPill variant="outline" tone="neutral">
-                            LOCKED
-                          </StatusPill>
-                        </span>
-                      ) : (
-                        <span className="ml-auto" data-testid={`sidebar-plan-status-${p.id}`}>
-                          <StatusDotBadge status={status} />
-                        </span>
-                      ))}
-                    {count > 0 && (
-                      <span
-                        className={status ? 'ml-1' : 'ml-auto'}
-                        data-testid={`sidebar-daily-count-${p.id}`}
-                      >
-                        <StatusPill
-                          variant={count >= 5 ? 'solid' : 'soft'}
-                          tone={count >= 5 ? 'destructive' : 'neutral'}
-                        >
-                          {t('navigation.today', { count })}
-                        </StatusPill>
-                      </span>
+                    to={item.to}
+                    data-testid={item.testId}
+                    className={cn(
+                      'wisp-nav-item justify-center px-0',
+                      active && 'on',
+                      'h-9 w-9 self-center',
                     )}
+                    style={{ padding: 8 }}
+                  >
+                    <span
+                      style={{
+                        color: active ? 'var(--coral)' : 'var(--wisp-ink-3)',
+                      }}
+                    >
+                      {item.icon}
+                    </span>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right">
-                  {p.name}
-                  {lastModified && (
-                    <>
-                      <br />
-                      <span className="text-muted-foreground">{lastModified}</span>
-                    </>
-                  )}
-                </TooltipContent>
+                <TooltipContent side="right">{item.label}</TooltipContent>
               </Tooltip>
-              {active && <RecentRuns projectId={p.id} />}
-            </div>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          className="wisp-btn icon ghost mt-auto"
+          onClick={toggleSidebar}
+          aria-label={t('navigation.expandSidebar', 'Expand sidebar')}
+          title={t('navigation.expandSidebar', 'Expand sidebar')}
+        >
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
+      </aside>
+    );
+  }
+
+  return (
+    <aside
+      className="wisp-aurora-scope relative z-[2] flex h-full w-[248px] shrink-0 flex-col border-r border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-sidebar-bg)] px-3.5 pt-4 pb-3.5 backdrop-blur-[30px]"
+      data-testid="sidebar"
+    >
+      <div className="mb-3 flex items-center justify-between px-1">
+        <WispLogo />
+        <button
+          type="button"
+          className="wisp-btn icon ghost"
+          onClick={toggleSidebar}
+          aria-label={t('navigation.collapseSidebar', 'Collapse sidebar')}
+          title={t('navigation.collapseSidebar', 'Collapse sidebar')}
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <nav className="flex flex-col gap-1" aria-label="primary">
+        {navItems.map((item) => {
+          const active = item.matchPath(location.pathname, hasProject);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={cn('wisp-nav-item', active && 'on')}
+              data-testid={item.testId}
+            >
+              <span style={{ color: active ? 'var(--coral)' : 'var(--wisp-ink-3)' }}>
+                {item.icon}
+              </span>
+              <span className="flex-1 text-left">{item.label}</span>
+            </Link>
           );
         })}
       </nav>
+
+      <div className="mt-5">
+        <div className="flex items-center gap-1.5 px-1 pt-1 pb-2 text-[color:var(--wisp-ink-3)]">
+          <button
+            type="button"
+            onClick={() => setProjectsOpen((o) => !o)}
+            className="flex flex-1 cursor-pointer items-center gap-1.5 border-none bg-transparent p-0 text-left text-[color:var(--wisp-ink-3)]"
+            aria-expanded={projectsOpen}
+          >
+            <ChevronDown
+              className={cn('h-3 w-3 transition-transform', !projectsOpen && '-rotate-90')}
+            />
+            <span className="t-eyebrow">
+              {t('navigation.projects')} · {projects.length}
+            </span>
+          </button>
+          <Dialog
+            open={open}
+            onOpenChange={(o) => {
+              setOpen(o);
+              if (!o) reset();
+            }}
+          >
+            <DialogTrigger asChild>
+              <IconButton
+                icon={<Plus className="h-3.5 w-3.5" />}
+                label={t('tooltips.newProject')}
+              />
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t('newProject.title')}</DialogTitle>
+                <DialogDescription>{t('newProject.description')}</DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="np-name">{t('newProject.fields.name')}</Label>
+                  <Input
+                    id="np-name"
+                    placeholder={t('newProject.fields.namePlaceholder')}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label>{t('newProject.fields.template')}</Label>
+                  <TemplatePicker selectedId={templateId} onSelect={setTemplateId} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="np-goal">{t('newProject.fields.goal')}</Label>
+                  <Textarea
+                    id="np-goal"
+                    rows={3}
+                    placeholder={
+                      templateId
+                        ? (templates.find((tpl) => tpl.id === templateId)?.suggestedGoals[0] ??
+                          t('newProject.fields.goalPlaceholder'))
+                        : t('newProject.fields.goalPlaceholder')
+                    }
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="np-repo">{t('newProject.fields.repoPath')}</Label>
+                  <Input
+                    id="np-repo"
+                    placeholder={t('newProject.fields.repoPathPlaceholder')}
+                    value={repoPath}
+                    onChange={(e) => setRepoPath(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleCreate} disabled={!valid || createProject.isPending}>
+                  {createProject.isPending ? t('buttons.creating') : t('buttons.create')}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {projectsOpen && (
+          <nav
+            className="flex max-h-[40vh] flex-col gap-1 overflow-y-auto pr-1"
+            aria-label="projects"
+          >
+            {isLoading && (
+              <span className="px-2.5 py-2 text-xs text-[color:var(--wisp-ink-4)]">
+                {t('buttons.loading')}
+              </span>
+            )}
+            {!isLoading && projects.length === 0 && (
+              <span className="px-2.5 py-2 text-xs text-[color:var(--wisp-ink-4)]">
+                {t('navigation.noProjectsYet')}
+              </span>
+            )}
+            {projects.map((p) => {
+              const active = params.projectId === p.id;
+              const tone = projectTone(p.id);
+              const status = active ? activePlan.data?.status : undefined;
+              const count = dailyCounts.data?.byProject[p.id] ?? 0;
+              const hot = count > 0 || status === 'running';
+              const warn = status === 'failed';
+              return (
+                <div key={p.id} className="flex flex-col">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        to={`/projects/${p.id}`}
+                        className={cn('wisp-nav-item pl-2.5', active && 'on')}
+                      >
+                        <span
+                          className={cn('wisp-dot', tone, hot && 'pulse')}
+                          style={{ width: 6, height: 6 }}
+                        />
+                        <span className="flex-1 truncate text-left" style={{ fontSize: 12.5 }}>
+                          {p.name}
+                        </span>
+                        {hot && (
+                          <span
+                            className="wisp-chip coral"
+                            style={{ padding: '0 6px', fontSize: 10 }}
+                          >
+                            live
+                          </span>
+                        )}
+                        {warn && (
+                          <span
+                            className="wisp-chip amber"
+                            style={{ padding: '0 6px', fontSize: 10 }}
+                          >
+                            paused
+                          </span>
+                        )}
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{p.name}</TooltipContent>
+                  </Tooltip>
+                  {active && <RecentRuns projectId={p.id} />}
+                </div>
+              );
+            })}
+          </nav>
+        )}
+      </div>
+
+      {/* Plan budget block — design parity. Uses dailyTotal as today's-runs
+          stand-in until a real budget API exists. */}
+      <div className="mt-auto flex flex-col gap-2 pt-4">
+        <div className="wisp-surface" style={{ padding: 12 }}>
+          <div className="t-eyebrow mb-1.5">
+            {t('navigation.todayBudget', 'Plan budget · today')}
+          </div>
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <span style={{ fontFamily: 'var(--f-display)', fontSize: 24 }}>{dailyTotal}</span>
+            <span className="t-mono t-faint" style={{ fontSize: 11 }}>
+              {t('navigation.runsLabel', 'runs')}
+            </span>
+          </div>
+          <div className="wisp-bar mint" aria-hidden>
+            <i
+              style={
+                {
+                  ['--w' as never]: Math.min(1, dailyTotal / 20),
+                  transform: `scaleX(${Math.min(1, dailyTotal / 20)})`,
+                } as React.CSSProperties
+              }
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-between px-1">
+          <button type="button" className="wisp-btn ghost sm">
+            <Settings className="h-3.5 w-3.5" />
+            {t('navigation.settings', 'Settings')}
+          </button>
+          <span className="wisp-kbd">⌘K</span>
+        </div>
+      </div>
     </aside>
+  );
+}
+
+function WispLogo({ small = false }: { small?: boolean }) {
+  const size = small ? 32 : 40;
+  return (
+    <div className="flex items-center gap-2.5">
+      <img
+        src="/wisp-mascot.png"
+        alt="Wisp mascot"
+        style={{ display: 'block', height: size, width: 'auto' }}
+      />
+      {!small && (
+        <div className="flex items-baseline gap-2">
+          <img
+            src="/wisp-wordmark.png"
+            alt="Wisp"
+            style={{ display: 'block', height: 22, width: 'auto' }}
+          />
+          <span className="t-mono t-faint" style={{ fontSize: 10 }}>
+            v{__APP_VERSION__}
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -386,20 +506,28 @@ function RecentRuns({ projectId }: { projectId: string }) {
   const top = runs.data.slice(0, 3);
   return (
     <div className="ml-7 mr-2 flex flex-col gap-0.5 py-1" data-testid={`recent-runs-${projectId}`}>
-      <span className="px-2 py-1 text-2xs uppercase text-muted-foreground">
+      <span className="t-eyebrow px-2 py-1" style={{ fontSize: 10 }}>
         {t('navigation.recentRuns')}
       </span>
       {top.map((r) => (
         <Link
           key={r.id}
           to={`/projects/${projectId}/run/${r.id}`}
-          className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          className="flex items-center gap-2 rounded-md px-2 py-1 text-xs text-[color:var(--wisp-ink-3)] hover:bg-[color:var(--wisp-glass-hover)] hover:text-[color:var(--wisp-ink)]"
           data-testid={`recent-run-${r.id}`}
         >
           <span className="font-mono">{r.id.slice(0, 8)}</span>
-          <span className="ml-auto">
-            <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
-          </span>
+          <span
+            className={cn(
+              'wisp-dot ml-auto',
+              r.status === 'running' && 'coral pulse',
+              r.status === 'paused' && 'amber',
+              r.status === 'completed' && 'mint',
+              r.status === 'failed' && 'rose',
+              !['running', 'paused', 'completed', 'failed'].includes(r.status) && 'dim',
+            )}
+            style={{ width: 6, height: 6 }}
+          />
         </Link>
       ))}
     </div>

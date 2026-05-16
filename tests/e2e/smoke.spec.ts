@@ -41,12 +41,20 @@ test.describe('Phase F1 smoke', () => {
     });
 
     // Step 1: Visit /. Sidebar visible.
+    // Wisp re-skin (PR #43): the sidebar header is the mascot/wordmark image
+    // pair, not text — assert the sidebar landmark + Mission Control nav
+    // (scoped to the sidebar to avoid the breadcrumb collision).
     await page.goto('/');
-    await expect(page.getByText('Agent Harness', { exact: false }).first()).toBeVisible();
-    await expect(page.getByText(tt(lang, 'navigation.projects'), { exact: true })).toBeVisible();
+    await expect(page.getByTestId('sidebar')).toBeVisible();
+    await expect(page.getByTestId('sidebar-mission-control')).toBeVisible();
 
     // Step 2: + New Project. Fill name/goal/repoPath. Submit.
-    await page.getByRole('button', { name: tt(lang, 'navigation.newProject') }).click();
+    // Scope to the sidebar — the Wisp Home page also exposes a hero "New
+    // project" button, so an unscoped role-by-name match is ambiguous.
+    await page
+      .getByTestId('sidebar')
+      .getByRole('button', { name: tt(lang, 'navigation.newProject') })
+      .click();
     await expect(page.getByText(tt(lang, 'newProject.title'), { exact: true })).toBeVisible();
 
     await page.getByLabel(tt(lang, 'newProject.fields.name')).fill('smoke-todo');
