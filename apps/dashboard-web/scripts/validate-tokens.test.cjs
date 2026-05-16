@@ -11,7 +11,9 @@ const count = (m[1].match(/path\.join/g) ?? []).length;
 // v1.15.1 — raised from 5 to 7 to cover preview-inspector.ts (iframe-injected
 // inline-style hex literals, can't use CSS vars) + OrgChartView.test.tsx
 // (snapshot fixture asserts a specific hex). Both landed in Phases 4-5.
-const MAX_ALLOWED = 7;
+// Wisp re-skin — raised to 8 for routes/Goap.tsx (3-column SVG canvas needs
+// a viewport-height container under the topbar).
+const MAX_ALLOWED = 8;
 if (count > MAX_ALLOWED) {
   console.error(
     `validate-tokens.cjs allowFiles grew past ${MAX_ALLOWED}: ${count}. Re-justify before raising.`,
