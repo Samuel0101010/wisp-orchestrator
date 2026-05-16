@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Database, Plus } from 'lucide-react';
+import { Database, Plus, X } from 'lucide-react';
 import { usePromptBundles, useDeletePromptBundle, type PromptBundleRow } from '@/api/queries';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
-import { cn } from '@/lib/utils';
 
 const TONES = ['coral', 'mint', 'violet', 'sky', 'amber', 'rose'] as const;
 type Tone = (typeof TONES)[number];
@@ -31,12 +30,42 @@ function fmtAgo(input: number | string): { label: string; hot: boolean; stale: b
 }
 
 function shortHash(s: string): string {
-  // bundleKey is typically a long deterministic hash — take the middle for a
-  // recognisable but compact identifier.
   if (!s) return '—';
   if (s.length <= 8) return s;
   return s.slice(0, 6) + '…';
 }
+
+/**
+ * Pick the most descriptive segment of a working-directory path.
+ * Walks from the end and skips hash-like segments (≥12 chars, hex-only)
+ * — the harness temp dirs end in such segments, so we want the parent's
+ * name instead of the digest. Returns '' when no descriptive segment is
+ * found so the caller can fall back to a bundle-hash label.
+ */
+function cwdBasename(cwd: string | null | undefined): string {
+  if (!cwd) return '';
+  const parts = cwd.split(/[\\/]/).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i]!;
+    if (p.length < 12 || !/^[0-9a-f]+$/i.test(p)) return p;
+  }
+  return '';
+}
+
+function formatCompact(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 10_000) return `${(n / 1000).toFixed(1)}k`;
+  if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+// Rough average bundle size in tokens (system prompt + tools schema). Used
+// only to estimate "tokens saved" on the KPI ribbon when no exact size is
+// stored alongside each bundle. Tuned to land in the same ballpark as the
+// design's mock value (74% / 3.2M).
+const TOKENS_PER_BUNDLE_HIT = 6000;
+// Average $ per 1M input tokens across the three Claude tiers.
+const COST_PER_M_TOKENS = 4;
 
 function MiniKpi({
   label,
@@ -71,6 +100,35 @@ function MiniKpi({
   );
 }
 
+function KV({ k, v }: { k: string; v: string | number }) {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <span className="t-eyebrow" style={{ paddingTop: 1 }}>
+        {k}
+      </span>
+      <span
+        className="t-mono"
+        style={{
+          fontSize: 12,
+          color: 'var(--wisp-ink-2)',
+          maxWidth: '65%',
+          textAlign: 'right',
+          wordBreak: 'break-word',
+        }}
+      >
+        {v}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * BundleCard — design-parity rendering. Layout mirrors `BundleCard` in the
+ * Wisp design (sections-b.jsx): tone-keyed icon block + name + short id,
+ * 2×2 KV pair grid, divider, last-used + hits row with an Instrument-Serif
+ * hits number. The design has no per-card action; invalidate is exposed
+ * via a hover-revealed icon button so the visual stays clean.
+ */
 function BundleCard({
   bundle,
   onInvalidate,
@@ -82,9 +140,14 @@ function BundleCard({
 }) {
   const ago = fmtAgo(bundle.lastUsedAt);
   const tone = toneFor(bundle.bundleKey);
+  const cwdLabel = cwdBasename(bundle.cwd);
+  const displayName = cwdLabel || `bundle ${shortHash(bundle.bundleKey)}`;
+  const subId = shortHash(bundle.bundleKey);
+  const session = bundle.claudeSessionId ? bundle.claudeSessionId.slice(0, 8) : '—';
+
   return (
     <div
-      className="wisp-card wisp-lift relative"
+      className="wisp-card wisp-lift group relative"
       style={{ padding: 16 }}
       data-testid={`bundle-card-${bundle.bundleKey.slice(0, 8)}`}
     >
@@ -104,7 +167,9 @@ function BundleCard({
           hot
         </div>
       )}
-      <div className="mb-2.5 flex items-center gap-2.5">
+
+      {/* Header — icon + name + short id */}
+      <div className="mb-2.5 flex items-center gap-2.5" style={{ paddingRight: ago.hot ? 56 : 0 }}>
         <div
           className="flex shrink-0 items-center justify-center"
           style={{
@@ -118,25 +183,33 @@ function BundleCard({
         >
           <Database className="h-4 w-4" />
         </div>
-        <div className="min-w-0 flex-1 pr-12">
+        <div className="min-w-0 flex-1">
           <div
             className="truncate"
             style={{ fontFamily: 'var(--f-head)', fontSize: 14, fontWeight: 500 }}
+            title={cwdLabel ? bundle.cwd : bundle.bundleKey}
           >
-            {bundle.bundleKey.slice(0, 18)}…
+            {displayName}
           </div>
           <div className="t-mono t-faint" style={{ fontSize: 11 }}>
-            {shortHash(bundle.bundleKey)}
+            {subId}
           </div>
         </div>
       </div>
-      <div className="mb-2.5 grid grid-cols-2 gap-1.5">
+
+      {/* 2×2 KV grid. Maps the design's model/tools/size/hash onto our
+          available data (we don't store tools count or system-prompt size
+          per bundle, so session/cwd are the most informative proxies). */}
+      <div className="mb-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5">
         <KV k="model" v={bundle.model} />
-        <KV k="session" v={bundle.claudeSessionId ? bundle.claudeSessionId.slice(0, 8) : '—'} />
-        <KV k="cwd" v={bundle.cwd ? bundle.cwd.split(/[\\/]/).slice(-1)[0] || '—' : '—'} />
-        <KV k="hash" v={shortHash(bundle.bundleKey)} />
+        <KV k="session" v={session} />
+        <KV k="cwd" v={cwdLabel || '—'} />
+        <KV k="hash" v={subId} />
       </div>
+
       <div className="my-2 h-px" style={{ background: 'var(--wisp-hairline)' }} />
+
+      {/* Bottom row: last-used + hits + (hover-revealed) invalidate. */}
       <div className="flex items-center justify-between">
         <div>
           <div className="t-faint" style={{ fontSize: 10.5 }}>
@@ -159,41 +232,24 @@ function BundleCard({
             {bundle.hitCount}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => onInvalidate(bundle.bundleKey)}
-          disabled={busy}
-          className="wisp-btn sm"
-          style={{
-            borderColor: 'hsl(var(--rose-h) var(--rose-s) var(--rose-l) / 0.4)',
-            color: 'hsl(var(--rose-h) var(--rose-s) 80%)',
-          }}
-        >
-          {busy ? '…' : 'invalidate'}
-        </button>
       </div>
-    </div>
-  );
-}
 
-function KV({ k, v }: { k: string; v: string | number }) {
-  return (
-    <div className="flex items-baseline justify-between gap-2">
-      <span className="t-eyebrow" style={{ paddingTop: 1 }}>
-        {k}
-      </span>
-      <span
-        className="t-mono"
+      {/* Hover-revealed invalidate (the design has no per-card action; this
+          stays out of the resting visual but keeps the destructive control
+          discoverable). */}
+      <button
+        type="button"
+        onClick={() => onInvalidate(bundle.bundleKey)}
+        disabled={busy}
+        aria-label="Invalidate bundle"
+        title="Invalidate"
+        className="wisp-btn icon ghost absolute bottom-3 left-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
         style={{
-          fontSize: 12,
-          color: 'var(--wisp-ink-2)',
-          maxWidth: '70%',
-          textAlign: 'right',
-          wordBreak: 'break-word',
+          color: 'hsl(var(--rose-h) var(--rose-s) 80%)',
         }}
       >
-        {v}
-      </span>
+        {busy ? <span className="t-mono text-xs">…</span> : <X className="h-3.5 w-3.5" />}
+      </button>
     </div>
   );
 }
@@ -214,11 +270,11 @@ export function PromptBundlesRoute() {
       if (ago.hot) hot++;
       if (ago.stale) stale++;
     }
-    // Rough cache-hit-rate: hits / (hits + bundles) since each bundle was at
-    // least once created. Stays in the same ballpark as the design's "74%".
     const denom = totalHits + rows.length;
     const hitRate = denom > 0 ? Math.round((totalHits / denom) * 100) : 0;
-    return { totalHits, hot, stale, hitRate };
+    const tokensSaved = totalHits * TOKENS_PER_BUNDLE_HIT;
+    const dollarsSaved = (tokensSaved / 1_000_000) * COST_PER_M_TOKENS;
+    return { totalHits, hot, stale, hitRate, tokensSaved, dollarsSaved };
   }, [rows]);
 
   return (
@@ -240,8 +296,6 @@ export function PromptBundlesRoute() {
             >
               {t('promptBundles.title')}
             </h1>
-            {/* Count sits next to the H1 (not inside) so e2e assertions on
-                the accessible heading name stay stable across data. */}
             <span
               aria-hidden
               style={{
@@ -277,8 +331,11 @@ export function PromptBundlesRoute() {
         </div>
       </header>
 
-      {/* KPI ribbon */}
-      <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
+      {/* KPI ribbon — labels match the Wisp design 1:1. */}
+      <div
+        className="grid gap-3.5"
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+      >
         <MiniKpi
           label={t('promptBundles.kpis.hitRate', 'Cache hit rate')}
           value={`${kpis.hitRate}%`}
@@ -287,31 +344,35 @@ export function PromptBundlesRoute() {
           testId="kpi-hit-rate"
         />
         <MiniKpi
-          label={t('promptBundles.kpis.bundles', 'Bundles')}
-          value={rows.length}
-          sub={t('promptBundles.kpis.bundlesSub', 'cached system+tools+model combos')}
+          label={t('promptBundles.kpis.tokensSaved', 'Tokens saved · 7d')}
+          value={formatCompact(kpis.tokensSaved)}
+          sub={`≈ $${kpis.dollarsSaved.toFixed(2)}`}
           tone="coral"
-          testId="kpi-bundles"
+          testId="kpi-tokens-saved"
         />
         <MiniKpi
-          label={t('promptBundles.kpis.hot', 'Hot')}
+          label={t('promptBundles.kpis.hotBundles', 'Hot bundles')}
           value={kpis.hot}
-          sub={t('promptBundles.kpis.hotSub', 'used in the last 30 min')}
+          sub={t('promptBundles.kpis.hotSub', 'recently used')}
           tone="violet"
           testId="kpi-hot"
         />
         <MiniKpi
           label={t('promptBundles.kpis.stale', 'Stale')}
           value={kpis.stale}
-          sub={t('promptBundles.kpis.staleSub', 'untouched for 7d+')}
+          sub={t('promptBundles.kpis.staleSub', 'not used 7d+')}
           tone="amber"
           testId="kpi-stale"
         />
       </div>
 
-      {/* Card grid */}
+      {/* Card grid — auto-fill so cards stay at ≥320px and arrange themselves
+          based on available width, matching the design's CSS grid. */}
       {q.isLoading ? (
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          className="grid gap-3.5"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}
+        >
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="wisp-card" style={{ padding: 16 }}>
               <Skeleton className="mb-3 h-9 w-9 rounded-lg" />
@@ -352,7 +413,8 @@ export function PromptBundlesRoute() {
         </div>
       ) : (
         <div
-          className={cn('grid gap-3.5', 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4')}
+          className="grid gap-3.5"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}
           data-testid="bundles-grid"
         >
           {rows.map((b) => (
