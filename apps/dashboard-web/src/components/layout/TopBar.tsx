@@ -68,7 +68,7 @@ export function TopBar() {
     <button
       type="button"
       onClick={dispatchCmdK}
-      className="group flex max-w-[520px] flex-1 items-center gap-2 rounded-[10px] border border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-glass)] px-3.5 py-1.5 font-[var(--f-head)] text-[13px] text-[color:var(--wisp-ink-3)] transition-colors hover:border-[color:var(--wisp-hairline-bright)] hover:bg-[color:var(--wisp-glass-hover)]"
+      className="group flex max-w-[520px] flex-1 items-center gap-2 rounded-[10px] border border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-glass)] px-3.5 py-1.5 font-[var(--f-head)] text-sm-tight text-[color:var(--wisp-ink-3)] transition-colors hover:border-[color:var(--wisp-hairline-bright)] hover:bg-[color:var(--wisp-glass-hover)]"
       data-testid="topbar-cmdk-trigger"
     >
       <Search className="h-3.5 w-3.5 text-[color:var(--wisp-ink-3)]" />
