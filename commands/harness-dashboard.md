@@ -1,9 +1,9 @@
 ---
 name: harness-dashboard
-description: Open the Agent Harness dashboard in your browser
+description: Open the WISP dashboard in your browser
 ---
 
-Launch the Agent Harness dashboard server (if not already running) and open it in your default browser. The launcher picks a free port in the 4400-4500 range, writes connection state to `${CLAUDE_PLUGIN_DATA}/state.json`, and prints the URL.
+Launch the WISP dashboard server (if not already running) and open it in your default browser. The launcher picks a free port in the 4400-4500 range, writes connection state to `${CLAUDE_PLUGIN_DATA}/state.json`, and prints the URL.
 
 **First-launch:** the launcher auto-runs `pnpm install && pnpm build` (~1-2 minutes one-time). pnpm must be on PATH.
 

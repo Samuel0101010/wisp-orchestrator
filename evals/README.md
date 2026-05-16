@@ -1,4 +1,4 @@
-# Agent Harness Eval Suite
+# WISP Eval Suite
 
 Runs prompt regression tests against the seed skills + manager directives using
 [promptfoo](https://www.promptfoo.dev/).

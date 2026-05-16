@@ -1,4 +1,4 @@
-# Agent Harness — Handoff
+# WISP — Handoff
 
 State of the plugin and codebase as of **v1.7.0** (tag `v1.7.0`, commit `615250b`, released 2026-05-12). This document is intended for the next maintainer — human or agent — who picks this up from cold.
 

@@ -26,11 +26,11 @@ describe('Logomark', () => {
   });
 
   it('exposes an accessible name when title is provided', () => {
-    const { container, getByTitle } = render(<Logomark title="Agent Harness" />);
+    const { container, getByTitle } = render(<Logomark title="WISP" />);
     const svg = container.querySelector('svg');
     expect(svg?.getAttribute('role')).toBe('img');
-    expect(svg?.getAttribute('aria-label')).toBe('Agent Harness');
-    expect(getByTitle('Agent Harness')).toBeInTheDocument();
+    expect(svg?.getAttribute('aria-label')).toBe('WISP');
+    expect(getByTitle('WISP')).toBeInTheDocument();
   });
 
   it('emits a single path element', () => {

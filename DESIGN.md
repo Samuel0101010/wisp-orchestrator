@@ -1,4 +1,4 @@
-# Design — Agent Harness Dashboard
+# Design — WISP Dashboard
 
 Konkretes Design-System für `apps/dashboard-web`. Bezug zu PRODUCT.md (Brand: technisch · präzise · beobachtbar · Anchor: Linear · Mode: dark-default).
 

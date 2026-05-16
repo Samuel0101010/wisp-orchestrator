@@ -4,7 +4,7 @@
 
 **product**
 
-Agent Harness ist ein lokales Orchestrator-Tool für autonome Claude-Code-Agenten-Crews. Das Dashboard ist UI für ein Power-User-Werkzeug, keine Marketing-Site. Design *serves* das Produkt: dichte Live-Information (Plan-DAG, Kanban, Streaming-Tail, Token-Budget, Rate-Limit-Countdown), schnelle Loads, Hotkey-Coverage, ruhige Tonalität in stundenlangen Beobachtungs-Sessions. Es gibt keinen Brand-Modus / Marketing-Surface — die Distribution läuft über GitHub-README + Claude-Code-Plugin, nicht über eine Landing-Page.
+WISP ist ein lokales Orchestrator-Tool für autonome Claude-Code-Agenten-Crews. Das Dashboard ist UI für ein Power-User-Werkzeug, keine Marketing-Site. Design *serves* das Produkt: dichte Live-Information (Plan-DAG, Kanban, Streaming-Tail, Token-Budget, Rate-Limit-Countdown), schnelle Loads, Hotkey-Coverage, ruhige Tonalität in stundenlangen Beobachtungs-Sessions. Es gibt keinen Brand-Modus / Marketing-Surface — die Distribution läuft über GitHub-README + Claude-Code-Plugin, nicht über eine Landing-Page.
 
 ## Users
 
@@ -18,7 +18,7 @@ Agent Harness ist ein lokales Orchestrator-Tool für autonome Claude-Code-Agente
 
 ## Product Purpose
 
-Agent Harness löst die Lücke zwischen Single-Agent-Chat-UIs (zu schmal), Black-Box-Orchestrators (Plan unsichtbar) und Notebook-Babysitting-Setups (zu fragil). Es liefert eine vertikale Slice: editierbare Team-Spec → DAG-Plan-Artifact → Live-Execution-Graph mit Persistenz über Rate-Limit-Pausen und Maschinen-Restarts hinweg.
+WISP löst die Lücke zwischen Single-Agent-Chat-UIs (zu schmal), Black-Box-Orchestrators (Plan unsichtbar) und Notebook-Babysitting-Setups (zu fragil). Es liefert eine vertikale Slice: editierbare Team-Spec → DAG-Plan-Artifact → Live-Execution-Graph mit Persistenz über Rate-Limit-Pausen und Maschinen-Restarts hinweg.
 
 **Erfolg:**
 

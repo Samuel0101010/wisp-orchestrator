@@ -681,7 +681,7 @@ export class Walker {
       `  2. Edit the file to a single coherent version that preserves BOTH intents wherever they don't logically collide. Never blindly delete one side's work.\n` +
       `  3. Run "git add <file>" for each resolved file.\n` +
       `  4. After every conflict is resolved, run:\n` +
-      `       git -c user.email=harness@agent-harness.local -c user.name=Agent Harness -c commit.gpgsign=false -c tag.gpgsign=false commit --no-edit\n` +
+      `       git -c user.email=harness@agent-harness.local -c user.name=WISP -c commit.gpgsign=false -c tag.gpgsign=false commit --no-edit\n` +
       `     to finalise the merge.\n\n` +
       `Hard rules:\n` +
       `  - Do NOT run "git merge --abort". Resolving the conflict is the only acceptable outcome.\n` +

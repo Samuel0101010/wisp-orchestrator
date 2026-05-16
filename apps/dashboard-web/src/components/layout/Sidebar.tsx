@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -11,9 +11,12 @@ import {
   GitBranch,
   LayoutGrid,
   MessagesSquare,
+  MoreHorizontal,
   Plus,
   Settings,
   Sparkles,
+  Star,
+  Trash2,
   Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,6 +39,7 @@ import { TemplatePicker } from '@/components/TemplatePicker';
 import {
   useCreateProject,
   useDailyRunCount,
+  useDeleteProject,
   useGeneratedPlan,
   useProjectRuns,
   useProjects,
@@ -73,6 +77,21 @@ export function Sidebar() {
   const dailyCounts = useDailyRunCount();
   const collapsed = useUiStore((s) => s.sidebarCollapsed);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+  const favoriteProjectIds = useUiStore((s) => s.favoriteProjectIds);
+  const toggleFavorite = useUiStore((s) => s.toggleFavorite);
+  const deleteProject = useDeleteProject();
+
+  // Favorites first, original order otherwise. `indexOf` against the original
+  // list keeps the inner ordering stable when nothing is favorited.
+  const sortedProjects = useMemo(() => {
+    const favSet = new Set(favoriteProjectIds);
+    return [...projects].sort((a, b) => {
+      const af = favSet.has(a.id) ? 1 : 0;
+      const bf = favSet.has(b.id) ? 1 : 0;
+      if (af !== bf) return bf - af;
+      return projects.indexOf(a) - projects.indexOf(b);
+    });
+  }, [projects, favoriteProjectIds]);
 
   const [open, setOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(true);
@@ -391,48 +410,38 @@ export function Sidebar() {
                 {t('navigation.noProjectsYet')}
               </span>
             )}
-            {projects.map((p) => {
+            {sortedProjects.map((p) => {
               const active = params.projectId === p.id;
               const tone = projectTone(p.id);
               const status = active ? activePlan.data?.status : undefined;
               const count = dailyCounts.data?.byProject[p.id] ?? 0;
               const hot = count > 0 || status === 'running';
               const warn = status === 'failed';
+              const isFavorite = favoriteProjectIds.includes(p.id);
               return (
                 <div key={p.id} className="flex flex-col">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to={`/projects/${p.id}`}
-                        className={cn('wisp-nav-item pl-2.5', active && 'on')}
-                      >
-                        <span
-                          className={cn('wisp-dot', tone, hot && 'pulse')}
-                          style={{ width: 6, height: 6 }}
-                        />
-                        <span className="flex-1 truncate text-left" style={{ fontSize: 12.5 }}>
-                          {p.name}
-                        </span>
-                        {hot && (
-                          <span
-                            className="wisp-chip coral"
-                            style={{ padding: '0 6px', fontSize: 10 }}
-                          >
-                            live
-                          </span>
-                        )}
-                        {warn && (
-                          <span
-                            className="wisp-chip amber"
-                            style={{ padding: '0 6px', fontSize: 10 }}
-                          >
-                            paused
-                          </span>
-                        )}
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{p.name}</TooltipContent>
-                  </Tooltip>
+                  <ProjectRow
+                    id={p.id}
+                    name={p.name}
+                    tone={tone}
+                    active={active}
+                    hot={hot}
+                    warn={warn}
+                    isFavorite={isFavorite}
+                    onToggleFavorite={() => toggleFavorite(p.id)}
+                    onDelete={async () => {
+                      try {
+                        await deleteProject.mutateAsync(p.id);
+                        toast({ title: t('projectMenu.deleted'), description: p.name });
+                      } catch (err) {
+                        toast({
+                          title: t('projectMenu.deleteFailed'),
+                          description: (err as Error).message,
+                          variant: 'destructive',
+                        });
+                      }
+                    }}
+                  />
                   {active && <RecentRuns projectId={p.id} />}
                 </div>
               );
@@ -446,9 +455,7 @@ export function Sidebar() {
           footer fully visible even when the projects list overflows. */}
       <div className="flex shrink-0 flex-col gap-2 pt-4">
         <div className="wisp-surface" style={{ padding: 12 }}>
-          <div className="t-eyebrow mb-1.5">
-            {t('navigation.todayBudget', 'Plan budget · today')}
-          </div>
+          <div className="t-eyebrow mb-1.5">{t('navigation.todayRuns', 'Runs · today')}</div>
           <div className="mb-1.5 flex items-baseline justify-between">
             <span style={{ fontFamily: 'var(--f-display)', fontSize: 24 }}>{dailyTotal}</span>
             <span className="t-mono t-faint" style={{ fontSize: 11 }}>
@@ -467,10 +474,10 @@ export function Sidebar() {
           </div>
         </div>
         <div className="flex items-center justify-between px-1">
-          <button type="button" className="wisp-btn ghost sm">
+          <Link to="/settings" className="wisp-btn ghost sm" data-testid="sidebar-settings">
             <Settings className="h-3.5 w-3.5" />
             {t('navigation.settings', 'Settings')}
-          </button>
+          </Link>
           <span className="wisp-kbd">⌘K</span>
         </div>
       </div>
@@ -499,6 +506,187 @@ function WispLogo({ small = false }: { small?: boolean }) {
           </span>
         </div>
       )}
+    </div>
+  );
+}
+
+interface ProjectRowProps {
+  id: string;
+  name: string;
+  tone: (typeof PROJECT_TONES)[number];
+  active: boolean;
+  hot: boolean;
+  warn: boolean;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onDelete: () => Promise<void> | void;
+}
+
+function ProjectRow({
+  id,
+  name,
+  tone,
+  active,
+  hot,
+  warn,
+  isFavorite,
+  onToggleFavorite,
+  onDelete,
+}: ProjectRowProps) {
+  const { t } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [menuOpen]);
+
+  const handleConfirmDelete = async (): Promise<void> => {
+    setDeleting(true);
+    try {
+      await onDelete();
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="group relative flex items-center" data-testid={`project-row-${id}`}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            to={`/projects/${id}`}
+            className={cn('wisp-nav-item flex-1 pl-2.5 pr-8', active && 'on')}
+          >
+            <span
+              className={cn('wisp-dot', tone, hot && 'pulse')}
+              style={{ width: 6, height: 6 }}
+            />
+            <span className="flex-1 truncate text-left" style={{ fontSize: 12.5 }}>
+              {name}
+            </span>
+            {isFavorite && (
+              <Star
+                className="h-3 w-3 shrink-0"
+                style={{ color: 'var(--amber)', fill: 'var(--amber)' }}
+                aria-hidden
+              />
+            )}
+            {hot && (
+              <span className="wisp-chip coral" style={{ padding: '0 6px', fontSize: 10 }}>
+                live
+              </span>
+            )}
+            {warn && (
+              <span className="wisp-chip amber" style={{ padding: '0 6px', fontSize: 10 }}>
+                paused
+              </span>
+            )}
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="right">{name}</TooltipContent>
+      </Tooltip>
+      <div ref={menuRef} className="absolute right-1 top-1/2 -translate-y-1/2">
+        <button
+          type="button"
+          aria-label={t('projectMenu.trigger', 'Project options')}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          data-testid={`project-menu-trigger-${id}`}
+          className={cn(
+            'flex h-6 w-6 items-center justify-center rounded-md text-[color:var(--wisp-ink-3)] opacity-0 transition-opacity hover:bg-[color:var(--wisp-glass-hover)] hover:text-[color:var(--wisp-ink)] group-hover:opacity-100 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-[color:var(--coral)]',
+            menuOpen && 'opacity-100',
+          )}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenuOpen((o) => !o);
+          }}
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+        {menuOpen && (
+          <div
+            role="menu"
+            data-testid={`project-menu-${id}`}
+            className="absolute right-0 top-full z-50 mt-1 min-w-[180px] overflow-hidden rounded-md border border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-surface)] py-1 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              role="menuitem"
+              data-testid={`project-menu-favorite-${id}`}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-[color:var(--wisp-ink)] hover:bg-[color:var(--wisp-glass-hover)]"
+              onClick={() => {
+                onToggleFavorite();
+                setMenuOpen(false);
+              }}
+            >
+              <Star className="h-3.5 w-3.5" />
+              {isFavorite
+                ? t('projectMenu.unfavorite', 'Remove favorite')
+                : t('projectMenu.favorite', 'Mark as favorite')}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              data-testid={`project-menu-delete-${id}`}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-[color:var(--rose)] hover:bg-[color:var(--wisp-glass-hover)]"
+              onClick={() => {
+                setMenuOpen(false);
+                setDeleteOpen(true);
+              }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {t('projectMenu.delete', 'Delete')}
+            </button>
+          </div>
+        )}
+      </div>
+      <Dialog open={deleteOpen} onOpenChange={(o) => !deleting && setDeleteOpen(o)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('projectMenu.deleteConfirmTitle', 'Delete project?')}</DialogTitle>
+            <DialogDescription>
+              {t('projectMenu.deleteConfirmBody', {
+                name,
+                defaultValue:
+                  '{{name}} will be permanently removed — runs, plans, and team configuration will be lost.',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+              {t('projectMenu.deleteCancel', 'Cancel')}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+              data-testid={`project-delete-confirm-${id}`}
+            >
+              {t('projectMenu.deleteConfirm', 'Delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

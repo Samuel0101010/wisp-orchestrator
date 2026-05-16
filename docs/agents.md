@@ -1,6 +1,6 @@
 # Agents
 
-Agent Harness uses four agent specs, all defined as plugin-loadable Markdown files in [`agents/`](../agents). Three of them — architect, developer, QA — populate the `Team` object that flows through the plan; the fourth — planner — is invoked once per run by the orchestrator before any team agent dispatches.
+WISP uses four agent specs, all defined as plugin-loadable Markdown files in [`agents/`](../agents). Three of them — architect, developer, QA — populate the `Team` object that flows through the plan; the fourth — planner — is invoked once per run by the orchestrator before any team agent dispatches.
 
 This page is a reference. The authoritative system prompts live in the linked agent files; this document only paraphrases their contracts.
 

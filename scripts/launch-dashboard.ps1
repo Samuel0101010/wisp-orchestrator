@@ -1,4 +1,4 @@
-# Agent Harness dashboard launcher (Windows)
+# WISP dashboard launcher (Windows)
 # Idempotent: re-running picks a free port and writes a fresh state.json.
 # requires-exec: PowerShell execution; invoke via -ExecutionPolicy Bypass.
 
@@ -55,7 +55,7 @@ if ($chosenPort -eq 0) {
 # Locate the dashboard server entry. Auto-bootstrap on first launch.
 $serverEntry = Join-Path $pluginRoot 'apps/dashboard-server/dist/server.js'
 if (-not (Test-Path -LiteralPath $serverEntry)) {
-    Write-Host "First launch: building Agent Harness (~1-2 minutes)..." -ForegroundColor Cyan
+    Write-Host "First launch: building WISP (~1-2 minutes)..." -ForegroundColor Cyan
     $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
     if ($null -eq $pnpm) {
         Write-Error "pnpm not found on PATH. Install it first: npm install -g pnpm"
