@@ -732,6 +732,16 @@
       "newRunDisabled": "Lock a plan first",
       "starting": "Starting…"
     },
+    "runStart": {
+      "title": "Start a new run?",
+      "description": "The run will use the current project goal shown below and the locked plan.",
+      "goalLabel": "Current goal",
+      "expandGoal": "Show full goal",
+      "collapseGoal": "Collapse",
+      "iterationHint": "Only want to change what's there? → Switch to the preview tab, add change-requests, and start an iteration instead.",
+      "gotoPreview": "Go to preview",
+      "confirm": "Start run"
+    },
     "runs": {
       "title": "Run history",
       "empty": "No runs yet — generate a plan and lock it to start the first one.",

@@ -46,6 +46,7 @@ import { PreviewFrame } from '@/components/PreviewFrame';
 import { OrgChartView } from '@/components/OrgChartView';
 import { BuildAppCard } from '@/components/BuildAppCard';
 import { BuildTargetSelect } from '@/components/BuildTargetSelect';
+import { RunStartDialog } from '@/components/RunStartDialog';
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
@@ -227,14 +228,32 @@ function ProjectTabs({
   // changes to the brief/state queries shouldn't yank the user off whatever
   // tab they're currently looking at — useState's lazy initializer is the
   // idiomatic way to derive a frozen mount-time value.
-  const [initialTab] = useState<'brief' | 'preview'>(() => {
+  const [activeTab, setActiveTab] = useState<string>(() => {
     const briefReady = interview.data?.brief?.briefReady === true;
     const hasState = !!stateQ.data?.state;
     return briefReady && hasState ? 'preview' : 'brief';
   });
 
+  // Shared dialog state — both the "Neuen Run starten" button on the Plan
+  // tab and the new header action on the Runs tab open the same confirmation
+  // modal so the iteration hint is always presented.
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const openDialog = (): void => setDialogOpen(true);
+  const closeDialog = (): void => setDialogOpen(false);
+
+  const handleConfirmNewRun = (): void => {
+    setDialogOpen(false);
+    void onNewRun();
+  };
+
+  const handleGotoPreview = (): void => {
+    setDialogOpen(false);
+    setActiveTab('preview');
+  };
+
   return (
-    <Tabs defaultValue={initialTab} className="flex flex-col gap-6">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-6">
       <TabsList className="self-start">
         <TabsTrigger value="brief" data-testid="project-tabs-trigger-brief">
           {t('projectTabs.brief')}
@@ -269,7 +288,7 @@ function ProjectTabs({
           planStatus={planStatus}
           planLocked={planLocked}
           startingRun={startingRun}
-          onNewRun={onNewRun}
+          onRequestNewRun={openDialog}
         />
         <DefinitionOfDoneCard projectId={projectId} />
       </TabsContent>
@@ -284,6 +303,9 @@ function ProjectTabs({
           runList={runList}
           successfulCount={successfulCount}
           totalTokens={totalTokens}
+          planLocked={planLocked}
+          startingRun={startingRun}
+          onRequestNewRun={openDialog}
         />
       </TabsContent>
 
@@ -304,6 +326,16 @@ function ProjectTabs({
         <BuildTargetSelect projectId={projectId} packageTarget={p.packageTarget ?? 'web'} />
         <BuildAppCard projectId={projectId} packageTarget={p.packageTarget ?? 'web'} />
       </TabsContent>
+
+      <RunStartDialog
+        open={dialogOpen}
+        goal={p.goal}
+        starting={startingRun}
+        onOpenChange={(next) => (next ? openDialog() : closeDialog())}
+        onConfirm={handleConfirmNewRun}
+        onCancel={closeDialog}
+        onGotoPreview={handleGotoPreview}
+      />
     </Tabs>
   );
 }
@@ -313,7 +345,7 @@ interface PlanSummaryCardProps {
   planStatus: string | undefined;
   planLocked: boolean;
   startingRun: boolean;
-  onNewRun: () => Promise<void>;
+  onRequestNewRun: () => void;
 }
 
 function PlanSummaryCard({
@@ -321,7 +353,7 @@ function PlanSummaryCard({
   planStatus,
   planLocked,
   startingRun,
-  onNewRun,
+  onRequestNewRun,
 }: PlanSummaryCardProps) {
   const { t } = useTranslation();
   return (
@@ -354,7 +386,7 @@ function PlanSummaryCard({
         </Button>
         <Button
           size="sm"
-          onClick={() => void onNewRun()}
+          onClick={onRequestNewRun}
           disabled={!planLocked || startingRun}
           title={planLocked ? undefined : t('projectDetail.actions.newRunDisabled')}
           data-testid="project-detail-new-run"
@@ -372,27 +404,50 @@ interface RunsCardProps {
   runList: ProjectRunRow[];
   successfulCount: number;
   totalTokens: number;
+  planLocked: boolean;
+  startingRun: boolean;
+  onRequestNewRun: () => void;
 }
 
-function RunsCard({ projectId, runList, successfulCount, totalTokens }: RunsCardProps) {
+function RunsCard({
+  projectId,
+  runList,
+  successfulCount,
+  totalTokens,
+  planLocked,
+  startingRun,
+  onRequestNewRun,
+}: RunsCardProps) {
   const { t } = useTranslation();
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t('projectDetail.runs.title')}</CardTitle>
-        <CardDescription className="flex flex-wrap gap-3 text-xs">
-          <span>{t('projectDetail.runs.totalRuns', { count: runList.length })}</span>
-          {runList.length > 0 && (
-            <>
-              <Separator orientation="vertical" className="h-4" />
-              <span>{t('projectDetail.runs.successfulRuns', { count: successfulCount })}</span>
-              <Separator orientation="vertical" className="h-4" />
-              <span>
-                {t('projectDetail.runs.totalTokens', { tokens: formatTokens(totalTokens) })}
-              </span>
-            </>
-          )}
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+        <div className="flex flex-col gap-1.5">
+          <CardTitle className="text-sm font-medium">{t('projectDetail.runs.title')}</CardTitle>
+          <CardDescription className="flex flex-wrap gap-3 text-xs">
+            <span>{t('projectDetail.runs.totalRuns', { count: runList.length })}</span>
+            {runList.length > 0 && (
+              <>
+                <Separator orientation="vertical" className="h-4" />
+                <span>{t('projectDetail.runs.successfulRuns', { count: successfulCount })}</span>
+                <Separator orientation="vertical" className="h-4" />
+                <span>
+                  {t('projectDetail.runs.totalTokens', { tokens: formatTokens(totalTokens) })}
+                </span>
+              </>
+            )}
+          </CardDescription>
+        </div>
+        <Button
+          size="sm"
+          onClick={onRequestNewRun}
+          disabled={!planLocked || startingRun}
+          title={planLocked ? undefined : t('projectDetail.actions.newRunDisabled')}
+          data-testid="runs-card-new-run"
+        >
+          <Play className="mr-2 h-4 w-4" />
+          {startingRun ? t('projectDetail.actions.starting') : t('projectDetail.actions.newRun')}
+        </Button>
       </CardHeader>
       <CardContent>
         {runList.length === 0 ? (
