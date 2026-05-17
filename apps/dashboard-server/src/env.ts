@@ -11,7 +11,10 @@ const booleanLike = z.union([z.string(), z.boolean(), z.undefined()]).transform(
 });
 
 const isProd = process.env.NODE_ENV === 'production';
-const defaultDataDir = path.join(os.tmpdir(), 'wisp');
+const defaultDataDir =
+  process.platform === 'win32'
+    ? path.join(process.env.LOCALAPPDATA ?? os.homedir(), 'wisp')
+    : path.join(os.homedir(), '.local', 'share', 'wisp');
 
 const envSchema = z.object({
   WISP_PORT: z

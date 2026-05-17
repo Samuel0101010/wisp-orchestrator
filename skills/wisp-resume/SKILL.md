@@ -7,15 +7,27 @@ description: Use when the user wants to resume a previously paused WISP run (e.g
 
 Resume a paused harness run.
 
+> **Platform note**: snippets below show both bash and PowerShell forms. Pick the one matching the user's shell. The bash form also runs from Git Bash / WSL on Windows.
+
 ## Preflight
 
-Health-check the server: `curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/health`. Bail with a friendly error if not 200 — tell the user to run `/wisp-dashboard` first.
+Health-check the server.
+- bash: `curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/health`
+- PowerShell: `Invoke-RestMethod -Uri "http://127.0.0.1:$($env:WISP_PORT ?? 4400)/api/health"`
+
+Bail with a friendly error if not 200 — tell the user to run `/wisp-dashboard` first.
 
 ## Steps
 
 1. **List resumable runs**:
    ```bash
+   # bash
    curl -s "http://127.0.0.1:${WISP_PORT:-4400}/api/runs?resumable=true"
+   ```
+   ```powershell
+   # PowerShell
+   $port = if ($env:WISP_PORT) { $env:WISP_PORT } else { 4400 }
+   Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/runs?resumable=true"
    ```
    Response: `{"runs": [{"id":"...", "planId":"...", "status":"paused", "pausedReason":"...", "resumeAt": ..., ...}]}`.
 
@@ -27,7 +39,12 @@ Health-check the server: `curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/health
 
 5. **Resume the chosen run**:
    ```bash
+   # bash
    curl -s -X POST "http://127.0.0.1:${WISP_PORT:-4400}/api/runs/<runId>/resume"
+   ```
+   ```powershell
+   # PowerShell
+   Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$port/api/runs/<runId>/resume"
    ```
    The response includes the resumed status. Print the run URL:
    ```

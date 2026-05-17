@@ -17,5 +17,6 @@
   "bugs": {
     "url": "https://github.com/Samuel0101010/wisp-orchestrator/issues"
   },
-  "skills": ["audit", "critique", "harden", "impeccable", "polish", "shape"]
+  "skills": ["wisp-diagnose", "wisp-inspect", "wisp-new-run", "wisp-resume"],
+  "commands": ["wisp-dashboard"]
 }

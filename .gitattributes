@@ -1,0 +1,34 @@
+# Normalize line endings across platforms
+* text=auto eol=lf
+
+# Force LF for shell scripts and Node/JS (run via interpreters that hate CRLF)
+*.sh text eol=lf
+*.bash text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+
+# PowerShell needs CRLF on Windows
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary files — no normalization
+*.png binary
+*.jpg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.gz binary
+*.pdf binary
+*.db binary
+*.sqlite binary

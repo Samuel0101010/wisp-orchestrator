@@ -7,6 +7,8 @@ description: Use when a WISP run failed unexpectedly or is stuck — fetches the
 
 Inspect a run's event timeline to figure out what failed and why.
 
+> **Platform note**: snippets below show both bash and PowerShell forms. Pick the one matching the user's shell. The bash form also runs from Git Bash / WSL on Windows.
+
 ## Inputs
 
 - **runId**: the run UUID. Ask the user if not provided.
@@ -15,7 +17,13 @@ Inspect a run's event timeline to figure out what failed and why.
 
 1. **Fetch the events**:
    ```bash
+   # bash
    curl -s "http://127.0.0.1:${WISP_PORT:-4400}/api/runs/<runId>/events?limit=500"
+   ```
+   ```powershell
+   # PowerShell
+   $port = if ($env:WISP_PORT) { $env:WISP_PORT } else { 4400 }
+   Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/runs/<runId>/events?limit=500"
    ```
    Response: `{"events": [{"type":"...", "payload":..., ...}, ...]}` ordered oldest-first.
 

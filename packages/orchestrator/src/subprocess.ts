@@ -83,7 +83,12 @@ function resolveBin(opts: RunClaudeOpts): { cmd: string; argPrefix: string[] } {
     }
     return { cmd: opts.__mockBin, argPrefix: [] };
   }
-  return { cmd: 'claude', argPrefix: [] };
+  // On Windows, npm-global installs ship a `.cmd` shim; `spawn('claude', …)`
+  // without `shell:true` fails to resolve it. Use the explicit shim name
+  // instead of `shell:true` (which would expand cmd.exe meta-characters in
+  // any arg containing `&`, `|`, `<`, `>`, or `^`).
+  const bin = process.platform === 'win32' ? 'claude.cmd' : 'claude';
+  return { cmd: bin, argPrefix: [] };
 }
 
 function buildEnv(opts: RunClaudeOpts): NodeJS.ProcessEnv {
