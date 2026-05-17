@@ -76,6 +76,9 @@ apps/dashboard-server/memory/
 # Internal planning / audit artifacts (not for public repo)
 PROJEKTSTRUKTURPLAN.md
 audit-artifacts/live-probe/
+handoff.md
+# Internal post-mortems / engineering knowledge base (kept local only)
+docs/internal/
 # Root-only source artwork (published asset lives under docs/assets/)
 WISP_Figur.png
 

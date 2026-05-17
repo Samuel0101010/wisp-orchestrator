@@ -28,9 +28,8 @@ are preserved:
 
 `done` tasks carried over from the previous version keep their **original**
 branch — the walker resolves them via `task.branchName` rather than the
-current prefix. The
-[`docs/solutions/2026-05-07-replan-branch-prefix-carried-over-deps.md`](solutions/2026-05-07-replan-branch-prefix-carried-over-deps.md)
-entry describes the bug class and the `branchForDep` helper that fixes it.
+current prefix. The `branchForDep` helper enforces this invariant when
+resolving dependency outputs across replan generations.
 
 ## Audit trail
 

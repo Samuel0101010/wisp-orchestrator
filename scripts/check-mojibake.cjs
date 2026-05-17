@@ -7,8 +7,6 @@
  * playwright text matchers) all see mojibake bytes as valid UTF-8 and pass.
  * Only screenshot review catches it; this script is the CI-level catch.
  *
- * Background: docs/solutions/2026-05-12-mojibake-from-subagent-file-edits.md
- *
  * The detection patterns are constructed from explicit \uXXXX escapes (rather
  * than literal extended-ASCII characters with embedded U+0080 control bytes).
  * That keeps the SOURCE of this file mojibake-free, prettier-stable, and
@@ -125,7 +123,7 @@ if (violations.length > 0) {
   );
   for (const v of violations) console.error('  ' + v);
   console.error('');
-  console.error('See docs/solutions/2026-05-12-mojibake-from-subagent-file-edits.md');
+  console.error('Hint: re-encode the offending file as UTF-8 or pull the multi-byte chars into a JSON bundle.');
   process.exit(1);
 }
 console.log(`encoding check: clean (${files.length} files scanned)`);

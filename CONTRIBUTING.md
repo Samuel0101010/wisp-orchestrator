@@ -38,7 +38,7 @@ pnpm install --frozen-lockfile
 
 ### Build shared packages first
 
-Workspace apps depend on the compiled output of `packages/*`. Always build the shared packages before running typecheck/tests so the apps resolve real `.d.ts` files (skipping this step is the historical cause of red local gates — see `docs/solutions/2026-05-16-ci-red-for-5-releases-cached-local-gates.md`):
+Workspace apps depend on the compiled output of `packages/*`. Always build the shared packages before running typecheck/tests so the apps resolve real `.d.ts` files — workspace `exports` point at `dist/`, so an unbuilt package leaves typecheck staring at missing declarations and turns local gates red:
 
 ```sh
 pnpm -r --filter "./packages/**" run build
@@ -148,9 +148,7 @@ The repo has automated axe checks at `tests/e2e/a11y.spec.ts`. They must stay gr
 
 ## Documentation
 
-For non-trivial fixes or architectural decisions, drop a short entry in `docs/solutions/YYYY-MM-DD-<slug>.md` capturing the problem, the root cause, and the fix. This is optional but encouraged — future contributors (and future you) will thank you.
-
-User-facing changes also need a `README.md` or `docs/` update if the behavior they describe shifted.
+User-facing changes need a `README.md` or `docs/` update if the behavior they describe shifted. For non-trivial fixes or architectural decisions, a short note in the PR description (problem → root cause → fix) is appreciated.
 
 ## Pull requests
 
