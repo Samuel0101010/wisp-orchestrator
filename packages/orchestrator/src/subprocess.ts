@@ -13,6 +13,45 @@ import process from 'node:process';
 import type { HarnessEvent } from '@wisp/schemas';
 import { detectRateLimit, type RateLimitHit } from './rate-limit.js';
 
+/**
+ * Kill `child` and every process it spawned.
+ *
+ * `child.kill(signal)` only signals the immediate parent. On POSIX that is
+ * usually fine because long-lived tools like `pnpm` and `vite` propagate
+ * SIGTERM to their workers — but on Windows there is no signal propagation at
+ * all, and on POSIX a misbehaving child can still detach itself. So we kill
+ * the whole tree: on Windows via `taskkill /T /F`, on POSIX via the negative
+ * process-group PID that `detached: true` (set in spawn opts below) gives us.
+ *
+ * Without this, runs that spawn long-lived servers (e.g. `pnpm preview` or
+ * `vite dev` for boot-smoke) leave grandchild processes bound to ports days
+ * after the run completed.
+ */
+function killTree(
+  child: ChildProcessWithoutNullStreams,
+  signal: 'SIGTERM' | 'SIGKILL' = 'SIGTERM',
+): void {
+  if (!child.pid || child.exitCode !== null || child.signalCode !== null) return;
+  try {
+    if (process.platform === 'win32') {
+      // Fire-and-forget: taskkill walks the tree and force-kills each PID.
+      // We never await it; the orchestrator only needs best-effort cleanup.
+      spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true });
+    } else {
+      // Negative PID targets the whole process group. Requires `detached: true`
+      // in spawn opts; otherwise the child is in our group and -pid would kill
+      // the orchestrator itself.
+      try {
+        process.kill(-child.pid, signal);
+      } catch {
+        child.kill(signal);
+      }
+    }
+  } catch {
+    /* best-effort */
+  }
+}
+
 let cachedClaudeBin: string | null = null;
 function resolveClaudeBin(): { cmd: string; argPrefix: string[] } {
   if (cachedClaudeBin) return { cmd: cachedClaudeBin, argPrefix: [] };
@@ -245,7 +284,7 @@ export class ClaudeSubprocess {
   async kill(signal: 'SIGTERM' | 'SIGKILL' = 'SIGTERM'): Promise<void> {
     const child = this.child;
     if (!child || child.exitCode !== null) return;
-    child.kill(signal);
+    killTree(child, signal);
   }
 
   private async *iterate(): AsyncGenerator<HarnessEvent, void, void> {
@@ -259,6 +298,9 @@ export class ClaudeSubprocess {
       env,
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
+      // POSIX: own process group so killTree() can target the whole tree via
+      // a negative PID. Windows: noop (we use taskkill /T /F instead).
+      detached: process.platform !== 'win32',
     });
     this.child = child;
 
@@ -274,7 +316,7 @@ export class ClaudeSubprocess {
     const onAbort = (): void => {
       if (child.exitCode !== null) return;
       try {
-        child.kill('SIGTERM');
+        killTree(child, 'SIGTERM');
       } catch {
         // Already exited / handle invalid — nothing to do.
       }
