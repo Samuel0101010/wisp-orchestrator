@@ -193,6 +193,7 @@ function makeHarness(args: {
     cwd: string,
     criteria: import('../verification.js').SuccessCriteria,
   ) => Promise<VerificationResult>;
+  probeSubprocessLiveness?: WalkerDeps['probeSubprocessLiveness'];
 }): Harness {
   const emitted: HarnessEvent[] = [];
   const spawns: Array<{ taskId: string; opts: RunClaudeOpts }> = [];
@@ -225,6 +226,7 @@ function makeHarness(args: {
     mergeBranches: async () => ({ ok: true }),
     interTaskPacingMs: 0,
     autoResumeRateLimit: true,
+    probeSubprocessLiveness: args.probeSubprocessLiveness,
   };
 
   const walker = new Walker(deps);
@@ -1399,8 +1401,10 @@ describe('Walker — main task transient-retry', () => {
     // timeout. Watchdog uses deps.setTimeout (the FakeTimers seam) so this
     // is deterministic.
     for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
-    // INACTIVITY_TIMEOUT_MS is 10 minutes; advance a bit past it.
-    h.timers.advance(11 * 60 * 1000);
+    // INACTIVITY_TIMEOUT_MS is 15 minutes; advance a bit past it. No probe
+    // hook is wired in this harness, so the watchdog falls back to the
+    // "kill immediately" legacy path.
+    h.timers.advance(16 * 60 * 1000);
     // Drain microtasks so abort propagates into the gated FakePool task.
     for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
     // Release any remaining gate (mostly a no-op once abort propagates).
@@ -1425,6 +1429,190 @@ describe('Walker — main task transient-retry', () => {
         /inactive for/i.test(e.payload.text),
     );
     expect(watchdogWarn).toBeDefined();
+  });
+
+  it('smart watchdog — pid gone triggers immediate kill+retry', async () => {
+    // Case A from the 2026-05-17 fix: probe says alive=false (ESRCH equivalent).
+    // Watchdog must kill+retry on the first firing, no extension.
+    const releaseHang = createGate();
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n1',
+        [
+          {
+            events: [{ type: 'task.text-delta', payload: { taskId: 'n1', text: 'work\n' } }],
+            gate: releaseHang,
+            finishWith: [],
+          },
+          {
+            events: [
+              { type: 'task.completed', payload: { taskId: 'n1', outcome: 'pass', exitCode: 0 } },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({
+      scriptByTaskId: scripts,
+      probeSubprocessLiveness: () => ({ alive: false, cpuSeconds: null }),
+    });
+
+    const plan = makePlan([node('n1', 'architect')]);
+    const startPromise = h.walker.start({
+      runId: 'r-pid-gone',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    h.timers.advance(16 * 60 * 1000);
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    releaseHang.release();
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    h.timers.advance(15_000); // transient-retry backoff
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+
+    const outcome = await startPromise;
+    expect(outcome).toBe('success');
+    expect(h.spawns.filter((s) => s.taskId === 'n1').length).toBe(2);
+    // Logs the pid-gone reason, not the generic inactivity reason.
+    const pidGoneLog = h.emitted.find(
+      (e) =>
+        e.type === 'task.text-delta' &&
+        e.payload.taskId === 'n1' &&
+        /pid not found|pid gone/i.test(e.payload.text),
+    );
+    expect(pidGoneLog).toBeDefined();
+  });
+
+  it('smart watchdog — pid alive + CPU advancing extends grace period (no kill)', async () => {
+    // Case B from the 2026-05-17 fix: each watchdog firing reports CPU has
+    // advanced ≥1s since the last snapshot, so the watchdog must extend the
+    // grace period instead of killing. After the subprocess completes
+    // normally, no kill should have fired.
+    let cpu = 100.0;
+    const releaseFinish = createGate();
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n1',
+        [
+          {
+            events: [{ type: 'task.text-delta', payload: { taskId: 'n1', text: 'work\n' } }],
+            gate: releaseFinish,
+            finishWith: [
+              { type: 'task.completed', payload: { taskId: 'n1', outcome: 'pass', exitCode: 0 } },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({
+      scriptByTaskId: scripts,
+      // Each call advances CPU by 2 seconds — well above the 1s threshold.
+      probeSubprocessLiveness: () => {
+        cpu += 2;
+        return { alive: true, cpuSeconds: cpu };
+      },
+    });
+
+    const plan = makePlan([node('n1', 'architect')]);
+    const startPromise = h.walker.start({
+      runId: 'r-extend',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    // Fire the watchdog three times — each firing must extend, not kill.
+    h.timers.advance(16 * 60 * 1000); // primary window elapses
+    for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
+    h.timers.advance(6 * 60 * 1000); // extension window elapses (still under MAX)
+    for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
+
+    // Now release the subprocess so it completes normally.
+    releaseFinish.release();
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+
+    const outcome = await startPromise;
+    expect(outcome).toBe('success');
+    // No retry — only one spawn happened.
+    expect(h.spawns.filter((s) => s.taskId === 'n1').length).toBe(1);
+    // No kill was logged.
+    const killLog = h.emitted.find(
+      (e) =>
+        e.type === 'task.text-delta' &&
+        e.payload.taskId === 'n1' &&
+        /aborting and retrying as transient/i.test(e.payload.text),
+    );
+    expect(killLog).toBeUndefined();
+    // An "extending grace period" line was logged at least once.
+    const extendLog = h.emitted.find(
+      (e) =>
+        e.type === 'task.text-delta' &&
+        e.payload.taskId === 'n1' &&
+        /extending grace period/i.test(e.payload.text),
+    );
+    expect(extendLog).toBeDefined();
+  });
+
+  it('smart watchdog — pid alive but CPU stuck kills at extended deadline', async () => {
+    // Case C from the 2026-05-17 fix: probe says alive=true but CPU has not
+    // advanced. Watchdog must kill on the first firing (no extension granted)
+    // because there's no advancement signal to justify waiting longer.
+    const releaseHang = createGate();
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'n1',
+        [
+          {
+            events: [{ type: 'task.text-delta', payload: { taskId: 'n1', text: 'work\n' } }],
+            gate: releaseHang,
+            finishWith: [],
+          },
+          {
+            events: [
+              { type: 'task.completed', payload: { taskId: 'n1', outcome: 'pass', exitCode: 0 } },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({
+      scriptByTaskId: scripts,
+      // CPU is pegged — never advances, so each firing must kill.
+      probeSubprocessLiveness: () => ({ alive: true, cpuSeconds: 42.0 }),
+    });
+
+    const plan = makePlan([node('n1', 'architect')]);
+    const startPromise = h.walker.start({
+      runId: 'r-stuck',
+      plan,
+      repoPath: '/fake/repo',
+      budget: DEFAULT_BUDGET,
+    });
+
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    h.timers.advance(16 * 60 * 1000);
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    releaseHang.release();
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+    h.timers.advance(15_000);
+    for (let i = 0; i < 10; i++) await new Promise((r) => setImmediate(r));
+
+    const outcome = await startPromise;
+    expect(outcome).toBe('success');
+    // Retry fired — two spawns total.
+    expect(h.spawns.filter((s) => s.taskId === 'n1').length).toBe(2);
+    // The kill log mentions CPU did not advance.
+    const stuckLog = h.emitted.find(
+      (e) =>
+        e.type === 'task.text-delta' &&
+        e.payload.taskId === 'n1' &&
+        /CPU advanced only|CPU probe unavailable/i.test(e.payload.text),
+    );
+    expect(stuckLog).toBeDefined();
   });
 
   it('non-transient subprocess failure still consumes the structural retry budget', async () => {
