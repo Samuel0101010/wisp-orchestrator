@@ -167,6 +167,38 @@ export interface WalkerDeps {
     runId: string;
     tokensTotal: number;
   }) => Promise<{ exceeded: boolean; reason: string | null }>;
+  /**
+   * Optional inactivity-watchdog liveness probe. When the watchdog timer
+   * fires the walker calls this with the task id and uses the result to
+   * decide whether to kill+retry or extend the grace period.
+   *
+   * Return value:
+   * - `null` — probe unavailable for this task (no pid wired yet, or
+   *   the underlying process handle was reaped). Walker falls back to
+   *   "kill immediately" — preserving the pre-v1.7.13 behavior for
+   *   callers that haven't opted in.
+   * - `{alive: false, cpuSeconds: *}` — pid is gone (e.g. process.kill
+   *   with signal 0 threw ESRCH). Walker kills+retries immediately.
+   * - `{alive: true, cpuSeconds: null}` — pid is alive but CPU read
+   *   failed. Walker assumes "stuck" and kills at the extended deadline
+   *   on the next tick (no CPU-advancement signal to act on).
+   * - `{alive: true, cpuSeconds: n}` — pid is alive. Walker compares
+   *   `n` to the CPU snapshot taken when the current idle window
+   *   started; if it advanced ≥1s the proc is doing work and the
+   *   grace period is extended (capped by
+   *   {@link INACTIVITY_MAX_TOTAL_MS}).
+   *
+   * Why optional: the production wiring lives in the dashboard server
+   * (which owns the spawn pid). The default `liveness.probePidLiveness`
+   * helper is shipped from this package so the dashboard can pass it
+   * through trivially once it tracks per-task pids.
+   *
+   * See {@link INACTIVITY_TIMEOUT_MS} for the 2026-05-17 FocusBoard
+   * `n3-store` regression that motivated this.
+   */
+  probeSubprocessLiveness?: (
+    taskId: string,
+  ) => { alive: boolean; cpuSeconds: number | null } | null;
 }
 
 /**
@@ -233,12 +265,41 @@ export const TRANSIENT_BACKOFF_MS = 10_000;
  * v1.7.11 surfaced a real hang: n1-architecture emitted its final
  * "Documentation complete" text-delta then sat for 3 hours without exiting
  * — the claude CLI never wrote its `result` frame, the walker had no
- * inactivity timeout, and the whole run froze. Conservative default: 10 min
- * (the slowest natural gap between events seen in healthy runs is under 1
- * minute). Counts as a transient failure so the existing retry budget
- * recovers it.
+ * inactivity timeout, and the whole run froze. Counts as a transient failure
+ * so the existing retry budget recovers it.
+ *
+ * Bumped 10→15 min on the 2026-05-17 FocusBoard run: the previous 10-min
+ * default false-killed `n3-store` after a normal LLM thinking pause (no
+ * tool/text frame, but the subprocess was alive and burning CPU). The new
+ * watchdog also probes pid-liveness + CPU advancement before killing — see
+ * {@link WalkerDeps.probeSubprocessLiveness} and the watchdog handler in
+ * runTask.
  */
-export const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
+export const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000;
+
+/**
+ * Grace-period extension when the watchdog fires and the probe shows the
+ * subprocess is alive AND its CPU time has advanced ≥1s during the idle
+ * window. The watchdog re-arms for another {@link INACTIVITY_EXTENSION_MS}
+ * before re-probing.
+ */
+export const INACTIVITY_EXTENSION_MS = 5 * 60 * 1000;
+
+/**
+ * Hard ceiling on cumulative grace-period extensions. Even a subprocess
+ * that keeps showing CPU progress gets killed once it has been silent on
+ * the event stream for this long — the alternative is an infinite-loop
+ * agent that produces no observable output ever finishing.
+ */
+export const INACTIVITY_MAX_TOTAL_MS = 25 * 60 * 1000;
+
+/**
+ * Minimum CPU-time advancement (seconds) within the idle window that
+ * counts as "doing real work". A subprocess that has burned <1s of CPU
+ * across a full 15-min idle window is almost certainly stuck (the claude
+ * CLI is reading a streaming HTTP response, not running compute).
+ */
+export const INACTIVITY_MIN_CPU_DELTA_S = 1;
 
 interface TaskRuntime {
   node: TaskNode;
@@ -1040,26 +1101,124 @@ export class Walker {
     // final text-delta without writing the `result` frame; without this
     // watchdog the walker waits forever (seen on a 2026-05-15 wertzeit-app
     // run where n1-architecture froze for 3 hours after finishing).
+    //
+    // BUT: the watchdog used to kill any subprocess that didn't emit an
+    // event within the timeout, even if the subprocess was still alive and
+    // burning CPU on a long model "thinking" pause (the claude CLI streams
+    // an HTTP response, not necessarily a tool/text frame, while the LLM
+    // is generating). The 2026-05-17 FocusBoard `n3-store` run lost
+    // ~12 min that way. The smart watchdog now probes pid-liveness +
+    // CPU advancement before pulling the trigger:
+    //
+    //   1. Probe via {@link WalkerDeps.probeSubprocessLiveness}.
+    //   2. If hook missing or returns null → kill immediately (legacy).
+    //   3. If pid gone → kill immediately (retry will pick up).
+    //   4. If pid alive + CPU advanced ≥1s since last probe → log
+    //      "extending", re-arm watchdog for INACTIVITY_EXTENSION_MS,
+    //      capped at INACTIVITY_MAX_TOTAL_MS cumulative.
+    //   5. If pid alive but CPU stuck (or unreadable) → kill — proc is
+    //      hung at the syscall layer.
     let inactivityCancel: (() => void) | null = null as (() => void) | null;
-    const armInactivityWatchdog = (): void => {
-      if (inactivityCancel) inactivityCancel();
-      inactivityCancel = this.deps.setTimeout(() => {
-        inactivityCancel = null;
-        if (abort.signal.aborted) return;
-        inactivityKillFired = true;
+    // Wall-clock ms at which the original (un-extended) watchdog armed.
+    // Used to enforce the INACTIVITY_MAX_TOTAL_MS ceiling.
+    let inactivityWindowStartedAt = 0;
+    // CPU seconds captured at the start of the current idle window. Compared
+    // against a fresh probe when the timer fires to detect advancement.
+    let cpuAtWindowStart: number | null = null;
+
+    const fireKill = (reason: string): void => {
+      inactivityCancel = null;
+      if (abort.signal.aborted) return;
+      inactivityKillFired = true;
+      this.deps.emit({
+        type: 'task.text-delta',
+        payload: {
+          taskId: node.id,
+          text: `[harness] ${reason} — aborting and retrying as transient\n`,
+        },
+      });
+      try {
+        abort.abort();
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const onWatchdogFire = (): void => {
+      inactivityCancel = null;
+      if (abort.signal.aborted) return;
+
+      const now = this.deps.now();
+      const elapsed = now - inactivityWindowStartedAt;
+      const probe = this.deps.probeSubprocessLiveness?.(node.id) ?? null;
+
+      // No probe available → preserve pre-v1.7.13 behavior (kill now).
+      if (!probe) {
+        fireKill(
+          `subprocess inactive for ${Math.round(INACTIVITY_TIMEOUT_MS / 60_000)}min`,
+        );
+        return;
+      }
+
+      // pid is gone → kill immediately so the retry path fires now.
+      if (!probe.alive) {
         this.deps.emit({
           type: 'task.text-delta',
           payload: {
             taskId: node.id,
-            text: `[harness] subprocess inactive for ${Math.round(INACTIVITY_TIMEOUT_MS / 60_000)}min — aborting and retrying as transient\n`,
+            text: `[harness] subprocess pid not found (ESRCH) — killing immediately\n`,
           },
         });
-        try {
-          abort.abort();
-        } catch {
-          /* ignore */
-        }
-      }, INACTIVITY_TIMEOUT_MS);
+        fireKill('subprocess pid gone');
+        return;
+      }
+
+      // pid alive — decide based on CPU advancement.
+      const cpuNow = probe.cpuSeconds;
+      const cpuStart = cpuAtWindowStart;
+      const cpuDelta =
+        cpuNow !== null && cpuStart !== null ? cpuNow - cpuStart : null;
+      const advancing =
+        cpuDelta !== null && cpuDelta >= INACTIVITY_MIN_CPU_DELTA_S;
+
+      // Cap: even an advancing process can't extend past
+      // INACTIVITY_MAX_TOTAL_MS — otherwise an infinite-loop agent that
+      // happens to burn CPU never gets killed.
+      if (advancing && elapsed < INACTIVITY_MAX_TOTAL_MS) {
+        this.deps.emit({
+          type: 'task.text-delta',
+          payload: {
+            taskId: node.id,
+            text: `[harness] subprocess silent on events but CPU advanced ${cpuDelta!.toFixed(2)}s in last ${Math.round(elapsed / 60_000)}min — extending grace period by ${Math.round(INACTIVITY_EXTENSION_MS / 60_000)}min\n`,
+          },
+        });
+        // Snapshot the new CPU baseline so the NEXT firing compares against
+        // this checkpoint, not the original window start.
+        cpuAtWindowStart = cpuNow;
+        inactivityCancel = this.deps.setTimeout(
+          onWatchdogFire,
+          INACTIVITY_EXTENSION_MS,
+        );
+        return;
+      }
+
+      // Either CPU stuck, CPU unreadable, or we hit the hard cap → kill.
+      const reason = advancing
+        ? `subprocess silent on events for ${Math.round(elapsed / 60_000)}min (max extension window reached)`
+        : cpuDelta === null
+          ? `subprocess inactive for ${Math.round(elapsed / 60_000)}min (CPU probe unavailable)`
+          : `subprocess inactive for ${Math.round(elapsed / 60_000)}min (CPU advanced only ${cpuDelta.toFixed(2)}s)`;
+      fireKill(reason);
+    };
+
+    const armInactivityWatchdog = (): void => {
+      if (inactivityCancel) inactivityCancel();
+      // Re-snapshot the window start + CPU baseline on every event arrival,
+      // so a steady event stream resets the watchdog as before.
+      inactivityWindowStartedAt = this.deps.now();
+      const probe = this.deps.probeSubprocessLiveness?.(node.id) ?? null;
+      cpuAtWindowStart = probe?.cpuSeconds ?? null;
+      inactivityCancel = this.deps.setTimeout(onWatchdogFire, INACTIVITY_TIMEOUT_MS);
     };
 
     try {
@@ -1159,7 +1318,7 @@ export class Walker {
     if (inactivityKillFired) {
       transientErrorSeen = true;
       if (!lastTaskFailedError) {
-        lastTaskFailedError = 'subprocess inactivity timeout (no events for >10min)';
+        lastTaskFailedError = `subprocess inactivity timeout (no events for >${Math.round(INACTIVITY_TIMEOUT_MS / 60_000)}min)`;
       }
     }
 

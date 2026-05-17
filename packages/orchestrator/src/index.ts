@@ -38,6 +38,14 @@ export type {
 
 export { commitWorktreeChanges } from './auto-commit.js';
 
+export {
+  probePidLiveness,
+  isPidAlive,
+  parsePosixCpuTime,
+  parseWindowsCpuTime,
+} from './liveness.js';
+export type { LivenessProbe } from './liveness.js';
+
 export { Walker, composeTaskPrompt } from './walker.js';
 export type {
   WalkerDeps,
