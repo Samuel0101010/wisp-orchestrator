@@ -57,7 +57,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^17.0.7",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^7.15.1",
     "reactflow": "^11.11.4",
     "recharts": "^3.8.1",
     "tailwind-merge": "^2.5.4",
