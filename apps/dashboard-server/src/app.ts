@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyBaseLogger, type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import staticPlugin from '@fastify/static';
 import websocket from '@fastify/websocket';
 import { env } from './env.js';
+import { getLogger } from './logger.js';
 import { registerRoutes } from './routes/index.js';
 import { registerWebsocket } from './ws.js';
 
@@ -22,19 +23,15 @@ function resolveWebDistPath(): string {
 }
 
 export async function buildApp(): Promise<FastifyInstance> {
-  const isProd = process.env.NODE_ENV === 'production';
-
-  const app = Fastify({
-    logger: isProd
-      ? { level: env.WISP_LOG_LEVEL }
-      : {
-          level: env.WISP_LOG_LEVEL,
-          transport: {
-            target: 'pino-pretty',
-            options: { translateTime: 'HH:MM:ss.l', ignore: 'pid,hostname' },
-          },
-        },
-  });
+  // Hand Fastify our pre-built pino instance (stdout + sync file destination).
+  // We can no longer use `transport: pino-pretty` here because pino-pretty is
+  // a worker-thread transport and is incompatible with multistream. Tradeoff:
+  // dev logs are JSON instead of pretty — but we get crash-resilient file
+  // logging in exchange, which today's outage made non-negotiable.
+  // The pino Logger satisfies FastifyBaseLogger at runtime; the explicit cast
+  // narrows the structural mismatch on `msgPrefix` between pino 10's Logger
+  // and Fastify 5's FastifyBaseLogger.
+  const app = Fastify({ loggerInstance: getLogger() as unknown as FastifyBaseLogger });
 
   await app.register(cors, { origin: env.WISP_CORS_ORIGIN });
   await app.register(websocket);
