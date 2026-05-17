@@ -34,9 +34,7 @@ describe('shutdown handlers — WAL checkpoint + db.close', () => {
     __resetShutdownLatchForTesting();
     execSpy = vi.spyOn(sqlite, 'exec').mockImplementation(() => sqlite);
     closeSpy = vi.spyOn(sqlite, 'close').mockImplementation(() => sqlite);
-    exitSpy = vi
-      .spyOn(process, 'exit')
-      .mockImplementation(((_code?: number) => undefined) as never);
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never);
   });
 
   afterEach(() => {

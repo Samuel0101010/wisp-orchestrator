@@ -15,12 +15,7 @@ import { seedAgents } from './db/agents-seed.js';
 import { fixUpAbruptCrashes } from './orchestrator/recovery.js';
 import { getDefaultRuntime } from './routes/runs.js';
 import { workerDaemon } from './routes/index.js';
-import {
-  appendCrashRecord,
-  flushLogStreams,
-  getLogPaths,
-  getLogger,
-} from './logger.js';
+import { appendCrashRecord, flushLogStreams, getLogPaths, getLogger } from './logger.js';
 
 const SHUTDOWN_TIMEOUT_MS = 30_000;
 
@@ -142,9 +137,7 @@ export function buildStartupBannerPayload(address: string): Record<string, unkno
     projectCount = null;
   }
   try {
-    const rt = sqlite.prepare('SELECT COUNT(*) AS c FROM runs').get() as
-      | { c: number }
-      | undefined;
+    const rt = sqlite.prepare('SELECT COUNT(*) AS c FROM runs').get() as { c: number } | undefined;
     runsTotal = rt?.c ?? 0;
     // runs.started_at is a unix millis integer in the schema (SQLite); compare
     // against today's local midnight.
@@ -200,11 +193,7 @@ export function __resetShutdownLatchForTesting(): void {
  * Hard timeout: {@link SHUTDOWN_TIMEOUT_MS}. If anything hangs past it, log
  * and force-exit 1.
  */
-export async function shutdown(
-  app: FastifyInstance,
-  signal: string,
-  exitCode = 0,
-): Promise<void> {
+export async function shutdown(app: FastifyInstance, signal: string, exitCode = 0): Promise<void> {
   if (shutdownInFlight) {
     app.log.warn({ signal }, 'shutdown already in flight, ignoring repeat');
     return;

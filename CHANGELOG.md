@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.0.2 — reliability hardening from a real app-build session
+
+Five fixes that emerged during a session where the plugin built two complete React apps end-to-end. Each one closes a specific failure mode observed live — not a theoretical edge case. Together they make a multi-hour autonomous run substantially harder to derail.
+
+### Fixed
+
+- **Subprocess tree-kill on Windows + POSIX** ([a808707](https://github.com/Samuel0101010/wisp-orchestrator/commit/a808707)). `child.kill(signal)` only signalled the immediate `claude` CLI parent. Long-lived grandchildren spawned by tasks (`pnpm preview`, `vite`, Chromium) survived on POSIX and especially on Windows, where there is no signal propagation. After a Stratos run completed days earlier, its `vite` was still bound to port 5173 — a stale dev server serving outdated source the user noticed as a "boot:fail" black screen. Now: Windows `taskkill /T /F`, POSIX `process.kill(-pid, signal)` against the spawned process group, matching the pattern already used in `boot-smoke.ts` / `preview-server.ts`.
+
+- **`core.longpaths=true` on auto-commit git calls** ([0b01994](https://github.com/Samuel0101010/wisp-orchestrator/commit/0b01994)). Tasks that installed deeply-nested pnpm deps (`@dnd-kit`, `@radix-ui`) crashed in the post-task auto-commit with `git add -A` "could not open directory 'node_modules/.pnpm/@dnd-kit+core@…'" — Windows `MAX_PATH` exhaustion. Caught live on a FocusBoard scaffold task that succeeded with exit 0 but cascade-failed all six downstream tasks. Promoted `core.longpaths=true` from optional user-config to a per-invocation `-c` flag inside `commitWorktreeChanges`.
+
+- **Release-gate trusts `runtime-verifier` boot evidence** ([2b3a7bf](https://github.com/Samuel0101010/wisp-orchestrator/commit/2b3a7bf)). The verifier proved boot worked live (`pnpm preview` + Playwright + HTTP 200), wrote a `runtime-report.json` with `boot.ok: true`, then the release-gate ran a fresh re-probe at a moment when no preview server was alive and reported `Boot: FAIL`. Result: green run with a red "Release-Gate FEHLER" badge — contradiction visible in the FocusBoard run UI. Gate now reads `runtime.boot.ok` first and only falls back to live re-probe when no evidence exists.
+
+- **Smart per-task inactivity watchdog** ([9c92e0c](https://github.com/Samuel0101010/wisp-orchestrator/commit/9c92e0c)). The 10-min idle watchdog killed `n3-store` mid-work because the LLM was doing a long thinking pause with no token stream — the subprocess was alive and the work was real. Default bumped to 15 min. Before killing, the watchdog now `process.kill(pid, 0)`-probes liveness and reads the subprocess CPU time (POSIX `ps`, Windows `Get-Process`); if alive + CPU advancing, extends the grace period up to 25 min total. Falls back to immediate kill only when the process is genuinely dead or stuck.
+
+- **Crash-resilient logging + WAL checkpoint on shutdown + startup banner** ([1fe24ef](https://github.com/Samuel0101010/wisp-orchestrator/commit/1fe24ef)). After a 3-hour run, the dashboard server's `%TEMP%/wisp-todo-v2-run/server.out.log` contained exactly one line — Node's stdout buffer ate hundreds of request logs and the crash stack on hard exit. Separately, hard-killing the server during restart left the SQLite WAL un-checkpointed and projects appeared missing on next boot. Fixes (one commit): pino multistream over stdout **plus** a sync file destination at `{WISP_DATA_DIR}/logs/server.log` (every line flushed before the call returns); `SIGTERM`/`SIGINT`/`beforeExit` handlers run `server.close → flushLogs → PRAGMA wal_checkpoint(TRUNCATE) → db.close → exit`, each step try/caught, single-shot latch; `uncaughtException` + `unhandledRejection` write to `crash.log`; startup banner logs resolved `WISP_DATA_DIR`, DB path + size, project / runs counts, listening address — so a misconfigured restart is visible in the first line of output.
+
+### Chore
+
+- Added `.claude/worktrees/**` to eslint ignore patterns to keep subagent-isolation worktrees out of the lint sweep.
+
 ## 2.0.1 — WISP rebrand · ship-ready release
 
 The plugin is now **WISP**, end-to-end. Same orchestrator, same plan-as-artifact discipline, but renamed across every layer so the brand is consistent from `claude plugin install wisp@wisp-local` down to the MCP server name the spawned agents see.
