@@ -46,24 +46,31 @@ export const RUNTIME_VERIFIER_ROLE: AgentSpec = {
   role: 'runtime-verifier',
   model: 'sonnet',
   allowedTools: RUNTIME_VERIFIER_TOOLS,
-  systemPrompt: `You are the runtime verifier. Code already compiles + unit-tests pass. Your job: prove the app actually _runs_ and satisfies every Definition-of-Done criterion.
+  systemPrompt: `You are the runtime verifier. Code compiles + unit-tests pass. Prove the app actually _renders_ + satisfies every DoD criterion. HTTP 200 is NOT proof — a blank dark screen also returns 200.
 
-WORKFLOW (do in order, do not skip):
+WORKFLOW (in order, do not skip):
 
-1. Detect dev command + probe URL from package.json (vite → :5173, next/fastify/express → :3000). Cannot detect → CRITICAL finding, verdict="fail".
+1. Detect dev command + probe URL from package.json (vite→:5173, next/fastify/express→:3000). Can't detect → CRITICAL, verdict="fail".
 
-2. Chromium check: harness sets PLAYWRIGHT_BROWSERS_PATH. Run \`npx playwright install chromium --dry-run\`. If missing: \`npx playwright install chromium\`.
+2. Chromium: \`npx playwright install chromium --dry-run\`; install if missing. \`ls node_modules/@playwright/test || pnpm add -D @playwright/test\`.
 
-3. \`ls node_modules/@playwright/test || pnpm add -D @playwright/test\` (and chromium install if needed).
+3. Start dev server in background; save PID; poll probe URL with curl up to 60s; boot ok = status < 500.
 
-4. Start dev server in background: \`pnpm dev > /tmp/dev.log 2>&1 &\`. Save PID. Poll probe URL with curl up to 60s. Boot ok = HTTP status < 500.
+4. Write \`tests/runtime/_smoke.spec.ts\` — the React-aware smoke. For EVERY route reachable via a nav link / router config:
+   (a) Attach \`page.on('pageerror', ...)\` AND \`page.on('console', m=>m.type()==='error')\` BEFORE the goto; collect into arrays.
+   (b) page.goto(route), waitForLoadState('networkidle', timeout=5000).
+   (c) Assert document.querySelector('main, [role=main], #root, body > div')?.textContent?.trim().length > 20 OR an h1/h2 with non-empty text exists. Empty body / dark wrapper = FAIL.
+   (d) Pattern-match collected errors. ANY of these = FAIL severity CRITICAL:
+       "Minified React error" (esp #185 = infinite render loop), "Maximum update depth exceeded", "Invariant Violation", "Uncaught ReferenceError", "Uncaught TypeError", "Hydration failed", "Cannot read properties of undefined".
+   (e) Screenshot full-page per route → \`docs/runtime-screenshots/<route-slug>.png\`.
+   (f) Total console-error count across all routes MUST be 0 — non-zero = HIGH finding.
 
 5. For each DoD criterion:
-   - smoke: curl URL; pass if status < 500.
-   - e2e: write \`tests/runtime/<id>.spec.ts\`, run it. Screenshot to \`docs/runtime-evidence/<id>.png\`. Pass iff exit 0.
+   - smoke: curl URL; pass iff status<500 AND smoke spec for that route passed.
+   - e2e: write \`tests/runtime/<id>.spec.ts\` with the same listener setup; screenshot \`docs/runtime-evidence/<id>.png\`; pass iff exit 0 AND zero pageerrors AND zero console errors.
    - manual: verdict="manual", do not auto-pass.
 
-6. Kill dev server when done.
+6. Kill dev server.
 
 7. Write \`docs/runtime-report.md\` (the dashboard parses it):
 
@@ -77,7 +84,7 @@ WORKFLOW (do in order, do not skip):
    For each failing gate one row: | # | severity | location | title | recommendation |
    HIGH = failing E2E/smoke, CRITICAL = boot crash, MEDIUM = warnings.
    ## Evidence
-   - Screenshots: docs/runtime-evidence/*.png
+   - Screenshots: docs/runtime-evidence/*.png + docs/runtime-screenshots/*.png
    - Playwright report: playwright-report/index.html
 
 8. ALSO write \`docs/runtime-report.json\` (harness parses):
@@ -162,6 +169,84 @@ export function parseRuntimeReportJson(raw: string): RuntimeReportJson | null {
   const r = runtimeReportJsonSchema.safeParse(parsed);
   return r.success ? r.data : null;
 }
+
+/**
+ * Canonical React-aware Playwright smoke spec. The runtime-verifier agent
+ * (and any test-dev producing e2e specs) is expected to drop a variant of
+ * this file at `tests/runtime/_smoke.spec.ts` so we catch the failure modes
+ * HTTP-200-on-boot misses: blank screens from layout bugs, infinite render
+ * loops (React #185), uncaught reference/type errors, hydration failures.
+ *
+ * Exported so other prompts can quote it verbatim and so tests can assert
+ * the canonical-smoke wording stays stable across releases.
+ *
+ * The file is intentionally framework-light: only `@playwright/test`. The
+ * generating agent fills in the actual route list from the app's router
+ * config — leaving `ROUTES` as a single `/` falls back to a single-route
+ * smoke, which is still strictly better than "boot returned 200".
+ */
+export const RUNTIME_SMOKE_TEST_TEMPLATE = `import { test, expect, type ConsoleMessage } from '@playwright/test';
+
+// Fill ROUTES from the app's router config. Leave '/' if the app is single-page.
+const ROUTES: string[] = ['/'];
+
+const FATAL_PATTERNS = [
+  /Minified React error/i,
+  /Maximum update depth exceeded/i,
+  /Invariant Violation/i,
+  /Uncaught ReferenceError/i,
+  /Uncaught TypeError/i,
+  /Hydration failed/i,
+  /Cannot read propert(?:y|ies) of undefined/i,
+];
+
+for (const route of ROUTES) {
+  test(\`renders \${route} without React/JS errors\`, async ({ page }) => {
+    const pageErrors: string[] = [];
+    const consoleErrors: string[] = [];
+
+    // CRITICAL: attach listeners BEFORE goto, otherwise early-mount crashes
+    // (the exact failure mode we're trying to catch) are missed.
+    page.on('pageerror', (err) => pageErrors.push(err.message));
+    page.on('console', (msg: ConsoleMessage) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+
+    await page.goto(route);
+    await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+
+    // Non-empty content check. A blank dark wrapper (Tauri default body bg +
+    // collapsed grid + early render crash) all return HTTP 200 but render
+    // nothing meaningful. >20 chars of trimmed text content rules that out.
+    const text = await page
+      .locator('main, [role=main], #root, body > div')
+      .first()
+      .innerText({ timeout: 2000 })
+      .catch(() => '');
+    const hasHeading = await page.locator('h1, h2').first().isVisible().catch(() => false);
+    expect(
+      text.trim().length > 20 || hasHeading,
+      \`route \${route} rendered empty (text="\${text.slice(0, 80)}", heading=\${hasHeading})\`,
+    ).toBe(true);
+
+    // Fatal-pattern check. Each match is its own failure for actionable output.
+    for (const msg of [...pageErrors, ...consoleErrors]) {
+      for (const pat of FATAL_PATTERNS) {
+        expect(msg, \`fatal pattern matched on \${route}: \${msg}\`).not.toMatch(pat);
+      }
+    }
+
+    // Zero-tolerance on console.error — surfaces silent issues like missing
+    // keys, unhandled promise rejections, dev-only warnings escalated to error.
+    expect(consoleErrors, \`console errors on \${route}: \${consoleErrors.join(' | ')}\`).toEqual([]);
+    expect(pageErrors, \`pageerrors on \${route}: \${pageErrors.join(' | ')}\`).toEqual([]);
+
+    // Evidence — full-page screenshot per route, slug-safe filename.
+    const slug = route.replace(/[^a-z0-9]+/gi, '_').replace(/^_|_$/g, '') || 'root';
+    await page.screenshot({ path: \`docs/runtime-screenshots/\${slug}.png\`, fullPage: true });
+  });
+}
+`;
 
 export interface BuildRuntimeVerifyNodeArgs {
   /** Stable id for the node — convention: `n-runtime-verify`. */

@@ -120,17 +120,23 @@ export interface StartRunArgs {
   chainIteration?: number;
 }
 
-const DEFAULT_BUDGET_MIN = 120;
-const DEFAULT_BUDGET_TURNS = 500;
+// Wallclock + turns ceilings deliberately set very high so that even
+// week-long, complex multi-day projects can run without artificial early
+// kills. Users that want tighter caps can still pass body overrides at
+// startRun time. `null` is honored as "unlimited" — see Walker.checkBudget
+// and checkAutopilotBudget which both skip when the cap is null/undefined.
+const DEFAULT_BUDGET_MIN = 10_080; // 7 days
+const DEFAULT_BUDGET_TURNS = 5_000;
 const DEFAULT_MAX_PARALLEL = 2;
 const DEFAULT_SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
 /**
  * Fallback ceiling for `autopilotBudgetTokens` when the project hasn't set
- * its own override. Roughly $30 of Sonnet 4.6 traffic — large enough that
- * healthy runs never feel it, small enough that a runaway feedback loop
- * stops before it burns serious money.
+ * its own override. Large enough that complex week-long apps complete
+ * without tripping it (~$750 of Sonnet traffic), small enough that a
+ * genuine runaway feedback loop still stops before it burns silly money.
+ * Users can override to anything — including `null` for fully unlimited.
  */
-const DEFAULT_AUTOPILOT_BUDGET_TOKENS = 2_000_000;
+export const DEFAULT_AUTOPILOT_BUDGET_TOKENS = 50_000_000;
 
 interface ResidentRun {
   walker: Walker;

@@ -31,8 +31,18 @@ import type { SuccessCriteria, VerificationResult } from './verification.js';
 // ---------- public types ----------
 
 export interface BudgetConfig {
-  budgetMinutes: number;
-  budgetTurns: number;
+  /**
+   * Wallclock cap for the entire run in minutes. `null` means unlimited —
+   * the walker will not abort on elapsed time. Users opt into this when
+   * they explicitly want a multi-day project to run to completion. Token
+   * and turn caps still apply unless they are also `null`.
+   */
+  budgetMinutes: number | null;
+  /**
+   * Cumulative cap for assistant turns across all tasks in the run.
+   * `null` means unlimited.
+   */
+  budgetTurns: number | null;
   maxParallel: number;
 }
 
@@ -1419,15 +1429,17 @@ export class Walker {
       turnsTotal: totalTurns,
     });
 
-    const timeFrac = elapsedMin / this.budget.budgetMinutes;
-    const turnFrac = totalTurns / this.budget.budgetTurns;
+    // A `null` cap means "unlimited" — the user explicitly opted into a
+    // long-running run. Skip both the kill and the 80% warning in that case.
+    const timeFrac = this.budget.budgetMinutes == null ? 0 : elapsedMin / this.budget.budgetMinutes;
+    const turnFrac = this.budget.budgetTurns == null ? 0 : totalTurns / this.budget.budgetTurns;
 
-    if (turnFrac >= 1) {
+    if (this.budget.budgetTurns != null && turnFrac >= 1) {
       this.deps.emit({ type: 'resource.exceeded', payload: { runId: this.runId, kind: 'turns' } });
       await this.cancel('budget_exceeded');
       return;
     }
-    if (timeFrac >= 1) {
+    if (this.budget.budgetMinutes != null && timeFrac >= 1) {
       this.deps.emit({ type: 'resource.exceeded', payload: { runId: this.runId, kind: 'time' } });
       await this.cancel('budget_exceeded');
       return;
@@ -1456,14 +1468,14 @@ export class Walker {
         console.error('[walker] extraBudgetCheck threw — ignoring', err);
       }
     }
-    if (!this.warnedTurns && turnFrac >= 0.8) {
+    if (this.budget.budgetTurns != null && !this.warnedTurns && turnFrac >= 0.8) {
       this.warnedTurns = true;
       this.deps.emit({
         type: 'resource.warning',
         payload: { runId: this.runId, kind: 'turns', percent: Math.min(turnFrac * 100, 100) },
       });
     }
-    if (!this.warnedTime && timeFrac >= 0.8) {
+    if (this.budget.budgetMinutes != null && !this.warnedTime && timeFrac >= 0.8) {
       this.warnedTime = true;
       this.deps.emit({
         type: 'resource.warning',

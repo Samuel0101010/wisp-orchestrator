@@ -34,6 +34,7 @@ import {
 } from '@wisp/schemas';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
 import { injectLeadCheckpoint } from '../orchestrator/inject-lead-checkpoint.js';
+import { injectWireUp } from '../orchestrator/inject-wire-up.js';
 import { detectProjectType } from '../orchestrator/detect-project-type.js';
 import { getLatestProjectState } from '../orchestrator/project-state-loader.js';
 
@@ -362,12 +363,24 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           };
         }
 
+        // v1.7.13 — splice a wire-up reconciliation node between the
+        // parallel core-dev tasks and any downstream qa / runtime-verifier
+        // nodes. Idempotent + non-destructive: skipped when no core-dev-
+        // family roles are present in the plan (legacy library / refactor
+        // plans pass through untouched) or when the 8-role cap is hit.
+        // Runs BEFORE runtime-verifier injection so the verifier ends up
+        // depending on wire-up.
+        let finalPlan = outcome.plan;
+        {
+          const wireUpInjection = injectWireUp({ plan: finalPlan });
+          finalPlan = wireUpInjection.plan;
+        }
+
         // v1.8 — auto-inject the runtime-verifier node when the project opted
         // in. Idempotent + non-destructive: if the planner happened to include
         // it already, or the team is at the 8-role cap, the original plan
         // passes through unchanged. The release-gate degrades to legacy
         // behaviour in that case.
-        let finalPlan = outcome.plan;
         if (project.runtimeVerifyEnabled) {
           const dod = await db
             .select()
@@ -376,7 +389,7 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
             .all();
           const detected = detectProjectType(project.repoPath);
           const injection = injectRuntimeVerifier({
-            plan: outcome.plan,
+            plan: finalPlan,
             dodCriteria: dod,
             detected: {
               type: detected.type,
