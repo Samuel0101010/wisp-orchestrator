@@ -2,7 +2,26 @@
   "name": "@wisp/dashboard-server",
   "version": "2.0.1",
   "private": true,
+  "description": "WISP dashboard backend — Fastify + Drizzle + WebSocket orchestrator for Claude Code agent crews.",
+  "keywords": [
+    "wisp",
+    "dashboard",
+    "fastify",
+    "drizzle",
+    "orchestrator",
+    "claude-code"
+  ],
+  "author": "Samuel Heftberger",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Samuel0101010/wisp-orchestrator.git",
+    "directory": "apps/dashboard-server"
+  },
+  "bugs": {
+    "url": "https://github.com/Samuel0101010/wisp-orchestrator/issues"
+  },
+  "homepage": "https://github.com/Samuel0101010/wisp-orchestrator#readme",
   "type": "module",
   "main": "./dist/server.js",
   "scripts": {

@@ -171,10 +171,10 @@ The WS bus is a per-process in-memory pub/sub keyed by `runId`. There is no serv
 
 ### Windows paths
 
-The recommended local checkout path is `C:\Users\dev\WISP`:
+The recommended local checkout path is `<repo-path>`:
 
 ```sh
-claude plugin marketplace add C:\Users\dev\WISP
+claude plugin marketplace add <repo-path>
 ```
 
 If your clone lives at a path that contains a space, quote it in shell commands. The PowerShell launcher in `scripts/launch-dashboard.ps1` handles either case.

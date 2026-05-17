@@ -2,7 +2,24 @@
   "name": "@wisp/schemas",
   "version": "2.0.1",
   "private": true,
+  "description": "WISP shared schemas — Zod schemas for plan, team, and protocol payloads.",
+  "keywords": [
+    "wisp",
+    "schemas",
+    "zod",
+    "validation"
+  ],
+  "author": "Samuel Heftberger",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Samuel0101010/wisp-orchestrator.git",
+    "directory": "packages/schemas"
+  },
+  "bugs": {
+    "url": "https://github.com/Samuel0101010/wisp-orchestrator/issues"
+  },
+  "homepage": "https://github.com/Samuel0101010/wisp-orchestrator#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

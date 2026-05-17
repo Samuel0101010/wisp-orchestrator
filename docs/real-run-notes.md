@@ -10,7 +10,7 @@ foundation-level claims that real-Claude can confirm but mocks cannot.
 - Date: 2026-05-05
 - Host: Windows 11, Node 20, `claude` 2.1.128
 - Branch under test: `m1.5/real-claude-fixes` on top of merged `m1.5/foundation-hardening`
-- Test repository: empty git repo at `C:/Users/dev/AppData/Local/Temp/harness-real-1`
+- Test repository: empty git repo at `<TEMP>/harness-real-1`
   (single empty `init` commit on `main`)
 - Goal: "Add an exported `hello(name)` function returning 'Hello, <name>' to a
   TypeScript module at `src/hello.ts` plus a vitest test"
@@ -28,7 +28,7 @@ nothing — so the entire vertical slice depends on real-Claude evidence.
 **Claim validated.** After the run, the test repo contains:
 
 ```
-$ git -C C:/Users/dev/AppData/Local/Temp/harness-real-1 branch --all
+$ git -C <TEMP>/harness-real-1 branch --all
   wisp/93478bd3.../architect-plan
 + wisp/93478bd3.../dev-hello-module
 * main
@@ -45,7 +45,7 @@ The `wisp/.../architect-plan` branch carries the architect's auto-commit
 + `tasks.md` produced by the architect. The developer wrote `package.json`,
 `tsconfig.json`, `vitest.config.ts`, `.gitignore`, `src/hello.ts`, and
 `src/hello.test.ts` in that worktree — visible on disk under
-`C:/Users/dev/AppData/Local/Temp/.harness-worktrees/`. Without Stage A's
+`<TEMP>/.harness-worktrees/`. Without Stage A's
 chaining + auto-commit, dev would have started from an empty `main` and the
 architecture documents would have been gone.
 
@@ -1079,5 +1079,5 @@ This is exactly the scenario `WISP_AUTO_RESUME_RATE_LIMIT=false` (default) is fo
 
 - v1.0 SHIP STATUS: unchanged. All 9 PRs (#3-#11) merged. Tag `v1.0.0` on `928b194`. Test count 309+ green.
 - Resume path validates structurally: walker reload + DB state preservation work. Failed at the worktree-add step, which is the foundation gap above.
-- Original r7 work (architect + core-dev's typed `debounce` + 3 memory keys) remains intact on `wisp/fdbd17a8-7644-4f1d-99a0-9f883a911fc9/{arch-1,core-1}` branches in `C:\Users\dev\AppData\Local\Temp\harness-r7`. Inspectable any time.
+- Original r7 work (architect + core-dev's typed `debounce` + 3 memory keys) remains intact on `wisp/fdbd17a8-7644-4f1d-99a0-9f883a911fc9/{arch-1,core-1}` branches in `<TEMP>\harness-r7`. Inspectable any time.
 - Cumulative cost ~$0.30 across both resume attempts (architect + core-dev didn't re-run; only the first turn of architect-1 in attempt 2).

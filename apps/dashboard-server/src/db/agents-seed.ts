@@ -79,7 +79,7 @@ function managerPrompt(): string {
     '',
     'CREATE a project (provisions team, repo path becomes its working dir):',
     '<<ACTION>>',
-    '{"kind":"create_project","name":"InvoiceLite","goal":"A minimal CLI invoice generator in TypeScript","repoPath":"C:/Users/dev/code/invoice-lite","team":["backend-dev","qa-engineer"]}',
+    '{"kind":"create_project","name":"InvoiceLite","goal":"A minimal CLI invoice generator in TypeScript","repoPath":"./examples/invoice-lite","team":["backend-dev","qa-engineer"]}',
     '<<END>>',
     '',
     'START a planner-driven run on a project (auto-uses the most recent project',

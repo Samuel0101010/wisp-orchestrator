@@ -37,7 +37,7 @@
       "route": "/",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-home-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-home-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -46,7 +46,7 @@
       "route": "/",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-home-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-home-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -55,7 +55,7 @@
       "route": "/",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-home-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-home-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -64,7 +64,7 @@
       "route": "/",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-home-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-home-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -73,7 +73,7 @@
       "route": "/chat",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-chat-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-chat-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -82,7 +82,7 @@
       "route": "/chat",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-chat-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-chat-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -91,7 +91,7 @@
       "route": "/chat",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-chat-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-chat-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -100,7 +100,7 @@
       "route": "/chat",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-chat-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-chat-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -109,7 +109,7 @@
       "route": "/agents",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-agents-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-agents-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -118,7 +118,7 @@
       "route": "/agents",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-agents-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-agents-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -127,7 +127,7 @@
       "route": "/agents",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-agents-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-agents-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -136,7 +136,7 @@
       "route": "/agents",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-agents-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-agents-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -145,7 +145,7 @@
       "route": "/skills",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-skills-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-skills-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -154,7 +154,7 @@
       "route": "/skills",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-skills-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-skills-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -163,7 +163,7 @@
       "route": "/skills",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-skills-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-skills-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -172,7 +172,7 @@
       "route": "/skills",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-skills-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-skills-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -181,7 +181,7 @@
       "route": "/workers",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-workers-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-workers-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -190,7 +190,7 @@
       "route": "/workers",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-workers-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-workers-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -199,7 +199,7 @@
       "route": "/workers",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-workers-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-workers-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -208,7 +208,7 @@
       "route": "/workers",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-workers-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-workers-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -217,7 +217,7 @@
       "route": "/insights",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-insights-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-insights-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -226,7 +226,7 @@
       "route": "/insights",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-insights-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-insights-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -235,7 +235,7 @@
       "route": "/insights",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-insights-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-insights-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -244,7 +244,7 @@
       "route": "/insights",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-insights-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-insights-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -253,7 +253,7 @@
       "route": "/goap",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-goap-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-goap-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -262,7 +262,7 @@
       "route": "/goap",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-goap-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-goap-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -271,7 +271,7 @@
       "route": "/goap",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-goap-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-goap-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -280,7 +280,7 @@
       "route": "/goap",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-goap-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-goap-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -289,7 +289,7 @@
       "route": "/prompt-bundles",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-prompt-bundles-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-prompt-bundles-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -298,7 +298,7 @@
       "route": "/prompt-bundles",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-prompt-bundles-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-prompt-bundles-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -307,7 +307,7 @@
       "route": "/prompt-bundles",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-prompt-bundles-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-prompt-bundles-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -316,7 +316,7 @@
       "route": "/prompt-bundles",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-prompt-bundles-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-prompt-bundles-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -325,7 +325,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -334,7 +334,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -343,7 +343,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -352,7 +352,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -361,7 +361,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/teams",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-teams-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-teams-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -370,7 +370,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/teams",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-teams-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-teams-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -379,7 +379,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/teams",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-teams-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-teams-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -388,7 +388,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/teams",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-teams-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-teams-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -397,7 +397,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/plan",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-plan-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-plan-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -406,7 +406,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/plan",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-plan-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-plan-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -415,7 +415,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/plan",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-plan-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-plan-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -424,7 +424,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/plan",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-plan-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-plan-light-de.png",
       "status": "ok",
       "errors": []
     },
@@ -433,7 +433,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/run/008bd6f3-88aa-4fb3-a24d-5f50976786fc",
       "theme": "dark",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-run-runid-dark-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-run-runid-dark-en.png",
       "status": "ok",
       "errors": []
     },
@@ -442,7 +442,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/run/008bd6f3-88aa-4fb3-a24d-5f50976786fc",
       "theme": "dark",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-run-runid-dark-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-run-runid-dark-de.png",
       "status": "ok",
       "errors": []
     },
@@ -451,7 +451,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/run/008bd6f3-88aa-4fb3-a24d-5f50976786fc",
       "theme": "light",
       "lang": "en",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-run-runid-light-en.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-run-runid-light-en.png",
       "status": "ok",
       "errors": []
     },
@@ -460,7 +460,7 @@
       "route": "/projects/28577a95-6c48-420f-814a-9e1fdb4d36b0/run/008bd6f3-88aa-4fb3-a24d-5f50976786fc",
       "theme": "light",
       "lang": "de",
-      "file": "C:\\Users\\samue\\Agent Harness\\audit-artifacts\\screenshots\\v1.6.0-wave4-projects-id-run-runid-light-de.png",
+      "file": "audit-artifacts/screenshots/v1.6.0-wave4-projects-id-run-runid-light-de.png",
       "status": "ok",
       "errors": []
     }
