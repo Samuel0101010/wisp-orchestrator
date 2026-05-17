@@ -2,7 +2,27 @@
   "name": "wisp",
   "version": "2.0.1",
   "private": true,
+  "description": "WISP — visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews.",
+  "keywords": [
+    "claude-code",
+    "claude-code-plugin",
+    "agent-orchestration",
+    "multi-agent",
+    "dag",
+    "kanban",
+    "wisp",
+    "monorepo"
+  ],
+  "author": "Samuel Heftberger",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Samuel0101010/wisp-orchestrator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Samuel0101010/wisp-orchestrator/issues"
+  },
+  "homepage": "https://github.com/Samuel0101010/wisp-orchestrator#readme",
   "type": "module",
   "engines": {
     "node": ">=20.10",
