@@ -43,6 +43,26 @@ describe('built-in templates', () => {
     }
   });
 
+  it('ts-library architect carries UI acceptance criteria + ts-library test-dev carries React-aware e2e guidance', () => {
+    const tsLib = builtInTemplates.find((t) => t.id === 'ts-library');
+    expect(tsLib).toBeTruthy();
+    const architect = tsLib!.team.roles.find((r) => r.role === 'architect');
+    const testDev = tsLib!.team.roles.find((r) => r.role === 'test-dev');
+    expect(architect).toBeTruthy();
+    expect(testDev).toBeTruthy();
+    // Architect: spell out the four UI gates that motivated this hardening pass.
+    expect(architect!.systemPrompt).toMatch(/non-empty content/i);
+    expect(architect!.systemPrompt).toMatch(/Console error count MUST be 0/i);
+    expect(architect!.systemPrompt).toMatch(/every nav link/i);
+    expect(architect!.systemPrompt).toMatch(/infinite render loop/i);
+    // test-dev: must teach the pageerror + console listener pattern + fatal patterns.
+    expect(testDev!.systemPrompt).toMatch(/page\.on\('pageerror'/);
+    expect(testDev!.systemPrompt).toMatch(/page\.on\('console'/);
+    expect(testDev!.systemPrompt).toMatch(/Minified React error/);
+    expect(testDev!.systemPrompt).toMatch(/useShallow/);
+    expect(testDev!.systemPrompt).toMatch(/runtime-screenshots/);
+  });
+
   it('every template provides at least one suggestedGoal', () => {
     for (const t of builtInTemplates) {
       expect(t.suggestedGoals.length).toBeGreaterThanOrEqual(1);

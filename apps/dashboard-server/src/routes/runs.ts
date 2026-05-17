@@ -16,7 +16,7 @@ import { db } from '../db/index.js';
 import { env } from '../env.js';
 import { wrap } from './wrap.js';
 import { publishToRun } from '../ws.js';
-import { RunRuntime } from '../orchestrator/runtime.js';
+import { DEFAULT_AUTOPILOT_BUDGET_TOKENS, RunRuntime } from '../orchestrator/runtime.js';
 import { makeMockRunner } from '../orchestrator/mock-runner.js';
 import { findResumableRuns } from '../orchestrator/recovery.js';
 
@@ -431,11 +431,17 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
       '/api/runs/:id/autopilot',
       wrap(async (req, reply) => {
         const { id } = z.object({ id: z.string() }).parse(req.params);
+        // Both `budgetMinutes` and `budgetTokens` accept three states:
+        //   - omitted (`undefined`)  → fall back to the autopilot default
+        //   - explicit positive int  → that exact cap
+        //   - explicit `null`        → unlimited (no enforcement at all)
+        // This lets a user opt into "let it run for a week" without us
+        // silently clamping back to a default ceiling.
         const body = z
           .object({
             enabled: z.boolean(),
-            budgetMinutes: z.number().int().positive().optional(),
-            budgetTokens: z.number().int().positive().optional(),
+            budgetMinutes: z.number().int().positive().nullable().optional(),
+            budgetTokens: z.number().int().positive().nullable().optional(),
           })
           .parse(req.body ?? {});
 
@@ -446,17 +452,22 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
         }
 
         // When enabling autopilot without an explicit token cap, fall back to
-        // the same 2M ceiling that startRun applies so a runaway live run
-        // always hits a hard kill. Explicit user-provided caps win.
-        const effectiveBudgetTokens = body.enabled
-          ? (body.budgetTokens ?? 2_000_000)
-          : (body.budgetTokens ?? null);
+        // the new high-but-finite default so a true runaway loop still gets
+        // killed. Explicit user-provided caps (including `null` for
+        // unlimited) always win.
+        const effectiveBudgetTokens =
+          body.budgetTokens === undefined
+            ? body.enabled
+              ? DEFAULT_AUTOPILOT_BUDGET_TOKENS
+              : null
+            : body.budgetTokens;
+        const effectiveBudgetMinutes = body.budgetMinutes === undefined ? null : body.budgetMinutes;
 
         await db
           .update(runs)
           .set({
             autopilotMode: body.enabled,
-            autopilotBudgetMinutes: body.budgetMinutes ?? null,
+            autopilotBudgetMinutes: effectiveBudgetMinutes,
             autopilotBudgetTokens: effectiveBudgetTokens,
             autopilotStartedAt: body.enabled ? new Date() : null,
           })
@@ -466,7 +477,7 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
         return {
           id,
           autopilotMode: body.enabled,
-          autopilotBudgetMinutes: body.budgetMinutes ?? null,
+          autopilotBudgetMinutes: effectiveBudgetMinutes,
           autopilotBudgetTokens: effectiveBudgetTokens,
         };
       }),

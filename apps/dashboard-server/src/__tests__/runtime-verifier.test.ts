@@ -1,6 +1,7 @@
 import './setup.js';
 import { describe, expect, it } from 'vitest';
 import {
+  RUNTIME_SMOKE_TEST_TEMPLATE,
   RUNTIME_VERIFIER_ROLE,
   buildRuntimeVerifyNode,
   parseRuntimeReportJson,
@@ -31,6 +32,39 @@ describe('RUNTIME_VERIFIER_ROLE', () => {
     expect(tools).toMatch(/Bash/);
     expect(tools).toMatch(/Read/);
     expect(tools).toMatch(/Write/);
+  });
+
+  it('teaches the React-aware checks: pageerror, console, fatal patterns, per-route content', () => {
+    const p = RUNTIME_VERIFIER_ROLE.systemPrompt;
+    expect(p).toMatch(/pageerror/);
+    expect(p).toMatch(/console/);
+    expect(p).toMatch(/Minified React error/);
+    expect(p).toMatch(/Maximum update depth exceeded/);
+    expect(p).toMatch(/Hydration failed/);
+    // Per-route content check — guards against the "dark blank screen still
+    // returned 200" regression that motivated this verifier hardening.
+    expect(p).toMatch(/textContent/);
+    expect(p).toMatch(/runtime-screenshots/);
+  });
+});
+
+describe('RUNTIME_SMOKE_TEST_TEMPLATE', () => {
+  it('attaches listeners before goto and asserts non-empty content + zero errors', () => {
+    const t = RUNTIME_SMOKE_TEST_TEMPLATE;
+    // Listener attachment present.
+    expect(t).toMatch(/page\.on\('pageerror'/);
+    expect(t).toMatch(/page\.on\('console'/);
+    // Content + heading fallback.
+    expect(t).toMatch(/innerText/);
+    expect(t).toMatch(/h1, h2/);
+    // Fatal-pattern allow-list (a subset is enough — the array is in source).
+    expect(t).toMatch(/Minified React error/);
+    expect(t).toMatch(/Maximum update depth exceeded/);
+    // Screenshot evidence.
+    expect(t).toMatch(/runtime-screenshots/);
+    // Zero-tolerance assertions.
+    expect(t).toMatch(/consoleErrors.*\.toEqual\(\[\]\)/);
+    expect(t).toMatch(/pageErrors.*\.toEqual\(\[\]\)/);
   });
 });
 
