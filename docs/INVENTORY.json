@@ -1,17 +1,24 @@
 {
-  "generatedAt": "2026-05-13T04:00:00.428Z",
   "routes": [
+    "agent-overrides",
     "agents",
+    "build",
+    "change-requests",
     "chat-directives",
     "chat-engine",
     "chat",
+    "dod",
     "goap",
     "health",
     "hooks",
     "index",
     "insights",
+    "interview",
+    "lead",
+    "org-chart",
     "plan-chain",
     "plans",
+    "preview",
     "probe-prompt",
     "projects",
     "prompt-bundles",
@@ -32,7 +39,10 @@
     "designer",
     "ml-engineer",
     "security",
-    "tech-writer"
+    "tech-writer",
+    "packager",
+    "lead",
+    "requirements-interviewer"
   ],
   "skills": ["audit-orphan-runs", "auto-doc", "deep-research", "doctor", "summarize-thread"],
   "directives": ["consult", "add_member", "create_project", "start_run", "invoke_skill"],
@@ -45,6 +55,16 @@
     "0005_agents.sql",
     "0006_chat_v2.sql",
     "0007_ruflo_port.sql",
-    "0008_paperclip_port.sql"
+    "0008_paperclip_port.sql",
+    "0009_production_loop.sql",
+    "0010_project_run_defaults.sql",
+    "0011_dod_and_runtime.sql",
+    "0012_project_briefs.sql",
+    "0013_change_requests.sql",
+    "0014_project_states.sql",
+    "0015_agent_overrides.sql",
+    "0016_plan_kind.sql",
+    "0017_package_target.sql",
+    "0018_lead_notes.sql"
   ]
 }
