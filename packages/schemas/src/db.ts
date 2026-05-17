@@ -138,6 +138,11 @@ export const taskStatusValues = [
   'done',
   'failed',
   'skipped',
+  // v1.7.13 — distinct from 'failed' so the UI can show user-cancelled tasks
+  // in their own bucket. Only the explicit user-cancel path (Walker.cancel)
+  // writes this; tasks cancelled by upstream dep-failure cascade stay
+  // 'failed' since they're a failure cascade, not a user intent.
+  'cancelled',
 ] as const;
 export type TaskStatus = (typeof taskStatusValues)[number];
 

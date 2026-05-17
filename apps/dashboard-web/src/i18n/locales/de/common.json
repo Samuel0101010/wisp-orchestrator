@@ -530,12 +530,14 @@
       "verifying": "VERIFIZIERE",
       "done": "FERTIG",
       "failed": "FEHLGESCHLAGEN",
+      "cancelled": "ABGEBROCHEN",
       "empty": {
         "pending": "Keine ausstehenden Tasks",
         "running": "Nichts läuft",
         "verifying": "Keine Verifizierung",
         "done": "Noch nichts fertig",
-        "failed": "Keine Fehler"
+        "failed": "Keine Fehler",
+        "cancelled": "Keine abgebrochenen Tasks"
       }
     },
     "task": {

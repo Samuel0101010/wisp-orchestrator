@@ -530,12 +530,14 @@
       "verifying": "VERIFYING",
       "done": "DONE",
       "failed": "FAILED",
+      "cancelled": "CANCELLED",
       "empty": {
         "pending": "No pending tasks",
         "running": "Nothing running",
         "verifying": "No verification queued",
         "done": "No completed tasks yet",
-        "failed": "No failures"
+        "failed": "No failures",
+        "cancelled": "No cancelled tasks"
       }
     },
     "task": {

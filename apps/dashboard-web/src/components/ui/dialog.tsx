@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Dialog = DialogPrimitive.Root;
@@ -38,10 +37,14 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
+      {/*
+        v1.7.13 — The corner X-close affordance was removed because every
+        DialogContent in this app pairs the dialog with explicit footer
+        buttons ("Abbrechen" / "Close" / "Schließen"). Rendering Radix's
+        auto-close in addition produced a redundant control that, in
+        confirm dialogs, duplicated the "Abbrechen" footer button.
+        Esc and overlay-click still close the dialog (Radix defaults).
+      */}
     </DialogPrimitive.Content>
   </DialogPortal>
 ));
