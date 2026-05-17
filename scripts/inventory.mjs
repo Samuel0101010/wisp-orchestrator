@@ -40,8 +40,9 @@ function countDirectives() {
   return [...src.matchAll(/kind:\s*z\.literal\('([^']+)'\)/g)].map((m) => m[1]);
 }
 
+// No generatedAt field: the file content reflects current source-tree
+// state. Last-generated time is in the git history (git log docs/INVENTORY.json).
 const out = {
-  generatedAt: new Date().toISOString(),
   routes: countRoutes(),
   agents: countSeedAgents(),
   skills: countSkills(),

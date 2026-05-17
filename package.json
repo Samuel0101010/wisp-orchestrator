@@ -31,6 +31,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "inventory": "node scripts/inventory.mjs",
+    "inventory:check": "node scripts/inventory.mjs && prettier --write docs/INVENTORY.json && git diff --exit-code -- docs/INVENTORY.json",
     "build": "pnpm -r run build",
     "test": "pnpm --filter \"./packages/**\" --filter \"./apps/**\" --filter \"./tests/compliance\" run test",
     "test:integration": "pnpm -r run test:integration",
