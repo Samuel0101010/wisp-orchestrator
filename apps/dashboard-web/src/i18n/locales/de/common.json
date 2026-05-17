@@ -732,6 +732,16 @@
       "newRunDisabled": "Plan erst sperren",
       "starting": "Starte…"
     },
+    "runStart": {
+      "title": "Neuen Run starten?",
+      "description": "Der Run nutzt den unten stehenden, aktuellen Projekt-Goal und den gesperrten Plan.",
+      "goalLabel": "Aktuelles Ziel",
+      "expandGoal": "Vollständig anzeigen",
+      "collapseGoal": "Einklappen",
+      "iterationHint": "Möchtest du nur Änderungen am Bestehenden? → Wechsle stattdessen zur Vorschau und füge Change-Requests hinzu, dann starte eine Iteration.",
+      "gotoPreview": "Zur Vorschau",
+      "confirm": "Run starten"
+    },
     "runs": {
       "title": "Run-Historie",
       "empty": "Noch keine Runs — generiere einen Plan und sperre ihn, um den ersten zu starten.",
