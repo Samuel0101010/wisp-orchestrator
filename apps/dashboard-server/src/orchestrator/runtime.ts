@@ -47,6 +47,7 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
 import { writeMemoryMcpConfig } from './mcp-config.js';
+import { checkAutopilotBudget } from '../autopilot/budget.js';
 import { replanOnQAFailure } from './replan.js';
 import { storeTrajectory } from '../reasoningbank/store.js';
 import { autoMergeResultIntoMain } from './auto-merge.js';
@@ -123,6 +124,13 @@ const DEFAULT_BUDGET_MIN = 120;
 const DEFAULT_BUDGET_TURNS = 500;
 const DEFAULT_MAX_PARALLEL = 2;
 const DEFAULT_SNAPSHOT_INTERVAL_MS = 10 * 60 * 1000;
+/**
+ * Fallback ceiling for `autopilotBudgetTokens` when the project hasn't set
+ * its own override. Roughly $30 of Sonnet 4.6 traffic — large enough that
+ * healthy runs never feel it, small enough that a runaway feedback loop
+ * stops before it burns serious money.
+ */
+const DEFAULT_AUTOPILOT_BUDGET_TOKENS = 2_000_000;
 
 interface ResidentRun {
   walker: Walker;
@@ -260,6 +268,22 @@ export class RunRuntime {
             });
             return result;
           },
+      // Hard-kill bridge for the autopilot budget caps. Without this closure,
+      // `checkAutopilotBudget` only fires when the autopilot tick contemplates
+      // resuming a paused run — a runaway live run never tripped the cap. By
+      // re-reading the run row each call we pick up budget edits the user made
+      // mid-run (the columns are nullable so a missing cap means "no limit").
+      extraBudgetCheck: async ({ runId: rid, tokensTotal }) => {
+        try {
+          const row = await this.db.select().from(runs).where(eq(runs.id, rid)).get();
+          if (!row) return { exceeded: false, reason: null };
+          return checkAutopilotBudget(row, tokensTotal);
+        } catch (err) {
+          // Defensive: a failing DB read must not trip the kill switch.
+          console.error('[runtime] extraBudgetCheck DB read failed', err);
+          return { exceeded: false, reason: null };
+        }
+      },
     };
   }
 
@@ -362,7 +386,12 @@ export class RunRuntime {
           chainIteration: args.chainIteration ?? 0,
           autopilotMode: defaultAutopilotOn,
           autopilotBudgetMinutes: projectRow?.defaultAutopilotBudgetMinutes ?? null,
-          autopilotBudgetTokens: projectRow?.defaultAutopilotBudgetTokens ?? null,
+          // When autopilot is on but the project hasn't set its own token cap,
+          // fall back to DEFAULT_AUTOPILOT_BUDGET_TOKENS so a runaway run still
+          // hits a ceiling. Off-by-default for non-autopilot runs.
+          autopilotBudgetTokens:
+            projectRow?.defaultAutopilotBudgetTokens ??
+            (defaultAutopilotOn ? DEFAULT_AUTOPILOT_BUDGET_TOKENS : null),
           autopilotStartedAt: seededAutopilotStartedAt,
         })
         .run();

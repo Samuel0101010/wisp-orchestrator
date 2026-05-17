@@ -5,7 +5,7 @@ import { z } from 'zod';
 const taskOutcome = z.literal('pass');
 const runOutcome = z.enum(['success', 'failure', 'budget_exceeded', 'cancelled']);
 const pausedReason = z.enum(['rate-limit', 'user', 'shutdown', 'consecutive-failures']);
-const resourceKind = z.enum(['time', 'turns']);
+const resourceKind = z.enum(['time', 'turns', 'tokens']);
 
 export const harnessEventSchema = z.discriminatedUnion('type', [
   z.object({

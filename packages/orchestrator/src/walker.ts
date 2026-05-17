@@ -139,6 +139,24 @@ export interface WalkerDeps {
     failedTaskId: string;
     qaError: string;
   }) => Promise<{ newPlan: Plan; newPlanId: string } | null>;
+  /**
+   * Optional extra budget check, evaluated after the walker's own
+   * minutes/turns gates inside {@link Walker.checkBudget}. The dashboard wires
+   * this to the autopilot budget so an `autopilotBudgetTokens` or
+   * `autopilotBudgetMinutes` ceiling actually hard-kills a live run instead of
+   * only being consulted at autopilot-resume time.
+   *
+   * Receives the current cumulative token total (in + out) the walker has
+   * observed via task.usage events. Returns `{exceeded:true}` to trigger a
+   * `cancel('budget_exceeded')` with a `resource.exceeded` event whose `kind`
+   * is `'tokens'` (so the UI can distinguish autopilot caps from the walker's
+   * own time/turns caps). Errors are swallowed — a flaky check must never
+   * crash the dispatch loop.
+   */
+  extraBudgetCheck?: (args: {
+    runId: string;
+    tokensTotal: number;
+  }) => Promise<{ exceeded: boolean; reason: string | null }>;
 }
 
 /**
@@ -1413,6 +1431,30 @@ export class Walker {
       this.deps.emit({ type: 'resource.exceeded', payload: { runId: this.runId, kind: 'time' } });
       await this.cancel('budget_exceeded');
       return;
+    }
+    // Dashboard-supplied autopilot caps (tokens, longer-than-walker wallclock).
+    // Re-uses the existing cancel('budget_exceeded') path so the abort wiring
+    // (subprocess SIGTERM, worktree retention, run.completed event) is shared
+    // with the walker's own minutes/turns enforcement above.
+    if (this.deps.extraBudgetCheck) {
+      try {
+        const verdict = await this.deps.extraBudgetCheck({
+          runId: this.runId,
+          tokensTotal: totalIn + totalOut,
+        });
+        if (verdict.exceeded) {
+          this.runErrorReason = verdict.reason ?? 'budget_exceeded';
+          this.deps.emit({
+            type: 'resource.exceeded',
+            payload: { runId: this.runId, kind: 'tokens' },
+          });
+          await this.cancel('budget_exceeded');
+          return;
+        }
+      } catch (err) {
+        // A failing budget probe must not crash dispatch. Best-effort log.
+        console.error('[walker] extraBudgetCheck threw — ignoring', err);
+      }
     }
     if (!this.warnedTurns && turnFrac >= 0.8) {
       this.warnedTurns = true;

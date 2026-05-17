@@ -1,5 +1,5 @@
 ---
-name: harness-dashboard
+name: wisp-dashboard
 description: Open the WISP dashboard in your browser
 ---
 
