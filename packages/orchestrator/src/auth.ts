@@ -6,9 +6,39 @@
  */
 
 import { spawn } from 'node:child_process';
-import { extname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { delimiter, extname, join } from 'node:path';
 import process from 'node:process';
 import { detectRateLimit } from './rate-limit.js';
+
+/**
+ * Locate the `claude` binary on PATH, accounting for Windows PATHEXT
+ * (.exe / .cmd / .bat). Cached after first lookup. Falls back to bare
+ * "claude" string if nothing is found — spawn() will then surface the
+ * real ENOENT/EINVAL up the stack.
+ */
+let cachedClaudeBin: string | null = null;
+function resolveClaudeBin(): { cmd: string; argPrefix: string[] } {
+  if (cachedClaudeBin) return { cmd: cachedClaudeBin, argPrefix: [] };
+  if (process.platform !== 'win32') {
+    cachedClaudeBin = 'claude';
+    return { cmd: cachedClaudeBin, argPrefix: [] };
+  }
+  const pathEnv = process.env.PATH ?? '';
+  const exts = (process.env.PATHEXT ?? '.EXE;.CMD;.BAT').split(';');
+  for (const dir of pathEnv.split(delimiter)) {
+    if (!dir) continue;
+    for (const ext of exts) {
+      const candidate = join(dir, `claude${ext.toLowerCase()}`);
+      if (existsSync(candidate)) {
+        cachedClaudeBin = candidate;
+        return { cmd: candidate, argPrefix: [] };
+      }
+    }
+  }
+  cachedClaudeBin = 'claude';
+  return { cmd: cachedClaudeBin, argPrefix: [] };
+}
 
 const PROBE_TIMEOUT_MS = 30_000;
 const AUTH_MARKERS = [
@@ -38,12 +68,11 @@ function resolveBin(opts: ProbeOpts): { cmd: string; argPrefix: string[] } {
     }
     return { cmd: opts.__mockBin, argPrefix: [] };
   }
-  // On Windows, npm-global installs ship a `.cmd` shim; `spawn('claude', …)`
-  // without `shell:true` fails to resolve it. Use the explicit shim name
-  // instead of `shell:true` (which would expand cmd.exe meta-characters in
-  // any arg containing `&`, `|`, `<`, `>`, or `^`).
-  const bin = process.platform === 'win32' ? 'claude.cmd' : 'claude';
-  return { cmd: bin, argPrefix: [] };
+  // On Windows the `claude` binary can be `.exe` (desktop app), `.cmd`
+  // (npm-global shim) or `.bat`. spawn() without shell:true does not search
+  // PATHEXT — so resolve the real file once via `where`. Avoids shell:true,
+  // which would expand cmd.exe meta-chars in args.
+  return resolveClaudeBin();
 }
 
 export async function probeSubscriptionAuth(opts: ProbeOpts = {}): Promise<AuthProbeResult> {

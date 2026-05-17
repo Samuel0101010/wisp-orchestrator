@@ -7,10 +7,34 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { extname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { delimiter, extname, join } from 'node:path';
 import process from 'node:process';
 import type { HarnessEvent } from '@wisp/schemas';
 import { detectRateLimit, type RateLimitHit } from './rate-limit.js';
+
+let cachedClaudeBin: string | null = null;
+function resolveClaudeBin(): { cmd: string; argPrefix: string[] } {
+  if (cachedClaudeBin) return { cmd: cachedClaudeBin, argPrefix: [] };
+  if (process.platform !== 'win32') {
+    cachedClaudeBin = 'claude';
+    return { cmd: cachedClaudeBin, argPrefix: [] };
+  }
+  const pathEnv = process.env.PATH ?? '';
+  const exts = (process.env.PATHEXT ?? '.EXE;.CMD;.BAT').split(';');
+  for (const dir of pathEnv.split(delimiter)) {
+    if (!dir) continue;
+    for (const ext of exts) {
+      const candidate = join(dir, `claude${ext.toLowerCase()}`);
+      if (existsSync(candidate)) {
+        cachedClaudeBin = candidate;
+        return { cmd: candidate, argPrefix: [] };
+      }
+    }
+  }
+  cachedClaudeBin = 'claude';
+  return { cmd: cachedClaudeBin, argPrefix: [] };
+}
 
 export interface RunClaudeOpts {
   cwd: string;
@@ -83,12 +107,9 @@ function resolveBin(opts: RunClaudeOpts): { cmd: string; argPrefix: string[] } {
     }
     return { cmd: opts.__mockBin, argPrefix: [] };
   }
-  // On Windows, npm-global installs ship a `.cmd` shim; `spawn('claude', …)`
-  // without `shell:true` fails to resolve it. Use the explicit shim name
-  // instead of `shell:true` (which would expand cmd.exe meta-characters in
-  // any arg containing `&`, `|`, `<`, `>`, or `^`).
-  const bin = process.platform === 'win32' ? 'claude.cmd' : 'claude';
-  return { cmd: bin, argPrefix: [] };
+  // Walk PATH+PATHEXT to locate the real claude binary on Windows
+  // (.exe from desktop install OR .cmd from npm-global shim).
+  return resolveClaudeBin();
 }
 
 function buildEnv(opts: RunClaudeOpts): NodeJS.ProcessEnv {

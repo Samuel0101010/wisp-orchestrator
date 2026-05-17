@@ -516,6 +516,43 @@ describe('Walker — budget exceeded', () => {
     expect(types).toContain('resource.exceeded');
   });
 
+  it('treats budgetTurns=null as unlimited — never aborts on turns', async () => {
+    // Drive a task that would have tripped a finite-cap (200 turns >= 50)
+    // but verify the walker runs to completion when the cap is null.
+    const scripts = new Map<string, FakeTask[]>([
+      [
+        'a',
+        [
+          {
+            events: [
+              { type: 'task.usage', payload: { taskId: 'a', tokensIn: 1, tokensOut: 1, turns: 1 } },
+              {
+                type: 'task.usage',
+                payload: { taskId: 'a', tokensIn: 1, tokensOut: 1, turns: 200 },
+              },
+              { type: 'task.completed', payload: { taskId: 'a', outcome: 'pass', exitCode: 0 } },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const h = makeHarness({ scriptByTaskId: scripts });
+    const plan = makePlan([node('a', 'architect')]);
+    const outcome = await h.walker.start({
+      runId: 'r-unlimited-turns',
+      plan,
+      repoPath: '/fake/repo',
+      budget: { budgetMinutes: null, budgetTurns: null, maxParallel: 1 },
+    });
+    expect(outcome).toBe('success');
+    // No resource.exceeded at all — confirms the null-skip path.
+    const exceeded = h.emitted.filter((e) => e.type === 'resource.exceeded');
+    expect(exceeded).toHaveLength(0);
+    // And no premature warning either.
+    const warnings = h.emitted.filter((e) => e.type === 'resource.warning');
+    expect(warnings).toHaveLength(0);
+  });
+
   it('emits resource.warning at 80% turns once', async () => {
     const scripts = new Map<string, FakeTask[]>([
       [
