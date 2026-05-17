@@ -7,6 +7,8 @@ description: Use when the user wants to inspect the result branch of a completed
 
 Show what a WISP run produced. Works on completed runs (success or failure) by inspecting the per-run git branches in the project's repo.
 
+> **Platform note**: `git` itself is cross-platform; only the `grep` line below has a PowerShell variant. The bash form also runs from Git Bash / WSL on Windows.
+
 ## Inputs
 
 - **runId**: the run UUID. Ask the user if not provided.
@@ -20,7 +22,12 @@ Show what a WISP run produced. Works on completed runs (success or failure) by i
 
 2. **List branches matching the runId**:
    ```bash
+   # bash
    git -C <repoPath> branch --all | grep <runId-first-8-chars>
+   ```
+   ```powershell
+   # PowerShell
+   git -C <repoPath> branch --all | Select-String "<runId-first-8-chars>"
    ```
    Expect to see: `harness/<runId>/<task1>`, `harness/<runId>/<task2>`, ..., `harness/<runId>/result` (if the run succeeded). Replan runs ALSO have `v2/`, `v3/` prefixed branches — list them too.
 

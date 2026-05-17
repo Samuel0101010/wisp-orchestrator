@@ -7,6 +7,8 @@ description: Use when the user wants to create and start a new WISP run from a g
 
 Take the user from a freeform goal to a running harness execution.
 
+> **Platform note**: snippets below show both bash and PowerShell forms. Pick the one matching the user's shell. The bash form also runs from Git Bash / WSL on Windows.
+
 ## Inputs needed (ask the user if missing, do not guess)
 
 - **Goal**: what should the agents accomplish? (1-2 sentences)
@@ -16,47 +18,85 @@ Take the user from a freeform goal to a running harness execution.
 
 ## Preflight
 
-1. Confirm the harness server is up: `curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/health`. If it returns non-200 or refuses connection, tell the user to run `/wisp-dashboard` first to start the server, then re-run this skill.
+1. Confirm the harness server is up.
+   - bash: `curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/health`
+   - PowerShell: `Invoke-RestMethod -Uri "http://127.0.0.1:$($env:WISP_PORT ?? 4400)/api/health"`
+
+   If it returns non-200 or refuses connection, tell the user to run `/wisp-dashboard` first to start the server, then re-run this skill.
 2. Confirm the repo path exists and is a git repo: `git -C <repoPath> rev-parse --git-dir`. If not, ask the user to fix the path or run `git init` in it.
 
 ## Steps
 
 1. **Create project**:
    ```bash
+   # bash / Git Bash
    curl -s -X POST http://127.0.0.1:${WISP_PORT:-4400}/api/projects \
      -H 'content-type: application/json' \
      -d '{"name":"<name>","goal":"<goal>","repoPath":"<repoPath>"}'
+   ```
+   ```powershell
+   # PowerShell
+   $port = if ($env:WISP_PORT) { $env:WISP_PORT } else { 4400 }
+   $body = @{ name = "<name>"; goal = "<goal>"; repoPath = "<repoPath>" } | ConvertTo-Json
+   Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$port/api/projects" `
+     -ContentType "application/json" -Body $body
    ```
    Capture `id` from the response — this is the projectId.
 
 2. **Seed team from template** (only if template != none):
    ```bash
-   # Fetch all templates and extract the chosen one's .team JSON inline.
+   # bash + jq
    TEAM=$(curl -s http://127.0.0.1:${WISP_PORT:-4400}/api/team-templates \
      | jq -c --arg id <template-id> '.templates[] | select(.id==$id) | .team')
    curl -s -X PUT http://127.0.0.1:${WISP_PORT:-4400}/api/projects/<projectId>/team \
      -H 'content-type: application/json' \
      -d "$TEAM"
    ```
-   If `jq` is not available, fetch the templates response into a Python or Node one-liner that prints just `.team` for the chosen id, then pipe that into the PUT body. Do NOT use `--data-binary @<file>` unless you've actually written the file first.
+   ```powershell
+   # PowerShell (no jq needed — ConvertFrom-Json gives objects)
+   $port = if ($env:WISP_PORT) { $env:WISP_PORT } else { 4400 }
+   $tpl = Invoke-RestMethod -Uri "http://127.0.0.1:$port/api/team-templates"
+   $team = ($tpl.templates | Where-Object { $_.id -eq "<template-id>" }).team
+   Invoke-RestMethod -Method Put -Uri "http://127.0.0.1:$port/api/projects/<projectId>/team" `
+     -ContentType "application/json" -Body ($team | ConvertTo-Json -Depth 20)
+   ```
+   If neither `jq` nor PowerShell is available, fetch the templates response into a Python or Node one-liner that prints just `.team` for the chosen id, then pipe that into the PUT body. Do NOT use `--data-binary @<file>` unless you've actually written the file first.
    If template == none: tell the user to open the dashboard and configure the team manually, then exit this skill (you cannot create a default team via API today — the dashboard handles defaults).
 
 3. **Generate plan**:
    ```bash
+   # bash
    curl -s -X POST http://127.0.0.1:${WISP_PORT:-4400}/api/projects/<projectId>/plan -H 'content-type: application/json' -d '{}'
+   ```
+   ```powershell
+   # PowerShell
+   Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$port/api/projects/<projectId>/plan" `
+     -ContentType "application/json" -Body '{}'
    ```
    Capture `id` from the response — this is the planId.
 
 4. **Lock plan**:
    ```bash
+   # bash
    curl -s -X POST http://127.0.0.1:${WISP_PORT:-4400}/api/plans/<planId>/lock
+   ```
+   ```powershell
+   # PowerShell
+   Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$port/api/plans/<planId>/lock"
    ```
 
 5. **Start run**:
    ```bash
+   # bash
    curl -s -X POST http://127.0.0.1:${WISP_PORT:-4400}/api/runs \
      -H 'content-type: application/json' \
      -d '{"planId":"<planId>"}'
+   ```
+   ```powershell
+   # PowerShell
+   $body = @{ planId = "<planId>" } | ConvertTo-Json
+   Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:$port/api/runs" `
+     -ContentType "application/json" -Body $body
    ```
    Capture `runId` from the response.
 

@@ -445,12 +445,19 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
           return { error: 'not_found' };
         }
 
+        // When enabling autopilot without an explicit token cap, fall back to
+        // the same 2M ceiling that startRun applies so a runaway live run
+        // always hits a hard kill. Explicit user-provided caps win.
+        const effectiveBudgetTokens = body.enabled
+          ? (body.budgetTokens ?? 2_000_000)
+          : (body.budgetTokens ?? null);
+
         await db
           .update(runs)
           .set({
             autopilotMode: body.enabled,
             autopilotBudgetMinutes: body.budgetMinutes ?? null,
-            autopilotBudgetTokens: body.budgetTokens ?? null,
+            autopilotBudgetTokens: effectiveBudgetTokens,
             autopilotStartedAt: body.enabled ? new Date() : null,
           })
           .where(eq(runs.id, id))
@@ -460,7 +467,7 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
           id,
           autopilotMode: body.enabled,
           autopilotBudgetMinutes: body.budgetMinutes ?? null,
-          autopilotBudgetTokens: body.budgetTokens ?? null,
+          autopilotBudgetTokens: effectiveBudgetTokens,
         };
       }),
     );
