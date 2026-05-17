@@ -52,6 +52,9 @@ jobs:
       - name: Encoding check (mojibake guardrail)
         run: pnpm encoding:check
 
+      - name: Inventory freshness check
+        run: pnpm inventory:check
+
       - name: Test (unit)
         run: pnpm --filter "./packages/**" --filter "./apps/**" --filter "./tests/compliance" run test
 

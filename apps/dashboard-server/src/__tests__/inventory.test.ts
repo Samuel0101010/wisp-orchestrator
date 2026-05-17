@@ -16,9 +16,11 @@ describe('INVENTORY.json regeneration', () => {
         env: { ...process.env, HARNESS_INVENTORY_OUT: out },
       });
       const inv = JSON.parse(readFileSync(out, 'utf8'));
-      expect(inv).toHaveProperty('generatedAt');
       expect(Array.isArray(inv.routes)).toBe(true);
       expect(inv.routes.length).toBeGreaterThan(5);
+      expect(Array.isArray(inv.agents)).toBe(true);
+      expect(Array.isArray(inv.skills)).toBe(true);
+      expect(Array.isArray(inv.migrations)).toBe(true);
       expect(Array.isArray(inv.directives)).toBe(true);
       expect(inv.directives).toContain('consult');
     } finally {
