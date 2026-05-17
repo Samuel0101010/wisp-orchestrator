@@ -578,6 +578,12 @@ export class Walker {
     }
     // Track running tasks so we can clean their worktrees on user-cancel.
     const runningWorktrees: Array<{ worktreePath: string }> = [];
+    // v1.7.13 — Persist 'cancelled' (not 'failed') for tasks killed by the
+    // explicit user-cancel path. The UI splits these into a distinct bucket
+    // so users can tell "I cancelled this" from "it crashed". Tasks killed
+    // by upstream dep-failure cascade (cancelTasksWithDeadDeps) still write
+    // 'failed' since that is semantically a failure cascade, not a cancel.
+    const persistedCancelStatus = outcome === 'cancelled' ? 'cancelled' : 'failed';
     for (const t of this.tasks.values()) {
       if (t.status === 'running' || t.status === 'paused') {
         if (t.status === 'running' && t.worktreePath) {
@@ -585,10 +591,10 @@ export class Walker {
         }
         t.abort?.abort();
         t.status = 'cancelled';
-        await this.deps.onTaskState(t.node.id, { status: 'failed' });
+        await this.deps.onTaskState(t.node.id, { status: persistedCancelStatus });
       } else if (t.status === 'pending' || t.status === 'ready') {
         t.status = 'cancelled';
-        await this.deps.onTaskState(t.node.id, { status: 'failed' });
+        await this.deps.onTaskState(t.node.id, { status: persistedCancelStatus });
       }
     }
     // Worktree cleanup policy:

@@ -266,6 +266,32 @@ export const useRunStore = create<RunStore>()((set) => ({
               endedAtMs: now,
             };
           }
+          // v1.7.13 — on user-cancel, retroactively reclassify any
+          // not-yet-terminal task as 'cancelled' so the UI shows them in
+          // the ABGEBROCHEN bucket rather than FEHLGESCHLAGEN. Tasks that
+          // had already legitimately failed (status='failed' from a real
+          // crash) keep their status — only pending/ready/running/paused
+          // get flipped. Subprocess-abort can race a task.failed event
+          // past this point; the eventual server snapshot reload remains
+          // the source of truth and will fix any drift.
+          if (event.payload.outcome === 'cancelled') {
+            for (const id of Object.keys(tasks)) {
+              const existing = tasks[id];
+              if (!existing) continue;
+              if (
+                existing.status === 'pending' ||
+                existing.status === 'ready' ||
+                existing.status === 'running'
+              ) {
+                tasks[id] = {
+                  ...existing,
+                  liveRunning: false,
+                  status: 'cancelled',
+                  endedAtMs: existing.endedAtMs ?? now,
+                };
+              }
+            }
+          }
           break;
         }
         case 'resource.warning':
@@ -345,12 +371,16 @@ export function computeAggregates(args: {
   };
 }
 
-export type TaskColumn = 'pending' | 'running' | 'verifying' | 'done' | 'failed';
+export type TaskColumn = 'pending' | 'running' | 'verifying' | 'done' | 'failed' | 'cancelled';
 
 export function columnFor(task: TaskCardModel): TaskColumn {
   if (task.liveRunning) return 'running';
   if (task.status === 'done') return 'done';
   if (task.status === 'failed') return 'failed';
+  // v1.7.13 — Tasks user-cancelled (from the run-cancel dialog) land here.
+  // Distinct from 'failed' so the UI can tell crash failures apart from
+  // intentional user cancels.
+  if (task.status === 'cancelled') return 'cancelled';
   // Reserved for future: pendings that returned but aren't yet finalized.
   return 'pending';
 }

@@ -150,7 +150,9 @@ const TASK_STATUS_MAP: Record<NonNullable<TaskState['status']>, TaskStatus> = {
   paused: 'pending', // db has no 'paused' enum
   done: 'done',
   failed: 'failed',
-  cancelled: 'failed',
+  // v1.7.13 — pass 'cancelled' through so the UI can show user-cancelled
+  // tasks in a distinct bucket (separate from crash failures).
+  cancelled: 'cancelled',
 };
 
 const RUN_STATUS_MAP: Record<NonNullable<RunState['status']>, RunStatus> = {

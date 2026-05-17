@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
+  Ban,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { HarnessEvent, RunPausedReason } from '@wisp/schemas';
@@ -55,7 +56,14 @@ import type { TFunction } from 'i18next';
 import { statusLabel } from '@/lib/status-labels';
 import { roleHsl } from '@/lib/role-color';
 
-const COLUMN_ORDER: TaskColumn[] = ['pending', 'running', 'verifying', 'done', 'failed'];
+const COLUMN_ORDER: TaskColumn[] = [
+  'pending',
+  'running',
+  'verifying',
+  'done',
+  'failed',
+  'cancelled',
+];
 
 function formatCompactNumber(n: number): string {
   if (n < 1000) return String(n);
@@ -534,10 +542,18 @@ function RunHeaderActions({
             <DialogDescription>{t('runView.cancelDialog.description')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmCancel(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmCancel(false)}
+              data-testid="run-cancel-cancel"
+            >
               {t('runView.cancelDialog.keepRunning')}
             </Button>
-            <Button variant="destructive" onClick={() => void handleCancel()}>
+            <Button
+              variant="destructive"
+              onClick={() => void handleCancel()}
+              data-testid="run-cancel-confirm"
+            >
               {t('runView.cancelDialog.cancelRun')}
             </Button>
           </DialogFooter>
@@ -642,6 +658,7 @@ const COLUMN_EMPTY_ICON: Record<TaskColumn, ReactNode> = {
   verifying: <ShieldCheck />,
   done: <CheckCircle2 />,
   failed: <XCircle />,
+  cancelled: <Ban />,
 };
 
 function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
@@ -653,13 +670,14 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
       verifying: [],
       done: [],
       failed: [],
+      cancelled: [],
     };
     for (const task of tasks) buckets[columnFor(task)].push(task);
     return buckets;
   }, [tasks]);
 
   return (
-    <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden md:grid-cols-5">
+    <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden md:grid-cols-3 lg:grid-cols-6">
       {COLUMN_ORDER.map((col) => (
         <div
           key={col}
