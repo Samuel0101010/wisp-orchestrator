@@ -123,7 +123,9 @@ if (violations.length > 0) {
   );
   for (const v of violations) console.error('  ' + v);
   console.error('');
-  console.error('Hint: re-encode the offending file as UTF-8 or pull the multi-byte chars into a JSON bundle.');
+  console.error(
+    'Hint: re-encode the offending file as UTF-8 or pull the multi-byte chars into a JSON bundle.',
+  );
   process.exit(1);
 }
 console.log(`encoding check: clean (${files.length} files scanned)`);

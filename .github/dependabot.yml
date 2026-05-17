@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: "/"
+    directory: '/'
     schedule:
       interval: weekly
       day: monday
@@ -9,34 +9,34 @@ updates:
     groups:
       types:
         patterns:
-          - "@types/*"
+          - '@types/*'
       eslint:
         patterns:
-          - "eslint*"
-          - "@eslint/*"
-          - "@typescript-eslint/*"
+          - 'eslint*'
+          - '@eslint/*'
+          - '@typescript-eslint/*'
       vitest:
         patterns:
-          - "vitest"
-          - "@vitest/*"
+          - 'vitest'
+          - '@vitest/*'
       react:
         patterns:
-          - "react"
-          - "react-dom"
-          - "@types/react"
-          - "@types/react-dom"
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
       radix:
         patterns:
-          - "@radix-ui/*"
+          - '@radix-ui/*'
     labels:
       - dependencies
       - automated
     commit-message:
-      prefix: "chore(deps)"
+      prefix: 'chore(deps)'
       include: scope
 
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: '/'
     schedule:
       interval: weekly
       day: monday
@@ -45,5 +45,5 @@ updates:
       - dependencies
       - github-actions
     commit-message:
-      prefix: "chore(actions)"
+      prefix: 'chore(actions)'
       include: scope
