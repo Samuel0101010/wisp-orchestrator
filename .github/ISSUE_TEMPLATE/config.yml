@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Samuel0101010/wisp-orchestrator/security/advisories/new
+    about: Report security issues privately — do not open a public issue.
+  - name: Discussion / Question
+    url: https://github.com/Samuel0101010/wisp-orchestrator/discussions
+    about: Ask questions, share use cases, or discuss design.

@@ -2,7 +2,27 @@
   "name": "@wisp/dashboard-web",
   "version": "2.0.1",
   "private": true,
+  "description": "WISP dashboard frontend — React 19 + Tailwind v4 visual team builder and live execution graph.",
+  "keywords": [
+    "wisp",
+    "dashboard",
+    "react",
+    "tailwind",
+    "vite",
+    "tanstack-query",
+    "zustand"
+  ],
+  "author": "Samuel Heftberger",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Samuel0101010/wisp-orchestrator.git",
+    "directory": "apps/dashboard-web"
+  },
+  "bugs": {
+    "url": "https://github.com/Samuel0101010/wisp-orchestrator/issues"
+  },
+  "homepage": "https://github.com/Samuel0101010/wisp-orchestrator#readme",
   "type": "module",
   "scripts": {
     "dev": "vite",
