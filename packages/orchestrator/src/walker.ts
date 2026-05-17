@@ -1154,9 +1154,7 @@ export class Walker {
 
       // No probe available → preserve pre-v1.7.13 behavior (kill now).
       if (!probe) {
-        fireKill(
-          `subprocess inactive for ${Math.round(INACTIVITY_TIMEOUT_MS / 60_000)}min`,
-        );
+        fireKill(`subprocess inactive for ${Math.round(INACTIVITY_TIMEOUT_MS / 60_000)}min`);
         return;
       }
 
@@ -1176,10 +1174,8 @@ export class Walker {
       // pid alive — decide based on CPU advancement.
       const cpuNow = probe.cpuSeconds;
       const cpuStart = cpuAtWindowStart;
-      const cpuDelta =
-        cpuNow !== null && cpuStart !== null ? cpuNow - cpuStart : null;
-      const advancing =
-        cpuDelta !== null && cpuDelta >= INACTIVITY_MIN_CPU_DELTA_S;
+      const cpuDelta = cpuNow !== null && cpuStart !== null ? cpuNow - cpuStart : null;
+      const advancing = cpuDelta !== null && cpuDelta >= INACTIVITY_MIN_CPU_DELTA_S;
 
       // Cap: even an advancing process can't extend past
       // INACTIVITY_MAX_TOTAL_MS — otherwise an infinite-loop agent that
@@ -1195,10 +1191,7 @@ export class Walker {
         // Snapshot the new CPU baseline so the NEXT firing compares against
         // this checkpoint, not the original window start.
         cpuAtWindowStart = cpuNow;
-        inactivityCancel = this.deps.setTimeout(
-          onWatchdogFire,
-          INACTIVITY_EXTENSION_MS,
-        );
+        inactivityCancel = this.deps.setTimeout(onWatchdogFire, INACTIVITY_EXTENSION_MS);
         return;
       }
 

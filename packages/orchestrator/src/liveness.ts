@@ -152,7 +152,6 @@ export function isPidAlive(pid: number): boolean {
  */
 export function probePidLiveness(pid: number): LivenessProbe {
   if (!isPidAlive(pid)) return { alive: false, cpuSeconds: null };
-  const cpuSeconds =
-    process.platform === 'win32' ? readWindowsCpuTime(pid) : readPosixCpuTime(pid);
+  const cpuSeconds = process.platform === 'win32' ? readWindowsCpuTime(pid) : readPosixCpuTime(pid);
   return { alive: true, cpuSeconds };
 }

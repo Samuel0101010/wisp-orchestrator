@@ -12,6 +12,7 @@ export default [
       '**/build/**',
       '**/coverage/**',
       '.claude/skills/**',
+      '.claude/worktrees/**',
       '**/*.cjs',
       'audit-artifacts/**',
     ],
