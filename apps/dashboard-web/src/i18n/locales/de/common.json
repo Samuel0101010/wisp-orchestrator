@@ -853,6 +853,7 @@
     "start": "Start",
     "stop": "Stopp",
     "empty": "Keine Vorschau läuft. Starte den Dev-Server, um die App hier zu sehen.",
+    "startingFor": "läuft seit {{seconds}}s",
     "viewport": {
       "desktop": "Desktop",
       "tablet": "Tablet",

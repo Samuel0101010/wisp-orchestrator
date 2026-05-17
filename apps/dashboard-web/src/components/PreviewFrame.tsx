@@ -83,6 +83,22 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
 
   const state = resolveStatus(status.data);
   const tone = STATUS_TONE[state];
+  const startedAt = status.data?.startedAt;
+  const [now, setNow] = useState<number>(() => Date.now());
+
+  // Tick a 1s clock only while we're in "starting". The counter sits under
+  // the status pill so the user can see the spinner isn't frozen — useful
+  // when the dev server takes the better part of the 30s ready window.
+  useEffect(() => {
+    if (state !== 'starting' || !startedAt) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    setNow(Date.now());
+    return () => clearInterval(id);
+  }, [state, startedAt]);
+
+  const startingSeconds =
+    state === 'starting' && startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
+  const errorMessage = state === 'error' ? (status.data?.error ?? '') : '';
 
   // Listen for `harness:pick` messages from the inspector inside the iframe.
   useEffect(() => {
@@ -203,6 +219,14 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
               <StatusPill tone={tone} live={state === 'starting'}>
                 <span data-testid="preview-status">{t(`preview.status.${state}`)}</span>
               </StatusPill>
+              {state === 'starting' && startedAt ? (
+                <span
+                  data-testid="preview-starting-elapsed"
+                  className="text-xs font-normal text-muted-foreground"
+                >
+                  {t('preview.startingFor', { seconds: startingSeconds })}
+                </span>
+              ) : null}
             </CardTitle>
             <CardDescription className="text-xs">{t('preview.description')}</CardDescription>
           </div>
@@ -247,7 +271,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 lg:flex-row">
-            <div className="flex flex-1 justify-center bg-muted/40 p-3">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-muted/40 p-3">
               {running && port ? (
                 <iframe
                   key={port}
@@ -268,6 +292,21 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
                   {t('preview.empty')}
                 </p>
               )}
+              {state === 'error' && errorMessage ? (
+                <div
+                  role="alert"
+                  data-testid="preview-error-alert"
+                  className="w-full max-w-2xl rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                >
+                  <div className="font-medium">{t('preview.toasts.startFailed')}</div>
+                  <div
+                    data-testid="preview-error-message"
+                    className="mt-0.5 break-words font-mono text-xs opacity-90"
+                  >
+                    {errorMessage}
+                  </div>
+                </div>
+              ) : null}
             </div>
             {editMode && selectedElement ? (
               <aside
