@@ -154,7 +154,13 @@ export interface InjectWireUpArgs {
 
 export interface InjectWireUpResult {
   plan: Plan;
-  reason: 'injected' | 'already-present' | 'team-cap-reached' | 'no-core-dev-nodes' | 'plan-empty';
+  reason:
+    | 'injected'
+    | 'already-present'
+    | 'team-cap-reached'
+    | 'no-core-dev-nodes'
+    | 'single-core-dev-skip'
+    | 'plan-empty';
 }
 
 export function planHasWireUp(plan: Plan): boolean {
@@ -244,6 +250,12 @@ export function injectWireUp(args: InjectWireUpArgs): InjectWireUpResult {
   const coreDevLeaves = findCoreDevLeafIds(args.plan);
   if (coreDevLeaves.length === 0) {
     return { plan: args.plan, reason: 'no-core-dev-nodes' };
+  }
+  // Single linear core-dev → no cross-file reconciliation to do. Skip
+  // injection so legacy 3-task (architect → developer → qa) plans keep
+  // their original shape and existing e2e tests still pass.
+  if (coreDevLeaves.length < 2) {
+    return { plan: args.plan, reason: 'single-core-dev-skip' };
   }
 
   const wireUpId = args.nodeId ?? WIRE_UP_NODE_ID;

@@ -196,10 +196,10 @@ describe('injectWireUp', () => {
     expect(r.plan).toBe(plan);
   });
 
-  it('handles a single core-dev terminal (no downstream nodes)', () => {
-    // Solo core-dev plan: architect → core-dev. After injection, wire-up
-    // hangs off the core-dev as a new terminal — no downstream rewiring
-    // needed.
+  it('skips injection for a single linear core-dev (no parallel reconciliation needed)', () => {
+    // Solo core-dev plan: architect → core-dev. No parallel work to reconcile,
+    // so injection is skipped to keep legacy 3-task plans (architect →
+    // developer → qa) shape-compatible with existing e2e tests.
     const plan: Plan = {
       goal: 'g',
       team: { roles: [makeRole('architect'), makeRole('core-dev')] },
@@ -224,9 +224,8 @@ describe('injectWireUp', () => {
       edges: [{ from: 'a', to: 'd' }],
     };
     const r = injectWireUp({ plan });
-    expect(r.reason).toBe('injected');
-    const wireUp = r.plan.nodes.find((n) => n.role === 'wire-up');
-    expect(wireUp!.deps).toEqual(['d']);
-    expect(validateDag(r.plan).ok).toBe(true);
+    expect(r.reason).toBe('single-core-dev-skip');
+    expect(r.plan).toBe(plan);
+    expect(r.plan.nodes.find((n) => n.role === 'wire-up')).toBeUndefined();
   });
 });

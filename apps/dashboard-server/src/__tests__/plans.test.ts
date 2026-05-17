@@ -198,14 +198,13 @@ describe('plan generation route', () => {
     expect(body.attempts).toBe(1);
     expect(body.status).toBe('draft');
     // v1.8 — projects default to runtimeVerifyEnabled=true, so the planner's
-    // 3-node output gets the auto-injected runtime-verifier. v1.7.13 added
-    // a wire-up reconciliation node between core-dev-family roles and the
-    // downstream qa/verifier — the 'developer' role here is a core-dev
-    // family member so wire-up is also spliced in. Final shape: 3 planner
-    // nodes + wire-up + runtime-verifier = 5.
-    expect(body.plan.nodes).toHaveLength(5);
+    // 3-node output gets the auto-injected runtime-verifier. Wire-up is
+    // skipped because there is only a single linear core-dev (no parallel
+    // reconciliation needed) — see wire-up.ts single-core-dev-skip path.
+    // Final shape: 3 planner nodes + runtime-verifier = 4.
+    expect(body.plan.nodes).toHaveLength(4);
     expect(body.plan.nodes.map((n: { role: string }) => n.role)).toContain('runtime-verifier');
-    expect(body.plan.nodes.map((n: { role: string }) => n.role)).toContain('wire-up');
+    expect(body.plan.nodes.map((n: { role: string }) => n.role)).not.toContain('wire-up');
     expect(callCount()).toBe(1);
 
     // v1.10 — first plan on a fresh project is `kind='initial'`.
