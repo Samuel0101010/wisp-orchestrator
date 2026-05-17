@@ -14,6 +14,15 @@
 
 import { execa } from 'execa';
 
+/**
+ * Shared `-c key=value` pairs for every git invocation in here.
+ *
+ * `core.longpaths=true` is the Windows-only escape hatch: pnpm produces
+ * `node_modules/.pnpm/...` paths well past MAX_PATH (260 chars), and without
+ * this flag `git add -A` aborts with `could not open directory ...` when it
+ * tries to walk into them. Setting it on every call (not in the global config)
+ * keeps the fix opt-in to WISP's own runs.
+ */
 const GIT_OVERRIDES = [
   '-c',
   'user.email=wisp@wisp.local',
@@ -23,13 +32,17 @@ const GIT_OVERRIDES = [
   'commit.gpgsign=false',
   '-c',
   'tag.gpgsign=false',
+  '-c',
+  'core.longpaths=true',
 ];
 
 export async function commitWorktreeChanges(worktreePath: string, taskId: string): Promise<string> {
-  await execa('git', ['add', '-A'], { cwd: worktreePath });
+  await execa('git', [...GIT_OVERRIDES, 'add', '-A'], { cwd: worktreePath });
   await execa('git', [...GIT_OVERRIDES, 'commit', '--allow-empty', '-m', `wisp: ${taskId}`], {
     cwd: worktreePath,
   });
-  const { stdout } = await execa('git', ['rev-parse', 'HEAD'], { cwd: worktreePath });
+  const { stdout } = await execa('git', [...GIT_OVERRIDES, 'rev-parse', 'HEAD'], {
+    cwd: worktreePath,
+  });
   return stdout.trim();
 }
