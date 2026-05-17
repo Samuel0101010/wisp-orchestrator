@@ -58,18 +58,101 @@ describe('PreviewProcessRegistry', () => {
       readyTimeoutMs: 2000,
       fetchImpl,
       spawnImpl,
+      isPortFreeImpl: async () => true,
     });
     expect(result.status).toBe('running');
     expect(result.port).toBe(5173);
-    const status = registry.getPreviewStatus('p1');
+    // Pass a stub pidAlive — the fakeChild has a bogus pid that the OS
+    // would correctly report as dead.
+    const status = registry.getPreviewStatus('p1', { pidAliveImpl: () => true });
     expect(status.running).toBe(true);
     expect(status.port).toBe(5173);
+  });
+
+  it('startPreview returns port_occupied without spawning when all ports busy', async () => {
+    registry = new PreviewProcessRegistry();
+    const spawnImpl = vi.fn() as unknown as typeof import('node:child_process').spawn;
+    const fetchImpl = vi.fn();
+    const isPortFreeImpl = vi.fn().mockResolvedValue(false);
+    const result = await registry.startPreview({
+      projectId: 'p1',
+      devCmd: 'pnpm dev',
+      probeUrl: 'http://127.0.0.1:5173/',
+      readyTimeoutMs: 2000,
+      fetchImpl,
+      spawnImpl,
+      isPortFreeImpl,
+    });
+    expect(result.status).toBe('error');
+    expect(result.error).toBe('port_occupied');
+    expect(result.port).toBe(5173);
+    expect(spawnImpl).not.toHaveBeenCalled();
+    expect(fetchImpl).not.toHaveBeenCalled();
+    const status = registry.getPreviewStatus('p1');
+    expect(status.running).toBe(false);
+    expect(status.status).toBe('error');
+    expect(status.error).toBe('port-occupied');
+  });
+
+  it('startPreview falls back to the next free port when the requested one is busy', async () => {
+    registry = new PreviewProcessRegistry();
+    const child = fakeChild();
+    const spawnImpl = vi
+      .fn()
+      .mockReturnValue(child) as unknown as typeof import('node:child_process').spawn;
+    const fetchImpl = vi.fn().mockResolvedValueOnce({ ok: true, status: 200 });
+    // First two ports busy, third is free.
+    const isPortFreeImpl = vi
+      .fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValue(true);
+    const result = await registry.startPreview({
+      projectId: 'p1',
+      devCmd: 'pnpm dev',
+      probeUrl: 'http://127.0.0.1:5173/',
+      readyTimeoutMs: 2000,
+      fetchImpl,
+      spawnImpl,
+      isPortFreeImpl,
+    });
+    expect(result.status).toBe('running');
+    expect(result.port).toBe(5175);
+    // The child was spawned with PORT=5175 in env.
+    const callArgs = (spawnImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(callArgs?.[2]?.env?.PORT).toBe('5175');
+    // The probe URL the registry polled was rewritten to the chosen port.
+    const fetchCall = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(fetchCall?.[0]).toBe('http://127.0.0.1:5175/');
+  });
+
+  it('getPreviewStatus mutates entry to error when the registered pid is dead', () => {
+    registry = new PreviewProcessRegistry();
+    registry.__test_register({ projectId: 'p1', port: 5173, pid: 39164 });
+    // First call uses an alive-stub so we observe the pre-mutation state.
+    expect(registry.getPreviewStatus('p1', { pidAliveImpl: () => true }).running).toBe(true);
+    const status = registry.getPreviewStatus('p1', { pidAliveImpl: () => false });
+    expect(status.running).toBe(false);
+    expect(status.status).toBe('error');
+    expect(status.error).toBe('process-died');
+    // The mutation persists across calls — even without the override.
+    const again = registry.getPreviewStatus('p1');
+    expect(again.status).toBe('error');
+    expect(again.error).toBe('process-died');
+  });
+
+  it('getPreviewStatus leaves running entries alone when pid is alive', () => {
+    registry = new PreviewProcessRegistry();
+    registry.__test_register({ projectId: 'p1', port: 5173, pid: 39164 });
+    const status = registry.getPreviewStatus('p1', { pidAliveImpl: () => true });
+    expect(status.running).toBe(true);
+    expect(status.status).toBe('running');
   });
 
   it('stopPreview flips status back and is idempotent', async () => {
     registry = new PreviewProcessRegistry();
     registry.__test_register({ projectId: 'p2', port: 5174, pid: 1234 });
-    expect(registry.getPreviewStatus('p2').running).toBe(true);
+    expect(registry.getPreviewStatus('p2', { pidAliveImpl: () => true }).running).toBe(true);
     const a = registry.stopPreview('p2');
     expect(a.stopped).toBe(true);
     const b = registry.stopPreview('p2');

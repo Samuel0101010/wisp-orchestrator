@@ -15,6 +15,7 @@
  * downstream vite/node worker. POSIX uses the detached process group.
  */
 import { spawn, type ChildProcess } from 'node:child_process';
+import net from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 export type PreviewStatus = 'starting' | 'running' | 'error' | 'stopped';
@@ -32,12 +33,14 @@ export interface StartPreviewArgs {
   projectId: string;
   devCmd: string;
   probeUrl: string;
-  /** Optional override — defaults to 60s. */
+  /** Optional override — defaults to 30s. */
   readyTimeoutMs?: number;
   /** Test seam — supplied fetch impl. */
   fetchImpl?: (url: string) => Promise<{ ok: boolean; status: number }>;
   /** Test seam — supplied spawn impl. */
   spawnImpl?: typeof spawn;
+  /** Test seam — supplied port-free probe impl. */
+  isPortFreeImpl?: (port: number) => Promise<boolean>;
 }
 
 export interface StartPreviewResult {
@@ -57,13 +60,65 @@ export interface PreviewStatusResult {
   error?: string;
 }
 
-const DEFAULT_READY_TIMEOUT_MS = 60_000;
+const DEFAULT_READY_TIMEOUT_MS = 30_000;
 const POLL_INTERVAL_MS = 500;
+const PORT_PROBE_RANGE = 10;
 
 function parsePort(probeUrl: string): number {
   const u = new URL(probeUrl);
   if (u.port) return Number(u.port);
   return u.protocol === 'https:' ? 443 : 80;
+}
+
+/**
+ * Probe whether `127.0.0.1:port` is free by opening a fresh listener and
+ * closing it immediately. EADDRINUSE → false, any other error → false too
+ * (we can't bind it, so we treat it as occupied for safety).
+ */
+export function isPortFree(port: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const server = net.createServer();
+    let settled = false;
+    const finish = (ok: boolean): void => {
+      if (settled) return;
+      settled = true;
+      try {
+        server.close();
+      } catch {
+        /* best-effort */
+      }
+      resolve(ok);
+    };
+    server.once('error', () => finish(false));
+    server.once('listening', () => {
+      server.close(() => finish(true));
+    });
+    try {
+      server.listen(port, '127.0.0.1');
+    } catch {
+      finish(false);
+    }
+  });
+}
+
+/**
+ * Liveness check for a previously-registered dev-server pid. Signal 0 is
+ * the POSIX/Node convention for "probe-only": throws ESRCH if the pid is
+ * gone but does NOT signal the process. We mirror the pattern from
+ * `packages/orchestrator/src/liveness.ts` — for a local dev server the
+ * existence check alone is enough (no LLM "thinking" pauses to worry
+ * about).
+ */
+export function pidAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'ESRCH') return false;
+    // EPERM / unknown — assume alive to avoid mis-reporting a healthy proc.
+    return true;
+  }
 }
 
 function killTree(child: ChildProcess | null): void {
@@ -104,7 +159,7 @@ export class PreviewProcessRegistry {
       };
     }
 
-    const port = parsePort(probeUrl);
+    const requestedPort = parsePort(probeUrl);
     const readyTimeoutMs = args.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS;
     const doFetch =
       args.fetchImpl ??
@@ -113,6 +168,44 @@ export class PreviewProcessRegistry {
         return { ok: res.ok, status: res.status };
       });
     const doSpawn = args.spawnImpl ?? spawn;
+    const doIsPortFree = args.isPortFreeImpl ?? isPortFree;
+
+    // Find a free port in [requestedPort, requestedPort+PORT_PROBE_RANGE].
+    // If everything in the window is held by stale processes we surface
+    // `port_occupied` without spawning so the user sees an immediate
+    // actionable error instead of a 30s timeout.
+    let port = requestedPort;
+    let foundFree = false;
+    for (let p = requestedPort; p <= requestedPort + PORT_PROBE_RANGE; p++) {
+      if (await doIsPortFree(p)) {
+        port = p;
+        foundFree = true;
+        break;
+      }
+    }
+    if (!foundFree) {
+      const entry: PreviewEntry = {
+        child: null,
+        port: requestedPort,
+        pid: null,
+        startedAt: Date.now(),
+        status: 'error',
+        errorReason: 'port-occupied',
+      };
+      this.entries.set(projectId, entry);
+      return {
+        status: 'error',
+        port: requestedPort,
+        pid: null,
+        startedAt: entry.startedAt,
+        error: 'port_occupied',
+      };
+    }
+
+    // Rewrite probeUrl to use the chosen free port so polling targets the
+    // same port we just told the child to bind to.
+    const effectiveProbeUrl =
+      port === requestedPort ? probeUrl : probeUrl.replace(/:\d+/, ':' + String(port));
 
     const parts = devCmd.trim().split(/\s+/);
     const cmd = parts[0]!;
@@ -183,7 +276,7 @@ export class PreviewProcessRegistry {
         };
       }
       try {
-        const r = await doFetch(probeUrl);
+        const r = await doFetch(effectiveProbeUrl);
         if (r.status < 500) {
           entry.status = 'running';
           return {
@@ -200,7 +293,7 @@ export class PreviewProcessRegistry {
     }
 
     entry.status = 'error';
-    entry.errorReason = `timeout waiting for ${probeUrl} (${readyTimeoutMs}ms)`;
+    entry.errorReason = `timeout waiting for ${effectiveProbeUrl} (${readyTimeoutMs}ms)`;
     killTree(child);
     return {
       status: 'error',
@@ -223,9 +316,23 @@ export class PreviewProcessRegistry {
     return { stopped: true };
   }
 
-  getPreviewStatus(projectId: string): PreviewStatusResult {
+  getPreviewStatus(
+    projectId: string,
+    opts: { pidAliveImpl?: (pid: number) => boolean } = {},
+  ): PreviewStatusResult {
     const entry = this.entries.get(projectId);
     if (!entry) return { running: false };
+    // If we believed the child was running but the OS pid is gone, flip
+    // the cached entry to error so the dashboard stops showing a stale
+    // "Running" badge for a dead dev server. We only probe when status
+    // claims `running` and we actually have a pid to probe.
+    if (entry.status === 'running' && entry.pid != null) {
+      const aliveImpl = opts.pidAliveImpl ?? pidAlive;
+      if (!aliveImpl(entry.pid)) {
+        entry.status = 'error';
+        entry.errorReason = 'process-died';
+      }
+    }
     return {
       running: entry.status === 'running',
       port: entry.port,

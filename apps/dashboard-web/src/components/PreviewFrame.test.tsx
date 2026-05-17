@@ -107,4 +107,37 @@ describe('PreviewFrame', () => {
     expect(iframe.getAttribute('src')).toBe('/preview/p1/');
     expect(iframe.getAttribute('sandbox')).toBe('allow-scripts allow-forms allow-same-origin');
   });
+
+  it('renders an inline error alert when the polled status arrives as error', async () => {
+    currentStatus = {
+      running: false,
+      port: 5173,
+      startedAt: Date.now(),
+      status: 'error',
+      error: 'port-occupied',
+    };
+    renderFrame();
+    await waitFor(() => {
+      expect(screen.getByTestId('preview-status').textContent).toMatch(/error/i);
+    });
+    const alert = await screen.findByTestId('preview-error-alert');
+    expect(alert).toBeInTheDocument();
+    expect(screen.getByTestId('preview-error-message').textContent).toBe('port-occupied');
+  });
+
+  it('shows a running-since counter under the status pill while starting', async () => {
+    currentStatus = {
+      running: false,
+      port: 5173,
+      startedAt: Date.now() - 3000,
+      status: 'starting',
+    };
+    renderFrame();
+    await waitFor(() => {
+      expect(screen.getByTestId('preview-status').textContent).toMatch(/starting/i);
+    });
+    const elapsed = await screen.findByTestId('preview-starting-elapsed');
+    // 3s drift floor — between 2 and 5s depending on test-runner timing.
+    expect(elapsed.textContent ?? '').toMatch(/\b[2-5]s\b/);
+  });
 });
