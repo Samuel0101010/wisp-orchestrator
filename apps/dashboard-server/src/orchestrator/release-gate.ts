@@ -37,6 +37,17 @@ export interface ReleaseGateInput {
   /** Whether the project has runtime-verify enabled. Disabled projects skip
    *  this gate entirely and the verdict is purely build+test+findings. */
   runtimeVerifyEnabled: boolean;
+  /**
+   * Optional fallback boot probe. The gate invokes this ONLY when
+   * `runtimeVerifyEnabled` is true AND `runtime` is null — i.e. the
+   * verifier node didn't produce a parsable docs/runtime-report.json
+   * (legacy plan, agent crash before write, etc.). When `runtime` IS
+   * present, the verifier's structured evidence is the source of truth
+   * and this probe is NEVER called — re-probing on top of fresh evidence
+   * is what caused the FocusBoard "Boot: FAIL" false negative this fix
+   * addresses.
+   */
+  probeBootFn?: () => { ok: boolean; reason?: string };
 }
 
 export interface ReleaseGateResult {
@@ -99,11 +110,36 @@ export function evaluateReleaseGate(input: ReleaseGateInput): ReleaseGateResult 
   }
 
   if (!input.runtime) {
+    // No verifier evidence on disk. This is normally a FAIL signal, but if
+    // the caller supplied a fallback live probe (e.g. for legacy plans that
+    // pre-date the verifier node) we honour it so we don't punish runs that
+    // simply lacked the artifact-emitting step.
+    if (input.probeBootFn) {
+      const probe = input.probeBootFn();
+      summary.bootOk = probe.ok;
+      if (!probe.ok) {
+        reasons.push(
+          `app did not boot (live re-probe fallback): ${probe.reason ?? 'no reason given'}`,
+        );
+        return { verdict: 'blocked', reasons, summary };
+      }
+      // Probe says boot is fine, but without a runtime-report.json we have
+      // no e2e/smoke/dod evidence. Treat as blocked with a clear reason so
+      // the dashboard surfaces "ran but missing evidence" instead of a
+      // spurious "Boot: FAIL".
+      reasons.push(
+        'runtime-verifier did not produce docs/runtime-report.json (live re-probe confirmed boot, but no e2e/smoke/dod evidence)',
+      );
+      return { verdict: 'blocked', reasons, summary };
+    }
     reasons.push('runtime-verifier did not produce docs/runtime-report.json');
     return { verdict: 'blocked', reasons, summary };
   }
 
-  // Populate summary from the runtime report.
+  // Populate summary from the runtime report. When the verifier has spoken,
+  // its structured evidence is authoritative — we deliberately do NOT call
+  // probeBootFn here even if one was provided, because re-probing on top of
+  // fresh evidence is the bug this code path exists to prevent.
   summary.bootOk = input.runtime.boot.ok;
   summary.e2ePassed = input.runtime.e2e?.passed ?? 0;
   summary.e2eFailed = input.runtime.e2e?.failed ?? 0;

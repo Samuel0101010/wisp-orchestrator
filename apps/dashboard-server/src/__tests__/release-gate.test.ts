@@ -142,6 +142,95 @@ describe('evaluateReleaseGate', () => {
     });
     expect(r.verdict).toBe('ready');
   });
+
+  // Regression: FocusBoard run eac482c1 — runtime-verifier wrote
+  // `Boot: PASS` to docs/runtime-report.{md,json}, but the release-gate
+  // displayed "Boot: FAIL" because it tried to re-probe boot from scratch
+  // (with no preview server alive at that moment) instead of trusting the
+  // verifier's evidence. The three cases below pin the contract:
+  //   A) verifier said boot OK → gate trusts it, NEVER re-probes
+  //   B) verifier said boot FAIL → gate still fails (existing behaviour)
+  //   C) no verifier evidence at all → existing fallback (block) holds
+  describe('runtime-verifier boot evidence trust (regression: FocusBoard run eac482c1)', () => {
+    it('case A: trusts the verifier when boot=OK and does NOT call the live re-probe', () => {
+      let probeCalls = 0;
+      const probeBootFn = () => {
+        probeCalls += 1;
+        return { ok: false, reason: 'should not have been called' };
+      };
+      const r = evaluateReleaseGate({
+        runSucceeded: true,
+        runtime: passReport(),
+        actionableFindingsCount: 0,
+        dodTotal: 1,
+        dodManual: 0,
+        runtimeVerifyEnabled: true,
+        probeBootFn,
+      });
+      expect(probeCalls).toBe(0);
+      expect(r.summary.bootOk).toBe(true);
+      expect(r.verdict).toBe('ready');
+    });
+
+    it('case B: blocks on verifier boot=FAIL and does NOT call the live re-probe', () => {
+      let probeCalls = 0;
+      const probeBootFn = () => {
+        probeCalls += 1;
+        return { ok: true }; // pretend a live re-probe would have lied
+      };
+      const r = evaluateReleaseGate({
+        runSucceeded: true,
+        runtime: passReport({ boot: { ok: false, reason: 'ECONNREFUSED' } }),
+        actionableFindingsCount: 0,
+        dodTotal: 1,
+        dodManual: 0,
+        runtimeVerifyEnabled: true,
+        probeBootFn,
+      });
+      expect(probeCalls).toBe(0);
+      expect(r.verdict).toBe('blocked');
+      expect(r.reasons.join(' ')).toMatch(/ECONNREFUSED/);
+      expect(r.summary.bootOk).toBe(false);
+    });
+
+    it('case C: falls back to existing block when no verifier evidence and no probe provided', () => {
+      const r = evaluateReleaseGate({
+        runSucceeded: true,
+        runtime: null,
+        actionableFindingsCount: 0,
+        dodTotal: 0,
+        dodManual: 0,
+        runtimeVerifyEnabled: true,
+      });
+      expect(r.verdict).toBe('blocked');
+      expect(r.reasons.join(' ')).toMatch(/runtime-verifier did not produce/);
+      expect(r.summary.bootOk).toBe(false);
+    });
+
+    it('case C-bis: legacy plan with a fallback probe — probe IS called when verifier evidence is absent', () => {
+      let probeCalls = 0;
+      const probeBootFn = () => {
+        probeCalls += 1;
+        return { ok: true };
+      };
+      const r = evaluateReleaseGate({
+        runSucceeded: true,
+        runtime: null,
+        actionableFindingsCount: 0,
+        dodTotal: 0,
+        dodManual: 0,
+        runtimeVerifyEnabled: true,
+        probeBootFn,
+      });
+      expect(probeCalls).toBe(1);
+      // Probe confirmed boot, but with no e2e/smoke/dod evidence the gate
+      // still blocks — and crucially the dashboard now sees bootOk=true so
+      // it stops mis-rendering "Boot: FAIL" for these legacy runs.
+      expect(r.summary.bootOk).toBe(true);
+      expect(r.verdict).toBe('blocked');
+      expect(r.reasons.join(' ')).toMatch(/live re-probe confirmed boot/);
+    });
+  });
 });
 
 describe('renderReleaseGateMarkdown', () => {
