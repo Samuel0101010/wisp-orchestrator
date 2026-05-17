@@ -38,15 +38,6 @@ importers:
 
   apps/dashboard-server:
     dependencies:
-      '@wisp/memory-mcp':
-        specifier: workspace:*
-        version: link:../../packages/memory-mcp
-      '@wisp/orchestrator':
-        specifier: workspace:*
-        version: link:../../packages/orchestrator
-      '@wisp/schemas':
-        specifier: workspace:*
-        version: link:../../packages/schemas
       '@fastify/cors':
         specifier: ^10.0.0
         version: 10.1.0
@@ -56,6 +47,15 @@ importers:
       '@fastify/websocket':
         specifier: ^11.0.0
         version: 11.2.0
+      '@wisp/memory-mcp':
+        specifier: workspace:*
+        version: link:../../packages/memory-mcp
+      '@wisp/orchestrator':
+        specifier: workspace:*
+        version: link:../../packages/orchestrator
+      '@wisp/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       better-sqlite3:
         specifier: ^11.10.0
         version: 11.10.0
@@ -74,6 +74,9 @@ importers:
       node-cron:
         specifier: ^4.2.1
         version: 4.2.1
+      pino:
+        specifier: ^10.0.0
+        version: 10.3.1
       pino-pretty:
         specifier: ^11.0.0
         version: 11.3.0
@@ -120,9 +123,6 @@ importers:
 
   apps/dashboard-web:
     dependencies:
-      '@wisp/schemas':
-        specifier: workspace:*
-        version: link:../../packages/schemas
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -159,6 +159,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.59.0
         version: 5.100.9(react@19.2.5)
+      '@wisp/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.1
