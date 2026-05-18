@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.7 — notifications bell is no longer a dead button
+
+A wide acceptance sweep across every WISP UI surface (every sidebar section, top-bar control, project tab, project-detail page, command palette, viewport switcher, edit-mode flow) caught one remaining placeholder: the top-bar bell icon had `aria-label="Notifications"` but no `onClick` — it looked interactive but did nothing.
+
+### Fixed
+
+- **Top-bar notifications popover** ([71ace6a](https://github.com/Samuel0101010/wisp-orchestrator/commit/71ace6a)). The bell now opens a popover showing the last 8 global runs across all projects: status pill (running/paused/success/failed/cancelled — running pills go live), project name + run id, relative time anchored to `endedAt ?? startedAt` and snapshotted on open so labels don't churn while the panel is visible, link into each run, footer link to `/insights`. Empty state when no runs. Uses the same outside-click + Escape dismiss pattern as `LanguageToggle` / `SnippetMenu` to stay dependency-free (no new `@radix-ui/react-popover` dep).
+
+### Chore
+
+- +2 web tests (popover opens + lists rows, empty state). Totals: 446 server, 138 web.
+
 ## 2.0.6 — preview refresh button + auto-reload after iteration
 
 Closes the last UX gap of the iteration loop: after an iteration writes new code, the proxied iframe needs to see it.
