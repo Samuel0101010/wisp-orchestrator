@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.6 — preview refresh button + auto-reload after iteration
+
+Closes the last UX gap of the iteration loop: after an iteration writes new code, the proxied iframe needs to see it.
+
+### Added
+
+- **Manual + auto refresh button in the preview header** ([a129532](https://github.com/Samuel0101010/wisp-orchestrator/commit/a129532)). Vite HMR doesn't work through the reverse-proxy (the WebSocket upgrade is not handled). Rather than rebuild a full WS-aware proxy, the simpler fix: a `preview-refresh` button between the viewport switcher and Stop, plus an auto-reload `useEffect` that watches the project's most recent run and reloads the iframe + fires a 3 s toast when it transitions running → completed/success. The visual end-state after an iteration now reflects the new code without the user having to do anything.
+
+### Chore
+
+- +2 web tests (refresh button click + auto-reload-on-completion). Total: 136 web tests, 446 server tests.
+
 ## 2.0.5 — visual-edit inspector was talking to itself, now talks to the parent
 
 One fix from the user-acceptance sweep that came right after v2.0.4. The visual-edit-mode (click an element in the preview iframe → write a change-request against that element) appeared to be installed correctly — the inspector script reaches the iframe, the overlay markup is in place, the parent listens for messages — but clicking an element did nothing. No selection panel, no event, no error.
