@@ -864,6 +864,7 @@
     "description": "Boots the project's dev server inside the harness and frames it here. Useful for an eye-test between iterations.",
     "start": "Start",
     "stop": "Stop",
+    "refresh": "Reload preview",
     "empty": "No preview running. Start the dev server to see the app here.",
     "startingFor": "running for {{seconds}}s",
     "viewport": {
@@ -887,7 +888,8 @@
       "iterationStarted": "Iteration run started",
       "iterationFailed": "Could not start iteration",
       "iterationPreparing": "Preparing iteration …",
-      "iterationPreparingDescription": "Generating a new plan based on your change-requests. This may take one to two minutes."
+      "iterationPreparingDescription": "Generating a new plan based on your change-requests. This may take one to two minutes.",
+      "autoRefreshed": "Iteration complete — preview refreshed"
     },
     "edit": {
       "toggle": "Edit",

@@ -864,6 +864,7 @@
     "description": "Startet den Dev-Server des Projekts im Harness und zeigt ihn hier an. Nützlich für einen Augen-Test zwischen Iterationen.",
     "start": "Start",
     "stop": "Stopp",
+    "refresh": "Vorschau neu laden",
     "empty": "Keine Vorschau läuft. Starte den Dev-Server, um die App hier zu sehen.",
     "startingFor": "läuft seit {{seconds}}s",
     "viewport": {
@@ -887,7 +888,8 @@
       "iterationStarted": "Iterations-Run gestartet",
       "iterationFailed": "Iteration konnte nicht gestartet werden",
       "iterationPreparing": "Iteration wird vorbereitet …",
-      "iterationPreparingDescription": "Plan wird basierend auf deinen Änderungen neu generiert. Das kann ein bis zwei Minuten dauern."
+      "iterationPreparingDescription": "Plan wird basierend auf deinen Änderungen neu generiert. Das kann ein bis zwei Minuten dauern.",
+      "autoRefreshed": "Iteration abgeschlossen — Vorschau aktualisiert"
     },
     "edit": {
       "toggle": "Bearbeiten",
