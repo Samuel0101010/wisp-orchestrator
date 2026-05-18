@@ -1,41 +1,49 @@
 <p align="center">
-  <img src="docs/assets/wisp-logo.png" alt="WISP" width="320">
+  <img src="docs/assets/wisp-logo.png" alt="WISP" width="280">
 </p>
 
-<p align="center">
-  <img src="docs/assets/wisp-figure.png" alt="WISP mascot" width="240">
-</p>
+<p align="center"><b>Watch a team of Claude agents build, preview, and iterate on your app — live in your browser.</b></p>
 
 <p align="center">
   <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases"><img src="https://img.shields.io/badge/Release-v2.0.8-C2A148?style=for-the-badge" alt="Release v2.0.8"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="License: Apache 2.0"></a>
+  <a href="https://github.com/Samuel0101010/wisp-orchestrator/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-success?style=for-the-badge" alt="CI"></a>
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
-  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
-  <img src="https://img.shields.io/badge/CSS-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS">
-  <img src="https://img.shields.io/badge/PowerShell-5391FE?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell">
-  <img src="https://img.shields.io/badge/Shell-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white" alt="Shell">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
 </p>
 
-Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.
+<p align="center">
+  <img src="docs/assets/screenshots/preview.png" alt="WISP — the live preview tab with a Kanban app the agent team just built, embedded in the dashboard" width="100%">
+</p>
 
-## What it is
+<p align="center"><sub><i>WISP's Vorschau tab — a Kanban app a 4-role agent team just built, rendering live inside the dashboard via the reverse-proxy iframe. Click any element to write a change-request; the iteration loop regenerates the plan and the iframe auto-reloads when the next run lands.</i></sub></p>
 
-The agent ecosystem today fragments across three categories that do not compose: chat UIs that run a single agent at a time; orchestrators that hide the plan as opaque internal state; and notebooks that demand babysitting. Nothing combines an editable team specification, a plan you can inspect and edit before it runs, and a live execution graph that survives across rate-limit windows and machine restarts.
+## Why?
 
-WISP is a local-first orchestrator for Claude Code that delivers exactly that vertical slice. You describe a goal, configure a team of 1–8 roles (architect, developers, QA, reviewers — whatever your workflow needs), optionally seed it from a built-in template, generate a plan as a directed acyclic graph, optionally edit it, then lock and run. A `Walker` dispatches tasks via `claude -p` subprocesses pinned to per-task git worktrees, parses streamed events, and persists everything to SQLite. Tasks share state via a per-run memory MCP. When QA fails terminally, the planner is invoked again with the QA error context and the run continues on a corrected plan. The browser dashboard renders the live state: a kanban board, a streaming text tail, a resource-budget meter, a rate-limit countdown that survives server restarts, and a plan-version badge for replanned runs.
+Most agent UIs run a single agent in a chat box. Orchestrators hide the plan behind opaque internal state, and they stop existing the moment something fails. WISP is built for the case nobody else covers — **drive a team of Claude agents for hours, watch the plan as a DAG you can edit before it runs, see the live preview of the app they're building, and write change-requests against the running result**.
+
+- **No babysitting.** Runs survive rate-limit windows, server restarts, and Claude 5xx with transient retries + inactivity watchdog + auto-resume.
+- **No black box.** Every plan is a DAG you can inspect, edit, and replan. Every task runs in its own git worktree. The walker streams every event into SQLite.
+- **No cloud dependency.** Everything runs locally on your machine. Subscription auth via your `claude` CLI; flip to `WISP_AUTH_MODE=api` for headless commercial use.
+
+## Quickstart (60 seconds)
+
+```sh
+claude plugin marketplace add Samuel0101010/wisp-orchestrator
+claude plugin install wisp@wisp-local
+claude /wisp-dashboard          # opens http://127.0.0.1:4400 in your browser
+```
+
+Then click **New project**, type a goal ("Build a Kanban board in React + Vite + Tailwind"), point it at an empty git repo, and hit **Run**. The dashboard streams the agent team building the app, the **Vorschau** tab shows it running live, and the iteration loop is one click away.
 
 ## Dashboard tour
 
-Six screenshots from the running app, light theme.
-
-| ![Mission Control](docs/assets/screenshots/mission-control.png) |  ![Goal Planner](docs/assets/screenshots/goal-planner.png)  |
-| :-------------------------------------------------------------: | :---------------------------------------------------------: |
-|      **Mission Control** — KPIs, live runs, project pulse.      | **Goal Planner** — interactive DAG canvas for plan editing. |
-|          ![Agents](docs/assets/screenshots/agents.png)          |          ![Chat](docs/assets/screenshots/chat.png)          |
-|       **Agents** — registry of roles available to teams.        |            **Chat** — team conversation surface.            |
-|  ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png)  |      ![Settings](docs/assets/screenshots/settings.png)      |
-|         **Prompt Bundles** — cached bundles for re-use.         |  **Settings** — theme, language, selective data clearing.   |
+|   ![Mission Control](docs/assets/screenshots/mission-control.png)   |        ![Goal Planner](docs/assets/screenshots/goal-planner.png)         |
+| :-----------------------------------------------------------------: | :----------------------------------------------------------------------: |
+| **Mission Control** — KPIs, live runs, agent thread, project pulse. | **Goal Planner** — Goal-Oriented Action Planning with a live A\* search. |
+|            ![Agents](docs/assets/screenshots/agents.png)            |                ![Chat](docs/assets/screenshots/chat.png)                 |
+|         **Agents** — registry of roles available to teams.          |                  **Chat** — team conversation surface.                   |
+|    ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png)    |            ![Settings](docs/assets/screenshots/settings.png)             |
+|           **Prompt Bundles** — cached bundles for re-use.           |         **Settings** — theme, language, selective data clearing.         |
 
 ## Status
 
@@ -114,19 +122,12 @@ pnpm --filter @wisp/dashboard-web dev
 
 The Vite dev server runs at `http://localhost:5173` and proxies API/WS calls to the backend on `127.0.0.1:4400`.
 
-## Quickstart
+## First run walkthrough
 
 1. **Create a project.** Open the dashboard, click "New project" in the sidebar, and fill in name, goal, and `repoPath`. The repo path must point at an existing git-initialized directory; the orchestrator creates per-task worktrees inside it.
-
-   ![Create a project](docs/assets/screenshots/mission-control.png)
-
-2. **Configure the team.** The TeamBuilder shows three role cards (architect, developer, QA). Defaults are sensible: opus for architect and planner, sonnet for developer and QA. Edit the `model`, `allowedTools`, and `systemPrompt` per role if you need to.
-
-   ![Configure the team](docs/assets/screenshots/agents.png)
-
-3. **Generate, review, run.** Hit "Generate plan" — the planner agent emits a DAG which renders in the PlanEditor (React Flow + dagre). Click any node to edit its prompt, dependencies, success criteria, or `maxTurns` in the side panel. When the plan looks right, click "Lock & Run". The RunView opens; the kanban fills as tasks transition.
-
-   ![Generate, review, run](docs/assets/screenshots/goal-planner.png)
+2. **Configure the team.** The TeamBuilder shows role cards (architect, developer, QA, …). Defaults are sensible: opus for architect + planner, sonnet for developer + QA. Edit `model`, `allowedTools`, or `systemPrompt` per role.
+3. **Generate, review, run.** Hit "Generate plan" — the planner emits a DAG which renders in the PlanEditor (React Flow + dagre). Click any node to edit its prompt, dependencies, success criteria, or `maxTurns`. When the plan looks right, click "Lock & Run".
+4. **Watch + iterate.** RunView opens with the kanban + streaming tail. When tasks land, switch to **Vorschau** to see the app running live. Click any element in the iframe to write a change-request; hit **Iteration starten** when you want the team to apply them.
 
 ## Runtime verification (v1.8)
 
