@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.0.3 — dashboard UX hardening from a live user-test session
+
+Three fixes that emerged during a live Chrome-MCP user-test of the dashboard against the FocusBoard project. Each one closes a specific friction point a real user hit — empty error states, silent failures, missing affordances.
+
+### Fixed
+
+- **Preview tab is honest about failure** ([b400264](https://github.com/Samuel0101010/wisp-orchestrator/commit/b400264)). The preview spawned `pnpm dev` against a hardcoded port from the project's probeUrl (usually `:5173`). When the port was held by a stale process from a prior session, vite crashed early but the UI stayed on "STARTET" until the 60-second timeout — no progress, no error, no clue why. Three changes: (1) `preview-server.ts` now probes `isPortFree()` before spawning and scans `port..port+10` for a free slot, rewriting both `env.PORT` and the probeUrl so the readiness poll hits the right endpoint; (2) `getPreviewStatus()` runs `process.kill(pid, 0)` against the registered child — a dead pid mutates the entry to `status: "error"` with `errorReason: "process-died"` so the UI no longer reports "running" against a zombie; (3) `PreviewFrame.tsx` shows a 1-second-ticking "läuft seit Ns" counter while starting and an inline `role="alert"` with the actual error string when the poll arrives in error state. Default timeout 60s → 30s — interactive UX feels broken at the longer wait.
+
+- **Cancelled tasks are cancelled, not failed** ([fd0c925](https://github.com/Samuel0101010/wisp-orchestrator/commit/fd0c925)). Clicking "Run abbrechen" cascaded every pending/running task into the FEHLGESCHLAGEN bucket — indistinguishable from a real crash. Caught during a FocusBoard cancel test where seven tasks ended up red because the user changed their mind. Now: `taskStatusValues` adds `'cancelled'`; `Walker.cancel()` writes `cancelled` (not `failed`) on the explicit cancel path; runtime's `TASK_STATUS_MAP` passes it through; the run-store reconciles `run.completed` with `outcome: 'cancelled'` by retroactively flipping not-yet-terminal tasks to `cancelled`; `RunView.tsx` shows a sixth "ABGEBROCHEN" bucket with a `Ban` icon. The cascade for upstream-dep-failures still writes `failed` — those tasks died because something else broke, not because the user said stop. Drive-by: removed Radix's auto-rendered corner-X close button from confirm dialogs (it duplicated "Abbrechen"); Esc and overlay-click still dismiss.
+
+- **"Neuen Run starten" asks before it commits** ([f9eb7c4](https://github.com/Samuel0101010/wisp-orchestrator/commit/f9eb7c4)). Clicking the button immediately POSTed `/api/runs` and navigated away — no confirmation, no goal preview, no hint that the iteration pattern (preview tab → change-requests → "Iteration starten") exists for the "verbessern/erweitern" case. New `RunStartDialog.tsx` modal renders the current goal (truncated to 300 chars with expand toggle), an info banner with a "Zur Vorschau" CTA that switches to the preview tab, and the actual confirm/cancel footer. Wired into both the Plan & Team tab AND a new `[data-testid="runs-card-new-run"]` button in the Runs tab — the latter was the missing affordance that made users hunt for run-start on the wrong tab.
+
+### Chore
+
+- 8 new tests across `preview-server.test.ts`, `PreviewFrame.test.tsx`, and `RunStartDialog.test.tsx`. Total: 441 server tests, 131 web tests.
+
 ## 2.0.2 — reliability hardening from a real app-build session
 
 Five fixes that emerged during a session where the plugin built two complete React apps end-to-end. Each one closes a specific failure mode observed live — not a theoretical edge case. Together they make a multi-hour autonomous run substantially harder to derail.
