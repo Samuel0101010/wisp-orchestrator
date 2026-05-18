@@ -43,6 +43,17 @@ describe('detectProjectType', () => {
     expect(result.type).toBe('web-app');
     expect(result.devCommand).toBe('pnpm dev');
     expect(result.probeUrl).toBe('http://127.0.0.1:5173/');
+    expect(result.framework).toBe('vite');
+  });
+
+  it('exposes the SvelteKit framework key for the preview --base whitelist', () => {
+    const r = repo({
+      devDependencies: { '@sveltejs/kit': '^2' },
+      scripts: { dev: 'vite dev' },
+    });
+    const result = detectProjectType(r);
+    expect(result.type).toBe('web-app');
+    expect(result.framework).toBe('@sveltejs/kit');
   });
 
   it('classifies a Next.js app on port 3000', () => {
