@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.5 — visual-edit inspector was talking to itself, now talks to the parent
+
+One fix from the user-acceptance sweep that came right after v2.0.4. The visual-edit-mode (click an element in the preview iframe → write a change-request against that element) appeared to be installed correctly — the inspector script reaches the iframe, the overlay markup is in place, the parent listens for messages — but clicking an element did nothing. No selection panel, no event, no error.
+
+### Fixed
+
+- **Inspector ↔ parent message kinds are now consistent**. The injected inspector script emitted `wisp:pick` and listened for `wisp:set-edit-mode`. The parent (PreviewFrame.tsx) emits `harness:set-edit-mode` and listens for `harness:pick`. The two halves never agreed on which event to fire. Every click in edit-mode was silently dropped. Caught by live test: click → 0 pick events on parent → no selection panel rendered. Fixed both kinds to `harness:*` matching the parent contract. Verified live: click in iframe → selector `aside.w-60 > nav.flex-1 > div.group > span.flex:nth-of-type(2) > button` captured, selection panel renders, prompt submission persists the change-request with `source: 'visual'`.
+
 ## 2.0.4 — iteration loop made visible, preview iframe actually renders
 
 Two fixes from a deep user-test of the iteration workflow — the loop that turns "preview the app, write change-requests, regenerate the plan" into the canonical path for improving an existing project.

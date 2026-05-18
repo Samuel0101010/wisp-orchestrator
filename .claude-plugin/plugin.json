@@ -1,7 +1,7 @@
 {
   "name": "wisp",
   "displayName": "WISP",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews with WISP. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.",
   "author": {
     "name": "Samuel Heftberger",
