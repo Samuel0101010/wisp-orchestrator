@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases"><img src="https://img.shields.io/badge/Release-v2.0.6-C2A148?style=for-the-badge" alt="Release v2.0.6"></a>
+  <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases"><img src="https://img.shields.io/badge/Release-v2.0.7-C2A148?style=for-the-badge" alt="Release v2.0.7"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="License: Apache 2.0"></a>
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
