@@ -346,7 +346,17 @@
     "today": "heute",
     "themeLight": "Zu hellem Theme wechseln",
     "themeDark": "Zu dunklem Theme wechseln",
-    "openCommandPalette": "Befehlspalette öffnen"
+    "openCommandPalette": "Befehlspalette öffnen",
+    "notifications": "Benachrichtigungen",
+    "notificationsPopover": {
+      "title": "Letzte Aktivität",
+      "empty": "Noch keine Runs",
+      "viewAll": "Alle Insights anzeigen",
+      "minutesAgo": "vor {{count}} min",
+      "hoursAgo": "vor {{count}} h",
+      "daysAgo": "vor {{count}} T",
+      "justNow": "gerade eben"
+    }
   },
   "newProject": {
     "title": "Neues Projekt",

@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity, Bell, Coins, Search } from 'lucide-react';
+import { Activity, Coins, Search } from 'lucide-react';
 import { useMatch } from 'react-router-dom';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
+import { NotificationsPopover } from '@/components/layout/NotificationsPopover';
 import { LanguageToggle } from '@/components/LanguageToggle';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
@@ -104,14 +105,7 @@ export function TopBar() {
           </div>
         </div>
       )}
-      <button
-        type="button"
-        className="wisp-btn icon"
-        title={t('topBar.notifications', 'Notifications')}
-        aria-label={t('topBar.notifications', 'Notifications')}
-      >
-        <Bell className="h-3.5 w-3.5" />
-      </button>
+      <NotificationsPopover />
       <ThemeToggle />
       <LanguageToggle />
     </div>
