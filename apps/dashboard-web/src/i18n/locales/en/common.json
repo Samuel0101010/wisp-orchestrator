@@ -885,7 +885,9 @@
       "deleted": "Removed from queue",
       "deleteFailed": "Could not remove change-request",
       "iterationStarted": "Iteration run started",
-      "iterationFailed": "Could not start iteration"
+      "iterationFailed": "Could not start iteration",
+      "iterationPreparing": "Preparing iteration …",
+      "iterationPreparingDescription": "Generating a new plan based on your change-requests. This may take one to two minutes."
     },
     "edit": {
       "toggle": "Edit",
@@ -901,6 +903,7 @@
       "delete": "Delete",
       "runIteration": "Run Iteration",
       "runIterationStarting": "Starting…",
+      "runIterationStartingSeconds": "Preparing iteration … ({{seconds}}s)",
       "textPlaceholder": "Describe a free-form change (no element pick needed)…",
       "textAdd": "Add"
     }
