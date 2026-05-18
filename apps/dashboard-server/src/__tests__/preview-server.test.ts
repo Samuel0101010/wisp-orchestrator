@@ -120,6 +120,53 @@ describe('PreviewProcessRegistry', () => {
     expect(status.error).toBe('port-occupied');
   });
 
+  it('startPreview appends --base when basePath is set', async () => {
+    registry = new PreviewProcessRegistry();
+    const child = fakeChild();
+    const spawnImpl = vi
+      .fn()
+      .mockReturnValue(child) as unknown as typeof import('node:child_process').spawn;
+    const fetchImpl = vi.fn().mockResolvedValueOnce({ ok: true, status: 200 });
+    const result = await registry.startPreview({
+      projectId: 'p1',
+      devCmd: 'pnpm dev',
+      probeUrl: 'http://127.0.0.1:5173/',
+      basePath: '/preview/abc/',
+      readyTimeoutMs: 2000,
+      fetchImpl,
+      spawnImpl,
+      isPortFreeImpl: async () => true,
+    });
+    expect(result.status).toBe('running');
+    const callArgs = (spawnImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    const argv = callArgs?.[1] as string[];
+    // argv should contain `--base /preview/abc/` AFTER the `--port` pair.
+    const baseIdx = argv.indexOf('--base');
+    expect(baseIdx).toBeGreaterThan(-1);
+    expect(argv[baseIdx + 1]).toBe('/preview/abc/');
+  });
+
+  it('startPreview does NOT append --base when basePath is omitted', async () => {
+    registry = new PreviewProcessRegistry();
+    const child = fakeChild();
+    const spawnImpl = vi
+      .fn()
+      .mockReturnValue(child) as unknown as typeof import('node:child_process').spawn;
+    const fetchImpl = vi.fn().mockResolvedValueOnce({ ok: true, status: 200 });
+    await registry.startPreview({
+      projectId: 'p1',
+      devCmd: 'pnpm dev',
+      probeUrl: 'http://127.0.0.1:5173/',
+      readyTimeoutMs: 2000,
+      fetchImpl,
+      spawnImpl,
+      isPortFreeImpl: async () => true,
+    });
+    const callArgs = (spawnImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0];
+    const argv = callArgs?.[1] as string[];
+    expect(argv).not.toContain('--base');
+  });
+
   it('startPreview falls back to the next free port when the requested one is busy', async () => {
     registry = new PreviewProcessRegistry();
     const child = fakeChild();
@@ -207,10 +254,13 @@ describe('preview reverse-proxy', () => {
     });
     // Find the seeded id — the project route returns whatever was inserted.
     // For simplicity we'll inject the registry entry directly.
-    const listening = await listenLoopback((_req, res) => {
+    const listening = await listenLoopback((req, res) => {
+      // Echo the request path back so the test can assert that the proxy
+      // forwarded the FULL `/preview/<id>/...` path (with `--base` semantics)
+      // instead of stripping the prefix.
       res.statusCode = 200;
       res.setHeader('content-type', 'text/plain');
-      res.end('ok');
+      res.end(`upstream-path=${req.url ?? ''}`);
     });
     upstream = listening.server;
     upstreamPort = listening.port;
@@ -230,7 +280,19 @@ describe('preview reverse-proxy', () => {
       url: `/preview/${projectId}/`,
     });
     expect(res.statusCode).toBe(200);
-    expect(res.body).toBe('ok');
+    // With the --base fix the proxy forwards the full path (including the
+    // `/preview/<id>/` prefix) instead of stripping it — vite serves its
+    // assets under that prefix when launched with `--base /preview/<id>/`.
+    expect(res.body).toBe(`upstream-path=/preview/${projectId}/`);
+  });
+
+  it('forwards a nested asset path with the prefix intact', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/preview/${projectId}/src/main.tsx`,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toBe(`upstream-path=/preview/${projectId}/src/main.tsx`);
   });
 
   it('returns 502 with preview_not_running when no entry is registered', async () => {

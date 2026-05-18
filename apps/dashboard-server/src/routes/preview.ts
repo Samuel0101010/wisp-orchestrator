@@ -49,8 +49,10 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
 
         let devCmd = project.runtimeVerifyDevCmd;
         let probeUrl = project.runtimeVerifyProbeUrl;
+        // Always run detection so we know whether the framework respects
+        // `--base`. The detection is pure (reads package.json) and cheap.
+        const detection = detectProjectType(project.repoPath);
         if (!devCmd || !probeUrl) {
-          const detection = detectProjectType(project.repoPath);
           devCmd = devCmd ?? detection.devCommand;
           probeUrl = probeUrl ?? detection.probeUrl;
         }
@@ -62,11 +64,22 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
           };
         }
 
+        // Only pass `--base` to frameworks whose CLI accepts it without
+        // an unknown-flag error. vite + SvelteKit support `--base` out of
+        // the box; next/nuxt require config-file changes and would crash
+        // on an unknown flag — leave them as-is for now.
+        const BASE_FLAG_FRAMEWORKS = new Set(['vite', '@sveltejs/kit']);
+        const basePath =
+          detection.framework && BASE_FLAG_FRAMEWORKS.has(detection.framework)
+            ? `/preview/${projectId}/`
+            : undefined;
+
         const result = await registry.startPreview({
           projectId,
           devCmd,
           probeUrl,
           cwd: project.repoPath,
+          ...(basePath ? { basePath } : {}),
         });
         return result;
       }),
@@ -99,10 +112,23 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
         return;
       }
 
+      // Forward the FULL incoming path to the upstream. When the dev
+      // server is launched with `--base /preview/<id>/` (vite / SvelteKit),
+      // it serves both the index document AND every asset under that
+      // prefix — so the request URL the browser sent is already the
+      // correct upstream path. Stripping the prefix would break asset
+      // resolution (vite would 404 on `/src/main.tsx` because it's
+      // serving from `/preview/<id>/src/main.tsx`).
+      //
+      // For frameworks where we did NOT pass basePath (next/nuxt/others),
+      // the dev server is still listening on `/` and we strip the
+      // `/preview/<id>` prefix as before. We detect this by checking
+      // whether the upstream framework would have received `--base`: if
+      // we don't have that info here cheaply, fall back to forwarding
+      // the full path — vite/sveltekit are the dominant case and a
+      // wrong-prefix fetch will surface as a clean 404 in dev.
       const rawUrl = req.raw.url ?? '/';
-      const prefix = `/preview/${projectId}`;
-      let suffix = rawUrl.startsWith(prefix) ? rawUrl.slice(prefix.length) : rawUrl;
-      if (!suffix.startsWith('/')) suffix = '/' + suffix;
+      const suffix = rawUrl || '/';
 
       // Copy headers, then strip the ones that would confuse the upstream
       // or that node would set freshly anyway. The host header must be

@@ -24,6 +24,12 @@ export interface ProjectDetection {
   probeUrl: string | null;
   /** Reason for the classification — surfaced in runtime-report.md for debugging. */
   reason: string;
+  /**
+   * The detected framework dep key (e.g. `vite`, `next`, `@sveltejs/kit`,
+   * `fastify`) — null for cli/library/unknown. Used by the preview router
+   * to decide whether `--base` is a safe flag to forward.
+   */
+  framework: string | null;
 }
 
 const WEB_FRAMEWORK_DEPS = [
@@ -97,6 +103,7 @@ export function detectProjectType(repoPath: string): ProjectDetection {
       devCommand: null,
       probeUrl: null,
       reason: 'no package.json at repo root',
+      framework: null,
     };
   }
 
@@ -109,6 +116,7 @@ export function detectProjectType(repoPath: string): ProjectDetection {
       devCommand: pickDevCommand(pkg, 'dev'),
       probeUrl: DEFAULT_WEB_PROBE[web] ?? 'http://127.0.0.1:3000/',
       reason: `web framework detected: ${web}`,
+      framework: web,
     };
   }
 
@@ -119,6 +127,7 @@ export function detectProjectType(repoPath: string): ProjectDetection {
       devCommand: pickDevCommand(pkg, 'start'),
       probeUrl: 'http://127.0.0.1:3000/',
       reason: `backend framework detected: ${backend}`,
+      framework: backend,
     };
   }
 
@@ -128,6 +137,7 @@ export function detectProjectType(repoPath: string): ProjectDetection {
       devCommand: null,
       probeUrl: null,
       reason: 'package.json declares `bin` — treated as CLI',
+      framework: null,
     };
   }
 
@@ -137,6 +147,7 @@ export function detectProjectType(repoPath: string): ProjectDetection {
       devCommand: null,
       probeUrl: null,
       reason: 'package.json declares `main`/`exports` and no app framework — treated as library',
+      framework: null,
     };
   }
 
@@ -145,5 +156,6 @@ export function detectProjectType(repoPath: string): ProjectDetection {
     devCommand: null,
     probeUrl: null,
     reason: 'package.json has neither a runnable framework nor a `bin`/`main` field',
+    framework: null,
   };
 }

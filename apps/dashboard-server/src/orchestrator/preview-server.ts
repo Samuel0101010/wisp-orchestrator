@@ -40,6 +40,14 @@ export interface StartPreviewArgs {
    * with old tests; production callers (preview route) always set this.
    */
   cwd?: string;
+  /**
+   * Optional URL base prefix (e.g. `/preview/<id>/`). When set, `--base
+   * <basePath>` is appended to the dev-server CLI so vite / SvelteKit emit
+   * asset URLs already prefixed with the reverse-proxy path. Caller must
+   * gate this on a framework that respects `--base` (vite, @sveltejs/kit) —
+   * passing it to next/nuxt would error.
+   */
+  basePath?: string;
   /** Optional override — defaults to 30s. */
   readyTimeoutMs?: number;
   /** Test seam — supplied fetch impl. */
@@ -241,6 +249,16 @@ export class PreviewProcessRegistry {
     const parts = devCmd.trim().split(/\s+/);
     const cmd = parts[0]!;
     const cmdArgs = [...parts.slice(1), '--port', String(port)];
+    // When the caller specifies a basePath (vite / SvelteKit only — see
+    // preview.ts whitelist), append `--base <basePath>` so the dev-server
+    // emits HTML + asset URLs already prefixed with the reverse-proxy
+    // path. Without this, vite serves `<script src="/src/main.tsx">`
+    // which the iframe fetches from the dashboard's origin (not through
+    // the proxy) and gets the dashboard SPA shell back — the preview
+    // never hydrates.
+    if (args.basePath) {
+      cmdArgs.push('--base', args.basePath);
+    }
 
     const env: NodeJS.ProcessEnv = { ...process.env, PORT: String(port) };
 
