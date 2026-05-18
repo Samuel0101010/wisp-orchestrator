@@ -11,15 +11,19 @@
 <p align="center">
   <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases"><img src="https://img.shields.io/badge/Release-v2.0.8-C2A148?style=for-the-badge" alt="Release v2.0.8"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="License: Apache 2.0"></a>
-  <a href="https://github.com/Samuel0101010/wisp-orchestrator/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-success?style=for-the-badge" alt="CI"></a>
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
+  <img src="https://img.shields.io/badge/CSS-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS">
+  <img src="https://img.shields.io/badge/PowerShell-5391FE?style=for-the-badge&logo=powershell&logoColor=white" alt="PowerShell">
+  <img src="https://img.shields.io/badge/Shell-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white" alt="Shell">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshots/preview.png" alt="WISP — the live preview tab with a Kanban app the agent team just built, embedded in the dashboard" width="100%">
+  <img src="docs/assets/screenshots/mission-control.png" alt="WISP Mission Control — KPIs, live runs, agent thread, and project pulse" width="100%">
 </p>
 
-<p align="center"><sub><i>WISP's Vorschau tab — a Kanban app a 4-role agent team just built, rendering live inside the dashboard via the reverse-proxy iframe. Click any element to write a change-request; the iteration loop regenerates the plan and the iframe auto-reloads when the next run lands.</i></sub></p>
+<p align="center"><sub><i>WISP's Mission Control — KPIs, live runs, agent thread, and project pulse at a glance. Drill into any project for the live execution graph and the Preview tab where the app actually runs.</i></sub></p>
 
 ## Why?
 
@@ -37,17 +41,17 @@ claude plugin install wisp@wisp-local
 claude /wisp-dashboard          # opens http://127.0.0.1:4400 in your browser
 ```
 
-Then click **New project**, type a goal ("Build a Kanban board in React + Vite + Tailwind"), point it at an empty git repo, and hit **Run**. The dashboard streams the agent team building the app, the **Vorschau** tab shows it running live, and the iteration loop is one click away.
+Then click **New project**, type a goal ("Build a Kanban board in React + Vite + Tailwind"), point it at an empty git repo, and hit **Run**. The dashboard streams the agent team building the app, the **Preview** tab shows it running live, and the iteration loop is one click away.
 
 ## Dashboard tour
 
-|   ![Mission Control](docs/assets/screenshots/mission-control.png)   |        ![Goal Planner](docs/assets/screenshots/goal-planner.png)         |
-| :-----------------------------------------------------------------: | :----------------------------------------------------------------------: |
-| **Mission Control** — KPIs, live runs, agent thread, project pulse. | **Goal Planner** — Goal-Oriented Action Planning with a live A\* search. |
-|            ![Agents](docs/assets/screenshots/agents.png)            |                ![Chat](docs/assets/screenshots/chat.png)                 |
-|         **Agents** — registry of roles available to teams.          |                  **Chat** — team conversation surface.                   |
-|    ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png)    |            ![Settings](docs/assets/screenshots/settings.png)             |
-|           **Prompt Bundles** — cached bundles for re-use.           |         **Settings** — theme, language, selective data clearing.         |
+|                  ![Preview](docs/assets/screenshots/preview.png)                  |        ![Goal Planner](docs/assets/screenshots/goal-planner.png)         |
+| :-------------------------------------------------------------------------------: | :----------------------------------------------------------------------: |
+| **Preview** — proxied iframe of the running app, with click-to-pick visual edits. | **Goal Planner** — Goal-Oriented Action Planning with a live A\* search. |
+|                   ![Agents](docs/assets/screenshots/agents.png)                   |                ![Chat](docs/assets/screenshots/chat.png)                 |
+|                **Agents** — registry of roles available to teams.                 |                  **Chat** — team conversation surface.                   |
+|           ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png)           |            ![Settings](docs/assets/screenshots/settings.png)             |
+|                  **Prompt Bundles** — cached bundles for re-use.                  |         **Settings** — theme, language, selective data clearing.         |
 
 ## Status
 
@@ -131,7 +135,7 @@ The Vite dev server runs at `http://localhost:5173` and proxies API/WS calls to 
 1. **Create a project.** Open the dashboard, click "New project" in the sidebar, and fill in name, goal, and `repoPath`. The repo path must point at an existing git-initialized directory; the orchestrator creates per-task worktrees inside it.
 2. **Configure the team.** The TeamBuilder shows role cards (architect, developer, QA, …). Defaults are sensible: opus for architect + planner, sonnet for developer + QA. Edit `model`, `allowedTools`, or `systemPrompt` per role.
 3. **Generate, review, run.** Hit "Generate plan" — the planner emits a DAG which renders in the PlanEditor (React Flow + dagre). Click any node to edit its prompt, dependencies, success criteria, or `maxTurns`. When the plan looks right, click "Lock & Run".
-4. **Watch + iterate.** RunView opens with the kanban + streaming tail. When tasks land, switch to **Vorschau** to see the app running live. Click any element in the iframe to write a change-request; hit **Iteration starten** when you want the team to apply them.
+4. **Watch + iterate.** RunView opens with the kanban + streaming tail. When tasks land, switch to **Preview** to see the app running live. Click any element in the iframe to write a change-request; hit **Start iteration** when you want the team to apply them.
 
 ## Runtime verification (v1.8)
 
