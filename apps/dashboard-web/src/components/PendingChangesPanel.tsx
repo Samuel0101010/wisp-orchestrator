@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Globe, ListChecks, MousePointerSquareDashed, Play, Trash2 } from 'lucide-react';
@@ -11,7 +11,7 @@ import {
 } from '@/api/queries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from '@/components/ui/use-toast';
+import { dismissToast, toast } from '@/components/ui/use-toast';
 
 interface PendingChangesPanelProps {
   projectId: string;
@@ -33,6 +33,25 @@ export function PendingChangesPanel({ projectId }: PendingChangesPanelProps) {
   const del = useDeleteChangeRequest(projectId);
   const runIteration = useRunIteration(projectId);
   const [textPrompt, setTextPrompt] = useState('');
+  const [iterationStartedAt, setIterationStartedAt] = useState<number | null>(null);
+  const [iterationElapsedSec, setIterationElapsedSec] = useState(0);
+
+  // Tick a one-second timer while the iteration mutation is in flight so the
+  // button label shows elapsed seconds (plan regeneration runs an LLM and can
+  // take 1–3 minutes).
+  useEffect(() => {
+    if (iterationStartedAt === null) {
+      setIterationElapsedSec(0);
+      return;
+    }
+    setIterationElapsedSec(Math.floor((Date.now() - iterationStartedAt) / 1000));
+    const handle = setInterval(() => {
+      setIterationElapsedSec(Math.floor((Date.now() - iterationStartedAt) / 1000));
+    }, 1000);
+    return () => {
+      clearInterval(handle);
+    };
+  }, [iterationStartedAt]);
 
   const handleAddText = async (): Promise<void> => {
     const trimmed = textPrompt.trim();
@@ -66,16 +85,29 @@ export function PendingChangesPanel({ projectId }: PendingChangesPanelProps) {
   const handleRunIteration = async (): Promise<void> => {
     if (rows.length === 0) return;
     const ids = rows.map((r) => r.id);
+    // Fire the long-lived "preparing" toast IMMEDIATELY on click — the
+    // plan-regeneration LLM call below blocks for 1–3 minutes without any
+    // other UI feedback. The toast is dismissed when the mutation settles.
+    const preparingToastId = toast({
+      title: t('preview.toasts.iterationPreparing'),
+      description: t('preview.toasts.iterationPreparingDescription'),
+      duration: 180000,
+    });
+    setIterationStartedAt(Date.now());
     try {
       const result = await runIteration.mutateAsync({ changeRequestIds: ids });
+      dismissToast(preparingToastId);
       toast({ title: t('preview.toasts.iterationStarted') });
       navigate(`/projects/${projectId}/run/${result.runId}`);
     } catch (err) {
+      dismissToast(preparingToastId);
       toast({
         title: t('preview.toasts.iterationFailed'),
         description: (err as Error).message,
         variant: 'destructive',
       });
+    } finally {
+      setIterationStartedAt(null);
     }
   };
 
@@ -175,7 +207,9 @@ export function PendingChangesPanel({ projectId }: PendingChangesPanelProps) {
           >
             <Play className="mr-1 h-3 w-3" />
             {runIteration.isPending
-              ? t('preview.changes.runIterationStarting')
+              ? t('preview.changes.runIterationStartingSeconds', {
+                  seconds: iterationElapsedSec,
+                })
               : t('preview.changes.runIteration')}
           </Button>
         </div>

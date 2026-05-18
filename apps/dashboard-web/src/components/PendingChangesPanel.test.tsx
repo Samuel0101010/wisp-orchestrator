@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { PendingChangesPanel } from './PendingChangesPanel';
+import { ToastViewportRoot } from '@/components/ui/use-toast';
 
 const originalFetch = globalThis.fetch;
 
@@ -195,6 +196,72 @@ describe('PendingChangesPanel', () => {
     await waitFor(() => screen.getByTestId('run-iteration-button'));
     const btn = screen.getByTestId('run-iteration-button') as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
+  });
+
+  it('fires the "preparing iteration" toast immediately on click, before the plan mutation resolves', async () => {
+    rows = [makeRow({ id: 'a', userPrompt: 'one' })];
+    // Hold the /plan call open until we release it so we can assert the toast
+    // is visible while the mutation is still pending.
+    let releasePlan!: () => void;
+    const planGate = new Promise<void>((resolve) => {
+      releasePlan = resolve;
+    });
+    const baseFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (input, init) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      const method = init?.method ?? 'GET';
+      if (url.endsWith('/plan') && method === 'POST') {
+        await planGate;
+      }
+      return (baseFetch as typeof fetch)(input, init);
+    }) as typeof fetch;
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/projects/p1']}>
+          <Routes>
+            <Route
+              path="/projects/p1"
+              element={
+                <>
+                  <PendingChangesPanel projectId="p1" />
+                  <LocationProbe />
+                </>
+              }
+            />
+            <Route
+              path="/projects/:projectId/run/:runId"
+              element={
+                <>
+                  <div data-testid="run-view">run view</div>
+                  <LocationProbe />
+                </>
+              }
+            />
+          </Routes>
+          <ToastViewportRoot />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => screen.getByTestId('pending-row-a'));
+    fireEvent.click(screen.getByTestId('run-iteration-button'));
+
+    // The preparing toast must appear immediately, while /plan is still pending.
+    await waitFor(() => {
+      expect(screen.getByText('Preparing iteration …')).toBeInTheDocument();
+    });
+    // Run has not been created yet — we're still gated.
+    expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/runs'))).toBeUndefined();
+    // Release the plan mutation and confirm the run is created + navigation occurs.
+    releasePlan();
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('run-view')).toBeInTheDocument();
+      },
+      { timeout: 4000 },
+    );
   });
 
   it('text-mode form POSTs a new text-source change-request', async () => {

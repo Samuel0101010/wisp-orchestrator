@@ -885,7 +885,9 @@
       "deleted": "Aus Queue entfernt",
       "deleteFailed": "Change-Request konnte nicht entfernt werden",
       "iterationStarted": "Iterations-Run gestartet",
-      "iterationFailed": "Iteration konnte nicht gestartet werden"
+      "iterationFailed": "Iteration konnte nicht gestartet werden",
+      "iterationPreparing": "Iteration wird vorbereitet …",
+      "iterationPreparingDescription": "Plan wird basierend auf deinen Änderungen neu generiert. Das kann ein bis zwei Minuten dauern."
     },
     "edit": {
       "toggle": "Bearbeiten",
@@ -901,6 +903,7 @@
       "delete": "Löschen",
       "runIteration": "Iteration starten",
       "runIterationStarting": "Wird gestartet…",
+      "runIterationStartingSeconds": "Iteration wird vorbereitet … ({{seconds}}s)",
       "textPlaceholder": "Freitext-Änderung beschreiben (ohne Element-Pick)…",
       "textAdd": "Hinzufügen"
     }
