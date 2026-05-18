@@ -315,7 +315,7 @@ UTF-8 text in plans, prompts, or generated files shows up as `Ã¤`, `â€"`, o
 
 **Cause**
 
-A file was saved as Windows-1252 / latin-1 and later read as UTF-8, or written through a stream that double-encoded it. See `docs/internal/postmortems/2026-05-12-mojibake-from-subagent-file-edits.md` for the original incident.
+A file was saved as Windows-1252 / latin-1 and later read as UTF-8, or written through a stream that double-encoded it. The most common trigger is a subagent edit that round-trips text through a non-UTF-8 codec without the editor preserving the encoding.
 
 **Fix**
 

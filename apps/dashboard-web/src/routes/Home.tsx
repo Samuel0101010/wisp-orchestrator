@@ -228,9 +228,9 @@ function HeroHeader({
   }, [lang]);
   const greeting = useMemo(() => {
     const hr = new Date().getHours();
-    if (hr < 11) return t('home.greeting.morning', 'Good morning, Samuel.');
-    if (hr < 18) return t('home.greeting.afternoon', 'Good afternoon, Samuel.');
-    return t('home.greeting.evening', 'Good evening, Samuel.');
+    if (hr < 11) return t('home.greeting.morning', 'Good morning.');
+    if (hr < 18) return t('home.greeting.afternoon', 'Good afternoon.');
+    return t('home.greeting.evening', 'Good evening.');
   }, [t]);
 
   return (

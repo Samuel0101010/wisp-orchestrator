@@ -753,7 +753,7 @@ function MessageBlock({
           <span className="text-2xs text-muted-foreground">{fmtTime(message.createdAt, lang)}</span>
           {/* Error tags: tone-tinted bg carries the semantic signal; foreground
               text (not text-{tone}) is required for AA contrast on tinted
-              surfaces in both themes — see footgun in handoff.md §7. */}
+              surfaces in both themes. */}
           {message.errorReason === 'pending' && (
             <span className="rounded bg-warning/20 px-1 text-3xs uppercase text-foreground">
               {t('chat.transcript.interrupted')}

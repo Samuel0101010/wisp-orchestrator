@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases"><img src="https://img.shields.io/badge/Release-v2.0.7-C2A148?style=for-the-badge" alt="Release v2.0.7"></a>
+  <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases"><img src="https://img.shields.io/badge/Release-v2.0.8-C2A148?style=for-the-badge" alt="Release v2.0.8"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="License: Apache 2.0"></a>
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
@@ -39,16 +39,17 @@ Six screenshots from the running app, light theme.
 
 ## Status
 
-**v1.0 — personal-use complete.** All M1–M5 milestones plus plugin Skills are merged. The harness can drive a full architect → dev → qa cycle against real Claude Max, with variable team sizes, shared memory across tasks, built-in templates, automatic QA-replan, and slash-command workflows that let you run the harness without leaving Claude Code.
+**v2.0 — production-ready.** The orchestrator drives full architect → dev → QA → review cycles against real Claude Max with variable team sizes, shared-memory MCP, built-in + user templates, automatic QA-replan, and a live dashboard with iteration loops, visual edit-mode, and proxied previews. See [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
-### What's new in v1.0
+### Highlights in v2.0
 
-- **Variable team (M2).** Roles are a `{roles: AgentSpec[]}` array (1..8 roles, kebab-case unique names, model enum opus/sonnet/haiku). Planner, walker, and TeamBuilder UI are all role-list-driven.
-- **Shared-memory MCP (M3).** `@wisp/memory-mcp` is a stdio MCP server that exposes `memory.{set,get,list,delete}` to every task subprocess. The architect can drop notes; the developer reads them. Per-run SQLite isolation under `<WISP_DATA_DIR>/memory/<runId>.db`. See [docs/memory-mcp.md](docs/memory-mcp.md).
-- **Team templates (M4).** Four built-in templates (`ts-library`, `python-backend`, `refactor-squad`, `data-pipeline`) plus user-saved templates under `<WISP_DATA_DIR>/templates/`. Picker in the New Project dialog; "Save as Template" on TeamBuilder. See [docs/templates.md](docs/templates.md).
-- **QA-driven replan (M5).** When QA fails terminally, the walker calls a server helper that composes a new prompt with the QA error context, generates a fresh plan, and continues the run. Capped at 1 replan per run. Audit trail via `parent_plan_id`. Visible in the UI as a "v2 (replanned)" badge. See [docs/replan.md](docs/replan.md).
-- **Plugin Skills.** Four `/harness-*` slash commands so the dashboard is optional: `/wisp-new-run` (goal → running execution), `/wisp-resume` (paused runs), `/wisp-inspect` (result branch + git log), `/wisp-diagnose` (event timeline).
-- **Foundation hardening from M1.5/Stage 1.** `harness.verify-failed` events with full payload, retry-prompt size cap, `successCriteria.preflight` (one-time setup before build/test/lint), `task.usage` parser fixed for the modern result-frame, `CI=true` + `npm_config_os/arch` injected into verify subprocesses for cross-platform pnpm install.
+- **Iteration loop.** Once an initial run completes, the user can request changes against the previewed app (click-to-pick element + change-request, or freeform prompt). The orchestrator generates an iteration plan that builds on prior runs and reuses the existing worktree, surfacing the diff back into the live preview without a manual rebuild step.
+- **Reverse-proxy preview.** Vite/SvelteKit dev servers spawn under `/preview/<projectId>/` so the iframe sees the running app via the same origin as the dashboard. Auto-reload when an iteration run completes; manual refresh button in the preview header.
+- **Goal Planner.** Goal-Oriented Action Planning tab with interactive plan visualization, JSON editor, action library with filtering, and a live A\* search returning the cheapest sequence to the goal predicates. Useful for designing structured planner inputs before commiting to a long run.
+- **Auto-resolver agent.** When a dependency-merge run hits conflicts in `pnpm-lock.yaml` or `package.json`, the orchestrator spawns a dedicated resolver agent to land a clean merge before continuing the parent run.
+- **Hardened subprocess control.** Transient retries on Anthropic 5xx + Overloaded, worktree-race retries, inactivity watchdog that cancels stuck tasks with a structured event so the planner can re-route.
+- **Notifications popover.** Top-bar bell lists the last 8 global runs across projects with status pills, relative-time labels anchored on `endedAt ?? startedAt`, and links into each run.
+- **Plugin Skills.** Four `/wisp-*` slash commands so the dashboard is optional: `/wisp-new-run` (goal → running execution), `/wisp-resume` (paused runs), `/wisp-inspect` (result branch + git log), `/wisp-diagnose` (event timeline).
 
 ## Requirements
 
