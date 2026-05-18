@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.0.4 — iteration loop made visible, preview iframe actually renders
+
+Two fixes from a deep user-test of the iteration workflow — the loop that turns "preview the app, write change-requests, regenerate the plan" into the canonical path for improving an existing project.
+
+### Fixed
+
+- **Preview iframe now actually renders the app** ([de5d0e3](https://github.com/Samuel0101010/wisp-orchestrator/commit/de5d0e3)). The preview proxy got the HTML through correctly (200 with the FocusBoard title) but the React app never hydrated. Vite emits absolute paths for its dev client and source modules — `<script src="/src/main.tsx">` — and the browser fetched those against the dashboard origin (`localhost:4400/src/main.tsx`), not the proxy. The dashboard's SPA fallback either returned its own index.html or 404'd, depending on the path. Fix: vite is now launched with `--base /preview/<projectId>/` (only for frameworks that respect it — `vite` and `@sveltejs/kit`; next/nuxt would error on the flag) and the reverse-proxy forwards the full URL upstream instead of stripping the prefix. The whole vite asset graph now resolves through the proxy. Live-verified: `/preview/<id>/@vite/client` returns the real 139 KB vite dev client, `/preview/<id>/src/main.tsx` returns the 2.4 KB module, React hydrates, FocusBoard renders.
+
+- **"Iteration starten" now shows that it's actually doing something** ([76de415](https://github.com/Samuel0101010/wisp-orchestrator/commit/76de415)). Clicking "Iteration starten" disables the button to `Wird gestartet…` and… nothing for 1–3 minutes, while the LLM regenerates the plan. No spinner, no toast, no progress indicator — verified live at 2+ minutes of frozen UI before the new run finally appeared. Now: an immediate long-duration toast fires on click ("Iteration wird vorbereitet … Plan wird basierend auf deinen Änderungen neu generiert. Das kann ein bis zwei Minuten dauern."), and the button text grows an elapsed-seconds counter (`Iteration wird vorbereitet … (47s)`) updating every second from a `Date.now()` baseline that's resistant to tab-throttling. Toast is dismissed on settle; the existing success/error toasts replace it.
+
+### Chore
+
+- 5 new tests across `preview-server.test.ts`, `detect-project-type.test.ts`, and `PendingChangesPanel.test.tsx`. Total: 450 server tests, 134 web tests.
+- New `framework` field on the project-type detection result exposes which web framework was detected — drives the basePath whitelist and is a useful general primitive.
+- `toast()` API now accepts an optional `duration` and returns the toast id; new `dismissToast(id)` companion.
+
 ## 2.0.3 — dashboard UX hardening from a live user-test session
 
 Three fixes that emerged during a live Chrome-MCP user-test of the dashboard against the FocusBoard project. Each one closes a specific friction point a real user hit — empty error states, silent failures, missing affordances.
