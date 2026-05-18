@@ -7,7 +7,12 @@ import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../app.js';
 import { runMigrations } from '../db/migrate.js';
 import { sqlite } from '../db/index.js';
-import { PreviewProcessRegistry, previewProcesses } from '../orchestrator/preview-server.js';
+import net from 'node:net';
+import {
+  PreviewProcessRegistry,
+  previewProcesses,
+  isPortFree,
+} from '../orchestrator/preview-server.js';
 
 /**
  * A ChildProcess stub good enough for `startPreview` — same shape as the one
@@ -35,6 +40,27 @@ async function listenLoopback(
   if (!addr || typeof addr === 'string') throw new Error('listen-failed');
   return { server, port: addr.port };
 }
+
+describe('isPortFree dual-stack probe', () => {
+  it('returns false when only the IPv6 loopback half is held', async () => {
+    // Bind only ::1 to simulate the Windows zombie-vite pattern where the
+    // dead process kept the IPv6 socket alive but not the IPv4 one. A
+    // single-family probe would falsely report this port free.
+    const ipv6Holder = net.createServer();
+    await new Promise<void>((resolve, reject) => {
+      ipv6Holder.once('error', reject);
+      ipv6Holder.listen(0, '::1', resolve);
+    });
+    const addr = ipv6Holder.address();
+    if (!addr || typeof addr === 'string') throw new Error('no-port');
+    try {
+      const free = await isPortFree(addr.port);
+      expect(free).toBe(false);
+    } finally {
+      await new Promise<void>((resolve) => ipv6Holder.close(() => resolve()));
+    }
+  });
+});
 
 describe('PreviewProcessRegistry', () => {
   let registry: PreviewProcessRegistry;
