@@ -149,7 +149,9 @@ describe('PreviewProcessRegistry', () => {
     expect(callArgs?.[2]?.env?.PORT).toBe('5175');
     // The probe URL the registry polled was rewritten to the chosen port.
     const fetchCall = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(fetchCall?.[0]).toBe('http://127.0.0.1:5175/');
+    // probeUrl is normalised to `localhost` so the system resolver picks
+    // whichever loopback family vite actually bound to (Windows: ::1).
+    expect(fetchCall?.[0]).toBe('http://localhost:5175/');
   });
 
   it('getPreviewStatus mutates entry to error when the registered pid is dead', () => {

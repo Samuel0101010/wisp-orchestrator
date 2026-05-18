@@ -62,7 +62,12 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
           };
         }
 
-        const result = await registry.startPreview({ projectId, devCmd, probeUrl });
+        const result = await registry.startPreview({
+          projectId,
+          devCmd,
+          probeUrl,
+          cwd: project.repoPath,
+        });
         return result;
       }),
     );
@@ -106,11 +111,14 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
       delete headers['accept-encoding'];
       delete headers['content-length'];
       delete headers['connection'];
-      headers['host'] = `127.0.0.1:${status.port}`;
+      // Forward via `localhost` so the system resolver picks whichever
+      // loopback family vite actually bound to — vite binds ::1 by default
+      // on Windows while 127.0.0.1 would 502 with ECONNREFUSED.
+      headers['host'] = `localhost:${status.port}`;
 
       const upstream = http.request(
         {
-          hostname: '127.0.0.1',
+          hostname: 'localhost',
           port: status.port,
           method: req.raw.method ?? 'GET',
           path: suffix,

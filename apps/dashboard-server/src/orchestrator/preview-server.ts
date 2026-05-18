@@ -33,6 +33,13 @@ export interface StartPreviewArgs {
   projectId: string;
   devCmd: string;
   probeUrl: string;
+  /**
+   * Working directory the dev-server is spawned in. MUST be the project's
+   * repoPath — running `vite` from the dashboard-server cwd just crashes
+   * with "no vite config found". Optional only for backwards compatibility
+   * with old tests; production callers (preview route) always set this.
+   */
+  cwd?: string;
   /** Optional override — defaults to 30s. */
   readyTimeoutMs?: number;
   /** Test seam — supplied fetch impl. */
@@ -210,20 +217,37 @@ export class PreviewProcessRegistry {
     }
 
     // Rewrite probeUrl to use the chosen free port so polling targets the
-    // same port we just told the child to bind to.
-    const effectiveProbeUrl =
+    // same port we just told the child to bind to. Replace the hostname
+    // with `localhost` so the system resolver picks whichever loopback
+    // family vite actually bound to — on Windows vite binds ::1 by
+    // default while many probeUrls (and detectProjectType output) use
+    // 127.0.0.1, and they don't talk to each other. `localhost` resolves
+    // to whichever family is alive.
+    const portUrl =
       port === requestedPort ? probeUrl : probeUrl.replace(/:\d+/, ':' + String(port));
+    const effectiveProbeUrl = portUrl.replace(
+      /\/\/(127\.0\.0\.1|\[::1\])(?=[:/]|$)/,
+      '//localhost',
+    );
 
+    // Append `--port <port>` so the spawned dev server actually binds the
+    // port we picked. PORT env var alone is unreliable — vite ignores it,
+    // next.js only reads it on `next start`. pnpm/npm/yarn forward extra
+    // CLI args to the underlying script directly (without the `--`
+    // separator — that separator gets passed literally to vite and
+    // confuses its arg parser). So:
+    //   pnpm dev   →  pnpm dev --port 5174   →  vite --port 5174
+    //   vite       →  vite --port 5174
     const parts = devCmd.trim().split(/\s+/);
     const cmd = parts[0]!;
-    const cmdArgs = parts.slice(1);
+    const cmdArgs = [...parts.slice(1), '--port', String(port)];
 
     const env: NodeJS.ProcessEnv = { ...process.env, PORT: String(port) };
 
     let child: ChildProcess;
     try {
       child = doSpawn(cmd, cmdArgs, {
-        cwd: process.cwd(),
+        cwd: args.cwd ?? process.cwd(),
         env,
         shell: process.platform === 'win32',
         detached: process.platform !== 'win32',
@@ -258,11 +282,23 @@ export class PreviewProcessRegistry {
     };
     this.entries.set(projectId, entry);
 
-    // Best-effort logging drains so the child doesn't deadlock on a full
-    // stdout buffer. We do not surface the tail anywhere in Phase 3 — that's
-    // intentional (console streaming is explicitly out of scope).
+    // Drain stdout (avoid full-buffer deadlock) and capture the last 4 KB of
+    // stderr so a failed start surfaces an actionable reason to the user
+    // instead of just "timeout". A 4 KB ring is plenty for vite/next errors.
     child.stdout?.on('data', () => {});
-    child.stderr?.on('data', () => {});
+    const stderrChunks: Buffer[] = [];
+    let stderrTotal = 0;
+    const STDERR_TAIL_BYTES = 4096;
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderrChunks.push(chunk);
+      stderrTotal += chunk.length;
+      while (stderrTotal > STDERR_TAIL_BYTES && stderrChunks.length > 1) {
+        const removed = stderrChunks.shift()!;
+        stderrTotal -= removed.length;
+      }
+    });
+    const readStderrTail = (): string =>
+      Buffer.concat(stderrChunks).toString('utf8').slice(-STDERR_TAIL_BYTES);
 
     let earlyExit: string | null = null;
     child.once('exit', (code, signal) => {
@@ -272,14 +308,15 @@ export class PreviewProcessRegistry {
     const start = Date.now();
     while (Date.now() - start < readyTimeoutMs) {
       if (earlyExit) {
+        const tail = readStderrTail().trim();
         entry.status = 'error';
-        entry.errorReason = earlyExit;
+        entry.errorReason = tail.length > 0 ? `${earlyExit}\nstderr: ${tail}` : earlyExit;
         return {
           status: 'error',
           port,
           pid: entry.pid,
           startedAt: entry.startedAt,
-          error: earlyExit,
+          error: entry.errorReason,
         };
       }
       try {
@@ -299,8 +336,10 @@ export class PreviewProcessRegistry {
       await sleep(POLL_INTERVAL_MS);
     }
 
+    const tail = readStderrTail().trim();
+    const base = `timeout waiting for ${effectiveProbeUrl} (${readyTimeoutMs}ms)`;
     entry.status = 'error';
-    entry.errorReason = `timeout waiting for ${effectiveProbeUrl} (${readyTimeoutMs}ms)`;
+    entry.errorReason = tail.length > 0 ? `${base}\nstderr: ${tail}` : base;
     killTree(child);
     return {
       status: 'error',
