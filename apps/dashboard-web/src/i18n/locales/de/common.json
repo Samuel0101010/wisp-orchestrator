@@ -169,6 +169,20 @@
   "goap": {
     "title": "Goal-Planer",
     "subtitle": "Goal-Oriented Action Planning. Definiere Start-Zustand, Ziel-Prädikate und verfügbare Aktionen; der Planer liefert eine Aktions-Sequenz.",
+    "subtitleLong": "Definiere Start- und Zielzustand, wähle verfügbare Aktionen — der Planer berechnet die kürzeste Sequenz.",
+    "eyebrow": "Goal-Oriented Action Planning",
+    "worldState": "Welt-Zustand",
+    "stats": {
+      "title": "Stats",
+      "actions": "Aktionen",
+      "cost": "Kosten",
+      "eta": "ETA",
+      "enabledRatio": "{{enabled}} von {{total}} aktiv"
+    },
+    "actionsLibrary": "Aktions-Bibliothek",
+    "filterActions": "Aktionen filtern…",
+    "filterActionsAria": "Aktionen nach Name filtern",
+    "rawEditor": "JSON bearbeiten",
     "fields": {
       "start": "Start-Zustand (JSON)",
       "goal": "Ziel-Prädikate (JSON)",
@@ -177,10 +191,61 @@
     "actions": {
       "plan": "Plan erstellen",
       "planning": "Plane…",
-      "loadExample": "Beispiel laden"
+      "loadExample": "Beispiel laden",
+      "clear": "Zurücksetzen",
+      "clearHint": "Aktuelles Plan-Ergebnis löschen",
+      "planHint": "Plan erstellen (Strg/Cmd+Eingabe)",
+      "reset": "Plan neu"
+    },
+    "worldStateLabels": {
+      "empty": "(leer)"
+    },
+    "canvas": {
+      "start": "Start",
+      "goal": "Ziel",
+      "overflow": "+{{count}} weitere nicht angezeigt",
+      "overflowTitle": "Der Canvas zeigt maximal 8 Knoten — der vollständige Plan steht unten.",
+      "progressLabel": "Plan-Fortschritt",
+      "ariaPlanned": "Plan-Visualisierung: {{steps}} Schritte, Kosten {{cost}}",
+      "ariaEmpty": "Plan-Visualisierung: Ziel bereits erfüllt",
+      "ariaPreview": "Plan-Vorschau: {{count}} Aktionen geplant"
+    },
+    "headline": {
+      "computed": "Berechneter Plan",
+      "satisfied": "Ziel bereits erfüllt",
+      "preview": "Plan-Vorschau"
+    },
+    "summary": {
+      "steps_one": "{{count}} Schritt",
+      "steps_other": "{{count}} Schritte",
+      "queued_one": "{{count}} Aktion geplant",
+      "queued_other": "{{count}} Aktionen geplant",
+      "noActionsNeeded": "keine Aktionen nötig",
+      "cost": "Kosten",
+      "estCost": "geschätzte Kosten"
+    },
+    "library": {
+      "noMatches": "Keine Aktionen passen zum Filter.",
+      "empty": "Keine Aktionen definiert. Bearbeite das JSON, um welche hinzuzufügen.",
+      "toggleAria": "Aktion {{name}} umschalten",
+      "costSuffix": "Kosten {{cost}}"
+    },
+    "editor": {
+      "invalidJson": "ungültiges JSON"
+    },
+    "errors": {
+      "noActionsEnabled": "Keine Aktionen aktiv — wähle mindestens eine Aktion aus der Bibliothek.",
+      "jsonPrefix": "JSON-Fehler:",
+      "requestPrefix": "Planer-Anfrage fehlgeschlagen:"
     },
     "noResult": "Sende ein Problem ab, um den Plan zu sehen.",
-    "result": "Plan-Ergebnis",
+    "result": {
+      "title": "Plan-Ergebnis",
+      "noPlan": "Für diese Kombination aus Start, Ziel und Aktionen existiert kein Plan.",
+      "alreadySat": "Ziel bereits erfüllt — leerer Plan.",
+      "malformed": "Der Planer hat eine unerwartete Antwort geliefert — bitte erneut versuchen oder die Server-Logs prüfen.",
+      "costInline": "Kosten: {{cost}}"
+    },
     "empty": {
       "title": "Goal-Planer bereit",
       "description": "Gib links Startzustand, Ziel und Aktionen ein, um einen Plan zu berechnen."

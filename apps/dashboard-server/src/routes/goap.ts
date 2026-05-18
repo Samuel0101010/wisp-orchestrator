@@ -13,7 +13,11 @@ const actionSchema = z.object({
 const planRequestSchema = z.object({
   initial: z.record(z.string(), z.boolean()).default({}),
   goal: z.record(z.string(), z.boolean()),
-  actions: z.array(actionSchema).min(1),
+  // Allow zero actions — `planGoap` correctly returns `[]` when the initial
+  // state already satisfies the goal, and `null` otherwise. Rejecting empty
+  // arrays at the schema layer leaks a 400 to the UI for a legitimate edge
+  // case (e.g., user wants to check whether goal is already satisfied).
+  actions: z.array(actionSchema),
 });
 
 export const goapRoutes: FastifyPluginAsync = async (app) => {

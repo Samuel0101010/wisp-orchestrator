@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, FolderOpen, Play, RefreshCw, Search } from 'lucide-react';
+import { AlertTriangle, ChevronDown, FolderOpen, Play, RefreshCw, Search } from 'lucide-react';
 import { usePlanGoap, type GoapAction, type GoapPlanResponse } from '@/api/queries';
 import { cn } from '@/lib/utils';
 
@@ -61,7 +61,8 @@ function shortFlag(rec: Record<string, boolean> | undefined, fallback: string) {
   const keys = Object.keys(rec);
   if (!keys.length) return fallback;
   const k = keys[0]!;
-  return rec[k] ? k : `!${k}`;
+  const head = rec[k] ? k : `!${k}`;
+  return keys.length > 1 ? `${head} +${keys.length - 1}` : head;
 }
 
 /**
@@ -470,6 +471,8 @@ function GoapCanvas({
   goalSub,
   summary,
   headlineState,
+  overflowCount = 0,
+  showProgress = true,
 }: {
   layout: Layout;
   startLabel: string;
@@ -478,7 +481,10 @@ function GoapCanvas({
   goalSub: string;
   summary: { done: number; running: number; queued: number; cost: number; eta: string };
   headlineState: 'ready' | 'planned' | 'empty';
+  overflowCount?: number;
+  showProgress?: boolean;
 }) {
+  const { t } = useTranslation();
   const HW = 78;
   const HH = 43;
   const { nodes, start, goal: goalPos, isUShape, viewBoxW: W, viewBoxH: H, ambientY } = layout;
@@ -549,57 +555,90 @@ function GoapCanvas({
     <div className="relative h-full w-full">
       {/* Header overlay */}
       <div className="pointer-events-none absolute top-5 right-6 left-6 z-[2]">
-        <div className="mb-2.5 flex items-center justify-between">
+        <div className="mb-2.5 flex items-center justify-between gap-3">
           <div>
             <div className="t-eyebrow mb-0.5">
               {headlineState === 'planned'
-                ? 'Computed plan'
+                ? t('goap.headline.computed', 'Computed plan')
                 : headlineState === 'empty'
-                  ? 'Goal already satisfied'
-                  : 'Plan preview'}
+                  ? t('goap.headline.satisfied', 'Goal already satisfied')
+                  : t('goap.headline.preview', 'Plan preview')}
             </div>
             <div style={{ fontFamily: 'var(--f-head)', fontSize: 14, fontWeight: 500 }}>
               {headlineState === 'planned' ? (
                 <>
-                  <span style={{ color: 'var(--mint)' }}>{summary.done} steps</span>
+                  <span style={{ color: 'var(--mint)' }}>
+                    {t('goap.summary.steps', '{{count}} steps', { count: summary.done })}
+                  </span>
                   <span className="t-faint" style={{ fontFamily: 'var(--f-mono)', fontSize: 12 }}>
                     {' '}
-                    · cost {summary.cost} · {summary.eta}
+                    · {t('goap.summary.cost', 'cost')} {summary.cost} · {summary.eta}
                   </span>
                 </>
               ) : headlineState === 'empty' ? (
-                <span className="t-dim">no actions needed</span>
+                <span className="t-dim">
+                  {t('goap.summary.noActionsNeeded', 'no actions needed')}
+                </span>
               ) : (
                 <>
-                  <span className="t-dim">{summary.queued} actions queued</span>
+                  <span className="t-dim">
+                    {t('goap.summary.queued', '{{count}} actions queued', {
+                      count: summary.queued,
+                    })}
+                  </span>
                   <span className="t-faint" style={{ fontFamily: 'var(--f-mono)', fontSize: 12 }}>
                     {' '}
-                    · est cost {summary.cost} · {summary.eta}
+                    · {t('goap.summary.estCost', 'est cost')} {summary.cost} · {summary.eta}
                   </span>
                 </>
               )}
             </div>
           </div>
+          {overflowCount > 0 && (
+            <div
+              className="pointer-events-auto flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px]"
+              style={{
+                borderColor: 'hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.4)',
+                background: 'hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.1)',
+                color: 'var(--coral)',
+                fontFamily: 'var(--f-mono)',
+              }}
+              title={t(
+                'goap.canvas.overflowTitle',
+                'The canvas shows at most 8 nodes — the full plan is listed below.',
+              )}
+            >
+              <AlertTriangle className="h-3 w-3" />
+              {t('goap.canvas.overflow', '+{{count}} more not shown', { count: overflowCount })}
+            </div>
+          )}
         </div>
-        <div
-          className="overflow-hidden rounded-[2px]"
-          style={{
-            height: 3,
-            background: 'var(--wisp-glass-inset)',
-            border: '1px solid var(--wisp-hairline)',
-          }}
-        >
+        {showProgress && (
           <div
+            className="overflow-hidden rounded-[2px]"
             style={{
-              width: `${progressPct}%`,
-              height: '100%',
-              background:
-                'linear-gradient(90deg, var(--mint) 0%, var(--mint) 60%, var(--coral) 100%)',
-              boxShadow: 'var(--wisp-glow-coral)',
-              transition: 'width 1.2s var(--wisp-easing)',
+              height: 3,
+              background: 'var(--wisp-glass-inset)',
+              border: '1px solid var(--wisp-hairline)',
             }}
-          />
-        </div>
+            role="progressbar"
+            aria-valuenow={progressPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={t('goap.canvas.progressLabel', 'Plan progress')}
+          >
+            <div
+              style={{
+                width: `${progressPct}%`,
+                height: '100%',
+                background:
+                  'linear-gradient(90deg, var(--mint) 0%, var(--mint) 60%, var(--coral) 100%)',
+                boxShadow: 'var(--wisp-glow-coral)',
+                transition: 'width 1.2s var(--wisp-easing)',
+              }}
+            />
+          </div>
+        )}
       </div>
 
       <svg
@@ -758,39 +797,149 @@ export function GoapRoute() {
   const { t } = useTranslation();
   const [initialJson, setInitialJson] = useState(EXAMPLE_INITIAL);
   const [goalJson, setGoalJson] = useState(EXAMPLE_GOAL);
-  const [actionsJson, setActionsJson] = useState(JSON.stringify(EXAMPLE_ACTIONS, null, 2));
+  const [actionsJson, setActionsJsonRaw] = useState(JSON.stringify(EXAMPLE_ACTIONS, null, 2));
   const [editorOpen, setEditorOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const [enabled, setEnabled] = useState<Set<string>>(
     () => new Set(EXAMPLE_ACTIONS.map((a) => a.name)),
   );
-  const [parseError, setParseError] = useState<string | null>(null);
+  const [parseError, setParseError] = useState<{
+    kind: 'json' | 'validation';
+    message: string;
+  } | null>(null);
+  const [actionsJsonError, setActionsJsonError] = useState<string | null>(null);
+  const [initialJsonError, setInitialJsonError] = useState<string | null>(null);
+  const [goalJsonError, setGoalJsonError] = useState<string | null>(null);
   const planM = usePlanGoap();
+  const resultRef = useRef<HTMLDivElement | null>(null);
 
-  // Parse — fallback to sample so the canvas keeps showing the design.
-  const initial = jsonOrUndefined<Record<string, boolean>>(initialJson) ?? {};
-  const goal = jsonOrUndefined<Record<string, boolean>>(goalJson) ?? {};
-  const actions = jsonOrUndefined<GoapAction[]>(actionsJson) ?? EXAMPLE_ACTIONS;
+  // Parse — fallback to sample so the canvas keeps showing the design when
+  // the user is mid-edit, but track parse errors per field so we can show an
+  // inline warning instead of silently swapping in EXAMPLE_ACTIONS.
+  const initial = useMemo(() => {
+    const v = jsonOrUndefined<Record<string, boolean>>(initialJson);
+    return v ?? {};
+  }, [initialJson]);
+  const goal = useMemo(() => {
+    const v = jsonOrUndefined<Record<string, boolean>>(goalJson);
+    return v ?? {};
+  }, [goalJson]);
+  const actions = useMemo(() => {
+    const v = jsonOrUndefined<GoapAction[]>(actionsJson);
+    return Array.isArray(v) && v.every((a) => a && typeof a.name === 'string')
+      ? v
+      : EXAMPLE_ACTIONS;
+  }, [actionsJson]);
+  // Wrapping `setActionsJson` so any new action name added via the editor is
+  // auto-enabled and any deleted names drop out of the enabled set. Without
+  // this, a user adding `{"name":"newAction",...}` to the textarea would see
+  // the action listed in the library but it would be silently excluded from
+  // the planner submit because `enabled` still held only the example names.
+  const setActionsJson = useCallback((next: string) => {
+    setActionsJsonRaw(next);
+    try {
+      const parsed = JSON.parse(next) as GoapAction[];
+      if (!Array.isArray(parsed)) throw new Error('actions must be an array');
+      const names = new Set<string>();
+      for (const a of parsed) {
+        if (a && typeof a.name === 'string') names.add(a.name);
+      }
+      setEnabled((prev) => {
+        const out = new Set<string>();
+        for (const n of names) {
+          // existing names keep their previous on/off state; brand-new names
+          // default to enabled so they participate in the next plan.
+          if (prev.has(n) || !prev.size) out.add(n);
+          else out.add(n);
+        }
+        return out;
+      });
+      setActionsJsonError(null);
+    } catch (err) {
+      setActionsJsonError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
 
-  const submit = () => {
+  const setInitialJson_ = useCallback((next: string) => {
+    setInitialJson(next);
+    try {
+      JSON.parse(next);
+      setInitialJsonError(null);
+    } catch (err) {
+      setInitialJsonError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+  const setGoalJson_ = useCallback((next: string) => {
+    setGoalJson(next);
+    try {
+      JSON.parse(next);
+      setGoalJsonError(null);
+    } catch (err) {
+      setGoalJsonError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
+  const submit = useCallback(() => {
+    if (planM.isPending) return;
     setParseError(null);
     try {
+      const parsedActions = JSON.parse(actionsJson) as GoapAction[];
+      const filtered = parsedActions.filter((a) => enabled.has(a.name));
+      if (filtered.length === 0) {
+        setParseError({
+          kind: 'validation',
+          message: t(
+            'goap.errors.noActionsEnabled',
+            'No actions enabled — pick at least one action from the library.',
+          ),
+        });
+        return;
+      }
       const body = {
         initial: JSON.parse(initialJson),
         goal: JSON.parse(goalJson),
-        actions: (JSON.parse(actionsJson) as GoapAction[]).filter((a) => enabled.has(a.name)),
+        actions: filtered,
       };
       planM.mutate(body);
     } catch (err) {
-      setParseError(err instanceof Error ? err.message : String(err));
+      setParseError({
+        kind: 'json',
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
-  };
+  }, [actionsJson, enabled, goalJson, initialJson, planM, t]);
+
+  // Cmd/Ctrl+Enter triggers submit from anywhere on the route (matches
+  // what users expect from JSON-editor flows in IDEs).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        submit();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [submit]);
+
+  // Move focus to the plan result when a plan first lands so keyboard users
+  // are not stranded on the submit button.
+  useEffect(() => {
+    if (planM.isSuccess && resultRef.current) {
+      resultRef.current.focus();
+    }
+  }, [planM.isSuccess]);
 
   const loadExample = () => {
     setInitialJson(EXAMPLE_INITIAL);
     setGoalJson(EXAMPLE_GOAL);
-    setActionsJson(JSON.stringify(EXAMPLE_ACTIONS, null, 2));
+    setActionsJsonRaw(JSON.stringify(EXAMPLE_ACTIONS, null, 2));
     setEnabled(new Set(EXAMPLE_ACTIONS.map((a) => a.name)));
+    setParseError(null);
+    setActionsJsonError(null);
+    setInitialJsonError(null);
+    setGoalJsonError(null);
+    planM.reset();
   };
 
   // Build laid-out nodes: prefer plan from API; fallback to actions list.
@@ -809,8 +958,12 @@ export function GoapRoute() {
 
   const summary = useMemo(() => {
     const plan = planM.data?.plan;
-    const total = plan?.length ?? actions.length;
-    const cost = planM.data?.totalCost ?? actions.reduce((s, a) => s + a.cost, 0);
+    // Pre-plan "est cost" must reflect what would actually be submitted —
+    // i.e. only the actions the user has checked in the library. Including
+    // disabled actions in the fallback sum is misleading.
+    const enabledActions = actions.filter((a) => enabled.has(a.name));
+    const total = plan?.length ?? enabledActions.length;
+    const cost = planM.data?.totalCost ?? enabledActions.reduce((s, a) => s + a.cost, 0);
     return {
       done: plan ? plan.length : 0,
       running: 0,
@@ -818,7 +971,7 @@ export function GoapRoute() {
       cost: cost ?? 0,
       eta: `~${Math.max(1, Math.round((cost ?? 0) / 4))} min`,
     };
-  }, [planM.data, actions]);
+  }, [planM.data, actions, enabled]);
 
   const filteredActions = useMemo(
     () => actions.filter((a) => !filter || a.name.toLowerCase().includes(filter.toLowerCase())),
@@ -867,28 +1020,38 @@ export function GoapRoute() {
           <div className="mt-1.5 max-w-2xl text-sm-tight text-[color:var(--wisp-ink-3)]">
             {t(
               'goap.subtitleLong',
-              'Definiere Start- und Zielzustand, wähle verfügbare Aktionen, der Planner berechnet die kürzeste Sequenz.',
+              'Define start and goal state, pick available actions — the planner returns the shortest sequence.',
             )}
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button type="button" className="wisp-btn" onClick={loadExample}>
+          <button
+            type="button"
+            className="wisp-btn"
+            onClick={loadExample}
+            disabled={planM.isPending}
+          >
             <FolderOpen className="h-3.5 w-3.5" />
             {t('goap.actions.loadExample', 'Load example')}
           </button>
           <button
             type="button"
             className="wisp-btn"
-            onClick={() => planM.reset()}
-            disabled={planM.isPending}
+            onClick={() => {
+              setParseError(null);
+              planM.reset();
+            }}
+            disabled={planM.isPending || (!planM.data && !planM.error && !parseError)}
+            title={t('goap.actions.clearHint', 'Clear the current plan result')}
           >
-            <RefreshCw className="h-3.5 w-3.5" /> {t('goap.actions.reset', 'Re-plan')}
+            <RefreshCw className="h-3.5 w-3.5" /> {t('goap.actions.clear', 'Clear')}
           </button>
           <button
             type="button"
             className="wisp-btn primary"
             onClick={submit}
             disabled={planM.isPending}
+            title={t('goap.actions.planHint', 'Run plan (Cmd/Ctrl+Enter)')}
           >
             <Play className="h-3.5 w-3.5" />
             {planM.isPending
@@ -898,8 +1061,9 @@ export function GoapRoute() {
         </div>
       </div>
 
-      {/* 3-column grid */}
-      <div className="grid min-h-0 flex-1 grid-cols-[260px_minmax(0,1fr)_280px] gap-3.5">
+      {/* 3-column grid — stacks below the lg breakpoint so narrow viewports
+          don't break the canvas. */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-3.5 lg:grid-cols-[260px_minmax(0,1fr)_280px]">
         {/* World state */}
         <div className="wisp-card overflow-auto">
           <div className="t-eyebrow mb-3">{t('goap.worldState', 'World state')}</div>
@@ -913,7 +1077,7 @@ export function GoapRoute() {
               </div>
               <div className="flex flex-col gap-1">
                 {Object.entries(initial).length === 0 ? (
-                  <StateLine k="(empty)" v="—" />
+                  <StateLine k={t('goap.worldStateLabels.empty', '(empty)')} v="—" />
                 ) : (
                   Object.entries(initial).map(([k, v]) => <StateLine key={k} k={k} v={String(v)} />)
                 )}
@@ -937,23 +1101,26 @@ export function GoapRoute() {
                 className="mb-2 flex items-center gap-1.5"
                 style={{ fontFamily: 'var(--f-head)', fontSize: 12, color: 'var(--wisp-ink-2)' }}
               >
-                <span className="wisp-dot violet" /> {t('goap.stats', 'Stats')}
+                <span className="wisp-dot violet" /> {t('goap.stats.title', 'Stats')}
               </div>
               <div className="flex flex-col gap-1.5 text-[12.5px]">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="t-eyebrow">actions</span>
+                  <span className="t-eyebrow">{t('goap.stats.actions', 'actions')}</span>
                   <span style={{ color: 'var(--wisp-ink-2)' }}>
-                    {enabled.size} of {actions.length} enabled
+                    {t('goap.stats.enabledRatio', '{{enabled}} of {{total}} enabled', {
+                      enabled: enabled.size,
+                      total: actions.length,
+                    })}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="t-eyebrow">cost</span>
+                  <span className="t-eyebrow">{t('goap.stats.cost', 'cost')}</span>
                   <span className="t-mono" style={{ color: 'var(--wisp-ink-2)' }}>
                     {summary.cost}
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="t-eyebrow">eta</span>
+                  <span className="t-eyebrow">{t('goap.stats.eta', 'eta')}</span>
                   <span style={{ color: 'var(--wisp-ink-2)' }}>{summary.eta}</span>
                 </div>
               </div>
@@ -973,15 +1140,30 @@ export function GoapRoute() {
             'wisp-card relative overflow-hidden p-0',
             !layout.isUShape && 'h-[360px] self-start',
           )}
+          role="region"
+          aria-label={
+            headlineState === 'planned'
+              ? t('goap.canvas.ariaPlanned', 'Plan visualization: {{steps}} steps, cost {{cost}}', {
+                  steps: summary.done,
+                  cost: summary.cost,
+                })
+              : headlineState === 'empty'
+                ? t('goap.canvas.ariaEmpty', 'Plan visualization: goal already satisfied')
+                : t('goap.canvas.ariaPreview', 'Plan preview: {{count}} actions queued', {
+                    count: summary.queued,
+                  })
+          }
         >
           <GoapCanvas
             layout={layout}
-            startLabel="Start"
-            goalLabel="Goal"
+            startLabel={t('goap.canvas.start', 'Start')}
+            goalLabel={t('goap.canvas.goal', 'Goal')}
             startSub={startLabel}
             goalSub={goalLabel}
             summary={summary}
             headlineState={headlineState}
+            overflowCount={Math.max(0, actions.length - 8)}
+            showProgress={headlineState !== 'ready'}
           />
         </div>
 
@@ -1003,33 +1185,53 @@ export function GoapRoute() {
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
+              disabled={planM.isPending}
               placeholder={t('goap.filterActions', 'Filter actions…')}
-              className="flex-1 border-none bg-transparent text-xs text-[color:var(--wisp-ink)] outline-none"
+              aria-label={t('goap.filterActionsAria', 'Filter actions by name')}
+              className="flex-1 border-none bg-transparent text-xs text-[color:var(--wisp-ink)] outline-none disabled:opacity-60"
             />
           </div>
           <div className="flex flex-col gap-2">
+            {filteredActions.length === 0 && (
+              <div className="t-faint p-2 text-center" style={{ fontSize: 11 }} role="status">
+                {filter
+                  ? t('goap.library.noMatches', 'No actions match this filter.')
+                  : t('goap.library.empty', 'No actions defined. Edit JSON to add some.')}
+              </div>
+            )}
             {filteredActions.map((a) => (
               <label
                 key={a.name}
-                className="wisp-surface flex cursor-pointer items-start gap-2.5 p-2.5"
+                className={cn(
+                  'wisp-surface flex cursor-pointer items-start gap-2.5 p-2.5',
+                  planM.isPending && 'pointer-events-none opacity-60',
+                )}
               >
                 <input
                   type="checkbox"
                   checked={enabled.has(a.name)}
                   onChange={() => toggle(a.name)}
+                  disabled={planM.isPending}
                   className="mt-0.5"
                   style={{ accentColor: 'var(--coral)' }}
+                  aria-label={t('goap.library.toggleAria', 'Toggle action {{name}}', {
+                    name: a.name,
+                  })}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between">
-                    <span className="t-mono" style={{ fontSize: 12, color: 'var(--wisp-ink)' }}>
+                    <span
+                      className="t-mono truncate"
+                      style={{ fontSize: 12, color: 'var(--wisp-ink)' }}
+                      title={a.name}
+                    >
                       {a.name}
                     </span>
-                    <span className="t-mono t-faint" style={{ fontSize: 10 }}>
-                      {a.cost} cost
+                    <span className="t-mono t-faint shrink-0" style={{ fontSize: 10 }}>
+                      {t('goap.library.costSuffix', '{{cost}} cost', { cost: a.cost })}
                     </span>
                   </div>
-                  <div className="t-faint mt-0.5" style={{ fontSize: 10.5 }}>
+                  <div className="t-faint mt-0.5 truncate" style={{ fontSize: 10.5 }}>
                     {shortFlag(a.preconditions, '—')} → {shortFlag(a.effects, '—')}
                   </div>
                 </div>
@@ -1045,6 +1247,8 @@ export function GoapRoute() {
           type="button"
           className="wisp-btn ghost sm"
           onClick={() => setEditorOpen((o) => !o)}
+          aria-expanded={editorOpen}
+          aria-controls="goap-json-editor"
         >
           <ChevronDown
             className={cn('h-3 w-3 transition-transform', !editorOpen && '-rotate-90')}
@@ -1052,25 +1256,49 @@ export function GoapRoute() {
           {t('goap.rawEditor', 'Edit JSON')}
         </button>
         {editorOpen && (
-          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div id="goap-json-editor" className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
             {[
-              { label: t('goap.fields.start', 'Start'), value: initialJson, set: setInitialJson },
-              { label: t('goap.fields.goal', 'Goal'), value: goalJson, set: setGoalJson },
+              {
+                label: t('goap.fields.start', 'Start'),
+                value: initialJson,
+                set: setInitialJson_,
+                error: initialJsonError,
+              },
+              {
+                label: t('goap.fields.goal', 'Goal'),
+                value: goalJson,
+                set: setGoalJson_,
+                error: goalJsonError,
+              },
               {
                 label: t('goap.fields.actions', 'Actions'),
                 value: actionsJson,
                 set: setActionsJson,
+                error: actionsJsonError,
               },
-            ].map(({ label, value, set }) => (
+            ].map(({ label, value, set, error }) => (
               <div key={label} className="flex flex-col gap-1">
-                <label className="t-eyebrow">{label}</label>
+                <div className="flex items-center justify-between">
+                  <label className="t-eyebrow">{label}</label>
+                  {error && (
+                    <span
+                      className="t-mono"
+                      style={{ fontSize: 10.5, color: 'var(--rose)' }}
+                      title={error}
+                    >
+                      {t('goap.editor.invalidJson', 'invalid JSON')}
+                    </span>
+                  )}
+                </div>
                 <textarea
                   value={value}
                   onChange={(e) => set(e.target.value)}
+                  disabled={planM.isPending}
                   aria-label={label}
-                  className="h-40 rounded-md border p-2 font-mono text-xs focus:outline-none focus:ring-2"
+                  aria-invalid={!!error}
+                  className="h-40 rounded-md border p-2 font-mono text-xs focus:outline-none focus:ring-2 disabled:opacity-60"
                   style={{
-                    borderColor: 'var(--wisp-hairline)',
+                    borderColor: error ? 'var(--rose)' : 'var(--wisp-hairline)',
                     background: 'var(--wisp-glass-inset)',
                     color: 'var(--wisp-ink)',
                   }}
@@ -1081,11 +1309,39 @@ export function GoapRoute() {
           </div>
         )}
         {parseError && (
-          <div className="mt-2 text-sm" style={{ color: 'var(--rose)' }} role="alert">
-            JSON error: {parseError}
+          <div
+            className="mt-2 flex items-start gap-2 text-sm"
+            style={{ color: 'var(--rose)' }}
+            role="alert"
+            aria-live="assertive"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              {parseError.kind === 'json'
+                ? `${t('goap.errors.jsonPrefix', 'JSON error:')} ${parseError.message}`
+                : parseError.message}
+            </span>
           </div>
         )}
-        {planM.data && <PlanResult data={planM.data} />}
+        {planM.error && (
+          <div
+            className="mt-2 flex items-start gap-2 text-sm"
+            style={{ color: 'var(--rose)' }}
+            role="alert"
+            aria-live="assertive"
+          >
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>
+              {t('goap.errors.requestPrefix', 'Planner request failed:')}{' '}
+              {planM.error instanceof Error ? planM.error.message : String(planM.error)}
+            </span>
+          </div>
+        )}
+        {planM.data && (
+          <div ref={resultRef} tabIndex={-1} aria-live="polite">
+            <PlanResult data={planM.data} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1093,6 +1349,19 @@ export function GoapRoute() {
 
 function PlanResult({ data }: { data: GoapPlanResponse }) {
   const { t } = useTranslation();
+  // Defensive parse — if the backend ever sends a malformed payload (string,
+  // number, missing fields) we fall through to the "no plan" branch instead
+  // of crashing the route.
+  if (data.plan != null && !Array.isArray(data.plan)) {
+    return (
+      <div className="wisp-card mt-3 p-3 text-sm" role="status">
+        {t(
+          'goap.result.malformed',
+          'Planner returned an unexpected response — please retry or check the server logs.',
+        )}
+      </div>
+    );
+  }
   if (!data.plan) {
     return (
       <div className="wisp-card mt-3 p-3 text-sm" role="status">
@@ -1110,14 +1379,16 @@ function PlanResult({ data }: { data: GoapPlanResponse }) {
   return (
     <div className="wisp-card mt-3 p-3">
       <h2 className="t-eyebrow mb-2">
-        {t('goap.result', 'Plan')} · cost {data.totalCost ?? '?'}
+        {t('goap.result.title', 'Plan')} · {t('goap.summary.cost', 'cost')} {data.totalCost ?? '?'}
       </h2>
       <ol className="space-y-1 text-sm">
         {data.plan.map((a, i) => (
           <li key={i} className="flex items-baseline gap-3">
             <span className="t-mono t-faint">{i + 1}.</span>
             <span className="t-mono font-semibold">{a.name}</span>
-            <span className="t-faint text-xs">cost: {a.cost}</span>
+            <span className="t-faint text-xs">
+              {t('goap.result.costInline', 'cost: {{cost}}', { cost: a.cost })}
+            </span>
           </li>
         ))}
       </ol>

@@ -1,5 +1,35 @@
 # Changelog
 
+## 2.0.8 — Goal-Planer hardening: silent error swallow, dropped actions, misleading buttons
+
+Deep multi-agent audit of the Goal-Planer (GOAP) tab caught a stack of correctness, UX, accessibility, and i18n bugs that all reproduced live in Chrome. Six P0/P1 bugs were silently degrading the experience without any visible signal.
+
+### Fixed
+
+- **New actions added via the JSON editor are now auto-enabled instead of silently dropped from the plan.** Previously `enabled` was seeded once from `EXAMPLE_ACTIONS` and never reconciled with subsequent JSON edits, so a user adding a fourth action would see it in the library but it would never participate in the planner submit.
+- **Empty-actions submit no longer leaks a hidden 400.** Server now accepts `actions: []` (returns `[]` when initial satisfies goal, `null` otherwise); client guards on `enabled.size === 0` and renders a friendly "no actions enabled" alert instead of waiting silently for a request that the schema rejects upstream.
+- **Mutation errors are now surfaced.** `planM.error` renders next to `parseError` with an `AlertTriangle` + `role="alert" aria-live="assertive"` so a 4xx/5xx/network failure is no longer invisible.
+- **"Re-plan" button was a `planM.reset()` in disguise — renamed to "Clear" / "Zurücksetzen"** and disabled when there is nothing to clear. The legacy German `goap.actions.reset` key still exists for backwards compat, but the canonical label is now `goap.actions.clear`.
+- **`loadExample()` now calls `planM.reset()` + clears every per-field parse error.** Previously a stale plan continued to render against the freshly-loaded example inputs.
+- **Per-field JSON validation lights up the textarea border + `aria-invalid` + "invalid JSON" badge.** Previously invalid JSON silently fell back to `EXAMPLE_ACTIONS` and the canvas showed unrelated data without any inline warning.
+- **All controls disable during pending submission** (textareas, checkboxes, filter, Load example) — no more racing the in-flight mutation.
+- **Cmd/Ctrl+Enter now submits from anywhere on the route**; focus is moved into the result region on success so keyboard users aren't stranded on the submit button.
+- **Canvas now exposes accessible labels.** `aria-label` on the canvas container summarizes the current plan state ("Plan visualization: N steps, cost C"); `aria-live="polite"` on the result region announces completions; `aria-expanded` on the Edit JSON toggle; `role="progressbar"` with `aria-valuenow/min/max` on the header bar.
+- **`shortFlag()` surfaces multi-key preconditions/effects as `key +N`** instead of dropping additional keys silently.
+- **Overflow chip when actions exceed the canvas budget of 8** — a coral `+N more not shown` badge replaces silent truncation.
+- **Progress bar hidden in pre-plan state** instead of rendering a flat 0% bar that looks broken.
+- **`summary.cost` fallback now only sums enabled actions** — the pre-plan "est cost" no longer includes the cost of unchecked actions.
+- **Defensive parse in `PlanResult`** — a malformed payload (non-array `plan`) now renders a recoverable status instead of crashing the route.
+- **Responsive grid** — three columns at `lg`, single column below so narrow viewports don't break the canvas.
+
+### i18n
+
+- Adds all missing `goap.*` keys to both `de` and `en` locales (header eyebrow, world state, stats title/actions/cost/eta/enabled-ratio, actions library, filter, raw editor, canvas overflow/aria, headline computed/satisfied/preview, summary steps/queued/cost/est-cost/no-actions-needed, library no-matches/empty/toggle-aria/cost-suffix, editor invalid-json, errors no-actions-enabled/json-prefix/request-prefix, result title/no-plan/already-satisfied/malformed/cost-inline). EN `goap.subtitleLong` no longer falls back to a German default.
+
+### Chore
+
+- +5 server tests for `/api/goap/plan` (cheapest plan, no-plan, already-satisfied, empty-actions short-circuit, malformed body). Total: 460 server tests, 138 web tests.
+
 ## 2.0.7 — notifications bell is no longer a dead button
 
 A wide acceptance sweep across every WISP UI surface (every sidebar section, top-bar control, project tab, project-detail page, command palette, viewport switcher, edit-mode flow) caught one remaining placeholder: the top-bar bell icon had `aria-label="Notifications"` but no `onClick` — it looked interactive but did nothing.
