@@ -2,6 +2,10 @@
   <img src="docs/assets/wisp-logo.png" alt="WISP" width="280">
 </p>
 
+<p align="center">
+  <img src="docs/assets/wisp-figure.png" alt="WISP mascot" width="200">
+</p>
+
 <p align="center"><b>Watch a team of Claude agents build, preview, and iterate on your app — live in your browser.</b></p>
 
 <p align="center">
