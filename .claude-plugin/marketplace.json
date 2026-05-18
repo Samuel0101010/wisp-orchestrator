@@ -12,7 +12,7 @@
       "name": "wisp",
       "source": "./",
       "description": "Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.",
-      "version": "2.0.7",
+      "version": "2.0.8",
       "category": "orchestration",
       "tags": ["agents", "kanban", "dag"],
       "repository": "git+https://github.com/Samuel0101010/wisp-orchestrator.git",
