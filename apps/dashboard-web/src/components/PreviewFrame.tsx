@@ -6,6 +6,7 @@ import {
   Monitor,
   MousePointerSquareDashed,
   Play,
+  RefreshCcw,
   Smartphone,
   Square,
   Tablet,
@@ -13,6 +14,7 @@ import {
 import {
   useCreateChangeRequest,
   usePreviewStatus,
+  useProjectRuns,
   useStartPreview,
   useStopPreview,
   type ChangeRequestRect,
@@ -135,6 +137,53 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     }
   }, [editMode]);
 
+  // Manual + auto-refresh path for the proxied preview iframe. Vite HMR's
+  // WebSocket upgrade is not bridged through the dashboard's reverse-proxy
+  // (yet), so the iframe never auto-reloads when source files change.
+  // Cheapest replacement: a button + an effect that watches the most recent
+  // run and reloads the iframe when an iteration finishes successfully.
+  const reloadIframe = (): void => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    try {
+      // Re-assigning `src` is the most reliable way to force a reload of a
+      // same-origin iframe across browsers (contentWindow.location.reload()
+      // throws SecurityError if the doc isn't yet committed).
+      // eslint-disable-next-line no-self-assign
+      iframe.src = iframe.src;
+    } catch {
+      /* ignore — best-effort */
+    }
+  };
+
+  const handleRefresh = (): void => {
+    reloadIframe();
+  };
+
+  // Auto-refresh: when the most recent run for this project transitions from
+  // 'running' → 'completed' with outcome 'success', reload the preview so the
+  // user sees the iteration's output without manual intervention.
+  const runsQuery = useProjectRuns(projectId);
+  const previousRunStatusRef = useRef<string | null>(null);
+  useEffect(() => {
+    const rows = runsQuery.data;
+    if (!rows || rows.length === 0) return;
+    // Most-recent run is index 0 (server returns DESC by startedAt).
+    const latest = rows[0];
+    if (!latest) return;
+    const prevStatus = previousRunStatusRef.current;
+    previousRunStatusRef.current = latest.status;
+    if (
+      prevStatus === 'running' &&
+      latest.status === 'completed' &&
+      latest.outcome === 'success' &&
+      state === 'running'
+    ) {
+      reloadIframe();
+      toast({ title: t('preview.toasts.autoRefreshed'), duration: 3000 });
+    }
+  }, [runsQuery.data, state, t]);
+
   const handleStart = async (): Promise<void> => {
     try {
       const res = await start.mutateAsync();
@@ -255,6 +304,18 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
             >
               <Play className="mr-1 h-3 w-3" />
               {t('preview.start')}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={!running}
+              data-testid="preview-refresh"
+              title={t('preview.refresh')}
+            >
+              <RefreshCcw className="mr-1 h-3 w-3" />
+              {t('preview.refresh')}
             </Button>
             <Button
               type="button"
