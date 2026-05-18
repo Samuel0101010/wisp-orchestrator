@@ -346,7 +346,17 @@
     "today": "today",
     "themeLight": "Switch to light theme",
     "themeDark": "Switch to dark theme",
-    "openCommandPalette": "Open command palette"
+    "openCommandPalette": "Open command palette",
+    "notifications": "Notifications",
+    "notificationsPopover": {
+      "title": "Recent activity",
+      "empty": "No runs yet",
+      "viewAll": "View all insights",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} h ago",
+      "daysAgo": "{{count}} d ago",
+      "justNow": "just now"
+    }
   },
   "newProject": {
     "title": "New Project",
