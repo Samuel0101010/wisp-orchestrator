@@ -76,29 +76,36 @@ function parsePort(probeUrl: string): number {
  * (we can't bind it, so we treat it as occupied for safety).
  */
 export function isPortFree(port: number): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    const server = net.createServer();
-    let settled = false;
-    const finish = (ok: boolean): void => {
-      if (settled) return;
-      settled = true;
+  // Probe BOTH IPv4 (127.0.0.1) and IPv6 (::1). On Windows the loopback
+  // families bind independently — a stale vite holding ::1:5173 leaves
+  // 127.0.0.1:5173 looking free to a single-family probe, then the new
+  // child spawns and fails for a different, undiagnosable reason. Both
+  // families must be free for the port to count as free.
+  const probeOne = (host: string): Promise<boolean> =>
+    new Promise<boolean>((resolve) => {
+      const server = net.createServer();
+      let settled = false;
+      const finish = (ok: boolean): void => {
+        if (settled) return;
+        settled = true;
+        try {
+          server.close();
+        } catch {
+          /* best-effort */
+        }
+        resolve(ok);
+      };
+      server.once('error', () => finish(false));
+      server.once('listening', () => {
+        server.close(() => finish(true));
+      });
       try {
-        server.close();
+        server.listen(port, host);
       } catch {
-        /* best-effort */
+        finish(false);
       }
-      resolve(ok);
-    };
-    server.once('error', () => finish(false));
-    server.once('listening', () => {
-      server.close(() => finish(true));
     });
-    try {
-      server.listen(port, '127.0.0.1');
-    } catch {
-      finish(false);
-    }
-  });
+  return Promise.all([probeOne('127.0.0.1'), probeOne('::1')]).then(([v4, v6]) => v4 && v6);
 }
 
 /**
