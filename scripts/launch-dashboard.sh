@@ -54,18 +54,28 @@ fi
 server_entry="${plugin_root}/apps/dashboard-server/dist/server.js"
 if [ ! -f "$server_entry" ]; then
   echo "First launch: building WISP (~1-2 minutes)..."
-  if ! command -v pnpm >/dev/null 2>&1; then
-    echo "pnpm not found on PATH. Install it first: npm install -g pnpm" >&2
+  # Resolve a pnpm invocation. Prefer a directly installed pnpm; otherwise
+  # fall back to corepack (shipped with Node >=16.13), which honours the
+  # packageManager pin in package.json and needs no global install.
+  pnpm_cmd=""
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm_cmd="pnpm"
+  elif command -v corepack >/dev/null 2>&1; then
+    echo "  pnpm not found; using corepack (Node-bundled) instead."
+    pnpm_cmd="corepack pnpm"
+  else
+    echo "Neither 'pnpm' nor 'corepack' is on PATH. Install Node 20+ (corepack" >&2
+    echo "ships with it) or run: npm install -g pnpm" >&2
     exit 1
   fi
   cd "$plugin_root"
-  echo "  pnpm install..."
-  if ! pnpm install --frozen-lockfile; then
+  echo "  $pnpm_cmd install..."
+  if ! $pnpm_cmd install --frozen-lockfile; then
     echo "pnpm install failed." >&2
     exit 1
   fi
-  echo "  pnpm build..."
-  if ! pnpm build; then
+  echo "  $pnpm_cmd build..."
+  if ! $pnpm_cmd build; then
     echo "pnpm build failed." >&2
     exit 1
   fi

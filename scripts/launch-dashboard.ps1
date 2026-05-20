@@ -56,18 +56,30 @@ if ($chosenPort -eq 0) {
 $serverEntry = Join-Path $pluginRoot 'apps/dashboard-server/dist/server.js'
 if (-not (Test-Path -LiteralPath $serverEntry)) {
     Write-Host "First launch: building WISP (~1-2 minutes)..." -ForegroundColor Cyan
+    # Resolve a pnpm invocation. Prefer a directly installed pnpm; otherwise
+    # fall back to corepack (shipped with Node >=16.13), which honours the
+    # packageManager pin in package.json and needs no global install.
     $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
-    if ($null -eq $pnpm) {
-        Write-Error "pnpm not found on PATH. Install it first: npm install -g pnpm"
+    $corepack = Get-Command corepack -ErrorAction SilentlyContinue
+    $pnpmExe = $null
+    $pnpmArgsPrefix = @()
+    if ($null -ne $pnpm) {
+        $pnpmExe = 'pnpm'
+    } elseif ($null -ne $corepack) {
+        Write-Host "  pnpm not found; using corepack (Node-bundled) instead." -ForegroundColor Cyan
+        $pnpmExe = 'corepack'
+        $pnpmArgsPrefix = @('pnpm')
+    } else {
+        Write-Error "Neither 'pnpm' nor 'corepack' is on PATH. Install Node 20+ (corepack ships with it) or run: npm install -g pnpm"
         exit 1
     }
     Push-Location $pluginRoot
     try {
-        Write-Host "  pnpm install..." -ForegroundColor Cyan
-        & pnpm install --frozen-lockfile
+        Write-Host "  $pnpmExe install..." -ForegroundColor Cyan
+        & $pnpmExe @pnpmArgsPrefix install --frozen-lockfile
         if ($LASTEXITCODE -ne 0) { Write-Error "pnpm install failed."; exit 1 }
-        Write-Host "  pnpm build..." -ForegroundColor Cyan
-        & pnpm build
+        Write-Host "  $pnpmExe build..." -ForegroundColor Cyan
+        & $pnpmExe @pnpmArgsPrefix build
         if ($LASTEXITCODE -ne 0) { Write-Error "pnpm build failed."; exit 1 }
     } finally {
         Pop-Location

@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/Samuel0101010/wisp-orchestrator#readme",
   "type": "module",
+  "packageManager": "pnpm@10.33.2",
   "engines": {
     "node": ">=20.10",
     "pnpm": ">=9"

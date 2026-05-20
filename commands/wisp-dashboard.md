@@ -1,6 +1,7 @@
 ---
 name: wisp-dashboard
 description: Open the WISP dashboard in your browser
+allowed-tools: Bash(powershell *), Bash(bash *)
 ---
 
 Launch the WISP dashboard server (if not already running) and open it in your default browser. The launcher picks a free port in the 4400-4500 range, writes connection state to `${CLAUDE_PLUGIN_DATA}/state.json`, and prints the URL.
