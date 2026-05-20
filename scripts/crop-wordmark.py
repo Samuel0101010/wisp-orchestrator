@@ -11,7 +11,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 REPO = Path(__file__).resolve().parent.parent
-SRC = REPO / "WISP_Schriftzug.png"
+SRC = REPO / "docs" / "assets" / "source" / "WISP_Schriftzug.png"
 DASHBOARD_DST = REPO / "apps" / "dashboard-web" / "public" / "wisp-wordmark.png"
 README_DST = REPO / "docs" / "assets" / "wisp-logo.png"
 
