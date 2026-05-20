@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.9 — Plugin manifests aligned with verified Claude Code v2 schema
+
+A focused install-path hardening release. Two P0 schema violations were blocking `claude plugin install wisp` and `claude plugin marketplace add Samuel0101010/wisp-orchestrator` from a clean machine; the plugin appeared installable but failed during validation. v2.0.9 also smooths first-launch by accepting users who have only Node (no global pnpm) installed.
+
+### Fixed
+
+- **`.claude-plugin/plugin.json` `repository` is now a plain string** ([72442ed](https://github.com/Samuel0101010/wisp-orchestrator/commit/72442ed)). The previous npm-style object `{ "type": "git", "url": "..." }` failed Claude Code's manifest validator with `Invalid input: expected string, received object`, blocking `/plugin install` outright.
+- **`.claude-plugin/marketplace.json` `plugins[0].source` is now the verified object form** `{ "source": "github", "repo": "Samuel0101010/wisp-orchestrator" }`. The previous bare string `"./"` resolved only against a locally-cloned marketplace dir; `claude plugin marketplace add Samuel0101010/wisp-orchestrator` from anywhere else failed with `expected object, received string`.
+- **`commands/wisp-dashboard.md` declares `allowed-tools: Bash(powershell *), Bash(bash *)`** so the first `/wisp-dashboard` invocation doesn't get blocked by the auto-mode classifier or trigger per-call permission prompts. Uses the space-form matcher the schema requires (the `Bash(cmd:*)` colon form silently fails).
+- **`scripts/launch-dashboard.{sh,ps1}` fall back to `corepack pnpm`** when pnpm is missing on PATH. Corepack ships with Node ≥16.13, so any user on the documented Node 20+ baseline can build without `npm install -g pnpm` friction.
+
+### Chore
+
+- **`package.json` pins `packageManager: pnpm@10.33.2`** so corepack resolves the same pnpm version the lockfile was generated against (previously the launcher fallback would have used corepack's default).
+- **`.github/workflows/ci.yml` pins pnpm to 10.33.2** in both `verify` and `e2e` jobs (was floating on `10`) to match the new `packageManager` field and avoid future strict-equality mismatches.
+- **`WISP_Schriftzug.png` moved to `docs/assets/source/`** so the plugin clone Claude Code pulls during `/plugin install` no longer carries a 1280-wide brand source PNG at its root. Only the regen script (`scripts/crop-wordmark.py`) reads it.
+
 ## 2.0.8 — Goal-Planer hardening: silent error swallow, dropped actions, misleading buttons
 
 Deep multi-agent audit of the Goal-Planer (GOAP) tab caught a stack of correctness, UX, accessibility, and i18n bugs that all reproduced live in Chrome. Six P0/P1 bugs were silently degrading the experience without any visible signal.
