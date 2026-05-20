@@ -10,13 +10,8 @@
   "homepage": "https://github.com/Samuel0101010/wisp-orchestrator",
   "license": "Apache-2.0",
   "keywords": ["agents", "orchestration", "kanban", "dag", "subscription"],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Samuel0101010/wisp-orchestrator.git"
-  },
+  "repository": "https://github.com/Samuel0101010/wisp-orchestrator",
   "bugs": {
     "url": "https://github.com/Samuel0101010/wisp-orchestrator/issues"
-  },
-  "skills": ["wisp-diagnose", "wisp-inspect", "wisp-new-run", "wisp-resume"],
-  "commands": ["wisp-dashboard"]
+  }
 }
