@@ -526,7 +526,7 @@ export class RunRuntime {
     runId: string,
   ): Promise<
     | { ok: true; rebuilt?: boolean }
-    | { ok: false; status: 404 | 409 | 422; error: string; hint?: string; details?: unknown }
+    | { ok: false; status: 404 | 409 | 422 | 503; error: string; hint?: string; details?: unknown }
   > {
     const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
     if (!run) return { ok: false, status: 404, error: 'run not found' };
@@ -542,6 +542,22 @@ export class RunRuntime {
         error: 'run not paused',
         details: { currentStatus: run.status },
       };
+    }
+
+    // Auth gate — mirrors startRun. Without this check, autopilot ticks and
+    // manual resume calls keep spawning task subprocesses against a stale-
+    // failed auth probe, burning retry budget on errors the user can't fix
+    // from inside the orchestrator.
+    if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
+      const last = getLastAuthProbe();
+      if (last && !last.ok) {
+        return {
+          ok: false,
+          status: 503,
+          error: 'auth-failed',
+          details: { hint: last.hint },
+        };
+      }
     }
 
     // Hot-path: walker still in memory and run actively paused.

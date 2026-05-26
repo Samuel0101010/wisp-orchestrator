@@ -1369,6 +1369,13 @@ export class Walker {
 
       if (t.retries < 1) {
         t.retries += 1;
+        // Reset the transient counter so the structural retry attempt gets a
+        // fresh budget. Without this, a task that exhausted its transient
+        // retries then transitioned to a structural retry would still see
+        // `t.transientRetries === MAX_TRANSIENT_RETRIES`, and any single
+        // infra blip on the structural attempt would fall through to a
+        // terminal failure instead of recovering.
+        t.transientRetries = 0;
         t.status = 'pending';
         t.lastError = errMsg;
         // Keep worktreePath so the next attempt re-uses it.

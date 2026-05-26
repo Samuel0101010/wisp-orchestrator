@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.12 — Full-audit batch 3: orchestrator retry hygiene + resume auth gate
+
+### Fixed
+
+- **`Walker` now resets `transientRetries` when entering a structural retry** (`packages/orchestrator/src/walker.ts`). A task that exhausted its transient-infra retries and transitioned to the structural retry path would still see `transientRetries === MAX_TRANSIENT_RETRIES` on the next subprocess attempt. A single Anthropic 5xx blip on the structural attempt then fell through to a terminal task failure — the task burned its one structural retry on infrastructure noise instead of recovering. Resetting the counter on the structural-retry edge keeps the two retry budgets independent.
+- **`resumeRun` now enforces the auth probe gate** (`apps/dashboard-server/src/orchestrator/runtime.ts`). `startRun` already returns 503 `auth-failed` when `WISP_AUTH_MODE=subscription` and the last `claude` auth probe failed, but `resumeRun` and the autopilot tick that delegates to it had no equivalent check. Auth-failed credentials kept resuming runs that would then immediately fail with auth errors on every spawned subprocess, burning retry budget. The 503 path now short-circuits before the walker is resumed.
+
 ## 2.0.11 — Full-audit batch 2: chat XSS hardening, real-time polling, WS event cap
 
 Batch 2 of the post-v2.0.9 audit. Closes the high-severity P0 (XSS) and the real-time gap that left agent replies invisible until the user re-sent.
