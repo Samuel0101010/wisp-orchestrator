@@ -1029,6 +1029,11 @@ function makeRunActionMutation(action: 'pause' | 'resume' | 'cancel') {
       },
       onSuccess: () => {
         void qc.invalidateQueries({ queryKey: ['run', runId] });
+        // Also invalidate project-runs so derived UI (Focusboard status
+        // badge, button visibility) updates immediately rather than waiting
+        // for the next 5s poll tick.
+        void qc.invalidateQueries({ queryKey: ['project-runs'] });
+        void qc.invalidateQueries({ queryKey: ['global-runs'] });
       },
     });
   };

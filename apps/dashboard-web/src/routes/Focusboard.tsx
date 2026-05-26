@@ -118,6 +118,10 @@ export function Focusboard(): ReactElement {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (status !== 'running') return;
+    // Sync the initial sample so the first paint isn't stuck on whatever
+    // Date.now() returned at mount (for tabs left open across a status
+    // transition, this could be hours ago).
+    setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, [status]);

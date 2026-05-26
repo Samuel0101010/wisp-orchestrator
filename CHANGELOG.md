@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.14 — Focusboard polish: cache invalidation + elapsed-timer sync
+
+Two fixes surfaced by a post-implementation review of v2.0.13:
+
+### Fixed
+
+- **Pause / Resume / Cancel mutations now invalidate `project-runs` (and `global-runs`)** in addition to `['run', runId]` (`apps/dashboard-web/src/api/queries.ts`). Focusboard derives its status badge, contextual button visibility, and elapsed-timer guard from `useProjectRuns`, which polls at 5s — without this, clicking Pause/Cancel left the UI showing "läuft" for up to 5 seconds and let users accidentally double-fire mutations during that window.
+- **Focusboard elapsed timer now syncs `now` on effect entry** (`apps/dashboard-web/src/routes/Focusboard.tsx`). The `useState(() => Date.now())` initializer only fires at mount; for tabs left open across a status transition, the first paint of an active-run timer could show a value hours stale before the interval ticked. Calling `setNow(Date.now())` before starting the interval fixes the initial frame.
+
 ## 2.0.13 — Focusboard: persistent workspace for one active project at a time
 
 A new top-level workspace at `/focus/:projectId?`. Replaces the tab-switching dance in `ProjectDetail` with a persistent, dense layout suited to watching autonomous agent work happen live.
