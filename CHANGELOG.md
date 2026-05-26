@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.13 — Focusboard: persistent workspace for one active project at a time
+
+A new top-level workspace at `/focus/:projectId?`. Replaces the tab-switching dance in `ProjectDetail` with a persistent, dense layout suited to watching autonomous agent work happen live.
+
+### Added
+
+- **`/focus` and `/focus/:projectId` routes** (`apps/dashboard-web/src/routes/Focusboard.tsx`). The route remembers the last focused project in localStorage (`wisp-focus`) via a new Zustand store (`apps/dashboard-web/src/store/focus.ts`), so reopening the browser lands you back where you left off. A bare `/focus` redirects to `/focus/<storedProjectId>` so the URL is always shareable.
+- **Three-column layout filling the full viewport below the topbar:**
+  - Left (440px): live KPIs (Tokens-In, Tokens-Out, Turns, Aufgaben done/total), full task list with status-colored left borders, and a footer counter for running/pending/failed tasks.
+  - Middle (flex): the existing `<PreviewFrame>` mounted directly — same viewport switcher, edit mode, change-request flow as the project Vorschau tab.
+  - Right (300px): `<AgentChat compact={true}>` scoped to the current project, so new threads auto-associate with the focused project.
+- **Header bar with inline project picker** and status pill (running / paused / completed / failed / cancelled — color-coded with a live-updating elapsed timer for running runs). Pause/Resume/Cancel actions appear contextually based on run status. "Volle Ansicht" jumps to the legacy ProjectDetail.
+- **Sidebar nav entry** (`apps/dashboard-web/src/components/layout/Sidebar.tsx`) with `Crosshair` icon and `data-testid="sidebar-focusboard"`, placed directly below Mission Control.
+- **i18n keys**: `navigation.focusboard` in DE/EN. Inline strings still carry German defaults via `t('focus.x', 'fallback')` so the route works before the full focus.* bundle is added.
+
 ## 2.0.12 — Full-audit batch 3: orchestrator retry hygiene + resume auth gate
 
 ### Fixed

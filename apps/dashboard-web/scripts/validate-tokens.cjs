@@ -23,6 +23,9 @@ const allowFiles = new Set([
   // Goap canvas + 3-column grid needs a viewport-height container so the
   // SVG fills the page after the fixed Wisp topbar (Wisp re-skin).
   path.join(root, 'routes', 'Goap.tsx'),
+  // Focusboard fills the viewport below the topbar with a 3-column layout —
+  // same shell pattern as RunView / Home / Chat.
+  path.join(root, 'routes', 'Focusboard.tsx'),
   // Preview-inspector runs as injected script INSIDE the user's iframe and
   // sets inline element.style.* strings directly — it can't reference our
   // CSS variables because it lives outside our React tree. (v1.12 Phase 4.)

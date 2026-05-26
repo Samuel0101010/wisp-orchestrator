@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Crosshair,
   Database,
   GitBranch,
   LayoutGrid,
@@ -168,6 +169,13 @@ export function Sidebar() {
         icon: <LayoutGrid className="h-4 w-4" />,
         testId: 'sidebar-mission-control',
         matchPath: (p) => p === '/' && !hasProject,
+      },
+      {
+        to: '/focus',
+        label: t('navigation.focusboard', { defaultValue: 'Focusboard' }),
+        icon: <Crosshair className="h-4 w-4" />,
+        testId: 'sidebar-focusboard',
+        matchPath: (p) => p.startsWith('/focus'),
       },
       {
         to: '/chat',

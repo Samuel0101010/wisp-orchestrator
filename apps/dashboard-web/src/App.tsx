@@ -25,6 +25,9 @@ const PlanEditor = lazy(() =>
 const RunView = lazy(() => import('@/routes/RunView').then((m) => ({ default: m.RunView })));
 const AgentsRoute = lazy(() => import('@/routes/Agents').then((m) => ({ default: m.AgentsRoute })));
 const ChatRoute = lazy(() => import('@/routes/Chat').then((m) => ({ default: m.ChatRoute })));
+const FocusboardRoute = lazy(() =>
+  import('@/routes/Focusboard').then((m) => ({ default: m.Focusboard })),
+);
 const SkillsRoute = lazy(() => import('@/routes/Skills').then((m) => ({ default: m.SkillsRoute })));
 const WorkersRoute = lazy(() =>
   import('@/routes/Workers').then((m) => ({ default: m.WorkersRoute })),
@@ -94,6 +97,8 @@ export function App() {
         <Route path="/projects/:projectId/teams" element={<TeamBuilder />} />
         <Route path="/projects/:projectId/plan" element={<PlanEditor />} />
         <Route path="/projects/:projectId/run/:runId" element={<RunView />} />
+        <Route path="/focus" element={<FocusboardRoute />} />
+        <Route path="/focus/:projectId" element={<FocusboardRoute />} />
         <Route path="/agents" element={<AgentsRoute />} />
         <Route path="/chat" element={<ChatRoute />} />
         <Route path="/skills" element={<SkillsRoute />} />
