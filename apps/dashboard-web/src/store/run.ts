@@ -381,6 +381,7 @@ export function columnFor(task: TaskCardModel): TaskColumn {
   // Distinct from 'failed' so the UI can tell crash failures apart from
   // intentional user cancels.
   if (task.status === 'cancelled') return 'cancelled';
-  // Reserved for future: pendings that returned but aren't yet finalized.
+  // Note: 'verifying' is reserved in TaskColumn for a future status step
+  // — no live status value maps to it yet, so we route through 'pending'.
   return 'pending';
 }

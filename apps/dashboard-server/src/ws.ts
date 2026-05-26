@@ -105,7 +105,10 @@ export function registerWebsocket(app: FastifyInstance): void {
         const { runId } = req.params as { runId: string };
         const row = db.select({ id: runs.id }).from(runs).where(eq(runs.id, runId)).get();
         if (!row) {
-          reply.code(404).send({ error: 'run not found' });
+          // Return after send so the hook chain short-circuits — otherwise
+          // the WebSocket upgrade would still try to switch protocols on the
+          // already-replied socket.
+          return reply.code(404).send({ error: 'run not found' });
         }
       },
     },

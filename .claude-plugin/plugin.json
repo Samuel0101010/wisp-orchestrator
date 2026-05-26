@@ -1,11 +1,11 @@
 {
   "name": "wisp",
   "displayName": "WISP",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "description": "Visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews with WISP. Spawn a 3-role team, generate a DAG plan, run for hours, watch it ship in your browser.",
   "author": {
     "name": "Samuel Heftberger",
-    "email": "215513082+Samuel0101010@users.noreply.github.com"
+    "url": "https://github.com/Samuel0101010"
   },
   "homepage": "https://github.com/Samuel0101010/wisp-orchestrator",
   "license": "Apache-2.0",

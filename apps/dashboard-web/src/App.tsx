@@ -4,7 +4,9 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { AuroraBackground } from '@/components/layout/AuroraBackground';
 import { CommandPalette } from '@/components/CommandPalette';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Home } from '@/routes/Home';
+import { NotFound } from '@/routes/NotFound';
 import { useUiStore } from '@/store/ui';
 
 // Code-split: every non-Home route lazy-loads. Home stays eager because it's
@@ -58,9 +60,11 @@ function Shell() {
             aria-label="Main content"
           >
             <div className="mx-auto w-full max-w-screen-2xl p-6">
-              <Suspense fallback={<RouteFallback />}>
-                <Outlet />
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={<RouteFallback />}>
+                  <Outlet />
+                </Suspense>
+              </ErrorBoundary>
             </div>
           </main>
         </div>
@@ -98,6 +102,7 @@ export function App() {
         <Route path="/goap" element={<GoapRoute />} />
         <Route path="/prompt-bundles" element={<PromptBundlesRoute />} />
         <Route path="/settings" element={<SettingsRoute />} />
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
   );

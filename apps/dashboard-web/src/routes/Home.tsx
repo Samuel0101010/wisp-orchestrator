@@ -103,7 +103,10 @@ function KpiSpark({ points, tone }: { points: number[]; tone: KpiSpec['tone'] })
     rose: 'var(--rose)',
     '': 'var(--coral)',
   }[tone];
-  const gid = `wisp-spark-${tone || 'coral'}-${Math.random().toString(36).slice(2, 7)}`;
+  // Deterministic per-tone — sparks of the same tone share one gradient
+  // definition. Math.random() here used to leak a fresh <linearGradient>
+  // node into the SVG on every render.
+  const gid = `wisp-spark-${tone || 'coral'}`;
   const last = points[points.length - 1] ?? 0;
   return (
     <svg

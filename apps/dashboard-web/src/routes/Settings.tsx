@@ -413,7 +413,7 @@ export function SettingsRoute(): React.ReactElement {
     await runPool(threads, 5, async (th) => {
       await apiFetch<void>(`/api/threads/${th.id}`, { method: 'DELETE' });
     });
-    await qc.invalidateQueries({ queryKey: ['settings-count', 'chat-threads'] });
+    await qc.invalidateQueries({ queryKey: ['settings-count', 'chat-threads'], exact: false });
   };
 
   const clearAgents = async (): Promise<void> => {

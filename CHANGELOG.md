@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.10 — Full-audit batch 1: manifest URL fields, SPA hardening, WS 404 fix
+
+Outcome of a multi-agent sweep across backend, frontend, packages, tests, and plugin layer. This batch lands the low-risk corrections; orchestrator and observability fixes follow in 2.0.11+.
+
+### Fixed
+
+- **`.claude-plugin/plugin.json` `author.url`** replaces `author.email`. The verified v2 manifest schema specifies `url`; `email` was accepted as a tolerated extra but is non-canonical.
+- **`.claude-plugin/marketplace.json` `owner.url`** replaces `owner.email`, and `plugins[0].license: "Apache-2.0"` is now declared explicitly (was missing from the plugin entry; only present at the root manifest level).
+- **`apps/dashboard-server/src/ws.ts`** `preValidation` hook now `return`s after `reply.code(404).send(...)`. Without the return, an unknown `runId` would emit the 404 body and *still* attempt the WebSocket upgrade on the same socket, producing a confusing protocol conflict for clients.
+- **`KpiSpark` in `apps/dashboard-web/src/routes/Home.tsx`** uses a deterministic gradient ID per tone instead of `Math.random()`. The random ID leaked an orphan `<linearGradient>` node into the SVG DOM on every poll cycle (every 10s).
+- **`Settings.clearChats` invalidation** now passes `exact: false` to `qc.invalidateQueries`, so prefix-matching against the longer cache key (`['settings-count', 'chat-threads', agentIds]`) actually invalidates the count after a clear.
+
+### Added
+
+- **`<ErrorBoundary>` wraps `<Outlet />` in `App.tsx`**. Previously an uncaught render exception in any route blanked the entire SPA. The boundary surfaces the error message + an "Erneut versuchen" / "Seite neu laden" action.
+- **`/*` catch-all route renders `<NotFound />`** instead of an empty `<main>` content area. Mistyped URLs and stale deep links now get a clear 404 view with a link back to Mission Control.
+
 ## 2.0.9 — Plugin manifests aligned with verified Claude Code v2 schema
 
 A focused install-path hardening release. Two P0 schema violations were blocking `claude plugin install wisp` and `claude plugin marketplace add Samuel0101010/wisp-orchestrator` from a clean machine; the plugin appeared installable but failed during validation. v2.0.9 also smooths first-launch by accepting users who have only Node (no global pnpm) installed.
