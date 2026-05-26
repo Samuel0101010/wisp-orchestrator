@@ -34,7 +34,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { fmtRel } from '@/lib/fmt-rel';
-import { cn } from '@/lib/utils';
+import { cn, escHtml } from '@/lib/utils';
 import {
   type ChatActionRow,
   type ThreadParticipantSummary,
@@ -865,7 +865,7 @@ function ActionCard({ action }: { action: ChatActionRow }) {
           <ReceiptIcon tone="success" />
           <span
             dangerouslySetInnerHTML={{
-              __html: t('chat.action.memberAdded', { name: r?.name ?? 'member' }),
+              __html: t('chat.action.memberAdded', { name: escHtml(r?.name ?? 'member') }),
             }}
           />
         </div>
@@ -880,7 +880,9 @@ function ActionCard({ action }: { action: ChatActionRow }) {
           <ReceiptIcon tone="success" />
           <span
             dangerouslySetInnerHTML={{
-              __html: t('chat.action.consulted', { name: r?.consultedName ?? 'specialist' }),
+              __html: t('chat.action.consulted', {
+                name: escHtml(r?.consultedName ?? 'specialist'),
+              }),
             }}
           />
         </div>
@@ -896,7 +898,7 @@ function ActionCard({ action }: { action: ChatActionRow }) {
             <ReceiptIcon tone="success" />
             <span
               dangerouslySetInnerHTML={{
-                __html: t('chat.action.runStarted', { id: r.runId.slice(0, 8) }),
+                __html: t('chat.action.runStarted', { id: escHtml(r.runId.slice(0, 8)) }),
               }}
             />
           </div>

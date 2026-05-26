@@ -1082,6 +1082,11 @@ export function useProjectRuns(projectId: string | undefined) {
   return useQuery<ProjectRunRow[]>({
     queryKey: ['project-runs', projectId ?? null],
     enabled: Boolean(projectId),
+    // Poll so PreviewFrame's run-completion auto-refresh actually fires —
+    // without this the iframe shows stale output until the user navigates
+    // away and back.
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       if (!projectId) return [];
       try {
@@ -1206,13 +1211,18 @@ export function useGlobalRuns(limit = 100) {
   return useQuery<GlobalRunRow[]>({
     queryKey: ['global-runs', limit],
     refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       try {
         const res = await apiFetch<{ runs: GlobalRunRow[] }>(
           `/api/runs?include=project&limit=${limit}`,
         );
         return res.runs ?? [];
-      } catch {
+      } catch (err) {
+        // Log so a server outage is visible in the console instead of
+        // silently returning [] (which the dashboard would render as "no
+        // runs" — indistinguishable from a healthy quiet state).
+        console.warn('[useGlobalRuns] fetch failed:', err);
         return [];
       }
     },
@@ -1247,10 +1257,12 @@ export function useRunsSummary(windowDays = 7) {
   return useQuery<RunsSummary>({
     queryKey: ['runs-summary', windowDays],
     refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       try {
         return await apiFetch<RunsSummary>(`/api/runs/summary?windowDays=${windowDays}`);
-      } catch {
+      } catch (err) {
+        console.warn('[useRunsSummary] fetch failed:', err);
         return { ...emptySummary, windowDays };
       }
     },
@@ -1405,6 +1417,10 @@ export function useThreadMessages(threadId: string | undefined) {
   return useQuery<AgentMessage[]>({
     queryKey: ['thread-messages', threadId ?? null],
     enabled: Boolean(threadId),
+    // Poll while a thread is open so agent replies (which arrive
+    // asynchronously, not via WS yet) surface without a user-initiated send.
+    refetchInterval: 3000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       if (!threadId) return [];
       try {

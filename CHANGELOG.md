@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.11 — Full-audit batch 2: chat XSS hardening, real-time polling, WS event cap
+
+Batch 2 of the post-v2.0.9 audit. Closes the high-severity P0 (XSS) and the real-time gap that left agent replies invisible until the user re-sent.
+
+### Fixed
+
+- **XSS via agent names in chat action receipts** (`apps/dashboard-web/src/routes/Chat.tsx`). The i18n bundle uses `interpolation.escapeValue: false` (so static `<strong>{{name}}</strong>` markup in translations renders as HTML); previously the server-supplied agent name was interpolated raw and the result passed to `dangerouslySetInnerHTML`. An agent created with `<img onerror=alert(1) src=x>` as its name would execute arbitrary script. Values are now run through a new `escHtml()` helper in `lib/utils.ts` at every call site (`chat.action.memberAdded`, `chat.action.consulted`, `chat.action.runStarted`).
+- **`useThreadMessages` now polls every 3s** (`apps/dashboard-web/src/api/queries.ts`). Without polling, agent replies arriving after the user sent a message were invisible until the user sent another one — the chat felt frozen.
+- **`useProjectRuns` now polls every 5s.** PreviewFrame's "reload iframe on run completion" auto-refresh relied on this query to detect a finished run. With no interval the preview showed stale output until the user navigated away and back.
+- **WS event buffer is bounded at 2000 entries** (`apps/dashboard-web/src/api/ws.ts`). Long autonomous runs were accumulating tens of thousands of `HarnessEvent` rows into a `useState` array, growing React reconciliation cost linearly with run duration.
+- **`useGlobalRuns` + `useRunsSummary` now log fetch failures via `console.warn`** instead of silently returning `[]` / empty summary. A server outage previously presented as "0 runs" — indistinguishable from a healthy quiet state. Also gates `refetchIntervalInBackground: false` on the three Mission Control polling queries so background tabs don't generate continuous traffic.
+
 ## 2.0.10 — Full-audit batch 1: manifest URL fields, SPA hardening, WS 404 fix
 
 Outcome of a multi-agent sweep across backend, frontend, packages, tests, and plugin layer. This batch lands the low-risk corrections; orchestrator and observability fixes follow in 2.0.11+.

@@ -10,6 +10,11 @@ export interface UseRunEventsResult {
 
 const INITIAL_BACKOFF_MS = 500;
 const MAX_BACKOFF_MS = 15_000;
+// Bound the retained event buffer so long autonomous runs don't grow the
+// array (and React reconciliation cost) unboundedly. The Kanban + run-view
+// only need the most recent activity; older events stay in the server DB
+// and can be fetched on demand.
+const MAX_EVENTS = 2000;
 
 function buildWsUrl(runId: string): string {
   if (typeof window === 'undefined') return `/ws/runs/${runId}`;
@@ -61,7 +66,10 @@ export function useRunEvents(runId: string | null): UseRunEventsResult {
           console.warn('[ws] invalid HarnessEvent dropped', result.error.issues);
           return;
         }
-        setEvents((prev) => [...prev, result.data]);
+        setEvents((prev) => {
+          const next = [...prev, result.data];
+          return next.length > MAX_EVENTS ? next.slice(-MAX_EVENTS) : next;
+        });
       };
 
       ws.onerror = () => {
