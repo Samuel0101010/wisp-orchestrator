@@ -36,7 +36,10 @@ const minimalPlan: Plan = {
       },
     ],
   },
-  tasks: [
+  // Plan schema uses `nodes`, not `tasks` — an earlier draft of this test
+  // had the wrong shape and the tests passed for the wrong reason (Zod
+  // parse failure inside replanOnQAFailure on the stored dagJson).
+  nodes: [
     {
       id: 't1',
       role: 'developer',

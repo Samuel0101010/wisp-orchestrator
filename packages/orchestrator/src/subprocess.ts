@@ -162,6 +162,11 @@ export function buildEnv(opts: RunClaudeOpts): NodeJS.ProcessEnv {
   env.CI = env.CI ?? '1';
   if (opts.__mockEnv) {
     for (const [k, v] of Object.entries(opts.__mockEnv)) {
+      // Defensive: do NOT let a __mockEnv override re-introduce
+      // ANTHROPIC_API_KEY into the spawn env after the strip above. Tests
+      // may pass it; users of __mockEnv should not be able to bypass the
+      // subscription-auth guarantee.
+      if (k === 'ANTHROPIC_API_KEY') continue;
       env[k] = v;
     }
   }

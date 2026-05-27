@@ -772,25 +772,22 @@ export class RunRuntime {
    * DELETE /api/projects/:id route to prevent zombie walkers from continuing
    * to spend API budget after the project row (and its cascade) is gone.
    * Returns the list of run-ids that were cancelled; callers can log/audit.
+   *
+   * Resolves the candidate run-ids via a single DB query (rather than a
+   * keys-snapshot of the in-memory walker map) so a concurrent
+   * `registerResidentWalker` that fires during this method's awaits is
+   * still picked up when we cross-reference against `this.walkers`.
    */
   async cancelRunsForProject(projectId: string): Promise<string[]> {
-    // Resolve all plan ids for this project up-front so we don't have to
-    // hit the DB inside the loop.
-    const planRows = await this.db
-      .select({ id: plans.id })
-      .from(plans)
-      .where(eq(plans.projectId, projectId))
+    const candidateRows = await this.db
+      .select({ id: runs.id })
+      .from(runs)
+      .innerJoin(plans, eq(plans.id, runs.planId))
+      .where(and(eq(plans.projectId, projectId), eq(runs.status, 'running')))
       .all();
-    const planIds = new Set(planRows.map((r) => r.id));
-    if (planIds.size === 0) return [];
-    // Walkers in memory are keyed by runId; correlate by looking up each
-    // resident run's planId. Snapshot the keys so cancel() doesn't race
-    // with the post-cancel walkers.delete().
+    if (candidateRows.length === 0) return [];
     const cancelled: string[] = [];
-    const residentIds = Array.from(this.walkers.keys());
-    for (const runId of residentIds) {
-      const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
-      if (!run || !planIds.has(run.planId)) continue;
+    for (const { id: runId } of candidateRows) {
       const resident = this.walkers.get(runId);
       if (!resident) continue;
       try {
@@ -828,9 +825,8 @@ export class RunRuntime {
   ): Promise<{ ok: true } | { ok: false; status: 404 | 409; error: string }> {
     const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
     if (!run) return { ok: false, status: 404, error: 'run not found' };
-    // Idempotency: refuse to overwrite a terminal status. A double-click on
-    // the Cancel button can otherwise corrupt a successfully-completed
-    // run's `endedAt` and flip its outcome to 'cancelled'.
+    // Idempotency guard #1: row already terminal AND no resident walker
+    // means the run finished cleanly some time ago. Reject the cancel.
     if (
       !this.walkers.has(runId) &&
       (run.status === 'completed' || run.status === 'failed' || run.status === 'cancelled')
@@ -838,7 +834,21 @@ export class RunRuntime {
       return { ok: false, status: 409, error: 'run already terminal' };
     }
     const resident = this.walkers.get(runId);
+    // Idempotency guard #2: a resident walker may still exist for ~1s after
+    // finalize() resolves (the grace timer before walkers.delete fires).
+    // Without this second check, a double-click during the grace window
+    // would call walker.cancel() on an already-completed walker, which
+    // returns immediately — but the HTTP handler reports success and the
+    // caller may overwrite its run-status cache with 'cancelled'.
     if (resident) {
+      // Walker's external state collapses every terminal outcome (success,
+      // failure, cancel) into 'completed'. Detect it explicitly so a
+      // double-click during the 1s grace window doesn't fall through to
+      // walker.cancel() (which is a no-op on a finished walker) and
+      // misleadingly return 'ok: true' to the HTTP handler.
+      if (resident.walker.status().state === 'completed') {
+        return { ok: false, status: 409, error: 'run already terminal' };
+      }
       await resident.walker.cancel();
       return { ok: true };
     }
@@ -877,7 +887,11 @@ export class RunRuntime {
     const ctx = loadProjectChainContext(this.db, planRow.projectId);
     if (!ctx) return;
 
-    const resultBranch = `harness/${runId}/result`;
+    // Walker.finalizeResultBranch creates `wisp/<runId>/result` — the prior
+    // `harness/...` prefix here was a mismatch that caused every post-success
+    // operation (release gate, auto-merge, runtime report load, findings
+    // scan) to silently no-op against a ref that didn't exist.
+    const resultBranch = `wisp/${runId}/result`;
 
     // v1.8 release gate: read the runtime-verifier's structured verdict,
     // count DoD criteria, scan findings — then decide what to do. The gate
@@ -1184,6 +1198,13 @@ export class RunRuntime {
             );
           }
         }
+        // Re-throw so callers that `await this.persistRunPatch(...)` (the
+        // walker's `onRunState` deps callback in particular) see the
+        // failure instead of resolving as if the write succeeded. The
+        // `void this.persistRunPatch(...)` fire-and-forget callers already
+        // discard the rejection; this only meaningfully affects awaiting
+        // callers.
+        throw err2;
       }
     }
 

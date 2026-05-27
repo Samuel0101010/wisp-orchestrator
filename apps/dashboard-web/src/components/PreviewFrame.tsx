@@ -105,6 +105,14 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   // Listen for `harness:pick` messages from the inspector inside the iframe.
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
+      // Strict origin check: the iframe is served by the dashboard via the
+      // reverse proxy at /preview/<projectId>/, so it shares this window's
+      // origin. Any message from a different origin is either a spoofing
+      // attempt (a malicious iframe nested inside the user's preview) or a
+      // bug — drop it either way. Without this guard, an arbitrary script
+      // can send a crafted `harness:pick` with attacker-controlled
+      // selector/html into the change-request flow.
+      if (e.origin !== window.location.origin) return;
       const data = e.data as
         | { kind?: string; selector?: string; rect?: ChangeRequestRect; html?: string }
         | undefined;
@@ -126,7 +134,10 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
     const iframe = iframeRef.current;
     if (iframe?.contentWindow) {
       try {
-        iframe.contentWindow.postMessage({ kind: 'harness:set-edit-mode', value: editMode }, '*');
+        iframe.contentWindow.postMessage(
+          { kind: 'harness:set-edit-mode', value: editMode },
+          window.location.origin,
+        );
       } catch {
         /* ignore — iframe may not be ready yet */
       }
@@ -227,7 +238,10 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
       script.textContent = INSPECTOR_SCRIPT;
       doc.body.appendChild(script);
       // Re-broadcast the current edit-mode flag to a freshly-loaded frame.
-      iframe?.contentWindow?.postMessage({ kind: 'harness:set-edit-mode', value: editMode }, '*');
+      iframe?.contentWindow?.postMessage(
+        { kind: 'harness:set-edit-mode', value: editMode },
+        window.location.origin,
+      );
     } catch {
       /* ignore — likely cross-origin in some edge configuration */
     }

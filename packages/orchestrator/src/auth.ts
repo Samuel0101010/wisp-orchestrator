@@ -85,6 +85,9 @@ export function buildAuthProbeEnv(mockEnv?: Record<string, string | undefined>):
   env.CI = env.CI ?? '1';
   if (mockEnv) {
     for (const [k, v] of Object.entries(mockEnv)) {
+      // Same defense as buildEnv — __mockEnv must not re-introduce the
+      // API key after the strip.
+      if (k === 'ANTHROPIC_API_KEY') continue;
       env[k] = v;
     }
   }

@@ -715,9 +715,13 @@ export class Walker {
           t.status = 'running';
           t.attempt += 1;
           t.startedAt = this.deps.now();
-          // Fire-and-forget; runTask reschedules dispatch on completion.
-          t.done = this.runTask(t).then(() => {
-            // After each task settles, re-dispatch from outside the slot.
+          // Fire-and-forget. We DON'T `.then(() => void this.dispatch())`
+          // here: the `pendingDispatch` flag in the dispatch lock-release
+          // path is the single re-arm channel. Two channels firing
+          // simultaneously can race in `findReady()` and double-launch the
+          // same task. The completion bumps `pendingDispatch` via runTask's
+          // completion-side dispatch() call.
+          t.done = this.runTask(t).finally(() => {
             void this.dispatch();
           });
         }

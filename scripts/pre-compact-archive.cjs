@@ -23,9 +23,16 @@ function main() {
 
   const dataDir =
     process.env.CLAUDE_PLUGIN_DATA ?? path.join(os.homedir(), '.local', 'share', 'agent-harness');
-  const runId = process.env.HARNESS_CURRENT_RUN_ID ?? 'default';
-  const sessionId =
+  // Sanitize path-segment inputs — these are passed through path.join which
+  // normalizes ".." and lets a crafted env var resolve writes outside the
+  // archive directory. The harness only ever sets these to UUID-shaped
+  // values, so a strict allowlist is safe.
+  const SAFE_SEGMENT = /^[A-Za-z0-9._-]+$/;
+  const rawRunId = process.env.HARNESS_CURRENT_RUN_ID ?? 'default';
+  const runId = SAFE_SEGMENT.test(rawRunId) ? rawRunId : 'default';
+  const rawSessionId =
     process.env.CLAUDE_SESSION_ID ?? path.basename(transcriptPath, path.extname(transcriptPath));
+  const sessionId = SAFE_SEGMENT.test(rawSessionId) ? rawSessionId : 'session';
   const ts = new Date()
     .toISOString()
     .replace(/[-:]/g, '')

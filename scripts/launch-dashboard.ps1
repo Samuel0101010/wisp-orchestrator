@@ -108,19 +108,27 @@ foreach ($k in $envBlock.Keys) {
 $logOut = Join-Path $dataDir 'server.log'
 $logErr = Join-Path $dataDir 'server.err.log'
 
-# Detach the dashboard from the launching console group so closing the
-# Claude Code window (CTRL_CLOSE_EVENT broadcast) doesn't take the server
-# down with it. `-WindowStyle Hidden` keeps the new console invisible to
-# the user; the dashboard has no GUI surface so a hidden window is fine.
-# (Earlier `-NoNewWindow` versions of this script tied the dashboard's
-# lifecycle to the launcher's shell — exactly what we don't want for a
-# "fire and forget" `/wisp-dashboard` invocation.)
-$proc = Start-Process -FilePath 'node' `
-    -ArgumentList @("`"$serverEntry`"") `
-    -WindowStyle Hidden `
-    -PassThru `
-    -RedirectStandardOutput $logOut `
-    -RedirectStandardError $logErr
+# Detachment + stdio redirection: PowerShell's Start-Process can't do both
+# (-WindowStyle Hidden silently drops the redirect parameters in PS5.x).
+# Delegate to a tiny node helper that uses child_process.spawn with
+# `detached: true` + file descriptors for stdio. The helper prints the
+# child's PID and exits; the dashboard survives the launching console
+# closing because it's been promoted out of our process group.
+$spawnHelper = Join-Path $PSScriptRoot 'wisp-spawn-detached.cjs'
+$spawnArgs = @($spawnHelper, $serverEntry, $logOut, $logErr)
+$pidOutput = & node @spawnArgs 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "wisp-spawn-detached.cjs failed: $pidOutput"
+    exit 1
+}
+$dashboardPid = [int]($pidOutput -split "`n" | Where-Object { $_ -match '^\d+$' } | Select-Object -First 1)
+if (-not $dashboardPid) {
+    Write-Error "wisp-spawn-detached.cjs did not print a PID: $pidOutput"
+    exit 1
+}
+# Shape-compatible proxy object so the rest of the script (state.json etc.)
+# can keep referencing $proc.Id without conditionals.
+$proc = [PSCustomObject]@{ Id = $dashboardPid }
 
 # Persist state for the dashboard command and future re-launches.
 $state = [ordered]@{

@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.0.19 — Post-review fix-pass: 7 reviewer findings closed (R1/R2/R3/R4/R5/R6/R7 + S1/S2/S3/S4/S5)
+
+Two parallel code-reviewer agents took a pass over commits 5e56e09..62229d9. Their findings, applied:
+
+### Fixed
+
+- **`handlePostRunSuccess` referenced the wrong result-branch prefix (`harness/<runId>/result`) but `Walker.finalizeResultBranch` creates `wisp/<runId>/result`** (`apps/dashboard-server/src/orchestrator/runtime.ts:880`). Every post-success operation — release gate, runtime-report load, findings scan, auto-merge into main — was silently no-op'ing against a ref that didn't exist. **R1 (P0)**.
+- **`cancelRun` 1-second grace-window guard added** (`runtime.ts:cancelRun`). The previous idempotency guard only fired when the walker was already evicted. During the 1s `walkers.delete()` grace window after a clean finalize, a double-click on Cancel would call `walker.cancel()` (a no-op on a `state === 'completed'` walker) and the HTTP handler reported success — so the caller's run-status cache could overwrite a `success` outcome with `cancelled`. Now checks `walker.status().state === 'completed'` before falling through. **R3 (P1)**.
+- **`cancelRunsForProject` now resolves candidate runs via a DB query** instead of an `Array.from(this.walkers.keys())` snapshot (`runtime.ts:cancelRunsForProject`). A concurrent `startRun` finishing its `registerResidentWalker` call during an `await` would otherwise be missed by the snapshot and never cancelled. **R4 (P1)**.
+- **`persistRunPatch` now re-throws on permanent failure** so the walker's `onRunState` deps callback sees the error instead of resolving as if the DB write succeeded. Fire-and-forget `void` callers continue to swallow. **R5 (P2)**.
+- **`buildEnv` / `buildAuthProbeEnv` now skip `ANTHROPIC_API_KEY` in the `__mockEnv` merge loop** (`packages/orchestrator/src/{subprocess,auth}.ts`). The strip used to happen before the merge, so a `__mockEnv: { ANTHROPIC_API_KEY: 'sk-...' }` could re-introduce the key. **R6 (P2)**.
+- **`Walker.dispatch` no longer has two re-arm channels** (`packages/orchestrator/src/walker.ts`). Previously every task completion fired `void this.dispatch()` from a `.then()` callback AND set `pendingDispatch = true` in the lock-release path; both could enter `dispatch()` concurrently and race in `findReady()`, potentially double-launching the same ready task. The `.then()` channel is now `.finally()` and the `pendingDispatch` flag is the single coordination point. **R7 (P2)**.
+- **`replan.test.ts` `minimalPlan` used `tasks` instead of `nodes`** — the Plan schema's actual key. Tests passed for the wrong reason (Zod parse failure inside `replanOnQAFailure` instead of the missing-row code path the test was meant to exercise). **R2 (P1)**.
+- **`PreviewFrame` message listener now drops events whose `origin !== window.location.origin`** (`apps/dashboard-web/src/components/PreviewFrame.tsx`). Any script on the page can `postMessage` to the parent; without the check, a spoofed `harness:pick` with attacker-controlled selector/html could inject into the change-request dialog. **S2 (P1)**.
+- **`PreviewFrame` outbound `postMessage` now targets `window.location.origin`** at both the edit-mode toggle and the post-iframe-load injection — two `'*'` calls that the inspector-side fix in v2.0.17 had missed. **S3 (P2)**.
+- **`pre-compact-archive.cjs` rejects path-traversal in `HARNESS_CURRENT_RUN_ID` / `CLAUDE_SESSION_ID`** by validating each path segment against `/^[A-Za-z0-9._-]+$/` and falling through to `default` / `session` on any non-matching value. **S4 (P1)**.
+- **`marketplace.json` dropped its redundant `plugins[0].repository` field**. The canonical source reference is already `source: { source: 'github', repo: '...' }`; the npm-style git URL is a trap a strict validator could read as the actual source. **S5 (P2)**.
+- **PowerShell launcher detachment** now goes through a new `scripts/wisp-spawn-detached.cjs` helper that uses `child_process.spawn({ detached: true, stdio: [..., logOutFd, logErrFd] })` instead of `Start-Process -WindowStyle Hidden` (which silently drops `-RedirectStandardOutput` / `-RedirectStandardError` on PowerShell 5.x). The helper prints the dashboard PID; the launcher captures it. Detachment + log redirection both work. **S1 / R8 (P1)**.
+
 ## 2.0.18 — Hotfix: tests/compliance missing @wisp/orchestrator workspace dep
 
 CI was failing on v2.0.16 and v2.0.17 because the functional credential-strip test added in v2.0.16 imports `@wisp/orchestrator` but the `@wisp/compliance` workspace had no dependency on it — vitest in that subdir threw `Failed to load url @wisp/orchestrator`. Added the workspace link.
