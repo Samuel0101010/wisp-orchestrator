@@ -144,7 +144,13 @@ export const INSPECTOR_SCRIPT = `(function() {
         version: '${INSPECTOR_VERSION}',
       };
       try {
-        window.parent.postMessage(payload, '*');
+        // The preview iframe is served by the dashboard via the reverse
+        // proxy at /preview/<projectId>/, so it shares an origin with the
+        // parent. Posting to a specific origin instead of '*' prevents a
+        // third-party page that frames the dashboard from receiving the
+        // DOM inspection payload (selector + clipped outerHTML + click
+        // coordinates).
+        window.parent.postMessage(payload, window.location.origin);
       } catch (_) {
         /* ignore */
       }

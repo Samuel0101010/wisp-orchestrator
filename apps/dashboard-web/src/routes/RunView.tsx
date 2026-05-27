@@ -760,14 +760,27 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
   const lastAppliedRef = useRef(0);
   const [tailTaskId, setTailTaskId] = useState<string | null>(null);
 
-  // Hydrate from the snapshot whenever it changes (initial + 5s refetch fallback).
+  // Initial hydrate — fires once per runId change. Without this guard the
+  // 5s REST poll would re-hydrate over the WS-applied state on every tick,
+  // causing visible flicker when an event lands between poll cycles.
   useEffect(() => {
     hydrate({ run: snapshot.run, tasks: snapshot.tasks });
     lastAppliedRef.current = 0;
     return () => {
       reset(null);
     };
-  }, [snapshot.run.id, snapshot.run, snapshot.tasks, hydrate, reset]);
+    // Intentionally only re-firing on runId so the initial paint hydrates
+    // once. The fallback re-hydrate below covers WS disconnects.
+  }, [snapshot.run.id, hydrate, reset]);
+
+  // Fallback: re-hydrate from the REST snapshot only while the WebSocket
+  // is NOT open. Once WS is healthy the incremental event stream is the
+  // source of truth and the 5s poll mustn't clobber it (F22 race).
+  useEffect(() => {
+    if (wsStatus === 'open') return;
+    hydrate({ run: snapshot.run, tasks: snapshot.tasks });
+    lastAppliedRef.current = 0;
+  }, [snapshot.run, snapshot.tasks, hydrate, wsStatus]);
 
   // Apply newly-arrived events incrementally.
   useEffect(() => {

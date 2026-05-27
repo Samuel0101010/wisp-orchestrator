@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.17 — Batch-9: frontend WS-vs-REST race + preview-inspector postMessage origin
+
+### Fixed
+
+- **`RunView` no longer re-hydrates from the 5s REST poll while the WebSocket is open** (`apps/dashboard-web/src/routes/RunView.tsx`). The previous effect's dep array included `snapshot.run` and `snapshot.tasks` object refs, which change on every poll — so the store got re-hydrated every 5s, clobbering whatever WS events had arrived since the last poll and producing a visible flicker (task statuses snapping back and forth). The new pattern initial-hydrates once per runId and keeps the REST snapshot as a fallback only while `wsStatus !== 'open'`. Audit F22.
+- **`preview-inspector.ts` posts the harness:pick payload to `window.location.origin` instead of `'*'`** (`apps/dashboard-web/src/components/preview-inspector.ts`). The inspector iframe is same-origin with the dashboard via the reverse proxy at `/preview/<projectId>/`, so the strict target works; if the dashboard is ever framed by a third party, that third party no longer receives DOM-inspection payloads (selector + clipped outerHTML + click coordinates). Audit F18.
+
 ## 2.0.16 — Batch-8: test gaps + CI gate ordering
 
 ### Fixed
