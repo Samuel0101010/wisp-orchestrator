@@ -151,7 +151,10 @@ function resolveBin(opts: RunClaudeOpts): { cmd: string; argPrefix: string[] } {
   return resolveClaudeBin();
 }
 
-function buildEnv(opts: RunClaudeOpts): NodeJS.ProcessEnv {
+// Exported so the compliance test can verify the strip functionally
+// (i.e. by inspecting the returned env shape) rather than via a
+// brittle source-text grep.
+export function buildEnv(opts: RunClaudeOpts): NodeJS.ProcessEnv {
   // Copy parent env, then strip API key to force subscription auth.
   const env: NodeJS.ProcessEnv = { ...process.env };
   delete env.ANTHROPIC_API_KEY;

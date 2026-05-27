@@ -75,6 +75,22 @@ function resolveBin(opts: ProbeOpts): { cmd: string; argPrefix: string[] } {
   return resolveClaudeBin();
 }
 
+/**
+ * Exported so the compliance test can verify the credential strip
+ * functionally rather than via a brittle source-text grep.
+ */
+export function buildAuthProbeEnv(mockEnv?: Record<string, string | undefined>): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  delete env.ANTHROPIC_API_KEY;
+  env.CI = env.CI ?? '1';
+  if (mockEnv) {
+    for (const [k, v] of Object.entries(mockEnv)) {
+      env[k] = v;
+    }
+  }
+  return env;
+}
+
 export async function probeSubscriptionAuth(opts: ProbeOpts = {}): Promise<AuthProbeResult> {
   const { cmd, argPrefix } = resolveBin(opts);
   const args = [
@@ -88,14 +104,7 @@ export async function probeSubscriptionAuth(opts: ProbeOpts = {}): Promise<AuthP
     '--verbose',
   ];
 
-  const env: NodeJS.ProcessEnv = { ...process.env };
-  delete env.ANTHROPIC_API_KEY;
-  env.CI = env.CI ?? '1';
-  if (opts.__mockEnv) {
-    for (const [k, v] of Object.entries(opts.__mockEnv)) {
-      env[k] = v;
-    }
-  }
+  const env = buildAuthProbeEnv(opts.__mockEnv);
 
   const timeoutMs = opts.__timeoutMs ?? PROBE_TIMEOUT_MS;
   const start = Date.now();

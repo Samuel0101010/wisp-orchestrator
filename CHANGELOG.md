@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.16 — Batch-8: test gaps + CI gate ordering
+
+### Fixed
+
+- **`ci.yml` runs `pnpm build` BEFORE `Test (unit)`** so `apps/dashboard-server/src/__tests__/serve-web.test.ts` actually executes its 4 assertions instead of silently skipping (`describe.skipIf(!haveDist)`). The 4 tests guarding the `WISP_SERVE_WEB=1` production code path never ran in CI before. Audit T3.
+
+### Added
+
+- **Functional credential-strip test** (`tests/compliance/no-credential-touch.test.ts`). The previous compliance test was a literal source-text grep for `delete env.ANTHROPIC_API_KEY`; a refactor that achieved the same effect via destructure would have passed while the actual subprocess env carried the key. The new test imports the now-exported `buildEnv` (subprocess) and `buildAuthProbeEnv` (auth probe) helpers, sets `process.env.ANTHROPIC_API_KEY` to a sentinel value, and asserts the returned env shape has the key absent. The static grep is retained as a fast canary. Audit T9.
+- **Unit tests for `replanOnQAFailure`** (`apps/dashboard-server/src/__tests__/replan.test.ts`). The QA-failure replanner was a P0 gap with zero coverage. New tests cover every early-return path (missing parent plan / missing team / malformed team rolesJson) by inserting minimal DB state and passing a runner that throws on call — proving those paths don't invoke the planner subprocess. Audit T1.
+
 ## 2.0.15 — Batch-5/6/7: backend P0/P1 + orchestrator concurrency + agent-overrides wiring
 
 This release closes most of the P0/P1 backlog from the post-v2.0.9 audit.

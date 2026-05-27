@@ -55,11 +55,16 @@ jobs:
       - name: Inventory freshness check
         run: pnpm inventory:check
 
-      - name: Test (unit)
-        run: pnpm --filter "./packages/**" --filter "./apps/**" --filter "./tests/compliance" run test
-
+      # Build BEFORE running unit tests so the dashboard-server's
+      # `serve-web.test.ts` (which is `describe.skipIf(!haveDist)` against
+      # the web bundle) actually exercises its 4 assertions instead of
+      # silently skipping. The previous order had tests running before
+      # build, so the SPA-fallback regression never ran in CI.
       - name: Build
         run: pnpm build
+
+      - name: Test (unit)
+        run: pnpm --filter "./packages/**" --filter "./apps/**" --filter "./tests/compliance" run test
 
   e2e:
     name: e2e
