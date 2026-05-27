@@ -199,6 +199,27 @@ export interface WalkerDeps {
   probeSubprocessLiveness?: (
     taskId: string,
   ) => { alive: boolean; cpuSeconds: number | null } | null;
+  /**
+   * Optional per-role override merger built by the runtime from the project's
+   * `project_agent_overrides` rows. Lets a project swap a role's model,
+   * append an extra system prompt, or union extra allowed-tools without
+   * touching the team config. Passed as a closure so the orchestrator
+   * package doesn't have to know about the AgentOverride schema.
+   *
+   * Implementation lives in `apps/dashboard-server/src/orchestrator/agent-overrides.ts`
+   * (`applyAgentOverride`); the runtime closes over the loaded override map.
+   */
+  applyAgentOverride?: <T extends { model: string; systemPrompt: string; allowedTools: string[] }>(
+    role: string,
+    base: T,
+  ) => T;
+  /**
+   * Pre-rendered "## Prior Handoffs" markdown section for the current
+   * project. Built by the runtime from
+   * `loadHandoffsForProject + renderHandoffsSection`. Empty string when no
+   * handoffs exist (the prompt composer omits the section in that case).
+   */
+  handoffsSection?: string;
 }
 
 /**
@@ -373,6 +394,15 @@ export class Walker {
 
   /** Set when dispatch() is currently active; prevents re-entrancy storms. */
   private dispatching = false;
+  /**
+   * Set to `true` when `dispatch()` is called while another dispatch is
+   * already in flight. The in-flight call clears the flag in its `finally`
+   * block and re-fires once if it was set, so concurrent task completions
+   * can never silently lose a wake-up. Without this, two tasks finishing in
+   * the same microtask flush would race for the dispatch lock and the loser
+   * would `return` immediately even if new slots were free.
+   */
+  private pendingDispatch = false;
   /** Timestamp of the last subprocess launch batch. 0 means no launch yet. */
   private lastLaunchAt = 0;
 
@@ -632,7 +662,12 @@ export class Walker {
   // ---------- internals ----------
 
   private async dispatch(): Promise<void> {
-    if (this.dispatching) return;
+    if (this.dispatching) {
+      // Another dispatch is in flight — record that we tried to re-arm so
+      // the holder re-fires once it releases the lock.
+      this.pendingDispatch = true;
+      return;
+    }
     this.dispatching = true;
     try {
       while (this.state === 'running') {
@@ -694,6 +729,13 @@ export class Walker {
       }
     } finally {
       this.dispatching = false;
+      if (this.pendingDispatch) {
+        // A concurrent caller bumped the pending flag while we held the
+        // lock. Re-fire once so any newly-ready tasks get launched even if
+        // the slot-counts and ready-set changed during this dispatch.
+        this.pendingDispatch = false;
+        void this.dispatch();
+      }
     }
   }
 
@@ -1220,13 +1262,30 @@ export class Walker {
       inactivityCancel = this.deps.setTimeout(onWatchdogFire, INACTIVITY_TIMEOUT_MS);
     };
 
+    // Apply any per-role override from the project — model swap, extra system
+    // prompt, extra allowed-tools. When no merger is wired or no override
+    // exists for this role, `applyAgentOverride` is a no-op identity.
+    const baseAgent = {
+      model: agent.model,
+      systemPrompt: agent.systemPrompt,
+      allowedTools: agent.allowedTools,
+    };
+    const effective = this.deps.applyAgentOverride
+      ? this.deps.applyAgentOverride(node.role, baseAgent)
+      : baseAgent;
+
     try {
       const iter = this.deps.pool.run({
         cwd: worktreePath,
-        prompt: composeTaskPrompt(plan, node, t.attempt > 1 ? t.lastError : null),
-        systemPrompt: agent.systemPrompt,
-        allowedTools: agent.allowedTools,
-        model: agent.model,
+        prompt: composeTaskPrompt(
+          plan,
+          node,
+          t.attempt > 1 ? t.lastError : null,
+          this.deps.handoffsSection,
+        ),
+        systemPrompt: effective.systemPrompt,
+        allowedTools: effective.allowedTools,
+        model: effective.model,
         maxTurns: node.maxTurns,
         taskId: node.id,
         runId,
@@ -1758,7 +1817,12 @@ function truncateRetryError(s: string): string {
   return `${head}\n[… ${omitted} lines omitted …]\n${tail}`;
 }
 
-export function composeTaskPrompt(plan: Plan, node: TaskNode, retryError: string | null): string {
+export function composeTaskPrompt(
+  plan: Plan,
+  node: TaskNode,
+  retryError: string | null,
+  handoffsSection?: string,
+): string {
   const parts: string[] = [];
   parts.push(`# Goal\n${plan.goal}`);
   parts.push(`# Task: ${node.id} (${node.role})\n${node.prompt}`);
@@ -1776,6 +1840,10 @@ export function composeTaskPrompt(plan: Plan, node: TaskNode, retryError: string
     parts.push(
       `# Retry context\nPrevious attempt failed: ${truncateRetryError(retryError)}\nPlease address and re-implement.`,
     );
+  }
+  // Supplementary context — last so the agent sees primary instructions first.
+  if (handoffsSection && handoffsSection.trim().length > 0) {
+    parts.push(handoffsSection);
   }
   return parts.join('\n\n');
 }

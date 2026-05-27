@@ -2,22 +2,22 @@
   "hooks": {
     "PreCompact": [
       {
-        "matcher": ".*",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/pre-compact-archive.sh\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/pre-compact-archive.cjs\""
           }
         ]
       }
     ],
     "SessionStart": [
       {
-        "matcher": ".*",
+        "matcher": "*",
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/session-start-cleanup.sh\""
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/session-start-cleanup.cjs\""
           }
         ]
       }

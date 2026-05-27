@@ -49,6 +49,8 @@ import { getLastAuthProbe } from '../auth-status.js';
 import { writeMemoryMcpConfig } from './mcp-config.js';
 import { checkAutopilotBudget } from '../autopilot/budget.js';
 import { replanOnQAFailure } from './replan.js';
+import { applyAgentOverride, loadAgentOverridesForProject } from './agent-overrides.js';
+import { loadHandoffsForProject, renderHandoffsSection } from './handoff-loader.js';
 import { storeTrajectory } from '../reasoningbank/store.js';
 import { autoMergeResultIntoMain } from './auto-merge.js';
 import { actionableFindings, scanRefForFindings } from './findings.js';
@@ -194,14 +196,16 @@ export class RunRuntime {
 
   /**
    * Build the Walker dependencies for a given run. Factored out so both
-   * startRun() and resumeRun() (rebuild path) share the same wiring.
+   * startRun() and resumeRun() (rebuild path) share the same wiring. Async
+   * because it loads per-project overrides and handoffs from SQLite + the
+   * per-project memory DB before the walker is constructed.
    */
-  private makeWalkerDeps(
+  private async makeWalkerDeps(
     runId: string,
     planId: string,
     maxParallel: number,
     projectId?: string,
-  ): WalkerDeps {
+  ): Promise<WalkerDeps> {
     const mcpConfigPath = env.WISP_MOCK_CLI
       ? undefined
       : writeMemoryMcpConfig({
@@ -219,6 +223,26 @@ export class RunRuntime {
       runner: this.runner,
       defaultMcpConfigPath: mcpConfigPath,
     });
+    // Per-project overrides + handoffs. Both are loaded fresh every time a
+    // walker is built (start-run AND cold-resume), so edits made between
+    // pause and resume take effect on the next run. The hot-resume path
+    // (resident walker) keeps the snapshot from its original startRun —
+    // documented as a known limitation.
+    const overrides = projectId
+      ? await loadAgentOverridesForProject(projectId, this.db).catch((err) => {
+          console.error('[runtime] loadAgentOverridesForProject failed:', err);
+          return {} as Awaited<ReturnType<typeof loadAgentOverridesForProject>>;
+        })
+      : {};
+    let handoffsSection = '';
+    if (projectId) {
+      try {
+        const handoffs = loadHandoffsForProject({ dataDir: env.WISP_DATA_DIR, projectId });
+        handoffsSection = renderHandoffsSection(handoffs);
+      } catch (err) {
+        console.error('[runtime] loadHandoffsForProject failed:', err);
+      }
+    }
     return {
       pool,
       worktree: { add: addWorktree, remove: removeWorktree },
@@ -292,6 +316,23 @@ export class RunRuntime {
           return { exceeded: false, reason: null };
         }
       },
+      applyAgentOverride: <
+        T extends { model: string; systemPrompt: string; allowedTools: string[] },
+      >(
+        role: string,
+        base: T,
+      ): T => {
+        // The walker passes its untyped agent shape; the merge utility is
+        // typed with the strict AgentModel enum. The base.model field
+        // originates from a Plan that has been Zod-validated upstream so
+        // the cast is safe.
+        const merged = applyAgentOverride(
+          base as unknown as Parameters<typeof applyAgentOverride>[0],
+          overrides[role] ?? null,
+        );
+        return merged as unknown as T;
+      },
+      handoffsSection,
     };
   }
 
@@ -447,7 +488,12 @@ export class RunRuntime {
       // because nothing else will clean them up — the void walker.start
       // chain that owns the .finally cleanup never starts in that case.
       repoPath = await this.resolveRepoPath(args.planId);
-      const walkerDeps = this.makeWalkerDeps(runId, args.planId, maxParallel, planRow?.projectId);
+      const walkerDeps = await this.makeWalkerDeps(
+        runId,
+        args.planId,
+        maxParallel,
+        planRow?.projectId,
+      );
       walker = this.buildWalker({ walkerDeps, runId });
       this.registerResidentWalker(runId, walker);
     } finally {
@@ -652,7 +698,12 @@ export class RunRuntime {
 
     let walker: Walker;
     try {
-      const walkerDeps = this.makeWalkerDeps(runId, planRow.id, run.maxParallel, planRow.projectId);
+      const walkerDeps = await this.makeWalkerDeps(
+        runId,
+        planRow.id,
+        run.maxParallel,
+        planRow.projectId,
+      );
       walker = this.buildWalker({ walkerDeps, runId });
       this.registerResidentWalker(runId, walker);
     } catch (err) {
@@ -717,6 +768,42 @@ export class RunRuntime {
   }
 
   /**
+   * Cancel every live walker whose plan belongs to this project. Used by the
+   * DELETE /api/projects/:id route to prevent zombie walkers from continuing
+   * to spend API budget after the project row (and its cascade) is gone.
+   * Returns the list of run-ids that were cancelled; callers can log/audit.
+   */
+  async cancelRunsForProject(projectId: string): Promise<string[]> {
+    // Resolve all plan ids for this project up-front so we don't have to
+    // hit the DB inside the loop.
+    const planRows = await this.db
+      .select({ id: plans.id })
+      .from(plans)
+      .where(eq(plans.projectId, projectId))
+      .all();
+    const planIds = new Set(planRows.map((r) => r.id));
+    if (planIds.size === 0) return [];
+    // Walkers in memory are keyed by runId; correlate by looking up each
+    // resident run's planId. Snapshot the keys so cancel() doesn't race
+    // with the post-cancel walkers.delete().
+    const cancelled: string[] = [];
+    const residentIds = Array.from(this.walkers.keys());
+    for (const runId of residentIds) {
+      const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
+      if (!run || !planIds.has(run.planId)) continue;
+      const resident = this.walkers.get(runId);
+      if (!resident) continue;
+      try {
+        await resident.walker.cancel();
+        cancelled.push(runId);
+      } catch (err) {
+        console.error(`[runtime] cancelRunsForProject(${projectId}): cancel ${runId} failed`, err);
+      }
+    }
+    return cancelled;
+  }
+
+  /**
    * E2 — graceful shutdown. Pauses every resident walker, awaits their drain,
    * and clears their snapshot timers. Returns once all walkers settle so the
    * caller can sequence with Fastify.close().
@@ -738,9 +825,18 @@ export class RunRuntime {
 
   async cancelRun(
     runId: string,
-  ): Promise<{ ok: true } | { ok: false; status: 404; error: string }> {
+  ): Promise<{ ok: true } | { ok: false; status: 404 | 409; error: string }> {
     const run = await this.db.select().from(runs).where(eq(runs.id, runId)).get();
     if (!run) return { ok: false, status: 404, error: 'run not found' };
+    // Idempotency: refuse to overwrite a terminal status. A double-click on
+    // the Cancel button can otherwise corrupt a successfully-completed
+    // run's `endedAt` and flip its outcome to 'cancelled'.
+    if (
+      !this.walkers.has(runId) &&
+      (run.status === 'completed' || run.status === 'failed' || run.status === 'cancelled')
+    ) {
+      return { ok: false, status: 409, error: 'run already terminal' };
+    }
     const resident = this.walkers.get(runId);
     if (resident) {
       await resident.walker.cancel();
@@ -1051,11 +1147,44 @@ export class RunRuntime {
     try {
       await this.db.update(runs).set(update).where(eq(runs.id, runId)).run();
     } catch (err) {
-      // A swallowed failure here is the worst kind: the run row can be stuck
-      // at status='running' forever even after the walker terminates, which
-      // looks like an infinite hang in the UI. Log so it's diagnosable.
+      // First failure is most often a transient SQLITE_BUSY (concurrent
+      // writer holding the WAL lock for a hundred ms or so). Retry once with
+      // a short backoff before giving up.
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[runtime] persistRunPatch failed for run ${runId}: ${message}`);
+      console.warn(
+        `[runtime] persistRunPatch transient failure for run ${runId}: ${message}; retrying once`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      try {
+        await this.db.update(runs).set(update).where(eq(runs.id, runId)).run();
+      } catch (err2) {
+        // A swallowed permanent failure here is the worst kind: the run row
+        // can be stuck at status='running' forever even after the walker
+        // terminates, which looks like an infinite hang in the UI. Log with
+        // a distinctive marker so an operator can grep server.log, and
+        // attempt to stop the resident walker so it stops spending API
+        // budget against a DB that can no longer record its work.
+        const m2 = err2 instanceof Error ? err2.message : String(err2);
+        console.error(
+          `[runtime] PERSIST_FAILED run=${runId} patch=${JSON.stringify(update)} error="${m2}" — stopping walker to avoid runaway`,
+        );
+        // Best-effort: if the patch was meant to drive the run to a terminal
+        // state and we can't write it, force the walker to cancel so it
+        // releases subprocess slots and stops emitting events the DB will
+        // never see. The walker's own teardown is in-memory so it doesn't
+        // depend on the (broken) DB write that just failed.
+        const resident = this.walkers.get(runId);
+        if (resident && update.status && update.status !== RUN_STATUS_MAP['running']) {
+          try {
+            await resident.walker.cancel();
+          } catch (cancelErr) {
+            console.error(
+              `[runtime] PERSIST_FAILED follow-up cancel for run ${runId} also failed:`,
+              cancelErr,
+            );
+          }
+        }
+      }
     }
 
     // Fire-and-forget: store a trajectory when the run reaches a terminal outcome.

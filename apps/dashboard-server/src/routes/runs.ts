@@ -497,8 +497,16 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
           reply.code(404);
           return { error: 'no checkpoint found for run' };
         }
-        // M1-D4: surface the last checkpoint for the UI; replay restoration is E2.
-        return { checkpoint: last, hint: 'replay restore not yet implemented in M1-D4' };
+        // Replay-from-checkpoint is intentionally not implemented; the
+        // pause/resume flow handles crash-recovery via the snapshot the walker
+        // writes on a 1s timer. Return 501 explicitly so clients don't
+        // misinterpret 200 + a "not yet implemented" hint as success.
+        reply.code(501);
+        return {
+          error: 'not_implemented',
+          checkpoint: last,
+          hint: 'replay restore is not implemented; use /pause + /resume for crash recovery',
+        };
       }),
     );
   };

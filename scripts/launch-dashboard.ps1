@@ -108,12 +108,16 @@ foreach ($k in $envBlock.Keys) {
 $logOut = Join-Path $dataDir 'server.log'
 $logErr = Join-Path $dataDir 'server.err.log'
 
-# -NoNewWindow keeps the child in the parent console group so its lifecycle
-# tracks the launching shell; it conflicts with -WindowStyle, so we drop the
-# latter (the dashboard process has no GUI surface anyway).
+# Detach the dashboard from the launching console group so closing the
+# Claude Code window (CTRL_CLOSE_EVENT broadcast) doesn't take the server
+# down with it. `-WindowStyle Hidden` keeps the new console invisible to
+# the user; the dashboard has no GUI surface so a hidden window is fine.
+# (Earlier `-NoNewWindow` versions of this script tied the dashboard's
+# lifecycle to the launcher's shell — exactly what we don't want for a
+# "fire and forget" `/wisp-dashboard` invocation.)
 $proc = Start-Process -FilePath 'node' `
     -ArgumentList @("`"$serverEntry`"") `
-    -NoNewWindow `
+    -WindowStyle Hidden `
     -PassThru `
     -RedirectStandardOutput $logOut `
     -RedirectStandardError $logErr

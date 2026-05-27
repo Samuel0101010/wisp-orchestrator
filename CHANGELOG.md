@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.0.15 — Batch-5/6/7: backend P0/P1 + orchestrator concurrency + agent-overrides wiring
+
+This release closes most of the P0/P1 backlog from the post-v2.0.9 audit.
+
+### Fixed
+
+- **`DELETE /api/projects/:id` now cancels live walkers before the DB cascade fires** (`apps/dashboard-server/src/routes/projects.ts`, `apps/dashboard-server/src/orchestrator/runtime.ts`). New `RunRuntime.cancelRunsForProject(projectId)` walks the resident-walker map, identifies any run whose plan belongs to the project, and cancels each one before Drizzle's FK cascade removes the rows. Without this, deleting an active project left zombie walkers spending Claude API budget against a run row that no longer existed. Backend audit B5.
+- **`persistRunPatch` retries once on a transient DB failure**, and if the retry also fails escalates by cancelling the resident walker so it stops emitting events the DB will never see (`runtime.ts`). The original behaviour was a single `console.error` and silent continuation — a permanent DB failure left the run row stuck at `running` forever while the walker kept spending tokens. Audit B23.
+- **`cancelRun` rejects with 409 when the run is already terminal** (`runtime.ts`). A double-click on the Cancel button used to overwrite a successfully-completed run's `endedAt` and flip its outcome to `cancelled`.
+- **`POST /api/runs/:runId/replay-checkpoint` now returns 501** with an explicit `not_implemented` error instead of 200 with a "not yet implemented in M1-D4" hint (`apps/dashboard-server/src/routes/runs.ts`). Clients misinterpreted the 200 as a successful restore. Audit B3.
+- **Walker dispatch re-entrancy** (`packages/orchestrator/src/walker.ts`). The `dispatching` lock used to drop concurrent task-completion wake-ups: when two tasks finished in the same microtask flush, the second `dispatch()` call observed the lock and `return`-ed even if new slots were free. Added a `pendingDispatch` flag that re-fires once on lock release. Audit P1c.
+- **`hooks/hooks.json` matcher is now glob `*` instead of regex `.*`**, matching the verified Claude Code v2 hook schema. Both PreCompact and SessionStart entries are updated. Audit L4.
+- **Hooks moved off `bash` to `node`** (`scripts/pre-compact-archive.cjs`, `scripts/session-start-cleanup.cjs`, both new). The old shell scripts only ran on machines with a POSIX shell — fresh Windows installs without WSL/Git Bash silently no-op'd both hooks. Cross-platform Node ports preserve the same semantics. Audit L5.
+- **PowerShell launcher detaches the dashboard properly** (`scripts/launch-dashboard.ps1`). Replaced `-NoNewWindow` (which tied the server's lifecycle to the launching console group) with `-WindowStyle Hidden` so closing the Claude Code window no longer kills the dashboard. Audit L8.
+
+### Added
+
+- **Per-project agent overrides + handoffs are now consumed by the Walker** (`packages/orchestrator/src/walker.ts`, `apps/dashboard-server/src/orchestrator/runtime.ts`). The `WalkerDeps` interface gains two optional fields:
+  - `applyAgentOverride(role, base)` — closure built by the runtime from `loadAgentOverridesForProject`. Lets a project swap a role's model, append an extra system prompt, or union extra `allowed-tools` without touching the team config.
+  - `handoffsSection: string` — pre-rendered `## Prior Handoffs` markdown built from `loadHandoffsForProject + renderHandoffsSection`. `composeTaskPrompt` appends it after the retry-context section so a developer task sees what the architect handed off earlier in the same run.
+
+  Both are loaded fresh at every cold walker construction (start-run + cold-resume), so an override edited between pause and resume actually takes effect. Audit B1, B2.
+
 ## 2.0.14 — Focusboard polish: cache invalidation + elapsed-timer sync
 
 Two fixes surfaced by a post-implementation review of v2.0.13:

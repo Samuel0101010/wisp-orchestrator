@@ -137,6 +137,26 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         reply.code(404);
         return { error: 'project not found' };
       }
+      // Before letting Drizzle's FK cascade wipe the plans/runs rows, cancel
+      // any live walkers that belong to this project. Without this, deleting
+      // an active project leaves zombie walkers spending API budget against
+      // a run row that no longer exists. Defer-import avoids the circular
+      // dependency with routes/runs.ts.
+      try {
+        const { getDefaultRuntime } = await import('./runs.js');
+        const cancelled = await getDefaultRuntime().cancelRunsForProject(params.id);
+        if (cancelled.length > 0) {
+          req.log.info(
+            { projectId: params.id, cancelled },
+            'DELETE /api/projects: cancelled live walkers before delete',
+          );
+        }
+      } catch (err) {
+        req.log.warn(
+          { projectId: params.id, err: String(err) },
+          'DELETE /api/projects: cancelRunsForProject threw — continuing with delete',
+        );
+      }
       // Cascade is owned by the DB schema (drizzle FKs); deleting the project
       // row removes its plans, runs, and chats automatically.
       await db.delete(projects).where(eq(projects.id, params.id)).run();
