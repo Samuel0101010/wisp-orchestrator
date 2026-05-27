@@ -339,6 +339,10 @@ importers:
         version: 2.1.9(@types/node@20.19.39)(jsdom@25.0.1)(lightningcss@1.32.0)
 
   tests/compliance:
+    dependencies:
+      '@wisp/orchestrator':
+        specifier: workspace:*
+        version: link:../../packages/orchestrator
     devDependencies:
       typescript:
         specifier: ^5.6.0

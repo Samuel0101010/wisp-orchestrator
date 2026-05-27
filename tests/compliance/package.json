@@ -6,6 +6,9 @@
   "scripts": {
     "test": "vitest run"
   },
+  "dependencies": {
+    "@wisp/orchestrator": "workspace:*"
+  },
   "devDependencies": {
     "vitest": "^2.0.0",
     "typescript": "^5.6.0"

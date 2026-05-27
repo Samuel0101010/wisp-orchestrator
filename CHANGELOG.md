@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.18 — Hotfix: tests/compliance missing @wisp/orchestrator workspace dep
+
+CI was failing on v2.0.16 and v2.0.17 because the functional credential-strip test added in v2.0.16 imports `@wisp/orchestrator` but the `@wisp/compliance` workspace had no dependency on it — vitest in that subdir threw `Failed to load url @wisp/orchestrator`. Added the workspace link.
+
 ## 2.0.17 — Batch-9: frontend WS-vs-REST race + preview-inspector postMessage origin
 
 ### Fixed
