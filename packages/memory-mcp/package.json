@@ -1,6 +1,6 @@
 {
   "name": "@wisp/memory-mcp",
-  "version": "2.0.19",
+  "version": "2.0.20",
   "private": true,
   "description": "WISP memory MCP — file-based per-project memory store consumed by orchestrator and dashboard.",
   "keywords": [
@@ -28,9 +28,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
-  },
-  "bin": {
-    "wisp-memory-mcp": "./dist/server.js"
   },
   "files": [
     "dist",

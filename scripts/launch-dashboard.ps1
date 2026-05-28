@@ -4,6 +4,21 @@
 
 $ErrorActionPreference = 'Stop'
 
+# Node version preflight — fail fast with a clear message instead of
+# burning 60+ seconds in pnpm install only to crash with a cryptic
+# SyntaxError or ABI mismatch on the actual server start.
+try {
+    $rawNodeVer = (& node --version 2>$null).TrimStart('v')
+    $minNodeVer = [version]'20.10'
+    if ([version]$rawNodeVer -lt $minNodeVer) {
+        Write-Error "Node >= 20.10 required (found v$rawNodeVer). Install the latest LTS from https://nodejs.org and re-run /wisp-dashboard."
+        exit 1
+    }
+} catch {
+    Write-Error "Could not detect Node.js. Install Node 20.10+ from https://nodejs.org and re-run /wisp-dashboard."
+    exit 1
+}
+
 # Resolve plugin root (set by Claude Code) with a sensible local-dev fallback.
 $pluginRoot = $env:CLAUDE_PLUGIN_ROOT
 if ([string]::IsNullOrEmpty($pluginRoot)) {
@@ -67,6 +82,14 @@ if (-not (Test-Path -LiteralPath $serverEntry)) {
         $pnpmExe = 'pnpm'
     } elseif ($null -ne $corepack) {
         Write-Host "  pnpm not found; using corepack (Node-bundled) instead." -ForegroundColor Cyan
+        # Activate the pinned pnpm version so corepack doesn't prompt
+        # interactively on Node >=22 (the prompt hangs Claude Code's Bash tool
+        # which has no stdin). The version must match package.json#packageManager.
+        & corepack prepare 'pnpm@10.33.2' --activate
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "corepack prepare pnpm@10.33.2 failed — install pnpm globally with 'npm install -g pnpm' and retry."
+            exit 1
+        }
         $pnpmExe = 'corepack'
         $pnpmArgsPrefix = @('pnpm')
     } else {
@@ -86,6 +109,11 @@ if (-not (Test-Path -LiteralPath $serverEntry)) {
     }
     if (-not (Test-Path -LiteralPath $serverEntry)) {
         Write-Error "Bootstrap finished but $serverEntry still missing."
+        exit 1
+    }
+    $webIndex = Join-Path $pluginRoot 'apps/dashboard-web/dist/index.html'
+    if (-not (Test-Path -LiteralPath $webIndex)) {
+        Write-Error "Bootstrap finished but $webIndex is missing — the web bundle did not build. Re-run 'pnpm -r build' from $pluginRoot to see the underlying error."
         exit 1
     }
     Write-Host "  Built. Starting dashboard..." -ForegroundColor Green
@@ -144,6 +172,27 @@ $state | ConvertTo-Json | Set-Content -LiteralPath $statePath -Encoding utf8
 $url = "http://127.0.0.1:$chosenPort"
 Write-Host "Dashboard: $url"
 Write-Host "Logs: $logOut (stderr: $logErr)"
+
+# Wait until the server has bound the port before opening the browser,
+# otherwise the user sees a connection-refused page and has to refresh.
+# Probe at 200ms intervals up to 6 seconds (covers cold-start migrations +
+# Fastify init on a slow first boot).
+$ready = $false
+for ($i = 0; $i -lt 30; $i++) {
+    Start-Sleep -Milliseconds 200
+    try {
+        $probe = New-Object System.Net.Sockets.TcpClient
+        $probe.Connect('127.0.0.1', $chosenPort)
+        $probe.Close()
+        $ready = $true
+        break
+    } catch {
+        # not ready yet
+    }
+}
+if (-not $ready) {
+    Write-Host "Dashboard not responding on $url after 6 seconds. Check $logErr." -ForegroundColor Yellow
+}
 
 # Open default browser.
 Start-Process $url | Out-Null

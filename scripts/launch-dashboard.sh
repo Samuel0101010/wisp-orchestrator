@@ -5,6 +5,22 @@
 
 set -euo pipefail
 
+# Node version preflight — fail fast with a clear message instead of
+# burning 60+ seconds in pnpm install only to crash with a cryptic
+# SyntaxError or ABI mismatch on the actual server start.
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js not found. Install Node 20.10+ from https://nodejs.org and re-run /wisp-dashboard." >&2
+  exit 1
+fi
+node_ver="$(node --version | sed 's/^v//')"
+node_major="${node_ver%%.*}"
+rest="${node_ver#*.}"
+node_minor="${rest%%.*}"
+if [ "$node_major" -lt 20 ] || { [ "$node_major" -eq 20 ] && [ "$node_minor" -lt 10 ]; }; then
+  echo "Node >= 20.10 required (found v$node_ver). Install the latest LTS from https://nodejs.org and re-run /wisp-dashboard." >&2
+  exit 1
+fi
+
 # Resolve plugin root (set by Claude Code) with local-dev fallback.
 plugin_root="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 
@@ -13,7 +29,25 @@ data_dir="${CLAUDE_PLUGIN_DATA:-${HOME}/.local/share/agent-harness}"
 mkdir -p "$data_dir"
 
 # Pick a free port in 4400..4500.
+#
+# Prefer the bash /dev/tcp builtin — it's available everywhere real bash is and
+# has no external-tool dependency. A SUCCESSFUL connect means the port is
+# already in use, so we want the inverse: skip ports we can connect to and pick
+# the first one that refuses. (This is the canonical way; an earlier version
+# delegated to python3 first, which broke on Windows where Git Bash inherits
+# the Microsoft Store python3 stub that exists on PATH but errors out.)
 pick_port() {
+  for p in $(seq 4400 4500); do
+    if (exec 3<>"/dev/tcp/127.0.0.1/$p") 2>/dev/null; then
+      exec 3<&- 3>&-
+    else
+      echo "$p"
+      return 0
+    fi
+  done
+  # /dev/tcp can be disabled in some hardened bash builds. Try python3 as a
+  # last-resort fallback (real python only — Windows Store stub will fail
+  # uniformly for every port and the function returns 1 below).
   if command -v python3 >/dev/null 2>&1; then
     for p in $(seq 4400 4500); do
       if python3 -c "
@@ -30,17 +64,7 @@ finally:
         return 0
       fi
     done
-    return 1
   fi
-  # Fallback: try /dev/tcp probe (bash builtin) - if connect fails, port is free.
-  for p in $(seq 4400 4500); do
-    if ! (exec 3<>"/dev/tcp/127.0.0.1/$p") 2>/dev/null; then
-      echo "$p"
-      return 0
-    else
-      exec 3<&- 3>&-
-    fi
-  done
   return 1
 }
 
@@ -62,6 +86,13 @@ if [ ! -f "$server_entry" ]; then
     pnpm_cmd="pnpm"
   elif command -v corepack >/dev/null 2>&1; then
     echo "  pnpm not found; using corepack (Node-bundled) instead."
+    # Activate the pinned pnpm version so corepack doesn't prompt
+    # interactively on Node >=22 (the prompt hangs Claude Code's Bash tool
+    # which has no stdin). The version must match package.json#packageManager.
+    if ! corepack prepare 'pnpm@10.33.2' --activate; then
+      echo "corepack prepare pnpm@10.33.2 failed — install pnpm globally with 'npm install -g pnpm' and retry." >&2
+      exit 1
+    fi
     pnpm_cmd="corepack pnpm"
   else
     echo "Neither 'pnpm' nor 'corepack' is on PATH. Install Node 20+ (corepack" >&2
@@ -81,6 +112,11 @@ if [ ! -f "$server_entry" ]; then
   fi
   if [ ! -f "$server_entry" ]; then
     echo "Bootstrap finished but $server_entry still missing." >&2
+    exit 1
+  fi
+  web_index="${plugin_root}/apps/dashboard-web/dist/index.html"
+  if [ ! -f "$web_index" ]; then
+    echo "Bootstrap finished but $web_index is missing — the web bundle did not build. Re-run 'pnpm -r build' from $plugin_root to see the underlying error." >&2
     exit 1
   fi
   echo "  Built. Starting dashboard..."
@@ -105,6 +141,23 @@ EOF
 
 url="http://127.0.0.1:${chosen_port}"
 echo "Dashboard: ${url}"
+
+# Wait until the server has bound the port before opening the browser,
+# otherwise the user sees a connection-refused page and has to refresh.
+# Probe at 200ms intervals up to 6 seconds (covers cold-start migrations +
+# Fastify init on a slow first boot).
+ready=0
+for _ in $(seq 1 30); do
+  sleep 0.2
+  if (exec 3<>"/dev/tcp/127.0.0.1/${chosen_port}") 2>/dev/null; then
+    exec 3<&- 3>&-
+    ready=1
+    break
+  fi
+done
+if [ "$ready" -eq 0 ]; then
+  echo "Dashboard not responding on ${url} after 6 seconds. Check ${log_file}." >&2
+fi
 
 # Open browser.
 if command -v open >/dev/null 2>&1; then

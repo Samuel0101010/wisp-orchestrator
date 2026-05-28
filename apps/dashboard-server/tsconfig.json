@@ -8,5 +8,9 @@
   },
   "include": ["src/**/*"],
   "exclude": ["dist", "**/*.test.ts", "src/__tests__/**"],
-  "references": [{ "path": "../../packages/schemas" }, { "path": "../../packages/orchestrator" }]
+  "references": [
+    { "path": "../../packages/schemas" },
+    { "path": "../../packages/orchestrator" },
+    { "path": "../../packages/memory-mcp" }
+  ]
 }
