@@ -1,8 +1,18 @@
 import type { FastifyInstance } from 'fastify';
 import type { WebSocket } from 'ws';
 import { eq } from 'drizzle-orm';
-import { harnessEventSchema, runs, type HarnessEvent } from '@wisp/schemas';
+import { agentThreads, harnessEventSchema, runs, type HarnessEvent } from '@wisp/schemas';
 import { db } from './db/index.js';
+
+/**
+ * Chat token-streaming events, broadcast per thread over `/ws/threads/:id`.
+ * Deliberately NOT part of the run-scoped `HarnessEvent` union so the RunView
+ * WS consumers never have to handle them. The server constructs these
+ * directly; the web client parses defensively.
+ */
+export type ChatStreamEvent =
+  | { type: 'chat.text-delta'; threadId: string; chunk: string }
+  | { type: 'chat.turn-complete'; threadId: string };
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const HEARTBEAT_TIMEOUT_MS = 35_000;
@@ -13,13 +23,18 @@ type Tracked = {
 };
 
 const registry = new Map<string, Set<Tracked>>();
+const threadRegistry = new Map<string, Set<Tracked>>();
 let heartbeatTimer: NodeJS.Timeout | null = null;
+
+function allRegistriesEmpty(): boolean {
+  return registry.size === 0 && threadRegistry.size === 0;
+}
 
 function ensureHeartbeat(): void {
   if (heartbeatTimer !== null) return;
   heartbeatTimer = setInterval(() => {
     const now = Date.now();
-    for (const [, sockets] of registry) {
+    for (const sockets of [...registry.values(), ...threadRegistry.values()]) {
       for (const tracked of sockets) {
         if (now - tracked.lastPongAt > HEARTBEAT_TIMEOUT_MS) {
           try {
@@ -67,7 +82,35 @@ export function subscribeToRun(runId: string, socket: WebSocket): void {
       current.delete(tracked);
       if (current.size === 0) registry.delete(runId);
     }
-    if (registry.size === 0) stopHeartbeat();
+    if (allRegistriesEmpty()) stopHeartbeat();
+  };
+
+  socket.on('close', cleanup);
+  socket.on('error', cleanup);
+
+  ensureHeartbeat();
+}
+
+export function subscribeToThread(threadId: string, socket: WebSocket): void {
+  let set = threadRegistry.get(threadId);
+  if (!set) {
+    set = new Set();
+    threadRegistry.set(threadId, set);
+  }
+  const tracked: Tracked = { socket, lastPongAt: Date.now() };
+  set.add(tracked);
+
+  socket.on('pong', () => {
+    tracked.lastPongAt = Date.now();
+  });
+
+  const cleanup = (): void => {
+    const current = threadRegistry.get(threadId);
+    if (current) {
+      current.delete(tracked);
+      if (current.size === 0) threadRegistry.delete(threadId);
+    }
+    if (allRegistriesEmpty()) stopHeartbeat();
   };
 
   socket.on('close', cleanup);
@@ -82,6 +125,21 @@ export function publishToRun(runId: string, event: HarnessEvent): void {
   const sockets = registry.get(runId);
   if (!sockets || sockets.size === 0) return;
   const payload = JSON.stringify(parsed);
+  for (const tracked of sockets) {
+    if (tracked.socket.readyState === tracked.socket.OPEN) {
+      try {
+        tracked.socket.send(payload);
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+export function publishToThread(threadId: string, event: ChatStreamEvent): void {
+  const sockets = threadRegistry.get(threadId);
+  if (!sockets || sockets.size === 0) return;
+  const payload = JSON.stringify(event);
   for (const tracked of sockets) {
     if (tracked.socket.readyState === tracked.socket.OPEN) {
       try {
@@ -117,6 +175,28 @@ export function registerWebsocket(app: FastifyInstance): void {
       subscribeToRun(runId, socket as unknown as WebSocket);
     },
   );
+
+  app.get<{ Params: { threadId: string } }>(
+    '/ws/threads/:threadId',
+    {
+      websocket: true,
+      preValidation: async (req, reply) => {
+        const { threadId } = req.params as { threadId: string };
+        const row = db
+          .select({ id: agentThreads.id })
+          .from(agentThreads)
+          .where(eq(agentThreads.id, threadId))
+          .get();
+        if (!row) {
+          return reply.code(404).send({ error: 'thread not found' });
+        }
+      },
+    },
+    (socket, req) => {
+      const { threadId } = req.params;
+      subscribeToThread(threadId, socket as unknown as WebSocket);
+    },
+  );
 }
 
 // Test helpers — not part of the public surface.
@@ -125,7 +205,7 @@ export function __getRegistry(): Map<string, Set<Tracked>> {
 }
 
 export function __resetWsState(): void {
-  for (const [, sockets] of registry) {
+  for (const sockets of [...registry.values(), ...threadRegistry.values()]) {
     for (const t of sockets) {
       try {
         t.socket.terminate();
@@ -135,5 +215,6 @@ export function __resetWsState(): void {
     }
   }
   registry.clear();
+  threadRegistry.clear();
   stopHeartbeat();
 }

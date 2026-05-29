@@ -53,6 +53,7 @@ import {
   useThreadMessages,
   useUploadAttachments,
 } from '@/api/queries';
+import { useThreadStream } from '@/api/ws';
 import type { Agent, AgentMessage, AgentThread } from '@wisp/schemas';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
@@ -90,6 +91,8 @@ export function ChatRoute() {
 
   const messages = useThreadMessages(selectedThreadId ?? undefined);
   const detail = useThreadDetail(selectedThreadId ?? undefined);
+  // Live token stream for the in-flight turn (REST poll stays the source of truth).
+  const { streamingText } = useThreadStream(selectedThreadId);
   const createThread = useCreateThread();
   const deleteThread = useDeleteThread();
   const compress = useCompressThread();
@@ -440,6 +443,7 @@ export function ChatRoute() {
               participants={participants}
               manager={manager}
               isPending={sendMessage.isPending}
+              streamingText={streamingText}
             />
           )}
           <div ref={scrollEnd} />
@@ -825,12 +829,14 @@ function Transcript({
   participants,
   manager,
   isPending,
+  streamingText,
 }: {
   messages: AgentMessage[];
   actions: ChatActionRow[];
   participants: ThreadParticipantSummary[];
   manager: Agent;
   isPending: boolean;
+  streamingText: string;
 }) {
   const { t, i18n } = useTranslation();
   // Build a map: messageId → actions[] so we can render action cards below
@@ -858,12 +864,34 @@ function Transcript({
           lang={i18n.language}
         />
       ))}
-      {isPending && (
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          {t('chat.transcript.typing')}
-        </div>
-      )}
+      {isPending &&
+        (() => {
+          // Hide directive sigils from the live preview; on completion the
+          // cleaned canonical message (rendered as markdown) replaces this.
+          const preview = streamingText.split('<<ACTION>>')[0] ?? '';
+          if (preview.trim().length === 0) {
+            return (
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {t('chat.transcript.typing')}
+              </div>
+            );
+          }
+          return (
+            <div className="flex items-start gap-3">
+              <AuthorAvatar authorAgentId={manager.id} name={manager.name} />
+              <div className="min-w-0 flex-1">
+                <div className="mb-0.5 flex items-baseline gap-2">
+                  <span className="text-sm font-semibold">{manager.name}</span>
+                  <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                </div>
+                <div className="inline-block max-w-[92%] rounded-2xl rounded-tl-md bg-muted/40 px-3 py-2 text-sm text-foreground">
+                  <div className="whitespace-pre-wrap">{preview}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 }

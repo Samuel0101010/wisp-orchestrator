@@ -7,7 +7,8 @@ import { buildApp } from '../app.js';
 import { runMigrations } from '../db/migrate.js';
 import { db, sqlite } from '../db/index.js';
 import { plans, projects, runs, teams } from '@wisp/schemas';
-import { __getRegistry, __resetWsState, publishToRun } from '../ws.js';
+import { __getRegistry, __resetWsState, publishToRun, publishToThread } from '../ws.js';
+import { seedAgents } from '../db/agents-seed.js';
 
 async function seedRun(): Promise<string> {
   const projectId = randomUUID();
@@ -47,6 +48,7 @@ describe('websocket bus', () => {
 
   beforeAll(async () => {
     runMigrations();
+    seedAgents();
     runId = await seedRun();
     app = await buildApp();
     await app.ready();
@@ -88,6 +90,57 @@ describe('websocket bus', () => {
 
     ws.close();
     await new Promise((r) => setTimeout(r, 50));
+  });
+
+  it('streams chat token deltas + turn-complete to a thread subscriber', async () => {
+    const agentsRes = await app.inject({ method: 'GET', url: '/api/agents' });
+    const managerId = (agentsRes.json() as Array<{ id: string; seedKey: string | null }>).find(
+      (a) => a.seedKey === 'manager',
+    )!.id;
+    const tRes = await app.inject({
+      method: 'POST',
+      url: `/api/agents/${managerId}/threads`,
+      payload: {},
+    });
+    const threadId = (tRes.json() as { id: string }).id;
+
+    const ws = new WebSocketClient(`${baseUrl}/ws/threads/${threadId}`);
+    await new Promise<void>((resolve, reject) => {
+      ws.once('open', () => resolve());
+      ws.once('error', reject);
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(__getRegistry().get(threadId)).toBeUndefined(); // thread sockets live in a separate registry
+
+    const got: Array<{ type: string; chunk?: string }> = [];
+    ws.on('message', (d) => got.push(JSON.parse(d.toString())));
+
+    publishToThread(threadId, { type: 'chat.text-delta', threadId, chunk: 'hello ' });
+    publishToThread(threadId, { type: 'chat.text-delta', threadId, chunk: 'world' });
+    publishToThread(threadId, { type: 'chat.turn-complete', threadId });
+    await new Promise((r) => setTimeout(r, 100));
+
+    const text = got
+      .filter((e) => e.type === 'chat.text-delta')
+      .map((e) => e.chunk)
+      .join('');
+    expect(text).toBe('hello world');
+    expect(got.some((e) => e.type === 'chat.turn-complete')).toBe(true);
+
+    ws.close();
+    await new Promise((r) => setTimeout(r, 50));
+  });
+
+  it('rejects upgrade with 404 for unknown thread id', async () => {
+    const ws = new WebSocketClient(`${baseUrl}/ws/threads/does-not-exist`);
+    const status = await new Promise<number>((resolve, reject) => {
+      ws.once('unexpected-response', (_req, res) => resolve(res.statusCode ?? 0));
+      ws.once('open', () => reject(new Error('expected upgrade rejection, got open')));
+      ws.once('error', () => {
+        /* some ws versions surface this as an error after the 404 */
+      });
+    });
+    expect(status).toBe(404);
   });
 
   it('rejects invalid events', () => {

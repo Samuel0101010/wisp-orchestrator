@@ -65,6 +65,7 @@ import { runClaude, type SubprocessRunner } from '@wisp/orchestrator';
 import { db, sqlite } from '../db/index.js';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
+import { publishToThread } from '../ws.js';
 import { wrap } from './wrap.js';
 import {
   composePrompt,
@@ -839,6 +840,10 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
             model: responder.model,
             taskId: `chat-${threadId.slice(0, 8)}-${responder.seedKey ?? 'agent'}`,
             runner: deps.runner ?? runner,
+            // Relay each token to any live WS subscriber on this thread so the
+            // reply streams in instead of appearing all at once on the 3s poll.
+            onTextDelta: (chunk) =>
+              publishToThread(threadId, { type: 'chat.text-delta', threadId, chunk }),
             // When attachments are present, run in the upload dir so the
             // responder's READ_ONLY_TOOLS (Read/Grep/Glob) can open the files.
             // Otherwise keep the ephemeral mkdtemp behavior.
@@ -922,6 +927,10 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           } else {
             reply.code(201);
           }
+          // Signal live WS subscribers the turn is done so they drop their
+          // streaming buffer and refetch the canonical persisted messages
+          // (primary reply + any directive-spawned messages).
+          publishToThread(threadId, { type: 'chat.turn-complete', threadId });
           return {
             user: userRow,
             assistants: [primaryRow, ...extraRows].filter(Boolean),

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.23 — chat token streaming (live WebSocket push)
+
+Assistant replies now stream into the chat over a per-thread WebSocket instead of only surfacing on the 3-second message poll. Validated live (a browser WS client received the reply deltas + a `turn-complete` signal) and by new server tests. All 9 gates green.
+
+### Added
+
+- **Per-thread chat stream (`/ws/threads/:id`).** The server relays each `task.text-delta` from the responder's turn as a `chat.text-delta` event, plus a `chat.turn-complete` when the turn ends. The web client (`useThreadStream`) shows a live reply bubble while the turn is in flight, then drops it on completion when the canonical persisted message (rendered as markdown) takes over. The 3s REST poll remains as a fallback when the socket is closed/errored. Thread events are deliberately kept out of the run-scoped `HarnessEvent` union, so the RunView WS consumers are unaffected; the per-thread send mutex (v2.0.22) keeps one stream per thread.
+
+  Note: the `claude -p` runner currently emits each chat reply as one buffered chunk, so today this is push-on-arrival (the reply appears as soon as the model finishes, ahead of the poll) rather than token-by-token. The relay forwards finer deltas automatically if the runner ever provides them.
+
 ## 2.0.22 — chat polish: markdown rendering + per-thread send mutex
 
 Two focused chat-quality improvements from a full live dogfooding pass (two end-to-end WISP runs building a Pomodoro timer, preview, and a chat session as a user). Validated live in the browser and by a concurrent-send test. All 9 gates green.

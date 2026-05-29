@@ -38,6 +38,12 @@ export interface RunAgentTurnOpts {
   resumeSessionId?: string;
   /** Bundle key — when present, captured session_id is written back. */
   bundleKey?: string;
+  /**
+   * Called with each text-delta chunk as it streams from the model. Used to
+   * relay tokens to a live WS subscriber. Throws are swallowed so a flaky
+   * subscriber never aborts the turn.
+   */
+  onTextDelta?: (chunk: string) => void;
 }
 
 export interface RunAgentTurnResult {
@@ -78,6 +84,13 @@ export async function runAgentTurn(opts: RunAgentTurnOpts): Promise<RunAgentTurn
     })) {
       if (ev.type === 'task.text-delta') {
         text += ev.payload.text;
+        if (opts.onTextDelta) {
+          try {
+            opts.onTextDelta(ev.payload.text);
+          } catch {
+            /* a flaky subscriber must never abort the turn */
+          }
+        }
       } else if (ev.type === 'task.usage') {
         tokensIn = ev.payload.tokensIn;
         tokensOut = ev.payload.tokensOut;
