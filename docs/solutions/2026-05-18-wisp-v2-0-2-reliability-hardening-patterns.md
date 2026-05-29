@@ -16,7 +16,8 @@ files:
   - apps/dashboard-server/src/server.ts
   - apps/dashboard-server/src/logger.ts
   - apps/dashboard-server/src/orchestrator/release-gate.ts
-related: []
+related:
+  - 2026-05-29-better-sqlite3-node24-prebuilt-gap.md
 ---
 
 # WISP v2.0.2 — five reliability patterns from a real app-build outage
