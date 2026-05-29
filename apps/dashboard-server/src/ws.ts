@@ -12,7 +12,14 @@ import { db } from './db/index.js';
  */
 export type ChatStreamEvent =
   | { type: 'chat.text-delta'; threadId: string; chunk: string }
-  | { type: 'chat.turn-complete'; threadId: string };
+  | { type: 'chat.turn-complete'; threadId: string }
+  | {
+      type: 'chat.action-update';
+      threadId: string;
+      actionId: string;
+      status: 'ok' | 'failed';
+      resultJson: unknown;
+    };
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const HEARTBEAT_TIMEOUT_MS = 35_000;

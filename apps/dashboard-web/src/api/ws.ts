@@ -127,8 +127,16 @@ function buildThreadWsUrl(threadId: string): string {
  * after a completion) and clears on `chat.turn-complete`. The REST message
  * poll remains the source of truth — this only provides a live preview while
  * a turn is in flight. Safe no-op when threadId is null.
+ *
+ * `onActionUpdate` fires when the server emits a `chat.action-update` event
+ * (e.g. an async generate_plan job finishing). The Chat route uses it to
+ * refetch the thread so the pending ActionCard re-renders to ok/failed. The
+ * callback is held in a ref so changing its identity does not reconnect the WS.
  */
-export function useThreadStream(threadId: string | null): UseThreadStreamResult {
+export function useThreadStream(
+  threadId: string | null,
+  onActionUpdate?: () => void,
+): UseThreadStreamResult {
   const [streamingText, setStreamingText] = useState('');
   const [status, setStatus] = useState<WsStatus>('idle');
   const turnActiveRef = useRef(false);
@@ -136,6 +144,8 @@ export function useThreadStream(threadId: string | null): UseThreadStreamResult 
   const cancelledRef = useRef(false);
   const backoffRef = useRef(INITIAL_BACKOFF_MS);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onActionUpdateRef = useRef(onActionUpdate);
+  onActionUpdateRef.current = onActionUpdate;
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -158,6 +168,10 @@ export function useThreadStream(threadId: string | null): UseThreadStreamResult 
       ws.onopen = () => {
         backoffRef.current = INITIAL_BACKOFF_MS;
         setStatus('open');
+        // Re-sync on every (re)connect: a chat.action-update published while the
+        // socket was down/reconnecting (or before this thread was selected) is
+        // lost, so reconcile the thread's canonical action statuses from REST.
+        onActionUpdateRef.current?.();
       };
 
       ws.onmessage = (ev: MessageEvent) => {
@@ -180,6 +194,10 @@ export function useThreadStream(threadId: string | null): UseThreadStreamResult 
         } else if (e.type === 'chat.turn-complete') {
           turnActiveRef.current = false;
           setStreamingText('');
+        } else if (e.type === 'chat.action-update') {
+          // An async directive (e.g. generate_plan) finished — let the route
+          // refetch the thread so the pending ActionCard flips to ok/failed.
+          onActionUpdateRef.current?.();
         }
       };
 

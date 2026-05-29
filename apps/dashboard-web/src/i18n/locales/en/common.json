@@ -1152,6 +1152,8 @@
       "consulted": "Consulted <strong>{{name}}</strong>. Reply posted below ↓",
       "runStarted": "Started run <code>{{id}}</code>.",
       "noPlan": "Cannot start run yet — no plan. Open the project to generate one.",
+      "generatingPlan": "Generating plan…",
+      "planGenerated": "Plan generated",
       "actionFailed": "Action failed: {{kind}}",
       "unknownError": "unknown error",
       "generic": "Action: {{kind}} · {{status}}"

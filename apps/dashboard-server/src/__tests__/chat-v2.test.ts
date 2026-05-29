@@ -1,7 +1,7 @@
 import './setup.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import type { HarnessEvent } from '@wisp/schemas';
+import { directiveSchema, type HarnessEvent } from '@wisp/schemas';
 import type { RunClaudeOpts } from '@wisp/orchestrator';
 import { agentRoutes } from '../routes/agents.js';
 import { createChatRouter } from '../routes/chat.js';
@@ -421,5 +421,42 @@ describe('chat v2 — participants, @mentions, directives, compress', () => {
     } finally {
       await slowApp.close();
     }
+  });
+
+  it('directiveSchema accepts generate_plan with and without projectId', () => {
+    expect(directiveSchema.parse({ kind: 'generate_plan' })).toEqual({ kind: 'generate_plan' });
+    expect(directiveSchema.parse({ kind: 'generate_plan', projectId: 'x' })).toEqual({
+      kind: 'generate_plan',
+      projectId: 'x',
+    });
+  });
+
+  it('manager directive generate_plan without a prior create_project fails synchronously', async () => {
+    app = await buildAppWithRunner(
+      new Map([
+        ['chat-', 'Generating a plan now.\n\n<<ACTION>>\n{"kind":"generate_plan"}\n<<END>>'],
+      ]),
+    );
+    const managerId = await getManagerId(app);
+    const t = await app.inject({
+      method: 'POST',
+      url: `/api/agents/${managerId}/threads`,
+      payload: {},
+    });
+    const threadId = (t.json() as { id: string }).id;
+    const send = await app.inject({
+      method: 'POST',
+      url: `/api/threads/${threadId}/messages`,
+      payload: { content: 'Generate a plan please.' },
+    });
+    expect(send.statusCode).toBe(201);
+    const body = send.json();
+    expect(body.actions).toHaveLength(1);
+    expect(body.actions[0].kind).toBe('generate_plan');
+    // No project in the thread → handler throws no_project synchronously, so
+    // the row is persisted as failed (NOT pending).
+    expect(body.actions[0].status).toBe('failed');
+    const result = body.actions[0].result as { error?: string } | null;
+    expect(result?.error).toContain('no_project');
   });
 });

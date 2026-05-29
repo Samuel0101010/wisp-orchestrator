@@ -22,6 +22,7 @@ import {
   chatActions,
   plans as plansTable,
   projects as projectsTable,
+  teams as teamsTable,
   threadParticipants,
   type ChatActionKind,
   type ChatActionStatus,
@@ -29,8 +30,10 @@ import {
   type Team,
 } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
+import { env } from '../env.js';
 import { resolveAgentRef } from '../db/agents-seed.js';
 import { runAgentTurn, composePrompt, type HistoryMessage } from './chat-engine.js';
+import { publishToThread } from '../ws.js';
 import type { SubprocessRunner } from '@wisp/orchestrator';
 import type { SkillRegistry } from '../skills/registry.js';
 import { invokeSkill } from '../skills/invoker.js';
@@ -106,6 +109,15 @@ export async function executeDirective(
       case 'invoke_skill': {
         result = await handleInvokeSkill(d, ctx, extraMessages);
         status = 'ok';
+        break;
+      }
+      case 'generate_plan': {
+        // The plan is generated asynchronously (60-90s); the handler returns
+        // immediately after launching a background job and we persist the row
+        // as 'pending'. The bg job patches it to 'ok'/'failed' + emits a WS
+        // 'chat.action-update' once the plan is locked (or fails).
+        result = await handleGeneratePlan(d, ctx, id);
+        status = 'pending';
         break;
       }
     }
@@ -443,6 +455,145 @@ async function handleStartRun(
     throw new Error(`run_start_failed: ${startResult.error}`);
   }
   return { projectId, planId: latestPlan.id, runId: startResult.runId };
+}
+
+/**
+ * Generate + lock a plan for a project from chat. The plan-gen call is slow
+ * (60-90s), so this handler validates eagerly + synchronously (so an obviously
+ * un-plannable request fails the chat_actions row immediately, not after 90s),
+ * then launches a NON-awaited background job that calls the server's own
+ * existing endpoints over loopback HTTP:
+ *   POST /api/projects/:id/plan  (reuses the fully-tested plan-gen route)
+ *   POST /api/plans/:planId/lock
+ * On completion the bg job patches the chat_actions row + publishes a
+ * `chat.action-update` WS event so the UI flips the pending card to ok/failed.
+ *
+ * The directive's persisted status starts as 'pending'; start_run must be
+ * emitted in a SEPARATE later turn (the plan is not ready in this turn).
+ */
+async function handleGeneratePlan(
+  d: Extract<ManagerDirective, { kind: 'generate_plan' }>,
+  ctx: DirectiveContext,
+  actionId: string,
+): Promise<unknown> {
+  // Resolve projectId (same pattern as handleStartRun).
+  let projectId = d.projectId;
+  if (!projectId) {
+    const recent = db
+      .select()
+      .from(chatActions)
+      .where(eq(chatActions.threadId, ctx.threadId))
+      .orderBy(desc(chatActions.createdAt))
+      .all();
+    const created = recent.find((r) => r.kind === 'create_project' && r.status === 'ok');
+    const result = created?.resultJson as { projectId?: string } | null | undefined;
+    if (!result?.projectId) {
+      throw new Error('no_project: pass projectId or create_project first');
+    }
+    projectId = result.projectId;
+  }
+
+  // Eager validation — fail fast (synchronous throw → status persisted as
+  // 'failed' immediately) before launching the background job.
+  const project = db.select().from(projectsTable).where(eq(projectsTable.id, projectId)).get();
+  if (!project) throw new Error(`project_not_found: ${projectId}`);
+  const teamRow = db.select().from(teamsTable).where(eq(teamsTable.projectId, projectId)).get();
+  if (!teamRow) throw new Error('team_missing: configure a team before generating a plan');
+
+  const threadId = ctx.threadId;
+  const targetProjectId = projectId;
+
+  // Background job — intentionally NOT awaited. Reuses the existing plan-gen
+  // route over loopback HTTP (zero changes to the critical plan path) and
+  // always sends x-allow-unbriefed: 1 (create_project seeds an unready brief).
+  void (async () => {
+    try {
+      // Defer past the synchronous chat_actions INSERT that executeDirective
+      // performs after this handler returns (a microtask), so the bg job's
+      // UPDATE/patch provably targets an existing row even on a sync throw.
+      await new Promise((resolve) => setImmediate(resolve));
+      // WISP_HOST is a BIND address; 0.0.0.0 / :: are not valid connect targets
+      // (ECONNREFUSED on Windows/macOS). Normalize to loopback for the self-call
+      // — the server always answers on loopback when bound to a wildcard.
+      const connectHost =
+        env.WISP_HOST === '0.0.0.0' || env.WISP_HOST === '::' ? '127.0.0.1' : env.WISP_HOST;
+      const base = `http://${connectHost}:${env.WISP_PORT}`;
+      const planRes = await fetch(`${base}/api/projects/${targetProjectId}/plan`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-allow-unbriefed': '1' },
+        body: '{}',
+        signal: AbortSignal.timeout(240_000),
+      });
+      const planData = (await planRes.json().catch(() => ({}))) as {
+        id?: string;
+        error?: string;
+        message?: string;
+      };
+      if (!planRes.ok || !planData.id) {
+        const err = planData.error || planData.message || `plan_gen_http_${planRes.status}`;
+        patchActionFailed(actionId, threadId, err);
+        return;
+      }
+      const planId = planData.id;
+
+      const lockRes = await fetch(`${base}/api/plans/${planId}/lock`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!lockRes.ok) {
+        const lockData = (await lockRes.json().catch(() => ({}))) as {
+          error?: string;
+          message?: string;
+        };
+        const err = lockData.error || lockData.message || `lock_http_${lockRes.status}`;
+        // Remove the orphaned unlocked draft this job just created so a retry
+        // or start_run can't pick it up (plan recency ordering is by UUID, not
+        // time, so a stray draft is a real hazard).
+        try {
+          sqlite.prepare(`DELETE FROM plans WHERE id = ? AND status = 'draft'`).run(planId);
+        } catch {
+          /* best-effort */
+        }
+        patchActionFailed(actionId, threadId, err);
+        return;
+      }
+
+      const resultJson = { projectId: targetProjectId, planId };
+      sqlite
+        .prepare(`UPDATE chat_actions SET status = ?, result_json = ? WHERE id = ?`)
+        .run('ok', JSON.stringify(resultJson), actionId);
+      publishToThread(threadId, {
+        type: 'chat.action-update',
+        threadId,
+        actionId,
+        status: 'ok',
+        resultJson,
+      });
+    } catch (err) {
+      patchActionFailed(actionId, threadId, err instanceof Error ? err.message : String(err));
+    }
+  })();
+
+  return { projectId: targetProjectId, planGenStarted: true };
+}
+
+/** Patch a generate_plan chat_actions row to 'failed' + notify subscribers. */
+function patchActionFailed(actionId: string, threadId: string, error: string): void {
+  const resultJson = { error };
+  try {
+    sqlite
+      .prepare(`UPDATE chat_actions SET status = 'failed', result_json = ? WHERE id = ?`)
+      .run(JSON.stringify(resultJson), actionId);
+  } catch {
+    // ignore — the row may not exist if the DB was closed mid-flight (tests).
+  }
+  publishToThread(threadId, {
+    type: 'chat.action-update',
+    threadId,
+    actionId,
+    status: 'failed',
+    resultJson,
+  });
 }
 
 async function handleInvokeSkill(

@@ -1152,6 +1152,8 @@
       "consulted": "<strong>{{name}}</strong> konsultiert. Antwort steht unten ↓",
       "runStarted": "Run <code>{{id}}</code> gestartet.",
       "noPlan": "Run noch nicht möglich — kein Plan. Öffne das Projekt, um einen zu generieren.",
+      "generatingPlan": "Plan wird generiert…",
+      "planGenerated": "Plan generiert",
       "actionFailed": "Aktion fehlgeschlagen: {{kind}}",
       "unknownError": "unbekannter Fehler",
       "generic": "Aktion: {{kind}} · {{status}}"

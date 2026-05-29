@@ -1556,7 +1556,13 @@ export interface ChatActionRow {
   id: string;
   threadId: string;
   messageId: string | null;
-  kind: 'consult' | 'add_member' | 'create_project' | 'start_run' | 'invoke_skill';
+  kind:
+    | 'consult'
+    | 'add_member'
+    | 'create_project'
+    | 'start_run'
+    | 'invoke_skill'
+    | 'generate_plan';
   payloadJson: unknown;
   resultJson: unknown;
   status: 'pending' | 'ok' | 'failed';

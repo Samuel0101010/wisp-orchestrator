@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.24 — create → plan → run from chat (generate_plan directive)
+
+The chat manager can now generate **and** lock a plan for a project directly from the conversation, so a user can go idea → project → plan → run without leaving the chat. Designed + adversarially reviewed by an agent team, then validated live in the browser (manager emitted create_project + generate_plan in one turn; the plan locked with 5 nodes; the ActionCard flipped pending → "Plan generated").
+
+### Added
+
+- **`generate_plan` chat directive.** The manager emits `<<ACTION>>{"kind":"generate_plan","projectId":"…"}<<END>>` to generate + lock a plan. It runs **asynchronously** — the directive returns immediately with a `pending` action card, a background job drives the plan generation, and a new `chat.action-update` WebSocket event flips the card to "Plan generated" (with an Open-project link) or "failed" when it lands. This keeps the chat send non-blocking despite the ~60-90s planner turn. The manager system prompt teaches the directive and that `start_run` must follow in a separate turn (the plan isn't ready in the same turn).
+
+### Implementation notes
+
+- The background job reuses the existing `POST /api/projects/:id/plan` + `POST /api/plans/:id/lock` routes over a **loopback HTTP call** — zero changes to the critical plan-generation path, no duplication. The loopback host is normalized to a loopback address (so a `WISP_HOST=0.0.0.0` bind still works). An orphaned draft plan is deleted if the lock step fails. A boot-time sweep flips any `pending` `generate_plan` rows orphaned by a mid-generation restart to `failed`. The web client re-syncs the thread on WebSocket (re)connect so a missed action-update can't strand the card on "generating".
+
 ## 2.0.23 — chat token streaming (live WebSocket push)
 
 Assistant replies now stream into the chat over a per-thread WebSocket instead of only surfacing on the 3-second message poll. Validated live (a browser WS client received the reply deltas + a `turn-complete` signal) and by new server tests. All 9 gates green.

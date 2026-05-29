@@ -14,7 +14,8 @@
  * is the thread agent, which auto-promotes them as participant.
  */
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
@@ -91,8 +92,16 @@ export function ChatRoute() {
 
   const messages = useThreadMessages(selectedThreadId ?? undefined);
   const detail = useThreadDetail(selectedThreadId ?? undefined);
+  // Refetch the thread when an async directive (e.g. generate_plan) finishes,
+  // so the pending ActionCard re-renders to ok/failed without waiting on a poll.
+  const qc = useQueryClient();
+  const onActionUpdate = useCallback(() => {
+    if (!selectedThreadId) return;
+    void qc.invalidateQueries({ queryKey: ['thread', selectedThreadId] });
+    void qc.invalidateQueries({ queryKey: ['thread-messages', selectedThreadId] });
+  }, [qc, selectedThreadId]);
   // Live token stream for the in-flight turn (REST poll stays the source of truth).
-  const { streamingText } = useThreadStream(selectedThreadId);
+  const { streamingText } = useThreadStream(selectedThreadId, onActionUpdate);
   const createThread = useCreateThread();
   const deleteThread = useDeleteThread();
   const compress = useCompressThread();
@@ -1141,6 +1150,38 @@ function ActionCard({ action }: { action: ChatActionRow }) {
         </div>
       </div>
     );
+  }
+  if (action.kind === 'generate_plan') {
+    if (status === 'pending') {
+      return (
+        <div className={cardClass}>
+          <div className="flex items-center gap-1.5">
+            <Loader2 className="size-3.5 shrink-0 animate-spin text-info" aria-hidden />
+            <span className="text-muted-foreground">{t('chat.action.generatingPlan')}</span>
+          </div>
+        </div>
+      );
+    }
+    if (status === 'ok') {
+      const r = action.resultJson as { projectId?: string; planId?: string } | null;
+      return (
+        <div className={cardClass}>
+          <div className="flex items-center gap-1.5 font-semibold">
+            <ReceiptIcon tone="success" />
+            {t('chat.action.planGenerated')}
+          </div>
+          {r?.projectId ? (
+            <Link
+              to={`/projects/${r.projectId}`}
+              className="mt-1 ml-5 inline-flex items-center gap-1 text-info hover:underline"
+            >
+              {t('chat.action.openProject')} <ArrowRight className="h-3 w-3" />
+            </Link>
+          ) : null}
+        </div>
+      );
+    }
+    // status === 'failed' falls through to the generic failure branch below.
   }
   if (status === 'failed') {
     const r = action.resultJson as { error?: string } | null;

@@ -45,7 +45,14 @@
     "requirements-interviewer"
   ],
   "skills": ["audit-orphan-runs", "auto-doc", "deep-research", "doctor", "summarize-thread"],
-  "directives": ["consult", "add_member", "create_project", "start_run", "invoke_skill"],
+  "directives": [
+    "consult",
+    "add_member",
+    "create_project",
+    "start_run",
+    "invoke_skill",
+    "generate_plan"
+  ],
   "migrations": [
     "0000_harsh_oracle.sql",
     "0001_silky_random.sql",

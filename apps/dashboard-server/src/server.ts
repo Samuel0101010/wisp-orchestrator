@@ -78,6 +78,25 @@ export async function bootstrap(): Promise<FastifyInstance> {
       }),
     );
   }
+  // generate_plan directives run their plan-gen + lock in an in-memory
+  // background job. If the server restarts mid-generation the chat_actions row
+  // would stay 'pending' forever — sweep any such orphans to 'failed' on boot.
+  try {
+    sqlite
+      .prepare(
+        `UPDATE chat_actions SET status='failed', result_json='{"error":"server_restart"}'
+         WHERE status='pending' AND kind='generate_plan'`,
+      )
+      .run();
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        event: 'generate-plan-sweep-failed',
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
   // Do NOT await the auth probe: it spawns `claude` (cold-start can take 5-30s,
   // longer if logged out) and the launcher only waits ~6s for the port to bind.
   // Awaiting here delays app.listen() and the browser opens to connection-refused

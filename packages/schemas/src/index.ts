@@ -194,6 +194,7 @@ export {
   addMemberDirectiveSchema,
   createProjectDirectiveSchema,
   startRunDirectiveSchema,
+  generatePlanDirectiveSchema,
   directiveSchema,
 } from './agents.js';
 export type {
