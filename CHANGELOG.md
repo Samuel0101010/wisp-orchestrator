@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.26 — Preview HMR works (vite HMR WebSocket proxy)
+
+The preview iframe now establishes vite's HMR WebSocket through the dashboard's reverse-proxy, so live module reload works and the `@vite/client` "server connection lost" reconnect spam is gone (a top-level preview load that previously stayed blank now mounts). A prior design was rejected (NO-GO) for risking the core run/chat WebSockets; this clean redesign routes the upgrade through Fastify's own router and is regression-test-guarded. Validated live (a `vite-hmr` WebSocket to the preview path connected through the proxy and received vite's `{"type":"connected"}` handshake).
+
+### Fixed
+
+- **Preview HMR WebSocket.** The HTTP reverse-proxy (`/preview/:projectId/*`) forwarded HTTP but not vite's HMR WebSocket `upgrade`, so `@vite/client` could never connect (endless reconnect spam; top-level preview never mounted). The preview route now carries a `wsHandler` (@fastify/websocket v11) that proxies the upgrade to the project's dev-server WebSocket — forwarding the `vite-hmr` subprotocol, piping bidirectionally with open-buffering, binary-frame preservation, and close-code/error propagation in both directions. The route is split (GET carries the `wsHandler`; a sibling covers the other HTTP verbs) so HTTP proxying stays byte-identical. `/ws/runs` and `/ws/threads` (run live-graph + chat streaming) are untouched and guarded by a new WS-upgrade regression test.
+
 ## 2.0.25 — Preview tab works after a run (managed preview worktree)
 
 The Preview tab now starts cleanly right after a run, with no manual `git reset` / `pnpm install`. Designed + adversarially reviewed by an agent team and validated live (with the project's working tree intentionally left at an empty pre-run state, the preview still served the full post-run app).

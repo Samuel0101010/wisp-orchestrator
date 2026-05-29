@@ -5,12 +5,22 @@
  *   POST  /api/projects/:projectId/preview/stop
  *   GET   /api/projects/:projectId/preview/status
  *   ALL   /preview/:projectId/*                — forwards to the live dev server
+ *   WS    /preview/:projectId/*                — proxies vite's HMR upgrade
  *
  * The reverse-proxy intentionally bypasses Fastify's body parsing and re-uses
  * `request.raw` + `reply.raw` so we stream chunks back without buffering an
  * entire HTML payload. We strip `accept-encoding` from the upstream request
  * (so we never have to decode gzip / brotli) and drop the connection /
  * content-length headers the upstream sets (Node sets fresh ones).
+ *
+ * The WebSocket arm exists because `@vite/client` opens its HMR socket back to
+ * the SAME `/preview/<id>/` origin the iframe loaded from (vite derives the
+ * HMR URL from `--base`). Without proxying that upgrade the client spins on
+ * "[vite] server connection lost. Polling for restart…" forever and live
+ * module reload never works. We give the existing proxy route a `wsHandler`
+ * (the @fastify/websocket v11 route-level API) so Fastify's own router
+ * dispatches the upgrade here — `/ws/runs/:id` + `/ws/threads/:id` stay
+ * untouched because they are separate registered routes.
  *
  * Loopback only — the spawned dev server listens on 127.0.0.1 and the proxy
  * forwards to it from the dashboard process itself. There is no exposed
@@ -19,7 +29,9 @@
  * separate gate).
  */
 import http, { type IncomingMessage } from 'node:http';
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyRequest, RouteHandlerMethod } from 'fastify';
+import { WebSocket as UpstreamWs } from 'ws';
+import type { WebSocket as WsSocket, RawData } from 'ws';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { projects } from '@wisp/schemas';
@@ -136,10 +148,10 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
       }),
     );
 
-    // Reverse-proxy. Fastify's `all` matches every HTTP verb. We bind to the
-    // wildcarded suffix manually because the wildcard otherwise collides with
-    // the more-specific /api/* routes when registered first.
-    app.all('/preview/:projectId/*', (req, reply) => {
+    // Reverse-proxy (HTTP). Fastify's `all` matches every HTTP verb. We bind
+    // to the wildcarded suffix manually because the wildcard otherwise
+    // collides with the more-specific /api/* routes when registered first.
+    const httpHandler: RouteHandlerMethod = (req, reply) => {
       const projectId = (req.params as { projectId: string }).projectId;
       const status = registry.getPreviewStatus(projectId);
       if (!status.running || status.port == null) {
@@ -210,10 +222,141 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
       // Stream the request body through. For methods without a body
       // (GET/HEAD) the raw stream emits 'end' immediately.
       req.raw.pipe(upstream);
+    };
+
+    // Reverse-proxy (WebSocket). Dispatched by Fastify's router when the
+    // matching `/preview/:projectId/*` request is an upgrade — this is the
+    // @fastify/websocket v11 route-level `wsHandler`, signature `(socket,
+    // request)` where `socket` is a `ws` WebSocket. We open a `ws` client to
+    // the upstream dev server (forwarding vite's `vite-hmr` subprotocol so the
+    // dev server accepts the connection) and pipe both directions.
+    const wsHandler = (socket: WsSocket, req: FastifyRequest): void => {
+      const projectId = (req.params as { projectId: string }).projectId;
+      const status = registry.getPreviewStatus(projectId);
+      if (!status.running || status.port == null) {
+        try {
+          socket.close(1011, 'preview_not_running');
+        } catch {
+          /* socket may already be closing */
+        }
+        return;
+      }
+
+      // vite negotiates the HMR socket with the `vite-hmr` subprotocol; the
+      // upstream dev server will reject (or downgrade) a client that doesn't
+      // request it. Forward whatever subprotocol(s) the browser asked for so
+      // the upstream handshake matches.
+      const subprotocolHeader = req.headers['sec-websocket-protocol'];
+      const protocols =
+        typeof subprotocolHeader === 'string' && subprotocolHeader.length > 0
+          ? subprotocolHeader.split(',').map((p) => p.trim())
+          : undefined;
+
+      // Forward the FULL incoming path (same reasoning as the HTTP arm: vite
+      // serves under `--base /preview/<id>/`, so the browser-sent path is the
+      // correct upstream path). `localhost` lets the resolver pick whichever
+      // loopback family vite bound to.
+      const upstreamUrl = `ws://localhost:${status.port}${req.raw.url ?? '/'}`;
+      const upstream = protocols
+        ? new UpstreamWs(upstreamUrl, protocols)
+        : new UpstreamWs(upstreamUrl);
+
+      // Buffer client→upstream messages until the upstream handshake completes,
+      // then flush in order. Without this, the first HMR frames the browser
+      // sends before the upstream `open` fires would be dropped.
+      const pending: Array<{ data: RawData; binary: boolean }> = [];
+      let upstreamOpen = false;
+
+      const safeSend = (target: WsSocket | UpstreamWs, data: RawData, binary: boolean): void => {
+        if (target.readyState !== UpstreamWs.OPEN) return;
+        try {
+          target.send(data, { binary });
+        } catch {
+          /* peer vanished mid-send */
+        }
+      };
+
+      const safeClose = (target: WsSocket | UpstreamWs, code?: number, reason?: string): void => {
+        try {
+          if (
+            target.readyState === UpstreamWs.OPEN ||
+            target.readyState === UpstreamWs.CONNECTING
+          ) {
+            target.close(code, reason);
+          }
+        } catch {
+          /* already closing/closed */
+        }
+      };
+
+      upstream.on('open', () => {
+        upstreamOpen = true;
+        for (const m of pending.splice(0)) safeSend(upstream, m.data, m.binary);
+      });
+
+      // client → upstream
+      socket.on('message', (data: RawData, isBinary: boolean) => {
+        if (upstreamOpen) {
+          safeSend(upstream, data, isBinary);
+        } else {
+          pending.push({ data, binary: isBinary });
+        }
+      });
+
+      // upstream → client
+      upstream.on('message', (data: RawData, isBinary: boolean) => {
+        safeSend(socket, data, isBinary);
+      });
+
+      // Propagate close in both directions.
+      socket.on('close', (code, reason) => {
+        safeClose(upstream, normalizeCloseCode(code), reason?.toString());
+      });
+      upstream.on('close', (code, reason) => {
+        safeClose(socket, normalizeCloseCode(code), reason?.toString());
+      });
+
+      // Propagate errors by tearing down the other side. ws surfaces upstream
+      // ECONNREFUSED / handshake failures here; we close the browser socket so
+      // `@vite/client` retries instead of hanging on a half-open connection.
+      socket.on('error', () => {
+        safeClose(upstream);
+      });
+      upstream.on('error', () => {
+        safeClose(socket, 1011, 'preview_upstream_error');
+      });
+    };
+
+    // Register the proxy. @fastify/websocket only permits a `wsHandler` on a
+    // GET-only route (its onRoute hook throws otherwise — an upgrade is always
+    // GET), so we can't hang it on a multi-method `app.all`. We split: a GET
+    // route carrying BOTH handlers (HTTP GET + WS upgrade), and a sibling route
+    // for every other verb with just the HTTP handler. Both reuse `httpHandler`,
+    // so HTTP behaviour is byte-identical to the previous `app.all`. HEAD is
+    // excluded from the sibling because the GET route auto-exposes a HEAD route
+    // (Fastify's `exposeHeadRoute` default) that already dispatches `httpHandler`.
+    app.route({ method: 'GET', url: '/preview/:projectId/*', handler: httpHandler, wsHandler });
+    app.route({
+      method: app.supportedMethods.filter((m) => m !== 'GET' && m !== 'HEAD'),
+      url: '/preview/:projectId/*',
+      handler: httpHandler,
     });
   };
 
   return router;
+}
+
+/**
+ * `ws` close codes must be either a valid WebSocket status code or omitted.
+ * Codes in the 1xxx reserved-but-unusable range (1005 "no status", 1006
+ * "abnormal closure") throw if passed to `.close()`. Map those to undefined so
+ * the proxy doesn't crash forwarding a peer's abnormal close.
+ */
+function normalizeCloseCode(code: number | undefined): number | undefined {
+  if (code == null) return undefined;
+  if (code === 1005 || code === 1006) return undefined;
+  if (code < 1000 || code > 4999) return undefined;
+  return code;
 }
 
 export const previewRoutes: FastifyPluginAsync = createPreviewRouter();
