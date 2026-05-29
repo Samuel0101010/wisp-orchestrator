@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.25 — Preview tab works after a run (managed preview worktree)
+
+The Preview tab now starts cleanly right after a run, with no manual `git reset` / `pnpm install`. Designed + adversarially reviewed by an agent team and validated live (with the project's working tree intentionally left at an empty pre-run state, the preview still served the full post-run app).
+
+### Fixed
+
+- **Preview-after-run.** `auto-merge` advances a project's `main` via `git update-ref` without touching the user's checkout, so the user's working tree (and its missing `node_modules`) is stale after a run — the preview's `pnpm dev` couldn't start. The preview now spawns from a **managed detached git worktree** at `<sibling>/.harness-worktrees/preview-<projectId>`, checked out to the current `main` HEAD (with its own `node_modules`), reset to the latest `main` on each start. The user's checkout is never touched. The worktree survives stop/start (skips re-install) and is removed on project-delete. `detectProjectType` (incl. the `--base` framework decision) reads the worktree, not the stale `repoPath`.
+
+### Hardening (from the adversarial review)
+
+- `pnpm install --frozen-lockfile` falls back to a plain `pnpm install` on lockfile drift (common after a run that added deps) instead of failing the preview.
+- An already-running preview short-circuits before the worktree reset (avoids a `git reset --hard` against a live dev server — a Windows sharing-violation risk).
+- A transient-retry loop on `git worktree add` handles the Windows `.git/worktrees/<other>/commondir` race when a preview is started during a live run (mirrors the orchestrator's worktree retry).
+- A `main`-branch-absent fallback to `HEAD`; an in-flight de-dupe so concurrent preview-starts don't race worktree creation.
+
 ## 2.0.24 — create → plan → run from chat (generate_plan directive)
 
 The chat manager can now generate **and** lock a plan for a project directly from the conversation, so a user can go idea → project → plan → run without leaving the chat. Designed + adversarially reviewed by an agent team, then validated live in the browser (manager emitted create_project + generate_plan in one turn; the plan locked with 5 nodes; the ActionCard flipped pending → "Plan generated").

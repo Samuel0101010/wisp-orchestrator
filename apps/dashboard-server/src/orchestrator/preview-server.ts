@@ -17,6 +17,9 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import net from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { execa } from 'execa';
+import { access, constants, mkdir, rm } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 
 export type PreviewStatus = 'starting' | 'running' | 'error' | 'stopped';
 
@@ -27,6 +30,12 @@ export interface PreviewEntry {
   startedAt: number;
   status: PreviewStatus;
   errorReason?: string;
+  /** Absolute path to the managed preview worktree — set after ensurePreviewWorktree. */
+  worktreePath?: string;
+  /** repoPath kept for cleanup inside stopPreview. */
+  repoPath?: string;
+  /** projectId kept for cleanup inside stopPreview. */
+  projectId?: string;
 }
 
 export interface StartPreviewArgs {
@@ -157,6 +166,172 @@ function killTree(child: ChildProcess | null): void {
     }
   } catch {
     /* best-effort */
+  }
+}
+
+/**
+ * Stable sibling path for a project's preview worktree. Lives next to the repo
+ * (not inside it) so git/pnpm tooling never sees a nested checkout, mirroring
+ * `worktree.ts` `computeWorktreePath`. The name is keyed on projectId so the
+ * worktree survives stop/start cycles and is reused rather than re-created.
+ */
+function previewWorktreePath(repoPath: string, projectId: string): string {
+  const absRepo = resolve(repoPath);
+  return join(dirname(absRepo), '.harness-worktrees', `preview-${projectId}`);
+}
+
+/**
+ * Resolve the SHA the preview should check out. Prefers the project's `main`
+ * branch (the ref auto-merge advances after a successful run). Falls back to
+ * the current `HEAD` for repos that have no `main` (e.g. only `master`, or a
+ * fresh detached checkout). Throws a clear error only when neither resolves.
+ */
+async function resolvePreviewSha(repoPath: string, run: typeof execa): Promise<string> {
+  try {
+    const { stdout } = await run('git', ['rev-parse', '--verify', 'refs/heads/main'], {
+      cwd: repoPath,
+    });
+    return stdout.trim();
+  } catch {
+    /* no main branch — fall through to HEAD */
+  }
+  try {
+    const { stdout } = await run('git', ['rev-parse', '--verify', 'HEAD'], { cwd: repoPath });
+    return stdout.trim();
+  } catch (err) {
+    throw new Error(
+      `preview worktree: cannot resolve a checkout SHA (no refs/heads/main and no HEAD) in ${repoPath}: ${String(err)}`,
+    );
+  }
+}
+
+/**
+ * In-flight de-dupe: two concurrent `ensurePreviewWorktree` calls for the same
+ * projectId must not both run `git worktree add` (the second loses the create
+ * race with "directory exists / not empty", which prune+retry does not fully
+ * recover from). The second caller awaits the first's promise instead. The map
+ * entry is cleared once the promise settles so a later call rebuilds cleanly.
+ */
+const inFlightWorktrees = new Map<string, Promise<string>>();
+
+// Transient `git worktree add` failures (Windows .git/worktrees/<other>/commondir
+// race when a walker run concurrently adds task worktrees) deserve a short
+// backoff + retry, not a hard fail. Mirrors packages/orchestrator/src/worktree.ts.
+const PREVIEW_WT_TRANSIENT_RE =
+  /failed to read .git[\\/]worktrees[\\/].+[\\/]commondir|No such file or directory|Resource (?:temporarily|deadlock)|sharing violation|Access is denied|cannot create file|file in use/i;
+const PREVIEW_WT_MAX_RETRIES = 3;
+
+/**
+ * Create or reuse the preview worktree checked out to the current `main` HEAD
+ * (or `HEAD` fallback — see {@link resolvePreviewSha}). Never touches
+ * repoPath's working tree — the worktree is always detached. Runs
+ * `pnpm install --frozen-lockfile` only when node_modules is absent so
+ * stop/start cycles after the first preview skip the install cost.
+ *
+ * Returns the absolute worktree path. Idempotent across concurrent calls for
+ * the same projectId (see {@link inFlightWorktrees}).
+ */
+export async function ensurePreviewWorktree(
+  repoPath: string,
+  projectId: string,
+  opts: { execaImpl?: typeof execa } = {},
+): Promise<string> {
+  const pending = inFlightWorktrees.get(projectId);
+  if (pending) return pending;
+
+  const promise = ensurePreviewWorktreeImpl(repoPath, projectId, opts).finally(() => {
+    inFlightWorktrees.delete(projectId);
+  });
+  inFlightWorktrees.set(projectId, promise);
+  return promise;
+}
+
+async function ensurePreviewWorktreeImpl(
+  repoPath: string,
+  projectId: string,
+  opts: { execaImpl?: typeof execa },
+): Promise<string> {
+  const run = opts.execaImpl ?? execa;
+  const wtPath = previewWorktreePath(repoPath, projectId);
+  await mkdir(dirname(wtPath), { recursive: true });
+
+  // Resolve the SHA now — this is the ref auto-merge already advanced.
+  const sha = await resolvePreviewSha(repoPath, run);
+
+  // Check if the worktree already exists (registered in git).
+  const { stdout: wtList } = await run('git', ['worktree', 'list', '--porcelain'], {
+    cwd: repoPath,
+  });
+  const alreadyExists = wtList.includes(wtPath.replace(/\\/g, '/')) || wtList.includes(wtPath);
+
+  if (alreadyExists) {
+    // Reuse: reset hard to latest main so the preview shows post-run content.
+    await run('git', ['reset', '--hard', sha], { cwd: wtPath });
+  } else {
+    // Create a detached worktree at the exact SHA, with a transient-retry loop
+    // for the Windows commondir race (concurrent task-worktree adds during a
+    // live run) and a prune+rm recovery for a leftover aborted-attempt dir.
+    for (let attempt = 1; attempt <= PREVIEW_WT_MAX_RETRIES; attempt++) {
+      try {
+        await run('git', ['worktree', 'add', '--detach', wtPath, sha], { cwd: repoPath });
+        break;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/already (exists|used)|not empty|already registered/i.test(msg)) {
+          await run('git', ['worktree', 'prune'], { cwd: repoPath }).catch(() => undefined);
+          await rm(wtPath, { recursive: true, force: true });
+          await run('git', ['worktree', 'add', '--detach', wtPath, sha], { cwd: repoPath });
+          break;
+        }
+        if (PREVIEW_WT_TRANSIENT_RE.test(msg) && attempt < PREVIEW_WT_MAX_RETRIES) {
+          await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+          await run('git', ['worktree', 'prune'], { cwd: repoPath }).catch(() => undefined);
+          continue;
+        }
+        throw err;
+      }
+    }
+  }
+
+  // Install deps only when node_modules is absent (avoids re-running on every
+  // stop/start cycle after the first preview).
+  const nmPath = join(wtPath, 'node_modules');
+  let needsInstall = true;
+  try {
+    await access(nmPath, constants.F_OK);
+    needsInstall = false;
+  } catch {
+    /* absent — install below */
+  }
+
+  if (needsInstall) {
+    const shell = process.platform === 'win32';
+    try {
+      await run('pnpm', ['install', '--frozen-lockfile'], { cwd: wtPath, shell });
+    } catch {
+      // Lockfile drift is common after a run that added deps — self-heal with a
+      // mutable install rather than 500-ing the preview (mirrors runtime-verifier's
+      // `pnpm ci || pnpm install`). The worktree is disposable, so mutating its
+      // lockfile is harmless.
+      await run('pnpm', ['install'], { cwd: wtPath, shell });
+    }
+  }
+
+  return wtPath;
+}
+
+/**
+ * Remove the preview worktree. Best-effort — the worktree may never have been
+ * created (preview never started) or may already be gone. Never throws. Called
+ * on project-delete (and fire-and-forget from stopPreview); NOT on a plain
+ * stop, so a stop/start cycle reuses the worktree and skips re-install.
+ */
+export async function cleanupPreviewWorktree(repoPath: string, projectId: string): Promise<void> {
+  const wtPath = previewWorktreePath(repoPath, projectId);
+  try {
+    await execa('git', ['worktree', 'remove', '--force', wtPath], { cwd: repoPath });
+  } catch {
+    /* best-effort: worktree may never have been created */
   }
 }
 
@@ -297,6 +472,10 @@ export class PreviewProcessRegistry {
       pid: child.pid ?? null,
       startedAt: Date.now(),
       status: 'starting',
+      // `cwd` is the preview worktree path (set by the preview route via
+      // ensurePreviewWorktree). Recorded for cleanup on project-delete.
+      ...(args.cwd ? { worktreePath: args.cwd } : {}),
+      projectId,
     };
     this.entries.set(projectId, entry);
 

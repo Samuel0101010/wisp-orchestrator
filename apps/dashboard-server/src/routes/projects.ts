@@ -157,6 +157,21 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
           'DELETE /api/projects: cancelRunsForProject threw — continuing with delete',
         );
       }
+      // Stop any live preview process and remove its managed worktree. The
+      // worktree is kept alive across stop/start cycles, so project-delete is
+      // the point where it must be reaped. Best-effort — same pattern as the
+      // walker cancel above. Defer-import avoids a circular dependency.
+      try {
+        const { previewProcesses, cleanupPreviewWorktree } =
+          await import('../orchestrator/preview-server.js');
+        previewProcesses.stopPreview(params.id);
+        await cleanupPreviewWorktree(existing.repoPath, params.id);
+      } catch (err) {
+        req.log.warn(
+          { projectId: params.id, err: String(err) },
+          'DELETE /api/projects: preview cleanup threw — continuing with delete',
+        );
+      }
       // Cascade is owned by the DB schema (drizzle FKs); deleting the project
       // row removes its plans, runs, and chats automatically.
       await db.delete(projects).where(eq(projects.id, params.id)).run();

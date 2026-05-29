@@ -1,5 +1,5 @@
 import './setup.js';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import http from 'node:http';
 import { EventEmitter } from 'node:events';
 import type { ChildProcess } from 'node:child_process';
@@ -12,7 +12,26 @@ import {
   PreviewProcessRegistry,
   previewProcesses,
   isPortFree,
+  ensurePreviewWorktree,
 } from '../orchestrator/preview-server.js';
+import { dirname, join, resolve } from 'node:path';
+
+// Mock fs/promises so ensurePreviewWorktree's mkdir / access / rm don't touch
+// the real disk. `access` rejection means "node_modules absent" → install runs;
+// resolution means "present" → install is skipped. The test toggles
+// `nodeModulesPresent` per-case.
+let nodeModulesPresent = false;
+vi.mock('node:fs/promises', async () => {
+  const actual = await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');
+  return {
+    ...actual,
+    mkdir: vi.fn().mockResolvedValue(undefined),
+    rm: vi.fn().mockResolvedValue(undefined),
+    access: vi.fn().mockImplementation(async () => {
+      if (!nodeModulesPresent) throw new Error('ENOENT');
+    }),
+  };
+});
 
 /**
  * A ChildProcess stub good enough for `startPreview` — same shape as the one
@@ -302,5 +321,134 @@ describe('preview reverse-proxy', () => {
     });
     expect(res.statusCode).toBe(502);
     expect(res.json().error).toBe('preview_not_running');
+  });
+});
+
+describe('ensurePreviewWorktree', () => {
+  const repoPath = '/tmp/wisp-repo';
+  const projectId = 'proj-wt-1';
+  const sha = 'deadbeefcafe';
+  const expectedWtPath = join(
+    dirname(resolve(repoPath)),
+    '.harness-worktrees',
+    `preview-${projectId}`,
+  );
+
+  type ExecaCall = { cmd: string; args: string[] };
+
+  /**
+   * Build a fake `execa` whose behaviour is driven by the command + args. Each
+   * call is recorded so the test can assert which git/pnpm subcommands ran.
+   * `opts.worktreeExists` controls whether `worktree list` reports the path
+   * (reuse path) and `opts.mainMissing` makes the `refs/heads/main` rev-parse
+   * reject so the HEAD fallback is exercised.
+   */
+  function makeExeca(opts: { worktreeExists?: boolean; mainMissing?: boolean } = {}) {
+    const calls: ExecaCall[] = [];
+    const impl = vi.fn(async (cmd: string, args: string[]) => {
+      calls.push({ cmd, args });
+      if (cmd === 'git' && args[0] === 'rev-parse') {
+        if (args.includes('refs/heads/main')) {
+          if (opts.mainMissing) throw new Error('fatal: Needed a single revision');
+          return { stdout: sha };
+        }
+        // HEAD fallback
+        return { stdout: sha };
+      }
+      if (cmd === 'git' && args[0] === 'worktree' && args[1] === 'list') {
+        return { stdout: opts.worktreeExists ? `worktree ${expectedWtPath}\ndetached\n` : '' };
+      }
+      // worktree add / reset / prune / pnpm install — succeed silently.
+      return { stdout: '' };
+    });
+    return { impl: impl as unknown as typeof import('execa').execa, calls };
+  }
+
+  beforeEach(() => {
+    nodeModulesPresent = false;
+  });
+
+  it('(a) fresh creation: runs `git worktree add --detach` and returns the worktree path', async () => {
+    const { impl, calls } = makeExeca({ worktreeExists: false });
+    const result = await ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    expect(result).toBe(expectedWtPath);
+    const add = calls.find((c) => c.cmd === 'git' && c.args[1] === 'add');
+    expect(add).toBeDefined();
+    expect(add?.args).toContain('--detach');
+    expect(add?.args).toContain(expectedWtPath);
+    expect(add?.args).toContain(sha);
+    // No reset on the create path.
+    expect(calls.some((c) => c.cmd === 'git' && c.args[0] === 'reset')).toBe(false);
+  });
+
+  it('(b) reuse: skips `worktree add`, runs `git reset --hard <sha>`', async () => {
+    const { impl, calls } = makeExeca({ worktreeExists: true });
+    const result = await ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    expect(result).toBe(expectedWtPath);
+    expect(calls.some((c) => c.cmd === 'git' && c.args[1] === 'add')).toBe(false);
+    const reset = calls.find((c) => c.cmd === 'git' && c.args[0] === 'reset');
+    expect(reset).toBeDefined();
+    expect(reset?.args).toEqual(['reset', '--hard', sha]);
+  });
+
+  it('(c) node_modules present: skips `pnpm install`', async () => {
+    nodeModulesPresent = true;
+    const { impl, calls } = makeExeca({ worktreeExists: true });
+    await ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    expect(calls.some((c) => c.cmd === 'pnpm')).toBe(false);
+  });
+
+  it('(c2) node_modules absent: runs `pnpm install --frozen-lockfile`', async () => {
+    nodeModulesPresent = false;
+    const { impl, calls } = makeExeca({ worktreeExists: true });
+    await ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    const install = calls.find((c) => c.cmd === 'pnpm');
+    expect(install).toBeDefined();
+    expect(install?.args).toEqual(['install', '--frozen-lockfile']);
+  });
+
+  it('(d) main absent: falls back to `rev-parse --verify HEAD`', async () => {
+    const { impl, calls } = makeExeca({ worktreeExists: false, mainMissing: true });
+    const result = await ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    expect(result).toBe(expectedWtPath);
+    // Both rev-parse calls happened: main (which threw) then HEAD.
+    const revParses = calls.filter((c) => c.cmd === 'git' && c.args[0] === 'rev-parse');
+    expect(revParses.some((c) => c.args.includes('refs/heads/main'))).toBe(true);
+    expect(revParses.some((c) => c.args.includes('HEAD'))).toBe(true);
+  });
+
+  it('(e) concurrent calls de-dupe through the in-flight map', async () => {
+    // A deferred execa: the first call to `rev-parse main` blocks until we
+    // release it, so both ensurePreviewWorktree calls overlap. If the map
+    // works, only ONE underlying execa pipeline runs and both callers get the
+    // same promise/result.
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    let revParseMainCount = 0;
+    const calls: ExecaCall[] = [];
+    const impl = vi.fn(async (cmd: string, args: string[]) => {
+      calls.push({ cmd, args });
+      if (cmd === 'git' && args[0] === 'rev-parse' && args.includes('refs/heads/main')) {
+        revParseMainCount++;
+        await gate;
+        return { stdout: sha };
+      }
+      if (cmd === 'git' && args[0] === 'worktree' && args[1] === 'list') {
+        return { stdout: '' };
+      }
+      return { stdout: '' };
+    }) as unknown as typeof import('execa').execa;
+
+    const p1 = ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    const p2 = ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    release();
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(r1).toBe(expectedWtPath);
+    expect(r2).toBe(expectedWtPath);
+    // The expensive pipeline ran exactly once despite two concurrent callers.
+    expect(revParseMainCount).toBe(1);
+    expect(calls.filter((c) => c.cmd === 'git' && c.args[1] === 'add').length).toBe(1);
   });
 });

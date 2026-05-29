@@ -26,7 +26,11 @@ import { projects } from '@wisp/schemas';
 import { db } from '../db/index.js';
 import { wrap } from './wrap.js';
 import { detectProjectType } from '../orchestrator/detect-project-type.js';
-import { previewProcesses, type PreviewProcessRegistry } from '../orchestrator/preview-server.js';
+import {
+  ensurePreviewWorktree,
+  previewProcesses,
+  type PreviewProcessRegistry,
+} from '../orchestrator/preview-server.js';
 
 export interface PreviewRouterDeps {
   /** Test seam — swap the registry. */
@@ -47,11 +51,42 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
           return { error: 'project not found' };
         }
 
+        // If a preview is already running for this project, return it as-is.
+        // Re-resolving the worktree would `git reset --hard` a worktree whose
+        // dev server is live — a Windows sharing-violation risk + needless HMR
+        // churn. startPreview is idempotent, but the reset runs before it.
+        const existing = registry.getPreviewStatus(projectId);
+        if (existing.running) {
+          return {
+            status: 'running' as const,
+            port: existing.port,
+            pid: existing.pid,
+            startedAt: existing.startedAt,
+          };
+        }
+
+        // Spin up (or reuse + reset) the detached preview worktree checked
+        // out to the project's post-run `main` HEAD. auto-merge advances
+        // `refs/heads/main` via `git update-ref` WITHOUT touching the user's
+        // working tree, so spawning the dev server from `project.repoPath`
+        // would run against a stale tree with no node_modules. The worktree
+        // is the authoritative, installable copy of the current main.
+        let previewCwd: string;
+        try {
+          previewCwd = await ensurePreviewWorktree(project.repoPath, projectId);
+        } catch (err) {
+          reply.code(500);
+          return { error: 'worktree_setup_failed', detail: String(err) };
+        }
+
         let devCmd = project.runtimeVerifyDevCmd;
         let probeUrl = project.runtimeVerifyProbeUrl;
         // Always run detection so we know whether the framework respects
         // `--base`. The detection is pure (reads package.json) and cheap.
-        const detection = detectProjectType(project.repoPath);
+        // Read it from the WORKTREE (not project.repoPath) so a stale
+        // repoPath package.json can't mismatch the content we actually spawn
+        // against — the worktree was just `git reset --hard`'d to main.
+        const detection = detectProjectType(previewCwd);
         if (!devCmd || !probeUrl) {
           devCmd = devCmd ?? detection.devCommand;
           probeUrl = probeUrl ?? detection.probeUrl;
@@ -78,7 +113,7 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
           projectId,
           devCmd,
           probeUrl,
-          cwd: project.repoPath,
+          cwd: previewCwd,
           ...(basePath ? { basePath } : {}),
         });
         return result;
