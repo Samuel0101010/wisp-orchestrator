@@ -221,3 +221,17 @@ export function parseMentions(text: string): string[] {
   }
   return found;
 }
+
+const LEADING_MENTION_RE = /^\s*@([a-zA-Z][a-zA-Z0-9_-]{0,40})/;
+
+/**
+ * Return the mention name only when the message STARTS with `@name`
+ * (optionally after leading whitespace). A `@token` mid-prose — e.g.
+ * "@types/node" or an email address — must NOT reroute the message, so
+ * those return null. Used for auto-addressing; `parseMentions` stays
+ * available for display/highlighting of all mentions.
+ */
+export function parseLeadingMention(text: string): string | null {
+  const m = LEADING_MENTION_RE.exec(text);
+  return m ? m[1]! : null;
+}

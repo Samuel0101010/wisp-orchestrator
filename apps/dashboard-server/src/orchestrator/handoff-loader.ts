@@ -12,12 +12,12 @@
  * means the orchestrator's package boundary stays free of memory-mcp
  * details until the wiring is done.
  *
- * Wiring TODO(phase-6-followup): the walker doesn't yet call
- * `loadHandoffsForProject` + `renderHandoffsSection` when composing a task's
- * prompt, and it doesn't yet call `writeProjectMemoryEntry` on task
- * completion. The helpers are exported + tested; the integration point lives
- * in `packages/orchestrator/src/walker.ts` and will be wired in v1.14.x when
- * the walker's WalkerDeps gain a `projectId` + `dataDir` field.
+ * Wiring (done): the READ path is live — `runtime.ts` calls
+ * `loadHandoffsForProject` + `renderHandoffsSection` when building WalkerDeps
+ * and passes the result as `handoffsSection`, which the walker injects into
+ * each task's composed prompt. The WRITE path is also live: the walker calls
+ * `WalkerDeps.writeHandoff` on task completion, which `runtime.ts` wires to
+ * `writeProjectMemoryEntry` (key `handoff/<role>/<taskId>`).
  */
 import { readProjectMemoryEntries, type ProjectMemoryEntry } from '@wisp/memory-mcp';
 

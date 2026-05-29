@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Loader2,
   MessageSquarePlus,
+  Paperclip,
   Plus,
   Send,
   Trash2,
@@ -48,6 +49,7 @@ import {
   useSendMessage,
   useThreadDetail,
   useThreadMessages,
+  useUploadAttachments,
 } from '@/api/queries';
 import type { Agent, AgentMessage, AgentThread } from '@wisp/schemas';
 import { Avatar } from '@/components/Avatar';
@@ -58,6 +60,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 function fmtTime(d: Date | string | number, lang: string): string {
   const t = typeof d === 'number' ? d : typeof d === 'string' ? new Date(d).getTime() : d.getTime();
   return new Date(t).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function ChatRoute() {
@@ -84,6 +92,7 @@ export function ChatRoute() {
   const deleteThread = useDeleteThread();
   const compress = useCompressThread();
   const sendMessage = useSendMessage();
+  const uploadAttachments = useUploadAttachments();
   const addParticipant = useAddParticipant();
   const removeParticipant = useRemoveParticipant();
 
@@ -94,13 +103,28 @@ export function ChatRoute() {
     }
   }, [selectedThreadId, threads.data]);
 
-  // Auto-scroll to bottom on new messages.
+  // Auto-scroll: only follow the bottom when the user is already near it, so
+  // reading older messages is not yanked away by the 3s poll. The user's own
+  // pending send always scrolls down.
   const scrollEnd = useRef<HTMLDivElement | null>(null);
+  const scrollContainer = useRef<HTMLDivElement | null>(null);
+  const atBottomRef = useRef(true);
+  function onTranscriptScroll() {
+    const el = scrollContainer.current;
+    if (!el) return;
+    atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }
   useEffect(() => {
-    scrollEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages.data?.length, sendMessage.isPending]);
+    if (atBottomRef.current) scrollEnd.current?.scrollIntoView({ block: 'end' });
+  }, [messages.data?.length]);
+  useEffect(() => {
+    if (sendMessage.isPending)
+      scrollEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [sendMessage.isPending]);
 
   const [composer, setComposer] = useState('');
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAddMember, setShowAddMember] = useState(false);
   // Mention picker state. null = closed; '' or 'Le' = open with that query.
@@ -125,8 +149,9 @@ export function ChatRoute() {
   }
 
   async function send() {
-    if (!composer.trim() || !selectedThreadId || !managerId) return;
-    if (sendMessage.isPending) return;
+    const hasText = composer.trim().length > 0;
+    if ((!hasText && attachments.length === 0) || !selectedThreadId || !managerId) return;
+    if (sendMessage.isPending || uploadAttachments.isPending) return;
     setError(null);
     let threadId = selectedThreadId;
     if (!threadId) {
@@ -142,14 +167,23 @@ export function ChatRoute() {
         return;
       }
     }
-    const content = composer;
+    // Attachments-only sends still need non-empty content (schema requires it).
+    const content = hasText ? composer : 'See attached files.';
+    const pendingAttachments = attachments;
     setComposer('');
+    setAttachments([]);
     try {
-      await sendMessage.mutateAsync({ threadId, agentId: managerId, content });
+      let attachmentIds: string[] | undefined;
+      if (pendingAttachments.length > 0) {
+        const res = await uploadAttachments.mutateAsync({ threadId, files: pendingAttachments });
+        attachmentIds = res.attachments.map((a) => a.id);
+      }
+      await sendMessage.mutateAsync({ threadId, agentId: managerId, content, attachmentIds });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      // Restore the composer text so the user doesn't lose their message.
-      setComposer(content);
+      // Restore the composer text + attachments so the user doesn't lose them.
+      if (hasText) setComposer(content);
+      setAttachments(pendingAttachments);
     }
   }
 
@@ -203,6 +237,34 @@ export function ChatRoute() {
     });
   }
 
+  // Append picked/dropped/pasted files, de-duping by name+size and capping at 10.
+  function addFiles(incoming: FileList | File[] | null) {
+    if (!incoming) return;
+    const list = Array.from(incoming);
+    if (list.length === 0) return;
+    setAttachments((prev) => {
+      const merged = [...prev];
+      for (const f of list) {
+        if (merged.length >= 10) break;
+        if (merged.some((m) => m.name === f.name && m.size === f.size)) continue;
+        merged.push(f);
+      }
+      return merged;
+    });
+  }
+
+  function removeAttachment(idx: number) {
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function onComposerPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const files = e.clipboardData?.files;
+    if (files && files.length > 0) {
+      e.preventDefault();
+      addFiles(files);
+    }
+  }
+
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (mentionQuery !== null && mentionCandidates.length > 0) {
       if (e.key === 'ArrowDown') {
@@ -228,7 +290,12 @@ export function ChatRoute() {
         return;
       }
     }
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    // Enter sends; Shift+Enter inserts a newline. Guard against IME composition
+    // (CJK candidate selection emits Enter with isComposing / keyCode 229) so we
+    // never send mid-composition. The mention-picker branch above already
+    // consumes Enter while the picker is open.
+    const ne = e.nativeEvent as unknown as { isComposing?: boolean; keyCode?: number };
+    if (e.key === 'Enter' && !e.shiftKey && !ne.isComposing && ne.keyCode !== 229) {
       e.preventDefault();
       void send();
     }
@@ -261,9 +328,9 @@ export function ChatRoute() {
   const actions = detail.data?.actions ?? [];
 
   return (
-    <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-[260px_1fr_280px] overflow-hidden">
+    <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-1 overflow-hidden md:grid-cols-[240px_1fr] lg:grid-cols-[260px_1fr_280px]">
       {/* LEFT: Thread list */}
-      <aside className="flex h-full min-h-0 flex-col border-r bg-card/40">
+      <aside className="hidden h-full min-h-0 flex-col border-r bg-card/40 md:flex">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <span className="text-sm font-semibold">{t('chat.sidebar.title')}</span>
           <IconButton
@@ -349,10 +416,20 @@ export function ChatRoute() {
           )}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+        <div
+          ref={scrollContainer}
+          onScroll={onTranscriptScroll}
+          className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
+        >
           {!selectedThreadId && <EmptyTranscript onStart={startNewThread} />}
           {selectedThreadId && messageList.length === 0 && !sendMessage.isPending && (
-            <ConversationStarter manager={manager} />
+            <ConversationStarter
+              manager={manager}
+              onPickPrompt={(text) => {
+                setComposer(text);
+                requestAnimationFrame(() => composerRef.current?.focus());
+              }}
+            />
           )}
           {selectedThreadId && (
             <Transcript
@@ -370,11 +447,69 @@ export function ChatRoute() {
         {selectedThreadId && (
           <div className="border-t px-5 py-3">
             {error && (
-              <div className="mb-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
-                {error}
+              <div className="mb-2 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-xs text-destructive">
+                <span className="flex-1">{error}</span>
+                <button
+                  type="button"
+                  onClick={() => setError(null)}
+                  className="shrink-0 rounded p-0.5 hover:bg-destructive/20"
+                  aria-label={t('chat.composer.dismissError')}
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </div>
             )}
-            <div className="relative flex items-end gap-2 rounded-xl border bg-background p-2 shadow-sm">
+            {attachments.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {attachments.map((f, idx) => (
+                  <div
+                    key={`${f.name}-${f.size}-${idx}`}
+                    className="flex items-center gap-2 rounded-md border bg-muted px-2 py-1 text-xs"
+                  >
+                    <Paperclip className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="max-w-[160px] truncate" title={f.name}>
+                      {f.name}
+                    </span>
+                    <span className="shrink-0 text-2xs text-muted-foreground">
+                      {fmtBytes(f.size)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(idx)}
+                      className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+                      aria-label={t('chat.composer.removeAttachment')}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                addFiles(e.dataTransfer?.files ?? null);
+              }}
+              className="relative flex items-end gap-2 rounded-xl border bg-background p-2 shadow-sm focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  // Reset so picking the same file again re-fires onChange.
+                  e.target.value = '';
+                }}
+              />
+              <IconButton
+                icon={<Paperclip className="h-4 w-4" />}
+                label={t('chat.composer.attach')}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={attachments.length >= 10 || uploadAttachments.isPending}
+              />
               {mentionQuery !== null && mentionCandidates.length > 0 && (
                 <div
                   role="listbox"
@@ -427,13 +562,14 @@ export function ChatRoute() {
                   setTimeout(() => setMentionQuery(null), 100);
                 }}
                 onKeyDown={handleKey}
+                onPaste={onComposerPaste}
                 placeholder={t('chat.composer.placeholder')}
                 rows={1}
                 className="max-h-32 flex-1 resize-none bg-transparent text-sm outline-none"
               />
               <IconButton
                 icon={
-                  sendMessage.isPending ? (
+                  sendMessage.isPending || uploadAttachments.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Send className="h-4 w-4" />
@@ -442,7 +578,11 @@ export function ChatRoute() {
                 label={t('tooltips.sendMessage')}
                 variant="default"
                 onClick={send}
-                disabled={!composer.trim() || sendMessage.isPending}
+                disabled={
+                  (!composer.trim() && attachments.length === 0) ||
+                  sendMessage.isPending ||
+                  uploadAttachments.isPending
+                }
               />
             </div>
           </div>
@@ -450,7 +590,7 @@ export function ChatRoute() {
       </section>
 
       {/* RIGHT: Participants */}
-      <aside className="flex h-full min-h-0 flex-col border-l bg-card/40">
+      <aside className="hidden h-full min-h-0 flex-col border-l bg-card/40 lg:flex">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Users className="h-4 w-4" /> {t('chat.participants.title')}
@@ -634,8 +774,16 @@ function EmptyTranscript({ onStart }: { onStart: () => void }) {
   );
 }
 
-function ConversationStarter({ manager }: { manager: Agent }) {
+function ConversationStarter({
+  manager,
+  onPickPrompt,
+}: {
+  manager: Agent;
+  onPickPrompt: (text: string) => void;
+}) {
   const { t } = useTranslation();
+  const prompts = t('chat.greeter.prompts', { returnObjects: true });
+  const promptList = Array.isArray(prompts) ? (prompts as string[]) : [];
   return (
     <div className="rounded-xl border-2 border-dashed bg-muted/30 p-6">
       <div className="flex items-start gap-4">
@@ -647,6 +795,20 @@ function ConversationStarter({ manager }: { manager: Agent }) {
             className="text-xs text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1"
             dangerouslySetInnerHTML={{ __html: t('chat.greeter.tip') }}
           />
+          {promptList.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {promptList.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => onPickPrompt(p)}
+                  className="rounded-full border bg-background px-3 py-1 text-xs text-foreground transition-colors hover:bg-accent"
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -772,7 +934,7 @@ function MessageBlock({
               </span>
             )}
         </div>
-        <div className="px-0.5 py-1 text-sm text-foreground">
+        <div className="inline-block max-w-[92%] rounded-2xl rounded-tl-md bg-muted/40 px-3 py-2 text-sm text-foreground">
           <div className="whitespace-pre-wrap">
             {message.content || t('chat.transcript.noResponse')}
           </div>
@@ -846,13 +1008,17 @@ function ActionCard({ action }: { action: ChatActionRow }) {
         <div className="mt-0.5 pl-5 text-muted-foreground">
           {t('chat.action.projectTeam', { count: r?.teamSize ?? 0 })}
         </div>
-        {r?.projectId && (
+        {r?.projectId ? (
           <Link
             to={`/projects/${r.projectId}`}
             className="mt-1 ml-5 inline-flex items-center gap-1 text-info hover:underline"
           >
             {t('chat.action.openProject')} <ArrowRight className="h-3 w-3" />
           </Link>
+        ) : (
+          <div className="mt-1 ml-5 text-muted-foreground">
+            {t('chat.action.projectCreatedNoLink')}
+          </div>
         )}
       </div>
     );

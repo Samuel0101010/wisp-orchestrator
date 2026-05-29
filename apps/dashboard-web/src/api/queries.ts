@@ -1437,17 +1437,51 @@ export function useThreadMessages(threadId: string | undefined) {
   });
 }
 
+export interface UploadedAttachment {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export function useUploadAttachments() {
+  return useMutation<
+    { attachments: UploadedAttachment[] },
+    Error,
+    { threadId: string; files: File[] }
+  >({
+    mutationFn: ({ threadId, files }) => {
+      const form = new FormData();
+      for (const f of files) form.append('file', f);
+      return apiFetch<{ attachments: UploadedAttachment[] }>(
+        `/api/threads/${threadId}/attachments`,
+        { method: 'POST', body: form },
+      );
+    },
+  });
+}
+
 export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation<
     SendMessageResponse,
     Error,
-    { threadId: string; agentId: string; content: string; addressedTo?: string }
+    {
+      threadId: string;
+      agentId: string;
+      content: string;
+      addressedTo?: string;
+      attachmentIds?: string[];
+    }
   >({
-    mutationFn: ({ threadId, content, addressedTo }) =>
+    mutationFn: ({ threadId, content, addressedTo, attachmentIds }) =>
       apiFetch<SendMessageResponse>(`/api/threads/${threadId}/messages`, {
         method: 'POST',
-        body: JSON.stringify({ content, ...(addressedTo ? { addressedTo } : {}) }),
+        body: JSON.stringify({
+          content,
+          ...(addressedTo ? { addressedTo } : {}),
+          ...(attachmentIds && attachmentIds.length > 0 ? { attachmentIds } : {}),
+        }),
       }),
     onSuccess: (_, { threadId, agentId }) => {
       void qc.invalidateQueries({ queryKey: ['thread-messages', threadId] });

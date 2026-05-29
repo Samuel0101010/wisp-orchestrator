@@ -15,8 +15,8 @@ in action.
 
 ## 2. Prerequisites
 
-- **Node.js** ≥ 20.10
-- **pnpm** ≥ 9
+- **Node.js** ≥ 20.10 (22 LTS or 24 LTS recommended — a prebuilt `better-sqlite3` binary ships for them, so no C++ compiler is needed)
+- **pnpm** — optional; the launcher uses `corepack` (bundled with Node) if pnpm is not on `PATH`
 - **git** installed and on `PATH`
 - The **`claude` CLI** on `PATH`
 - Either a **Claude Max** subscription (default — credentials are inherited
@@ -28,8 +28,8 @@ in action.
 Sanity-check the toolchain before you start:
 
 ```sh
-node --version    # >= v20.10
-pnpm --version    # >= 9
+node --version    # >= v20.10 (22 or 24 LTS recommended)
+pnpm --version    # optional — corepack provides pnpm if this is missing
 claude --version  # any recent version
 git --version
 ```
@@ -45,7 +45,8 @@ claude /wisp-dashboard
 ```
 
 The first time `/wisp-dashboard` runs after a fresh install, it auto-runs
-`pnpm install && pnpm build` for you (1–2 minutes — pnpm must be on PATH).
+`pnpm install && pnpm build` for you (1–2 minutes — uses `pnpm` if on PATH,
+otherwise `corepack`, which is bundled with Node).
 After that, the launcher boots straight to the dashboard server, picks a
 free port in the `4400–4500` range, and opens your default browser.
 

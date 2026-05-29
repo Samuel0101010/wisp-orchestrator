@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyBaseLogger, type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
 import staticPlugin from '@fastify/static';
 import websocket from '@fastify/websocket';
 import { env } from './env.js';
@@ -35,6 +36,8 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   await app.register(cors, { origin: env.WISP_CORS_ORIGIN });
   await app.register(websocket);
+  // Chat attachments: multipart/form-data uploads, capped at 10 MB × 10 files.
+  await app.register(multipart, { limits: { fileSize: 10 * 1024 * 1024, files: 10 } });
 
   await app.register(registerRoutes);
   registerWebsocket(app);

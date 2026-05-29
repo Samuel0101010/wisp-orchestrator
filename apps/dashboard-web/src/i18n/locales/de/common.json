@@ -1102,8 +1102,11 @@
       "compress": "Komprimieren"
     },
     "composer": {
-      "placeholder": "Nachricht an Marcus + Team — ⌘⏎ zum Senden. Tippe @ um jemanden zu erwähnen.",
-      "ariaLabel": "Nachricht verfassen"
+      "placeholder": "Nachricht an Marcus + Team — Enter zum Senden, Shift+Enter für eine neue Zeile. Tippe @ um jemanden zu erwähnen.",
+      "ariaLabel": "Nachricht verfassen",
+      "dismissError": "Fehler ausblenden",
+      "attach": "Dateien anhängen",
+      "removeAttachment": "Anhang entfernen"
     },
     "participants": {
       "title": "Personen",
@@ -1127,7 +1130,12 @@
       "startButton": "Konversation starten",
       "starterName": "Marcus",
       "starterGreeting": "Hi! Erzähl mir, was du dir vorstellst — eine Feature-Idee, ein Bug-Hunt oder ein neues Projekt. Ich hole die Spezialisten dazu, die du brauchst.",
-      "tip": "Tipp: Tippe <code>@Lena</code>, um die Frontend-Lead direkt anzusprechen."
+      "tip": "Tipp: Tippe <code>@Lena</code>, um die Frontend-Lead direkt anzusprechen.",
+      "prompts": [
+        "Was ist WISP und wie nutze ich es?",
+        "Neues Projekt starten: ",
+        "Ein Feature mit dem Team planen"
+      ]
     },
     "transcript": {
       "typing": "Manager schreibt…",
@@ -1139,6 +1147,7 @@
       "projectCreated": "Projekt erstellt · {{name}}",
       "projectTeam": "Team aus {{count}} Personen. Bereit zum Planen & Starten.",
       "openProject": "Projekt öffnen",
+      "projectCreatedNoLink": "Projekt erstellt — zum Öffnen aktualisieren.",
       "memberAdded": "<strong>{{name}}</strong> zur Konversation hinzugefügt.",
       "consulted": "<strong>{{name}}</strong> konsultiert. Antwort steht unten ↓",
       "runStarted": "Run <code>{{id}}</code> gestartet.",
@@ -1228,7 +1237,7 @@
   },
   "tooltips": {
     "newThread": "Neue Konversation",
-    "sendMessage": "Nachricht senden (Strg+Eingabe)",
+    "sendMessage": "Nachricht senden (Enter — Shift+Enter für neue Zeile)",
     "compressThread": "Thread zusammenfassen",
     "addMember": "Spezialist zu diesem Thread hinzufügen",
     "removeMember": "Teilnehmer entfernen",

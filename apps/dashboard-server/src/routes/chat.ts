@@ -42,6 +42,10 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import { createWriteStream } from 'node:fs';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { pipeline } from 'node:stream/promises';
 import { asc, desc, eq } from 'drizzle-orm';
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
@@ -65,7 +69,7 @@ import { wrap } from './wrap.js';
 import {
   composePrompt,
   parseDirectives,
-  parseMentions,
+  parseLeadingMention,
   runAgentTurn,
   type HistoryMessage,
 } from './chat-engine.js';
@@ -108,6 +112,46 @@ function autoTitle(firstMessage: string): string {
   const trimmed = firstMessage.trim().replace(/\s+/g, ' ');
   if (trimmed.length <= 60) return trimmed;
   return trimmed.slice(0, 57) + '…';
+}
+
+// ----- Attachments (MVP: on-disk + JSON sidecar, no DB migration) -----
+
+interface AttachmentEntry {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  storagePath: string;
+}
+
+type AttachmentIndex = Record<string, AttachmentEntry>;
+
+function uploadDirFor(threadId: string): string {
+  return path.join(env.WISP_DATA_DIR, 'uploads', threadId);
+}
+
+function indexPathFor(threadId: string): string {
+  return path.join(uploadDirFor(threadId), 'index.json');
+}
+
+/** Strip path separators / traversal so a filename can never escape the dir. */
+function sanitizeFilename(name: string): string {
+  const base = name.replace(/[\\/]/g, '_').replace(/\.\.+/g, '_').trim();
+  return base.length > 0 ? base.slice(0, 200) : 'file';
+}
+
+async function readAttachmentIndex(threadId: string): Promise<AttachmentIndex> {
+  try {
+    const raw = await readFile(indexPathFor(threadId), 'utf8');
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as AttachmentIndex) : {};
+  } catch {
+    return {};
+  }
+}
+
+async function writeAttachmentIndex(threadId: string, index: AttachmentIndex): Promise<void> {
+  await writeFile(indexPathFor(threadId), JSON.stringify(index, null, 2), 'utf8');
 }
 
 interface AgentRow {
@@ -535,6 +579,61 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
       }),
     );
 
+    // ---------- Attachments ----------
+
+    app.post(
+      '/api/threads/:threadId/attachments',
+      wrap(async (req, reply) => {
+        const { threadId } = z.object({ threadId: z.string().min(1) }).parse(req.params);
+        const thread = await db
+          .select()
+          .from(agentThreads)
+          .where(eq(agentThreads.id, threadId))
+          .get();
+        if (!thread) {
+          reply.code(404);
+          return { error: 'thread_not_found' };
+        }
+        if (!req.isMultipart()) {
+          reply.code(400);
+          return { error: 'expected_multipart' };
+        }
+
+        const dir = uploadDirFor(threadId);
+        await mkdir(dir, { recursive: true });
+        const index = await readAttachmentIndex(threadId);
+        const saved: Array<Pick<AttachmentEntry, 'id' | 'filename' | 'mimeType' | 'sizeBytes'>> =
+          [];
+
+        for await (const part of req.files()) {
+          const id = randomUUID();
+          const safeName = sanitizeFilename(part.filename ?? 'file');
+          const storagePath = path.join(dir, `${id}-${safeName}`);
+          const ws = createWriteStream(storagePath);
+          await pipeline(part.file, ws);
+          // @fastify/multipart sets `truncated` when fileSize limit is hit.
+          if (part.file.truncated) {
+            reply.code(413);
+            return { error: 'file_too_large', filename: safeName };
+          }
+          const sizeBytes = ws.bytesWritten;
+          const entry: AttachmentEntry = {
+            id,
+            filename: safeName,
+            mimeType: part.mimetype || 'application/octet-stream',
+            sizeBytes,
+            storagePath,
+          };
+          index[id] = entry;
+          saved.push({ id, filename: safeName, mimeType: entry.mimeType, sizeBytes });
+        }
+
+        await writeAttachmentIndex(threadId, index);
+        reply.code(201);
+        return { attachments: saved };
+      }),
+    );
+
     // ---------- Messages ----------
 
     app.get(
@@ -601,6 +700,32 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           return { error: 'no_responder_found' };
         }
 
+        // Resolve attachment ids against the per-thread upload index (unknown
+        // ids are silently ignored). Builds (a) a prompt manifest the responder
+        // sees and (b) a short transcript note appended to the stored user msg.
+        const attachmentIds = parsed.data.attachmentIds ?? [];
+        let attachments: AttachmentEntry[] = [];
+        if (attachmentIds.length > 0) {
+          const index = await readAttachmentIndex(threadId);
+          attachments = attachmentIds
+            .map((id) => index[id])
+            .filter((e): e is AttachmentEntry => e != null);
+        }
+        const manifest =
+          attachments.length > 0
+            ? '\n\n## Attached files (use the Read tool with the exact path shown to open each)\n' +
+              attachments
+                .map(
+                  (a) =>
+                    `- ${a.filename} (${a.mimeType}, ${Math.max(1, Math.round(a.sizeBytes / 1024))} KB) — path: ${a.storagePath}`,
+                )
+                .join('\n')
+            : '';
+        const storedContent =
+          attachments.length > 0
+            ? `${parsed.data.content}\n\n[Attached: ${attachments.map((a) => a.filename).join(', ')}]`
+            : parsed.data.content;
+
         if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
           const last = getLastAuthProbe();
           if (last && !last.ok) {
@@ -623,7 +748,7 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
                   error_reason, author_agent_id, created_at)
                VALUES (?, ?, 'user', ?, NULL, NULL, NULL, NULL, NULL, ?)`,
             )
-            .run(userMsgId, threadId, parsed.data.content, now.getTime());
+            .run(userMsgId, threadId, storedContent, now.getTime());
           sqlite
             .prepare(
               `INSERT INTO agent_messages
@@ -678,11 +803,18 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
 
         const turn = await runAgentTurn({
           systemPrompt: composed.systemPrompt,
-          prompt: composed.prompt,
+          // Append the attachment manifest so the responder knows which files
+          // to Read. Only the primary responder turn sees the files (its cwd is
+          // the upload dir below); consult sub-turns keep their own ephemeral cwd.
+          prompt: manifest ? composed.prompt + manifest : composed.prompt,
           allowedTools: responder.allowedTools,
           model: responder.model,
           taskId: `chat-${threadId.slice(0, 8)}-${responder.seedKey ?? 'agent'}`,
           runner: deps.runner ?? runner,
+          // When attachments are present, run in the upload dir so the
+          // responder's READ_ONLY_TOOLS (Read/Grep/Glob) can open the files.
+          // Otherwise keep the ephemeral mkdtemp behavior.
+          ...(attachments.length > 0 ? { cwd: uploadDirFor(threadId) } : {}),
         });
         const parsedDirectives = isManager
           ? parseDirectives(turn.text)
@@ -791,10 +923,11 @@ function pickResponder(
     // silently route to someone else.
     return null;
   }
-  // 2. @mention in content (first one matching a participant).
-  const mentions = parseMentions(body.content);
-  for (const m of mentions) {
-    const lc = m.toLowerCase();
+  // 2. Leading @mention only (a mid-prose @token like "@types/node" or an
+  //    email must not reroute). Falls through to the manager otherwise.
+  const leading = parseLeadingMention(body.content);
+  if (leading) {
+    const lc = leading.toLowerCase();
     const match = participants.find((p) => p.name.toLowerCase() === lc || p.seedKey === lc);
     if (match) return match;
   }

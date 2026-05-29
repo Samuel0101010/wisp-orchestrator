@@ -52,6 +52,7 @@ AgentSpec {
 
 - The number of roles in the team is variable (1..8). Match nodes to roles by purpose: planning roles produce architecture/tasks docs, implementation roles write code, verification roles run gates.
 - Each `prompt` is what the spawned agent will see. Make it self-contained and reference the architecture/tasks artifacts by path.
+- A node's prompt MUST reference the concrete artifacts produced by its dependency nodes by path (e.g. `src/api/types.ts` from the architect node), and instruct the node to read the `## Prior Handoffs` section in its prompt before starting so it builds on upstream work instead of redoing it.
 - `successCriteria.preflight` runs once before the rest. Use it for one-time setup like `pnpm install` so build/test/lint don't each retrigger install hooks (prebuild/pretest scripts) and race the lockfile. On preflight failure the rest of the gate is skipped.
 - Set `successCriteria.build`, `test`, `lint` to the exact shell commands the verification node should run for that implementation node's output (typically `pnpm build`, `pnpm test`, `pnpm lint`).
 - Each value in `successCriteria` MUST be a shell command that the harness runs in the task's worktree. The task is verified only when every configured command exits 0. Never write a prose description.

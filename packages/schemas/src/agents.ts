@@ -83,6 +83,12 @@ export const sendMessageInputSchema = z.object({
    * content contains an @agent-name mention.
    */
   addressedTo: z.string().min(1).optional(),
+  /**
+   * IDs of files previously uploaded via POST /api/threads/:id/attachments.
+   * The server resolves them against the per-thread upload index and makes
+   * the files available to the manager turn (working directory + manifest).
+   */
+  attachmentIds: z.array(z.string()).max(10).optional(),
 });
 export type SendMessageInput = z.infer<typeof sendMessageInputSchema>;
 

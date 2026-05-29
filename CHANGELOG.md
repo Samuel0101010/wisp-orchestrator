@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.0.21 — Node-24 install fix + agent-chat overhaul
+
+Two threads, both driven by real reports and validated end-to-end (a true fresh-clone install plus a live browser session driving the chat as a user). (1) A fresh install on a non-developer machine failed "on the Node version" — root-caused to the pinned `better-sqlite3@11.10.0`, which ships no prebuilt binary for Node 24 (today's nodejs.org LTS), forcing a `node-gyp` source compile that needs a C++ toolchain the box lacked. (2) A full audit + live dogfooding of the agent chat (Team Chat) against seven concrete requirements. All 759 tests green.
+
+### Added
+
+- **Chat file upload.** Attach files in the composer via a button, drag-and-drop, or paste; a per-thread multipart endpoint stores them under `WISP_DATA_DIR/uploads/<threadId>/` and the manager turn receives an absolute-path manifest so Marcus can `Read` them. Verified live: Marcus read two uploaded files and reported their contents.
+- **Manager onboarding.** Marcus's system prompt now carries an "About WISP" + "Onboarding new users" section, so a first-time user who asks "what is this?" gets a concise explanation of WISP and the chat → create-project → plan → run lifecycle. Propagates to existing installs via the seed-refresh path.
+- **Inter-agent hand-offs are now actually written.** The walker's read path for "## Prior Handoffs" was wired but nothing wrote them. `walker.runTask` now records a fire-and-forget hand-off after each task succeeds (via `writeProjectMemoryEntry`), consult sub-turns attribute teammate messages by name, and the planner/developer prompts instruct agents to read prior hand-offs and leave notes in shared memory.
+
+### Fixed
+
+- **`better-sqlite3` 11.10.0 → 12.9.0 — the reported "Node version" install failure.** 11.10.0's prebuilt binaries top out at Node 23 (ABI 131); a fresh nodejs.org install today gives Node 24 (ABI 137), so `prebuild-install` missed and `node-gyp` tried to compile from source — which fails on a machine without VS Build Tools / Xcode CLT. 12.9.0 ships prebuilds for Node 20–25 (verified against the upstream release assets) while keeping the Node-20 floor (12.10.0 drops Node 20). Lockfile regenerated; drizzle-orm accepts 12.x.
+- **Chat Enter / Shift+Enter (R4).** Enter now sends the message and Shift+Enter inserts a newline (previously inverted — Enter inserted a newline, only Cmd/Ctrl+Enter sent), with an IME-composition guard so CJK candidate selection never sends mid-composition.
+- **Create-project-via-chat is now runnable (R5).** `create_project` resolves a relative `repoPath` to absolute, `mkdir`s it, and `git init`s it with an initial commit so a later run's `git worktree add` succeeds. Falls back to a sensible default team when none is supplied. Verified: a chat-created project had `.git` + an initial commit.
+- **Boot auth probe no longer blocks the port.** The probe (`claude -p`, up to 30 s) was awaited before `app.listen()`, while the launcher waits only ~6 s — so a cold/slow probe opened the browser on connection-refused. The probe is now fire-and-forget; `/api/health` reads its result lazily.
+- **Launcher: actionable failures + robustness.** On install/build failure it tees output to a log and prints the log path, a per-OS toolchain hint, and a "use Node 22/24 LTS" hint when a node-gyp/prebuild signature is detected; the corepack path falls back to a version-pinned `npm install -g pnpm@10.33.2`; a re-run reuses a live server (idempotent) instead of spawning a second; the readiness timeout tails the server log; the PowerShell preflight tolerates prerelease version strings.
+- **Smaller correctness fixes.** `@mention` only routes on a leading token (no mid-prose reroute); the boot recovery step degrades gracefully instead of aborting; `WISP_DATA_DIR`'s server-side default basename aligns with the launcher (`agent-harness`); the Node preflight recommends a specific supported LTS with a soft upper-bound warning, mirrored in `pnpm doctor`.
+
+### Chat UX (R2)
+
+- Responsive 3-pane layout (collapses on narrow viewports), a composer focus ring, auto-scroll that no longer yanks the view while reading history, a dismissible error banner, assistant message bubbles, and quick-start prompt chips on the empty thread.
+
+### Docs
+
+- `getting-started` now states pnpm is optional (the launcher uses corepack); the command doc makes per-OS launcher selection deterministic and documents that the standalone `claude` CLI must be on PATH for live runs; the `CLAUDE.md` env table reflects the `agent-harness` data dir.
+
 ## 2.0.20 — Install hardening: sandbox-validated fresh-clone install path
 
 A real user installed the plugin on a clean GitHub box and hit "a few problems" — no specific error report. Driven by an actual fresh-clone sandbox test (truly-clean tempdir clone → `pnpm install --frozen-lockfile` → `pnpm build` → launcher → health probe) plus three parallel reviewer agents auditing schema, bootstrap, and build chain. Every finding below is either reproduced in the sandbox or confirmed against the verified Claude Code v2 schema; no speculative fixes.

@@ -29,12 +29,23 @@ function warn(label, detail, hint) {
   checks.push({ status: 'warn', label, detail, hint });
 }
 
-// Node version
-const nodeMajor = Number(process.versions.node.split('.')[0]);
-if (nodeMajor >= 20) {
-  ok('Node.js', `v${process.versions.node}`);
+// Node version — floor 20.10; soft upper bound matches the better-sqlite3
+// prebuild matrix (pinned 12.9.0 ships prebuilts through Node 25).
+const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+if (nodeMajor < 20 || (nodeMajor === 20 && nodeMinor < 10)) {
+  warn(
+    'Node.js',
+    `v${process.versions.node}`,
+    'WISP requires Node >= 20.10 (Node 22 or 24 LTS recommended)',
+  );
+} else if (nodeMajor > 25) {
+  warn(
+    'Node.js',
+    `v${process.versions.node}`,
+    'Newer than the tested range; if install fails on better-sqlite3, use Node 24 LTS (a prebuilt binary exists — no compiler needed)',
+  );
 } else {
-  warn('Node.js', `v${process.versions.node}`, 'WISP requires Node >= 20.10');
+  ok('Node.js', `v${process.versions.node}`);
 }
 
 // pnpm
@@ -44,7 +55,11 @@ try {
     .trim();
   ok('pnpm', `v${v}`);
 } catch {
-  warn('pnpm', 'not on PATH', 'Install pnpm: npm i -g pnpm');
+  warn(
+    'pnpm',
+    'not on PATH',
+    'Optional — corepack (bundled with Node) provides pnpm; or: npm i -g pnpm@10.33.2',
+  );
 }
 
 // claude CLI

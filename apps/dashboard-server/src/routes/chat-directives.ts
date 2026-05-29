@@ -11,6 +11,9 @@
  */
 
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { desc, eq } from 'drizzle-orm';
 import {
   agents,
@@ -152,11 +155,21 @@ async function handleConsult(
     .where(eq(agentMessages.threadId, ctx.threadId))
     .orderBy(agentMessages.createdAt)
     .all();
+  // Attribute each assistant line to its author so the consulted specialist sees
+  // who said what (Marcus vs Lena vs Diego) and can reference teammates by name.
+  const nameById = new Map(
+    db
+      .select({ id: agents.id, name: agents.name })
+      .from(agents)
+      .all()
+      .map((a) => [a.id, a.name] as const),
+  );
   const history: HistoryMessage[] = prior
     .filter((m) => m.errorReason == null)
     .map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
+      authorName: m.authorAgentId ? nameById.get(m.authorAgentId) : undefined,
     }));
   const composed = composePrompt(
     agent.systemPrompt,
@@ -246,6 +259,58 @@ async function handleAddMember(
   return { agentId: target.id, name: target.name, addedAs: 'member' };
 }
 
+interface EnsureRepoResult {
+  /** Resolved absolute repo path. */
+  repoPath: string;
+  /** The directory was created by this call. */
+  created: boolean;
+  /** `git init` ran (false when the dir was already a repo). */
+  initialized: boolean;
+}
+
+/**
+ * Make `repoPathInput` an absolute, git-initialized directory so a later run's
+ * `git worktree add` can succeed. Unlike the manual POST /api/projects/:id/init-repo
+ * route (which refuses to create arbitrary dirs), the chat flow CREATES the
+ * directory — a project the manager invents usually doesn't exist yet. Relative
+ * paths are resolved against the server cwd. Idempotent.
+ */
+function ensureRepoInitialized(
+  repoPathInput: string,
+  name: string,
+  goal: string,
+): EnsureRepoResult {
+  const repoPath = path.isAbsolute(repoPathInput)
+    ? repoPathInput
+    : path.resolve(process.cwd(), repoPathInput);
+  let created = false;
+  if (!fs.existsSync(repoPath)) {
+    fs.mkdirSync(repoPath, { recursive: true });
+    created = true;
+  }
+  if (fs.existsSync(path.join(repoPath, '.git'))) {
+    return { repoPath, created, initialized: false };
+  }
+  const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+  const git = (...args: string[]): string =>
+    execFileSync('git', args, { cwd: repoPath, env, stdio: 'pipe' }).toString();
+  git('init', '-b', 'main');
+  try {
+    execFileSync('git', ['config', '--get', 'user.email'], { cwd: repoPath, env, stdio: 'pipe' });
+  } catch {
+    git('config', 'user.email', 'harness@local');
+    git('config', 'user.name', 'WISP');
+  }
+  git('config', 'commit.gpgsign', 'false');
+  const readme = path.join(repoPath, 'README.md');
+  if (!fs.existsSync(readme)) {
+    fs.writeFileSync(readme, `# ${name}\n\n${goal}\n`, 'utf8');
+  }
+  git('add', '-A');
+  git('commit', '-m', 'initial commit');
+  return { repoPath, created, initialized: true };
+}
+
 async function handleCreateProject(
   d: Extract<ManagerDirective, { kind: 'create_project' }>,
   ctx: DirectiveContext,
@@ -262,10 +327,9 @@ async function handleCreateProject(
       .where(eq(threadParticipants.threadId, ctx.threadId))
       .all();
     const memberIds = parts.filter((p) => p.role === 'member').map((p) => p.agentId);
-    if (memberIds.length === 0) {
-      throw new Error('no_team_members: provide team=[...] or add members first');
-    }
-    teamRefs = memberIds; // these are already agent IDs
+    // Fall back to a sensible default team so create_project works from a fresh
+    // manager-only thread (the common first-time case) instead of erroring.
+    teamRefs = memberIds.length > 0 ? memberIds : ['frontend-dev', 'backend-dev', 'qa-engineer'];
   }
 
   const resolved = teamRefs.map((ref) => {
@@ -287,6 +351,16 @@ async function handleCreateProject(
     })),
   };
 
+  // Ensure the repo exists + is git-initialized (relatives resolved to absolute)
+  // so a later run's `git worktree add` succeeds. This is what makes "create a
+  // project via chat" actually runnable, converging with the manual flow.
+  let repoInit: EnsureRepoResult;
+  try {
+    repoInit = ensureRepoInitialized(d.repoPath, d.name, d.goal);
+  } catch (err) {
+    throw new Error(`repo_init_failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
   const projectId = randomUUID();
   const teamId = randomUUID();
   const now = new Date();
@@ -296,7 +370,7 @@ async function handleCreateProject(
         `INSERT INTO projects (id, name, goal, repo_path, created_at)
          VALUES (?, ?, ?, ?, ?)`,
       )
-      .run(projectId, d.name, d.goal, d.repoPath, now.getTime());
+      .run(projectId, d.name, d.goal, repoInit.repoPath, now.getTime());
     sqlite
       .prepare(`INSERT INTO teams (id, project_id, roles_json) VALUES (?, ?, ?)`)
       .run(teamId, projectId, JSON.stringify(team));
@@ -312,7 +386,8 @@ async function handleCreateProject(
     projectId,
     name: d.name,
     goal: d.goal,
-    repoPath: d.repoPath,
+    repoPath: repoInit.repoPath,
+    repoInitialized: repoInit.initialized,
     teamSize: resolved.length,
     teamAgents: resolved.map((a) => ({ id: a.id, name: a.name })),
   };

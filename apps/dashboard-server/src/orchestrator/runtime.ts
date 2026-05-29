@@ -44,6 +44,7 @@ import {
   type WalkerDeps,
 } from '@wisp/orchestrator';
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import { writeProjectMemoryEntry } from '@wisp/memory-mcp';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
 import { writeMemoryMcpConfig } from './mcp-config.js';
@@ -333,6 +334,33 @@ export class RunRuntime {
         return merged as unknown as T;
       },
       handoffsSection,
+      // WRITE side of the hand-off contract (the READ side is `handoffsSection`
+      // above). The walker calls this on task completion; we persist a
+      // `handoff/<role>/<taskId>` row into the per-project memory DB so the
+      // next walker's loadHandoffsForProject picks it up. Advisory only —
+      // a write failure must not affect task completion. We store the summary
+      // under `prompt` because handoff-loader's safeParseHandoff requires a
+      // `prompt` field and renderHandoffsSection renders it.
+      writeHandoff: async ({ taskId, role, summary, status, branch }) => {
+        if (!projectId) return;
+        try {
+          writeProjectMemoryEntry({
+            dataDir: env.WISP_DATA_DIR,
+            projectId,
+            key: `handoff/${role}/${taskId}`,
+            value: JSON.stringify({
+              taskId,
+              role,
+              prompt: summary,
+              status,
+              branch,
+              completedAt: new Date().toISOString(),
+            }),
+          });
+        } catch (err) {
+          console.error('[runtime] writeHandoff failed:', err);
+        }
+      },
     };
   }
 

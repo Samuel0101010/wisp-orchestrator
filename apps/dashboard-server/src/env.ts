@@ -11,10 +11,15 @@ const booleanLike = z.union([z.string(), z.boolean(), z.undefined()]).transform(
 });
 
 const isProd = process.env.NODE_ENV === 'production';
+// Basename MUST match the launchers (scripts/launch-dashboard.{ps1,sh} both use
+// 'agent-harness'). The launcher always passes WISP_DATA_DIR explicitly, but a
+// bare `node dist/server.js` (dev snippet, doctor) falls back to this default —
+// keeping the basename aligned prevents a split-brain where projects "vanish"
+// between launch methods.
 const defaultDataDir =
   process.platform === 'win32'
-    ? path.join(process.env.LOCALAPPDATA ?? os.homedir(), 'wisp')
-    : path.join(os.homedir(), '.local', 'share', 'wisp');
+    ? path.join(process.env.LOCALAPPDATA ?? os.homedir(), 'agent-harness')
+    : path.join(os.homedir(), '.local', 'share', 'agent-harness');
 
 const envSchema = z.object({
   WISP_PORT: z

@@ -1102,8 +1102,11 @@
       "compress": "Compress"
     },
     "composer": {
-      "placeholder": "Message Marcus + team — ⌘⏎ to send. Type @ to mention a teammate.",
-      "ariaLabel": "Message composer"
+      "placeholder": "Message Marcus + team — Enter to send, Shift+Enter for a new line. Type @ to mention a teammate.",
+      "ariaLabel": "Message composer",
+      "dismissError": "Dismiss error",
+      "attach": "Attach files",
+      "removeAttachment": "Remove attachment"
     },
     "participants": {
       "title": "People",
@@ -1127,7 +1130,12 @@
       "startButton": "Start conversation",
       "starterName": "Marcus",
       "starterGreeting": "Hi! Tell me what you're thinking about — a feature idea, a bug to chase, or a fresh project. I'll loop in the specialists you need.",
-      "tip": "Tip: type <code>@Lena</code> to address the frontend lead directly."
+      "tip": "Tip: type <code>@Lena</code> to address the frontend lead directly.",
+      "prompts": [
+        "What is WISP and how do I use it?",
+        "Start a new project: ",
+        "Plan a feature with the team"
+      ]
     },
     "transcript": {
       "typing": "Manager is typing…",
@@ -1139,6 +1147,7 @@
       "projectCreated": "Project created · {{name}}",
       "projectTeam": "Team of {{count}}. Ready to plan & run.",
       "openProject": "Open project",
+      "projectCreatedNoLink": "Project created — refresh to open it.",
       "memberAdded": "Added <strong>{{name}}</strong> to the conversation.",
       "consulted": "Consulted <strong>{{name}}</strong>. Reply posted below ↓",
       "runStarted": "Started run <code>{{id}}</code>.",
@@ -1228,7 +1237,7 @@
   },
   "tooltips": {
     "newThread": "New conversation",
-    "sendMessage": "Send message (Ctrl+Enter)",
+    "sendMessage": "Send message (Enter — Shift+Enter for a new line)",
     "compressThread": "Compress thread into a summary",
     "addMember": "Add a specialist to this thread",
     "removeMember": "Remove this participant",

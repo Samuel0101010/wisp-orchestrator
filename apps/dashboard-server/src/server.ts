@@ -63,8 +63,27 @@ export async function bootstrap(): Promise<FastifyInstance> {
       }),
     );
   }
-  await fixUpAbruptCrashes(db);
-  await runBootAuthProbe();
+  // Recovery is advisory — it only rewrites orphaned `running` rows to `paused`.
+  // A busy/corrupt DB here must degrade gracefully, never abort boot (matches the
+  // seed/backfill steps above). Otherwise a relaunch over a locked harness.db
+  // surfaces only the launcher's generic 6s "not responding" timeout.
+  try {
+    await fixUpAbruptCrashes(db);
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        event: 'recovery-failed',
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+    );
+  }
+  // Do NOT await the auth probe: it spawns `claude` (cold-start can take 5-30s,
+  // longer if logged out) and the launcher only waits ~6s for the port to bind.
+  // Awaiting here delays app.listen() and the browser opens to connection-refused
+  // on a perfectly good install. The probe stores its result via setLastAuthProbe();
+  // /api/health reads it lazily (authProbe is null until the probe lands).
+  void runBootAuthProbe();
   const app = await buildApp();
   if (process.env.NODE_ENV !== 'test') {
     workerDaemon.start();

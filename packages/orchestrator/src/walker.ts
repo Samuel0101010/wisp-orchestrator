@@ -220,6 +220,21 @@ export interface WalkerDeps {
    * handoffs exist (the prompt composer omits the section in that case).
    */
   handoffsSection?: string;
+  /**
+   * Best-effort hand-off WRITE seam. Called once per task right after it
+   * verifies + auto-commits and just before it transitions to `done`, so
+   * downstream tasks see a `## Prior Handoffs` entry in their composed
+   * prompt. The runtime wires this to `writeProjectMemoryEntry` keyed by
+   * `handoff/<role>/<taskId>`. Optional + advisory: a write failure must
+   * never fail the task (the walker swallows any rejection).
+   */
+  writeHandoff?: (args: {
+    taskId: string;
+    role: string;
+    summary: string;
+    status: string;
+    branch?: string;
+  }) => void | Promise<void>;
 }
 
 /**
@@ -1494,6 +1509,27 @@ export class Walker {
           await this.pause('consecutive-failures');
         }
         return;
+      }
+
+      // Record a hand-off so downstream tasks can read what this task produced.
+      // Fire-and-forget + advisory: do NOT await it — an extra await in the hot
+      // path delays task completion and desyncs fake-timer tests — and never let
+      // a write error fail the task. The runtime's write is effectively sync, so
+      // the entry lands well before any downstream task reads "## Prior Handoffs".
+      if (this.deps.writeHandoff) {
+        const firstLine = node.prompt.split('\n')[0]?.trim() ?? '';
+        const summary = firstLine.length > 280 ? `${firstLine.slice(0, 280)}…` : firstLine;
+        void Promise.resolve(
+          this.deps.writeHandoff({
+            taskId: node.id,
+            role: node.role,
+            summary,
+            status: 'done',
+            branch: t.branchName ?? undefined,
+          }),
+        ).catch(() => {
+          /* handoff write is advisory, never fail the task */
+        });
       }
 
       this.consecutiveFailures = 0;
