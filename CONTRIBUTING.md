@@ -162,9 +162,9 @@ User-facing changes need a `README.md` or `docs/` update if the behavior they de
 
 Releases are cut by maintainers:
 
-1. Bump the version across workspace packages.
+1. Bump the version across workspace packages (this commit also bumps the
+   README release badge).
 2. Tag (`v<major>.<minor>.<patch>`) and push.
 3. Create the matching GitHub Release with notes.
-4. The `release-badge.yml` workflow updates the README badge automatically.
 
 If you're not a maintainer, just land your PR; the release will pick it up at the next cut.
