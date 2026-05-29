@@ -38,6 +38,25 @@ function makeProgrammableRunner(scripts: Map<string, string>) {
   };
 }
 
+/**
+ * Runner that sleeps before yielding — lets a test hold the per-thread send
+ * lock open long enough for a second concurrent request to collide with it.
+ */
+function makeSlowRunner(delayMs: number, reply: string) {
+  return async function* runner(opts: RunClaudeOpts): AsyncGenerator<HarnessEvent> {
+    await new Promise((r) => setTimeout(r, delayMs));
+    yield { type: 'task.text-delta', payload: { taskId: opts.taskId, text: reply } };
+    yield {
+      type: 'task.usage',
+      payload: { taskId: opts.taskId, tokensIn: 10, tokensOut: 5, turns: 1 },
+    };
+    yield {
+      type: 'task.completed',
+      payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+    };
+  };
+}
+
 async function buildAppWithRunner(
   scripts: Map<string, string> = new Map(),
 ): Promise<FastifyInstance> {
@@ -356,5 +375,51 @@ describe('chat v2 — participants, @mentions, directives, compress', () => {
     const after = seedAgents();
     expect(after.installed).toBe(0);
     expect(before.installed).toBeGreaterThanOrEqual(0); // already installed earlier
+  });
+
+  it('per-thread mutex: a concurrent send to the same thread gets 409', async () => {
+    const slowApp = Fastify({ logger: false });
+    await slowApp.register(agentRoutes);
+    await slowApp.register(projectRoutes);
+    await slowApp.register(createPlansRouter({}));
+    await slowApp.register(createChatRouter({ runner: makeSlowRunner(150, 'ok') }));
+    await slowApp.ready();
+    try {
+      const managerId = await getManagerId(slowApp);
+      const t = await slowApp.inject({
+        method: 'POST',
+        url: `/api/agents/${managerId}/threads`,
+        payload: {},
+      });
+      const threadId = (t.json() as { id: string }).id;
+
+      // Fire two sends at once. The first acquires the lock and holds it for the
+      // slow runner's duration; the second must bounce with 409.
+      const [a, b] = await Promise.all([
+        slowApp.inject({
+          method: 'POST',
+          url: `/api/threads/${threadId}/messages`,
+          payload: { content: 'first' },
+        }),
+        slowApp.inject({
+          method: 'POST',
+          url: `/api/threads/${threadId}/messages`,
+          payload: { content: 'second' },
+        }),
+      ]);
+      const codes = [a.statusCode, b.statusCode].sort();
+      expect(codes).toContain(409); // one bounced
+      expect(codes.some((c) => c === 201)).toBe(true); // the other completed
+
+      // Lock released after the turn — a fresh sequential send succeeds (not 409).
+      const c = await slowApp.inject({
+        method: 'POST',
+        url: `/api/threads/${threadId}/messages`,
+        payload: { content: 'third' },
+      });
+      expect(c.statusCode).toBe(201);
+    } finally {
+      await slowApp.close();
+    }
   });
 });

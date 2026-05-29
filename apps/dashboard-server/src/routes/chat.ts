@@ -87,6 +87,15 @@ export interface ChatRouterDeps {
   skillRegistry?: SkillRegistry;
 }
 
+/**
+ * Per-thread send mutex. Only one in-flight manager turn per thread; a second
+ * concurrent POST to the same thread gets 409 instead of racing a duplicate
+ * turn (which would double-charge tokens and interleave directive side-effects).
+ * The entry clears in the handler's finally — covering normal return, a thrown
+ * turn, and timeouts — so a crashed turn never permanently wedges a thread.
+ */
+const inFlightThreads = new Set<string>();
+
 function stripDirectiveSigils(text: string): string {
   return text.replace(/<<ACTION>>/g, '«ACTION»').replace(/<<END>>/g, '«END»');
 }
@@ -679,232 +688,255 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           return { error: 'thread_not_found' };
         }
 
-        // Make sure the manager is auto-promoted on legacy threads that
-        // pre-date chat v2 (no-op for new threads — already added on create).
-        ensureThreadHasManager(threadId);
+        // Per-thread mutex (see inFlightThreads). Reject a concurrent send for
+        // the same thread rather than racing a duplicate manager turn. The lock
+        // is released in the finally below — covering normal return, a thrown
+        // turn, and timeouts — so a thread is never permanently wedged.
+        if (inFlightThreads.has(threadId)) {
+          reply.code(409);
+          return {
+            error: 'turn_in_progress',
+            hint: 'A reply is still being generated for this thread — resend in a moment.',
+          };
+        }
+        inFlightThreads.add(threadId);
 
-        // Determine the responder.
-        const participants = listParticipantAgents(threadId);
-        if (participants.length === 0) {
-          // Fallback: use the thread's primary agent as a one-shot responder.
-          const primary = loadAgent(thread.agentId);
-          if (!primary) {
+        try {
+          // Make sure the manager is auto-promoted on legacy threads that
+          // pre-date chat v2 (no-op for new threads — already added on create).
+          ensureThreadHasManager(threadId);
+
+          // Determine the responder.
+          const participants = listParticipantAgents(threadId);
+          if (participants.length === 0) {
+            // Fallback: use the thread's primary agent as a one-shot responder.
+            const primary = loadAgent(thread.agentId);
+            if (!primary) {
+              reply.code(404);
+              return { error: 'agent_not_found' };
+            }
+            participants.push({ ...primary, role: 'member' });
+          }
+          const responder = pickResponder(participants, parsed.data, thread.agentId);
+          if (!responder) {
             reply.code(404);
-            return { error: 'agent_not_found' };
+            return { error: 'no_responder_found' };
           }
-          participants.push({ ...primary, role: 'member' });
-        }
-        const responder = pickResponder(participants, parsed.data, thread.agentId);
-        if (!responder) {
-          reply.code(404);
-          return { error: 'no_responder_found' };
-        }
 
-        // Resolve attachment ids against the per-thread upload index (unknown
-        // ids are silently ignored). Builds (a) a prompt manifest the responder
-        // sees and (b) a short transcript note appended to the stored user msg.
-        const attachmentIds = parsed.data.attachmentIds ?? [];
-        let attachments: AttachmentEntry[] = [];
-        if (attachmentIds.length > 0) {
-          const index = await readAttachmentIndex(threadId);
-          attachments = attachmentIds
-            .map((id) => index[id])
-            .filter((e): e is AttachmentEntry => e != null);
-        }
-        const manifest =
-          attachments.length > 0
-            ? '\n\n## Attached files (use the Read tool with the exact path shown to open each)\n' +
-              attachments
-                .map(
-                  (a) =>
-                    `- ${a.filename} (${a.mimeType}, ${Math.max(1, Math.round(a.sizeBytes / 1024))} KB) — path: ${a.storagePath}`,
-                )
-                .join('\n')
-            : '';
-        const storedContent =
-          attachments.length > 0
-            ? `${parsed.data.content}\n\n[Attached: ${attachments.map((a) => a.filename).join(', ')}]`
-            : parsed.data.content;
-
-        if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
-          const last = getLastAuthProbe();
-          if (last && !last.ok) {
-            reply.code(503);
-            return { error: 'auth-failed', hint: last.hint };
+          // Resolve attachment ids against the per-thread upload index (unknown
+          // ids are silently ignored). Builds (a) a prompt manifest the responder
+          // sees and (b) a short transcript note appended to the stored user msg.
+          const attachmentIds = parsed.data.attachmentIds ?? [];
+          let attachments: AttachmentEntry[] = [];
+          if (attachmentIds.length > 0) {
+            const index = await readAttachmentIndex(threadId);
+            attachments = attachmentIds
+              .map((id) => index[id])
+              .filter((e): e is AttachmentEntry => e != null);
           }
-        }
+          const manifest =
+            attachments.length > 0
+              ? '\n\n## Attached files (use the Read tool with the exact path shown to open each)\n' +
+                attachments
+                  .map(
+                    (a) =>
+                      `- ${a.filename} (${a.mimeType}, ${Math.max(1, Math.round(a.sizeBytes / 1024))} KB) — path: ${a.storagePath}`,
+                  )
+                  .join('\n')
+              : '';
+          const storedContent =
+            attachments.length > 0
+              ? `${parsed.data.content}\n\n[Attached: ${attachments.map((a) => a.filename).join(', ')}]`
+              : parsed.data.content;
 
-        // Write-ahead: persist user msg + pending assistant stub + (maybe)
-        // auto-title in one transaction so a hard kill leaves recoverable
-        // state, not orphaned messages.
-        const now = new Date();
-        const userMsgId = randomUUID();
-        const assistantId = randomUUID();
-        const tx = sqlite.transaction(() => {
-          sqlite
-            .prepare(
-              `INSERT INTO agent_messages
+          if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
+            const last = getLastAuthProbe();
+            if (last && !last.ok) {
+              reply.code(503);
+              return { error: 'auth-failed', hint: last.hint };
+            }
+          }
+
+          // Write-ahead: persist user msg + pending assistant stub + (maybe)
+          // auto-title in one transaction so a hard kill leaves recoverable
+          // state, not orphaned messages.
+          const now = new Date();
+          const userMsgId = randomUUID();
+          const assistantId = randomUUID();
+          const tx = sqlite.transaction(() => {
+            sqlite
+              .prepare(
+                `INSERT INTO agent_messages
                  (id, thread_id, role, content, tokens_in, tokens_out, duration_ms,
                   error_reason, author_agent_id, created_at)
                VALUES (?, ?, 'user', ?, NULL, NULL, NULL, NULL, NULL, ?)`,
-            )
-            .run(userMsgId, threadId, storedContent, now.getTime());
-          sqlite
-            .prepare(
-              `INSERT INTO agent_messages
+              )
+              .run(userMsgId, threadId, storedContent, now.getTime());
+            sqlite
+              .prepare(
+                `INSERT INTO agent_messages
                  (id, thread_id, role, content, tokens_in, tokens_out, duration_ms,
                   error_reason, author_agent_id, created_at)
                VALUES (?, ?, 'assistant', '', NULL, NULL, NULL, 'pending', ?, ?)`,
-            )
-            .run(assistantId, threadId, responder.id, now.getTime() + 1);
-          const count =
-            sqlite
-              .prepare<
-                unknown[],
-                { c: number }
-              >('SELECT COUNT(*) AS c FROM agent_messages WHERE thread_id = ?')
-              .get(threadId)?.c ?? 0;
-          if (count === 2 && !thread.title) {
-            sqlite
-              .prepare('UPDATE agent_threads SET title = ?, updated_at = ? WHERE id = ?')
-              .run(autoTitle(parsed.data.content), now.getTime(), threadId);
-          } else {
-            sqlite
-              .prepare('UPDATE agent_threads SET updated_at = ? WHERE id = ?')
-              .run(now.getTime(), threadId);
-          }
-        });
-        tx();
-
-        // Build conversation history visible to the responder (oldest first,
-        // skipping the just-inserted pending stub and any errored rows).
-        const prior = await db
-          .select()
-          .from(agentMessages)
-          .where(eq(agentMessages.threadId, threadId))
-          .orderBy(asc(agentMessages.createdAt))
-          .all();
-        const history: HistoryMessage[] = prior
-          .filter((m) => m.id !== userMsgId && m.id !== assistantId && m.errorReason == null)
-          .map((m) => {
-            const author = m.authorAgentId ? loadAgent(m.authorAgentId) : null;
-            return {
-              role: m.role as 'user' | 'assistant',
-              content: m.content,
-              authorName: author?.name,
-            };
+              )
+              .run(assistantId, threadId, responder.id, now.getTime() + 1);
+            const count =
+              sqlite
+                .prepare<
+                  unknown[],
+                  { c: number }
+                >('SELECT COUNT(*) AS c FROM agent_messages WHERE thread_id = ?')
+                .get(threadId)?.c ?? 0;
+            if (count === 2 && !thread.title) {
+              sqlite
+                .prepare('UPDATE agent_threads SET title = ?, updated_at = ? WHERE id = ?')
+                .run(autoTitle(parsed.data.content), now.getTime(), threadId);
+            } else {
+              sqlite
+                .prepare('UPDATE agent_threads SET updated_at = ? WHERE id = ?')
+                .run(now.getTime(), threadId);
+            }
           });
-        // If the responder is the manager, parse + execute directives.
-        const isManager = responder.seedKey === 'manager';
-        const effectiveSystemPrompt = isManager
-          ? buildManagerSystemPrompt(responder.systemPrompt, deps.skillRegistry)
-          : responder.systemPrompt;
-        const composed = composePrompt(effectiveSystemPrompt, history, parsed.data.content, 'user');
+          tx();
 
-        const turn = await runAgentTurn({
-          systemPrompt: composed.systemPrompt,
-          // Append the attachment manifest so the responder knows which files
-          // to Read. Only the primary responder turn sees the files (its cwd is
-          // the upload dir below); consult sub-turns keep their own ephemeral cwd.
-          prompt: manifest ? composed.prompt + manifest : composed.prompt,
-          allowedTools: responder.allowedTools,
-          model: responder.model,
-          taskId: `chat-${threadId.slice(0, 8)}-${responder.seedKey ?? 'agent'}`,
-          runner: deps.runner ?? runner,
-          // When attachments are present, run in the upload dir so the
-          // responder's READ_ONLY_TOOLS (Read/Grep/Glob) can open the files.
-          // Otherwise keep the ephemeral mkdtemp behavior.
-          ...(attachments.length > 0 ? { cwd: uploadDirFor(threadId) } : {}),
-        });
-        const parsedDirectives = isManager
-          ? parseDirectives(turn.text)
-          : { directives: [], errors: [], cleaned: turn.text };
+          // Build conversation history visible to the responder (oldest first,
+          // skipping the just-inserted pending stub and any errored rows).
+          const prior = await db
+            .select()
+            .from(agentMessages)
+            .where(eq(agentMessages.threadId, threadId))
+            .orderBy(asc(agentMessages.createdAt))
+            .all();
+          const history: HistoryMessage[] = prior
+            .filter((m) => m.id !== userMsgId && m.id !== assistantId && m.errorReason == null)
+            .map((m) => {
+              const author = m.authorAgentId ? loadAgent(m.authorAgentId) : null;
+              return {
+                role: m.role as 'user' | 'assistant',
+                content: m.content,
+                authorName: author?.name,
+              };
+            });
+          // If the responder is the manager, parse + execute directives.
+          const isManager = responder.seedKey === 'manager';
+          const effectiveSystemPrompt = isManager
+            ? buildManagerSystemPrompt(responder.systemPrompt, deps.skillRegistry)
+            : responder.systemPrompt;
+          const composed = composePrompt(
+            effectiveSystemPrompt,
+            history,
+            parsed.data.content,
+            'user',
+          );
 
-        // Persist primary assistant message (UPDATE the pending stub).
-        // Bug 7: never persist a literal "(no response)" sentinel as user-
-        // visible content — if the subprocess exited cleanly but produced no
-        // text (Claude returned tool-use only, or an empty result frame), tag
-        // the row with errorReason='empty-response' so the UI renders an
-        // error chip + retry affordance instead of showing the sentinel.
-        const primaryContent = parsedDirectives.cleaned || turn.text || '';
-        const errorReason = turn.failed ?? (primaryContent.length === 0 ? 'empty-response' : null);
-        await db
-          .update(agentMessages)
-          .set({
-            content: primaryContent,
-            tokensIn: turn.tokensIn || null,
-            tokensOut: turn.tokensOut || null,
-            durationMs: turn.durationMs,
-            errorReason,
-            createdAt: new Date(),
-          })
-          .where(eq(agentMessages.id, assistantId))
-          .run();
-        await db
-          .update(agentThreads)
-          .set({ updatedAt: new Date() })
-          .where(eq(agentThreads.id, threadId))
-          .run();
-
-        // Execute directives sequentially (capped). Each may persist an
-        // additional message + an audit row.
-        const executed: ExecutedDirective[] = [];
-        const directives = parsedDirectives.directives.slice(0, MAX_DIRECTIVES_PER_TURN);
-        for (const d of directives) {
-          const r = await executeDirective(d.directive, {
-            threadId,
-            managerMessageId: assistantId,
+          const turn = await runAgentTurn({
+            systemPrompt: composed.systemPrompt,
+            // Append the attachment manifest so the responder knows which files
+            // to Read. Only the primary responder turn sees the files (its cwd is
+            // the upload dir below); consult sub-turns keep their own ephemeral cwd.
+            prompt: manifest ? composed.prompt + manifest : composed.prompt,
+            allowedTools: responder.allowedTools,
+            model: responder.model,
+            taskId: `chat-${threadId.slice(0, 8)}-${responder.seedKey ?? 'agent'}`,
             runner: deps.runner ?? runner,
-            skillRegistry: deps.skillRegistry,
+            // When attachments are present, run in the upload dir so the
+            // responder's READ_ONLY_TOOLS (Read/Grep/Glob) can open the files.
+            // Otherwise keep the ephemeral mkdtemp behavior.
+            ...(attachments.length > 0 ? { cwd: uploadDirFor(threadId) } : {}),
           });
-          executed.push(r);
+          const parsedDirectives = isManager
+            ? parseDirectives(turn.text)
+            : { directives: [], errors: [], cleaned: turn.text };
+
+          // Persist primary assistant message (UPDATE the pending stub).
+          // Bug 7: never persist a literal "(no response)" sentinel as user-
+          // visible content — if the subprocess exited cleanly but produced no
+          // text (Claude returned tool-use only, or an empty result frame), tag
+          // the row with errorReason='empty-response' so the UI renders an
+          // error chip + retry affordance instead of showing the sentinel.
+          const primaryContent = parsedDirectives.cleaned || turn.text || '';
+          const errorReason =
+            turn.failed ?? (primaryContent.length === 0 ? 'empty-response' : null);
+          await db
+            .update(agentMessages)
+            .set({
+              content: primaryContent,
+              tokensIn: turn.tokensIn || null,
+              tokensOut: turn.tokensOut || null,
+              durationMs: turn.durationMs,
+              errorReason,
+              createdAt: new Date(),
+            })
+            .where(eq(agentMessages.id, assistantId))
+            .run();
+          await db
+            .update(agentThreads)
+            .set({ updatedAt: new Date() })
+            .where(eq(agentThreads.id, threadId))
+            .run();
+
+          // Execute directives sequentially (capped). Each may persist an
+          // additional message + an audit row.
+          const executed: ExecutedDirective[] = [];
+          const directives = parsedDirectives.directives.slice(0, MAX_DIRECTIVES_PER_TURN);
+          for (const d of directives) {
+            const r = await executeDirective(d.directive, {
+              threadId,
+              managerMessageId: assistantId,
+              runner: deps.runner ?? runner,
+              skillRegistry: deps.skillRegistry,
+            });
+            executed.push(r);
+          }
+
+          // Reload primary + extra messages so the response reflects the
+          // canonical persisted shape (with createdAt etc).
+          const primaryRow = await db
+            .select()
+            .from(agentMessages)
+            .where(eq(agentMessages.id, assistantId))
+            .get();
+          const extraRows = executed.flatMap((e) =>
+            e.extraMessages.map((m) => ({
+              id: m.id,
+              threadId: m.threadId,
+              role: m.role,
+              content: m.content,
+              tokensIn: m.tokensIn,
+              tokensOut: m.tokensOut,
+              durationMs: m.durationMs,
+              errorReason: m.errorReason,
+              authorAgentId: m.authorAgentId,
+              createdAt: m.createdAt,
+            })),
+          );
+
+          const userRow = await db
+            .select()
+            .from(agentMessages)
+            .where(eq(agentMessages.id, userMsgId))
+            .get();
+
+          if (turn.failed || errorReason) {
+            reply.code(502);
+          } else {
+            reply.code(201);
+          }
+          return {
+            user: userRow,
+            assistants: [primaryRow, ...extraRows].filter(Boolean),
+            actions: executed.map((e) => ({
+              id: e.id,
+              kind: e.kind,
+              status: e.status,
+              payload: e.payload,
+              result: e.result,
+            })),
+            directiveErrors: parsedDirectives.errors,
+          };
+        } finally {
+          inFlightThreads.delete(threadId);
         }
-
-        // Reload primary + extra messages so the response reflects the
-        // canonical persisted shape (with createdAt etc).
-        const primaryRow = await db
-          .select()
-          .from(agentMessages)
-          .where(eq(agentMessages.id, assistantId))
-          .get();
-        const extraRows = executed.flatMap((e) =>
-          e.extraMessages.map((m) => ({
-            id: m.id,
-            threadId: m.threadId,
-            role: m.role,
-            content: m.content,
-            tokensIn: m.tokensIn,
-            tokensOut: m.tokensOut,
-            durationMs: m.durationMs,
-            errorReason: m.errorReason,
-            authorAgentId: m.authorAgentId,
-            createdAt: m.createdAt,
-          })),
-        );
-
-        const userRow = await db
-          .select()
-          .from(agentMessages)
-          .where(eq(agentMessages.id, userMsgId))
-          .get();
-
-        if (turn.failed || errorReason) {
-          reply.code(502);
-        } else {
-          reply.code(201);
-        }
-        return {
-          user: userRow,
-          assistants: [primaryRow, ...extraRows].filter(Boolean),
-          actions: executed.map((e) => ({
-            id: e.id,
-            kind: e.kind,
-            status: e.status,
-            payload: e.payload,
-            result: e.result,
-          })),
-          directiveErrors: parsedDirectives.errors,
-        };
       }),
     );
   };

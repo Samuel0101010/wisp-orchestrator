@@ -17,6 +17,8 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Loader2,
   MessageSquarePlus,
@@ -935,9 +937,15 @@ function MessageBlock({
             )}
         </div>
         <div className="inline-block max-w-[92%] rounded-2xl rounded-tl-md bg-muted/40 px-3 py-2 text-sm text-foreground">
-          <div className="whitespace-pre-wrap">
-            {message.content || t('chat.transcript.noResponse')}
-          </div>
+          {message.content ? (
+            <div className="space-y-2 break-words [&_a]:text-info [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-2 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-foreground/10 [&_pre]:p-2 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+            </div>
+          ) : (
+            <div className="whitespace-pre-wrap text-muted-foreground">
+              {t('chat.transcript.noResponse')}
+            </div>
+          )}
         </div>
         {actions.length > 0 && (
           <div className="mt-2 space-y-1">

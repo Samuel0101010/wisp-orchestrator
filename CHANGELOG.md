@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.22 — chat polish: markdown rendering + per-thread send mutex
+
+Two focused chat-quality improvements from a full live dogfooding pass (two end-to-end WISP runs building a Pomodoro timer, preview, and a chat session as a user). Validated live in the browser and by a concurrent-send test. All 9 gates green.
+
+### Added
+
+- **Markdown rendering of assistant replies.** Chat replies from the manager and teammates now render as formatted markdown — bold, inline code, code blocks, lists, links, blockquotes — instead of raw `**`/backtick text. Uses `react-markdown` + `remark-gfm`, which emit React elements (no `innerHTML`), so no separate sanitizer is needed; user messages stay plain text. Verified live: a manager reply rendered 8 bold, 3 inline-code, 2 link, and 2 list elements.
+
+### Fixed
+
+- **Per-thread send mutex.** A second concurrent `POST /api/threads/:id/messages` for the same thread now returns `409 turn_in_progress` instead of racing a duplicate manager turn (which double-charged tokens and interleaved directive side-effects). The lock releases in the handler's `finally`, so a thrown or timed-out turn never permanently wedges a thread.
+
 ## 2.0.21 — Node-24 install fix + agent-chat overhaul
 
 Two threads, both driven by real reports and validated end-to-end (a true fresh-clone install plus a live browser session driving the chat as a user). (1) A fresh install on a non-developer machine failed "on the Node version" — root-caused to the pinned `better-sqlite3@11.10.0`, which ships no prebuilt binary for Node 24 (today's nodejs.org LTS), forcing a `node-gyp` source compile that needs a C++ toolchain the box lacked. (2) A full audit + live dogfooding of the agent chat (Team Chat) against seven concrete requirements. All 759 tests green.
