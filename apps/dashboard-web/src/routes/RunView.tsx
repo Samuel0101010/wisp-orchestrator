@@ -925,7 +925,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
         initialBudgetTokens={snapshot.run.autopilotBudgetTokens ?? null}
       />
 
-      <ReleaseGateCard runId={run.id} />
+      <ReleaseGateCard runId={run.id} runStatus={run.status} />
 
       {/* Indicator: autopilot is active AND the run is paused with an
           auto-resumable reason. Tells the user "the harness is watching

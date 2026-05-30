@@ -13,9 +13,9 @@ import { useRuntimeReport, type RuntimeReportVerdict } from '@/api/queries';
  * (or wasn't part of the plan, or runtime-verify was disabled on this
  * project). Polls every 5s while the run is active.
  */
-export function ReleaseGateCard({ runId }: { runId: string }) {
+export function ReleaseGateCard({ runId, runStatus }: { runId: string; runStatus?: string }) {
   const { t } = useTranslation();
-  const report = useRuntimeReport(runId);
+  const report = useRuntimeReport(runId, runStatus);
 
   if (!report.data) return null;
 

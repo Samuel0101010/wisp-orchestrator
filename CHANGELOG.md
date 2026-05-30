@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.29 — runtime-report 404-polling fix (live-test polish)
+
+A small quality fix surfaced by an exhaustive live UI re-test of the v2.0.28 build — every route, control, and the full 33-item audit surface driven as a user. One real defect found and fixed.
+
+### Fixed
+
+- **Run view spammed 404s polling the runtime-report.** `useRuntimeReport` polled `GET /api/runs/:id/runtime-report` every 5s regardless of run state. Runs that have no report — pending, paused, cancelled, or failed-before-runtime-verify — return 404 on every poll (observed 26× on a single cancelled run), filling the console with errors for a non-error condition. It now polls only while the run is `running` or `completed` (the only states in which a report can appear or change); the single initial fetch still surfaces a report for any run that already has one. No API-contract change, behaviour otherwise unchanged.
+
+### Verification
+
+- Exhaustive live pass over the full dashboard in the rebuilt bundle (Chrome DevTools): all six project-detail tabs, plan-editor node-edit/save + regenerate-dialog + canvas zoom/fit, run pause→banner→resume→cancel, preview edit-mode element-pick → visual change-request, agent-overrides save/reset, DoD add/delete, lead activate/tick, build-target switch + web-guard, command palette, and every destructive action via dialog-cancel. The v2.0.27/28 fixes were re-proven live (iteration brief-gate bypass returns non-412; plan-recency ordering returns the newest plan). All 9 gates green.
+
 ## 2.0.28 — create→run→iterate dogfood fixes
 
 Found by driving the full lifecycle live as a user (create a Tip Calculator via chat → plan → run → preview → iterate). Two real reliability bugs in the create/iterate path, both fixed.

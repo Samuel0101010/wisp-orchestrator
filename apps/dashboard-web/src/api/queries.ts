@@ -295,11 +295,16 @@ export interface RuntimeReportRow {
   createdAt: string | Date;
 }
 
-export function useRuntimeReport(runId: string | undefined) {
+export function useRuntimeReport(runId: string | undefined, runStatus?: string) {
+  // Only poll while the run is producing or finalising a report. Terminal runs
+  // without one (cancelled/failed) or not-yet-started runs have no report to
+  // fetch — polling them just spams 404s in the console. The single initial
+  // fetch still surfaces a report for any run that already has one.
+  const shouldPoll = runStatus === 'running' || runStatus === 'completed';
   return useQuery<RuntimeReportRow | null>({
     queryKey: ['runtime-report', runId ?? null],
     enabled: Boolean(runId),
-    refetchInterval: 5000,
+    refetchInterval: shouldPoll ? 5000 : false,
     queryFn: async () => {
       if (!runId) return null;
       try {
