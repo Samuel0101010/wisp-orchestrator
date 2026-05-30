@@ -191,7 +191,9 @@ export const orgChartRoutes: FastifyPluginAsync = async (app) => {
         .select()
         .from(plans)
         .where(eq(plans.projectId, projectId))
-        .orderBy(desc(plans.id))
+        // Recency by created_at (migration 0019); id is a random UUIDv4, not
+        // a time key. id stays as a tiebreaker for pre-migration rows.
+        .orderBy(desc(plans.createdAt), desc(plans.id))
         .get();
 
       let edges: OrgChartEdge[] = [];

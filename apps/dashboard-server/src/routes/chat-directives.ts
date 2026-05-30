@@ -436,7 +436,10 @@ async function handleStartRun(
     .select()
     .from(plansTable)
     .where(eq(plansTable.projectId, projectId))
-    .orderBy(desc(plansTable.id))
+    // Recency by created_at (migration 0019); id is a random UUIDv4, not a
+    // time key. Without this, start_run could pick a stale plan once a
+    // project has 2+ plans. id stays as a tiebreaker for pre-migration rows.
+    .orderBy(desc(plansTable.createdAt), desc(plansTable.id))
     .get();
   if (!latestPlan) {
     return {

@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.27 — Plan-recency fix + v2.0.24-26 test hardening
+
+A correctness + verification release. Headline fix: the "latest plan" for a project was selected by ordering on the primary key, but that key is a random UUIDv4 with no time component, so it returned a stale plan ~50% of the time once a project had 2+ plans — affecting the plan read, the chat `start_run` directive's plan lookup, and the org-chart. This adds an authoritative `created_at` recency key (migration 0019) and closes the test-coverage gaps around the v2.0.24-26 features. The three shipped features (generate_plan, preview-after-run, HMR-WS) were also re-validated **live in the bundled web build** this round (a prior run had verified them only via the dev server).
+
+### Fixed
+
+- **Latest-plan selection returned a stale plan for multi-plan projects.** `GET /api/projects/:id/plan`, the chat `start_run` directive, and the org-chart all ordered plans by `desc(id)` on a random UUIDv4 — uncorrelated with creation time — so any project with 2+ plans (iteration / replan / self-healing each create follow-up plans) could get the wrong plan. Added a `plans.created_at` timestamp (migration 0019; existing rows backfill to epoch so any post-migration plan correctly outranks them) and switched all three sites to `orderBy(desc(created_at), desc(id))`.
+- **Preview worktree existence check used a substring match.** `ensurePreviewWorktree` matched the worktree path as a substring of the whole `git worktree list --porcelain` blob; tightened to a line-exact `worktree <path>` match (both slash forms) so a sibling path cannot false-match.
+
+### Tests (closing v2.0.24-26 coverage gaps)
+
+- **generate_plan** (v2.0.24): synchronous `pending` persistence, the background-job success/failure transitions, the orphaned-draft cleanup on lock failure, and the `chat.action-update` WS frame — now covered hermetically (no live-only gap). Plus `start_run` (`no_plan_yet` soft-fail, `no_project_to_run`) and the `MAX_DIRECTIVES_PER_TURN` cap.
+- **Preview routes** (v2.0.25): the `start`/`status` handlers via `app.inject` — 404, 400 (`no_dev_cmd`), 500 (`worktree_setup_failed`), the already-running short-circuit, and the `--base` framework gating (vite/sveltekit get it; next/nuxt do not). Two production-safe test seams added to the preview router.
+- **HMR WS proxy** (v2.0.26): the pending-buffer flush (client frames sent before the upstream opens) and `normalizeCloseCode` (1005 / 1006 / out-of-range → undefined).
+- **Previously untested routes:** `insights` (trajectory list/get/delete + corrupt-planJson fallback) and `router` (`/api/router/priors` mean + sample-count projection).
+- Server suite 474 → 509 tests.
+
+### Chore
+
+- gitignore the git-filter-repo rule inputs (`.git-rewrite-*.txt` — contain a private email/username, must never be committed) and the per-session `tests/e2e/audit-*.mjs` scratch scripts; removed the spent scratch scripts.
+
 ## 2.0.26 — Preview HMR works (vite HMR WebSocket proxy)
 
 The preview iframe now establishes vite's HMR WebSocket through the dashboard's reverse-proxy, so live module reload works and the `@vite/client` "server connection lost" reconnect spam is gone (a top-level preview load that previously stayed blank now mounts). A prior design was rejected (NO-GO) for risking the core run/chat WebSockets; this clean redesign routes the upgrade through Fastify's own router and is regression-test-guarded. Validated live (a `vite-hmr` WebSocket to the preview path connected through the proxy and received vite's `{"type":"connected"}` handshake).

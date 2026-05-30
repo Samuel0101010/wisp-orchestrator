@@ -197,7 +197,10 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           .select()
           .from(plans)
           .where(eq(plans.projectId, projectId))
-          .orderBy(desc(plans.id))
+          // Recency key is created_at (migration 0019); the id is a random
+          // UUIDv4 and cannot order by time. id is a deterministic tiebreaker
+          // for pre-migration rows (created_at backfilled to 0).
+          .orderBy(desc(plans.createdAt), desc(plans.id))
           .get();
         if (!row) {
           // No plan generated yet. Return 200 + null so fresh projects don't

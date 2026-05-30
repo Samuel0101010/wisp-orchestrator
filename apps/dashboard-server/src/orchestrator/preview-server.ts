@@ -262,7 +262,13 @@ async function ensurePreviewWorktreeImpl(
   const { stdout: wtList } = await run('git', ['worktree', 'list', '--porcelain'], {
     cwd: repoPath,
   });
-  const alreadyExists = wtList.includes(wtPath.replace(/\\/g, '/')) || wtList.includes(wtPath);
+  const wtPathFwd = wtPath.replace(/\\/g, '/');
+  const alreadyExists = wtList.split(/\r?\n/).some((line) => {
+    const m = /^worktree (.+)$/.exec(line);
+    if (!m) return false;
+    const listed = m[1]!;
+    return listed === wtPath || listed === wtPathFwd || listed.replace(/\\/g, '/') === wtPathFwd;
+  });
 
   if (alreadyExists) {
     // Reuse: reset hard to latest main so the preview shows post-run content.

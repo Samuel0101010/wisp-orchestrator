@@ -334,11 +334,12 @@ describe('GET /api/projects/:projectId/org-chart', () => {
     const projectId = await createProject(app, 'oc-latest');
     await putTeam(app, projectId, defaultTeam());
 
-    // Pin plan ids to lexicographically-sortable strings so the
-    // `orderBy(desc(plans.id))` selection in org-chart.ts always picks
-    // 'plan-2-...' over 'plan-1-...'. Using randomUUID() here is flaky
-    // because UUIDv4s have no ordering by creation time.
-    const oldPlanId = `plan-1-${randomUUID()}`;
+    // Recency is decided by created_at (migration 0019), NOT by id. To prove
+    // it, give the OLDER plan a lexicographically LARGER id but an earlier
+    // created_at, and the NEWER plan a smaller id but a later created_at. A
+    // regression to `orderBy(desc(plans.id))` would wrongly pick the old plan
+    // and fail this test.
+    const oldPlanId = `plan-zzz-${randomUUID()}`;
     await db
       .insert(plans)
       .values({
@@ -370,9 +371,10 @@ describe('GET /api/projects/:projectId/org-chart', () => {
         } as unknown,
         status: 'locked',
         kind: 'initial',
+        createdAt: new Date(1000),
       })
       .run();
-    const newPlanId = `plan-2-${randomUUID()}`;
+    const newPlanId = `plan-aaa-${randomUUID()}`;
     await db
       .insert(plans)
       .values({
@@ -381,6 +383,7 @@ describe('GET /api/projects/:projectId/org-chart', () => {
         dagJson: buildDagWith() as unknown,
         status: 'draft',
         kind: 'iteration',
+        createdAt: new Date(2000),
       })
       .run();
 

@@ -1,15 +1,18 @@
 import './setup.js';
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { directiveSchema, type HarnessEvent } from '@wisp/schemas';
+import { eq } from 'drizzle-orm';
+import { directiveSchema, plans, type HarnessEvent } from '@wisp/schemas';
 import type { RunClaudeOpts } from '@wisp/orchestrator';
 import { agentRoutes } from '../routes/agents.js';
 import { createChatRouter } from '../routes/chat.js';
 import { projectRoutes } from '../routes/projects.js';
 import { createPlansRouter } from '../routes/plans.js';
 import { runMigrations } from '../db/migrate.js';
-import { sqlite } from '../db/index.js';
+import { db, sqlite } from '../db/index.js';
 import { seedAgents } from '../db/agents-seed.js';
+import { env } from '../env.js';
 
 /**
  * Build a runner that returns whatever text we tell it to. Used to fake the
@@ -75,6 +78,60 @@ async function getManagerId(app: FastifyInstance): Promise<string> {
   const m = list.find((a) => a.seedKey === 'manager');
   if (!m) throw new Error('manager seed not present — did seedAgents() run?');
   return m.id;
+}
+
+/**
+ * Seed a project + a (minimal) team row directly via SQL — bypasses the
+ * create_project directive so the generate_plan handler's eager validation
+ * (project exists + team exists) passes without going through chat. Returns
+ * the new projectId.
+ */
+function seedProjectWithTeam(name = 'PlanProj'): string {
+  const projectId = randomUUID();
+  const teamId = randomUUID();
+  const now = Date.now();
+  sqlite
+    .prepare(`INSERT INTO projects (id, name, goal, repo_path, created_at) VALUES (?, ?, ?, ?, ?)`)
+    .run(projectId, name, `goal for ${name}`, `C:/tmp/${name}`, now);
+  sqlite
+    .prepare(`INSERT INTO teams (id, project_id, roles_json) VALUES (?, ?, ?)`)
+    .run(teamId, projectId, JSON.stringify({ roles: [] }));
+  return projectId;
+}
+
+/** Read the most-recent chat_actions row for a thread (or one of a kind). */
+function readAction(
+  threadId: string,
+  kind?: string,
+): { id: string; kind: string; status: string; result_json: string | null } | undefined {
+  const rows = sqlite
+    .prepare(
+      `SELECT id, kind, status, result_json FROM chat_actions
+       WHERE thread_id = ? ORDER BY created_at DESC, rowid DESC`,
+    )
+    .all(threadId) as Array<{
+    id: string;
+    kind: string;
+    status: string;
+    result_json: string | null;
+  }>;
+  return kind ? rows.find((r) => r.kind === kind) : rows[0];
+}
+
+/** Create a manager-owned thread and return its id. */
+async function newManagerThread(app: FastifyInstance): Promise<string> {
+  const managerId = await getManagerId(app);
+  const t = await app.inject({
+    method: 'POST',
+    url: `/api/agents/${managerId}/threads`,
+    payload: {},
+  });
+  return (t.json() as { id: string }).id;
+}
+
+/** Build the manager <<ACTION>> reply wrapping a JSON directive. */
+function directiveReply(prose: string, json: string): string {
+  return `${prose}\n\n<<ACTION>>\n${json}\n<<END>>`;
 }
 
 describe('chat v2 — participants, @mentions, directives, compress', () => {
@@ -459,4 +516,294 @@ describe('chat v2 — participants, @mentions, directives, compress', () => {
     const result = body.actions[0].result as { error?: string } | null;
     expect(result?.error).toContain('no_project');
   });
+
+  // --- Branch 1: generate_plan persists a 'pending' chat_actions row synchronously ---
+  it('generate_plan persists a pending chat_actions row synchronously before the async job', async () => {
+    // A real project + team exist → eager validation passes → handler returns
+    // immediately with status 'pending' (the bg loopback job runs later). The
+    // projectId is carried IN the directive JSON (the handler resolves it from
+    // the directive or a prior create_project action, not from message prose).
+    const projectId = seedProjectWithTeam('PendingProj');
+    app = await buildAppWithRunner(
+      new Map([
+        [
+          'chat-',
+          directiveReply('Planning now.', `{"kind":"generate_plan","projectId":"${projectId}"}`),
+        ],
+      ]),
+    );
+    // Point the bg loopback at a dead port so it can never race to patch the
+    // row before our synchronous read (and never hits a real server on 4400).
+    const savedPort = env.WISP_PORT;
+    const savedHost = env.WISP_HOST;
+    env.WISP_HOST = '127.0.0.1';
+    env.WISP_PORT = 1;
+    try {
+      const threadId = await newManagerThread(app);
+      const send = await app.inject({
+        method: 'POST',
+        url: `/api/threads/${threadId}/messages`,
+        payload: { content: 'Generate a plan please.' },
+      });
+      expect(send.statusCode).toBe(201);
+
+      const body = send.json();
+      expect(body.actions).toHaveLength(1);
+      expect(body.actions[0].kind).toBe('generate_plan');
+      // The synchronous response carries the 'pending' status — the directive
+      // launched a bg job but did NOT await it.
+      expect(body.actions[0].status).toBe('pending');
+      const syncResult = body.actions[0].result as { planGenStarted?: boolean } | null;
+      expect(syncResult?.planGenStarted).toBe(true);
+
+      // The persisted row is also 'pending' right after the send. We read it
+      // synchronously (the bg job is deferred behind setImmediate + a real
+      // loopback fetch, so it cannot have patched the row this early).
+      const row = readAction(threadId, 'generate_plan');
+      expect(row).toBeDefined();
+      expect(row!.status).toBe('pending');
+      expect(row!.id).toBe(body.actions[0].id);
+
+      // Let the deferred bg job settle (to 'failed' against the dead port) so
+      // it doesn't leak into a later test's DB reads.
+      await waitForActionStatus(threadId, 'generate_plan', 'failed');
+    } finally {
+      env.WISP_PORT = savedPort;
+      env.WISP_HOST = savedHost;
+    }
+  });
+
+  // --- Branch 2 (a): generate_plan ERROR path — plan-gen over loopback cannot
+  // succeed (no live server is listening on env.WISP_PORT in app.inject mode),
+  // so the bg fetch throws ECONNREFUSED → the row is patched to 'failed'. ---
+  it('generate_plan bg job patches the row to failed when plan-gen loopback fails', async () => {
+    const projectId = seedProjectWithTeam('FailProj');
+    app = await buildAppWithRunner(
+      new Map([
+        [
+          'chat-',
+          directiveReply('Planning now.', `{"kind":"generate_plan","projectId":"${projectId}"}`),
+        ],
+      ]),
+    );
+    // Point the bg job's loopback at a port with nothing listening so the
+    // fetch deterministically fails (ECONNREFUSED) rather than hanging.
+    const savedPort = env.WISP_PORT;
+    const savedHost = env.WISP_HOST;
+    env.WISP_HOST = '127.0.0.1';
+    env.WISP_PORT = 1; // privileged/unused — connect refused immediately
+    try {
+      const threadId = await newManagerThread(app);
+      const send = await app.inject({
+        method: 'POST',
+        url: `/api/threads/${threadId}/messages`,
+        payload: { content: 'Generate a plan please.' },
+      });
+      expect(send.statusCode).toBe(201);
+      const actionId = (send.json().actions[0] as { id: string }).id;
+
+      // Wait for the deferred bg job to patch the row to 'failed'.
+      const finalStatus = await waitForActionStatus(threadId, 'generate_plan', 'failed');
+      expect(finalStatus).toBe('failed');
+      const row = readAction(threadId, 'generate_plan')!;
+      expect(row.id).toBe(actionId);
+      const result = row.result_json ? (JSON.parse(row.result_json) as { error?: string }) : null;
+      expect(typeof result?.error).toBe('string');
+      expect(result!.error!.length).toBeGreaterThan(0);
+    } finally {
+      env.WISP_PORT = savedPort;
+      env.WISP_HOST = savedHost;
+    }
+  });
+
+  // --- Branch 2 (b): the lock-failure DELETE path. The bg job's loopback hits a
+  // live test server whose /plan returns a real draft plan id but whose /lock
+  // returns non-ok → the handler must (1) mark the row 'failed' AND (2) DELETE
+  // the orphaned draft plan row (DELETE FROM plans WHERE id=? AND status='draft').
+  it('generate_plan deletes the orphaned draft + marks the row failed when lock fails', async () => {
+    const projectId = seedProjectWithTeam('LockFailProj');
+    app = await buildAppWithRunner(
+      new Map([
+        [
+          'chat-',
+          directiveReply('Planning now.', `{"kind":"generate_plan","projectId":"${projectId}"}`),
+        ],
+      ]),
+    );
+
+    // A real draft plan row the bg job's /plan response will point at. After a
+    // failed lock, the handler must delete exactly this row.
+    const draftPlanId = randomUUID();
+    sqlite
+      .prepare(`INSERT INTO plans (id, project_id, dag_json, status) VALUES (?, ?, ?, 'draft')`)
+      .run(draftPlanId, projectId, JSON.stringify({ goal: 'x', nodes: [], edges: [] }));
+
+    // A tiny live loopback server that mimics the two endpoints the bg job
+    // calls: /plan returns the real draft id (ok), /lock returns 409 (fail).
+    const loopback = Fastify({ logger: false });
+    loopback.post('/api/projects/:id/plan', async (_req, reply) => {
+      reply.code(201);
+      return { id: draftPlanId };
+    });
+    loopback.post('/api/plans/:planId/lock', async (_req, reply) => {
+      reply.code(409);
+      return { error: 'invalid-transition' };
+    });
+    await loopback.listen({ host: '127.0.0.1', port: 0 });
+    const addr = loopback.server.address();
+    const livePort = typeof addr === 'object' && addr ? addr.port : 0;
+    expect(livePort).toBeGreaterThan(0);
+
+    const savedPort = env.WISP_PORT;
+    const savedHost = env.WISP_HOST;
+    env.WISP_HOST = '127.0.0.1';
+    env.WISP_PORT = livePort;
+    try {
+      const threadId = await newManagerThread(app);
+      const send = await app.inject({
+        method: 'POST',
+        url: `/api/threads/${threadId}/messages`,
+        payload: { content: `Generate a plan for ${projectId}` },
+      });
+      expect(send.statusCode).toBe(201);
+
+      // bg job: /plan ok → /lock fail → DELETE draft + patch row to failed.
+      const finalStatus = await waitForActionStatus(threadId, 'generate_plan', 'failed');
+      expect(finalStatus).toBe('failed');
+
+      // The orphaned draft plan row was deleted.
+      const stillThere = db.select().from(plans).where(eq(plans.id, draftPlanId)).get();
+      expect(stillThere).toBeUndefined();
+
+      // The failure reason is the lock error surfaced by the bg job.
+      const row = readAction(threadId, 'generate_plan')!;
+      const result = row.result_json ? (JSON.parse(row.result_json) as { error?: string }) : null;
+      expect(result?.error).toContain('invalid-transition');
+    } finally {
+      env.WISP_PORT = savedPort;
+      env.WISP_HOST = savedHost;
+      await loopback.close();
+    }
+  });
+
+  // --- Branch 3: start_run soft-fail + no-project paths ---
+  it('start_run returns no_plan_yet (status ok) when the project has no plan', async () => {
+    // Seed the project FIRST so the scripted directive can carry its real id.
+    const projectId = seedProjectWithTeam('NoPlanProj');
+    app = await buildAppWithRunner(
+      new Map([
+        [
+          'chat-',
+          directiveReply('Starting the run.', `{"kind":"start_run","projectId":"${projectId}"}`),
+        ],
+      ]),
+    );
+    const threadId = await newManagerThread(app);
+    const send = await app.inject({
+      method: 'POST',
+      url: `/api/threads/${threadId}/messages`,
+      payload: { content: 'Start the run.' },
+    });
+    expect(send.statusCode).toBe(201);
+    const body = send.json();
+    expect(body.actions).toHaveLength(1);
+    expect(body.actions[0].kind).toBe('start_run');
+    // Project exists but has no plan → soft-fail (handler returns a result, so
+    // the audit status is 'ok' even though the run did not start).
+    expect(body.actions[0].status).toBe('ok');
+    const result = body.actions[0].result as {
+      runStarted?: boolean;
+      reason?: string;
+      projectId?: string;
+    };
+    expect(result.runStarted).toBe(false);
+    expect(result.reason).toBe('no_plan_yet');
+    expect(result.projectId).toBe(projectId);
+  });
+
+  it('start_run with no project to run fails (no projectId + no create_project)', async () => {
+    app = await buildAppWithRunner(
+      new Map([['chat-', directiveReply('Starting the run.', '{"kind":"start_run"}')]]),
+    );
+    const threadId = await newManagerThread(app);
+    const send = await app.inject({
+      method: 'POST',
+      url: `/api/threads/${threadId}/messages`,
+      payload: { content: 'Start the run.' },
+    });
+    expect(send.statusCode).toBe(201);
+    const body = send.json();
+    expect(body.actions).toHaveLength(1);
+    expect(body.actions[0].kind).toBe('start_run');
+    // No projectId given AND no prior create_project in the thread → throws.
+    expect(body.actions[0].status).toBe('failed');
+    const result = body.actions[0].result as { error?: string } | null;
+    expect(result?.error).toContain('no_project_to_run');
+  });
+
+  // --- Branch 4: MAX_DIRECTIVES_PER_TURN cap (=4) ---
+  it('executes at most MAX_DIRECTIVES_PER_TURN (4) directives when the manager emits more', async () => {
+    // 6 add_member directives in one reply; only the first 4 should execute.
+    // Pick 6 distinct seed members so each would add a real participant.
+    const memberSeeds = [
+      'frontend-dev',
+      'backend-dev',
+      'qa-engineer',
+      'devops',
+      'designer',
+      'ml-engineer',
+    ];
+    const blocks = memberSeeds
+      .map((seed) => `<<ACTION>>\n{"kind":"add_member","agent":"${seed}"}\n<<END>>`)
+      .join('\n');
+    app = await buildAppWithRunner(new Map([['chat-', `Adding the whole crew.\n\n${blocks}`]]));
+
+    const threadId = await newManagerThread(app);
+    const send = await app.inject({
+      method: 'POST',
+      url: `/api/threads/${threadId}/messages`,
+      payload: { content: 'Add everyone please.' },
+    });
+    expect(send.statusCode).toBe(201);
+    const body = send.json();
+    // Cap is 4 — even though 6 directives were emitted.
+    expect(body.actions).toHaveLength(4);
+    expect(body.actions.every((a: { kind: string }) => a.kind === 'add_member')).toBe(true);
+
+    // And the audit table persisted exactly 4 rows for this thread.
+    const count = (
+      sqlite
+        .prepare(
+          `SELECT COUNT(*) AS c FROM chat_actions WHERE thread_id = ? AND kind = 'add_member'`,
+        )
+        .get(threadId) as { c: number }
+    ).c;
+    expect(count).toBe(4);
+  });
 });
+
+/**
+ * Poll the chat_actions row until it reaches `want` (or times out). The
+ * generate_plan bg job is fire-and-forget (setImmediate + a real loopback
+ * fetch), so tests must wait for the async patch instead of asserting inline.
+ */
+async function waitForActionStatus(
+  threadId: string,
+  kind: string,
+  want: string,
+  timeoutMs = 5000,
+): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  // Read via the same module-level helper hoisted above.
+  for (;;) {
+    const rows = sqlite
+      .prepare(
+        `SELECT status FROM chat_actions WHERE thread_id = ? AND kind = ?
+         ORDER BY created_at DESC, rowid DESC LIMIT 1`,
+      )
+      .get(threadId, kind) as { status: string } | undefined;
+    if (rows && rows.status === want) return rows.status;
+    if (Date.now() > deadline) return rows?.status ?? '(no row)';
+    await new Promise((r) => setTimeout(r, 25));
+  }
+}

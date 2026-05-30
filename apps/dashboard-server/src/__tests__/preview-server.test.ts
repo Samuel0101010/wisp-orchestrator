@@ -391,6 +391,39 @@ describe('ensurePreviewWorktree', () => {
     expect(reset?.args).toEqual(['reset', '--hard', sha]);
   });
 
+  it('(b2) does NOT false-match a different worktree whose path has the target as a prefix', async () => {
+    // The porcelain list contains a sibling worktree `<wtPath>-bak`, which has
+    // the target path as a string prefix. A substring-based existence check
+    // would wrongly treat the target as already-registered and take the reuse
+    // (reset) branch. The line-exact check must decide the target does NOT
+    // exist and take the create (worktree add) branch.
+    const calls: ExecaCall[] = [];
+    const impl = vi.fn(async (cmd: string, args: string[]) => {
+      calls.push({ cmd, args });
+      if (cmd === 'git' && args[0] === 'rev-parse') {
+        return { stdout: sha };
+      }
+      if (cmd === 'git' && args[0] === 'worktree' && args[1] === 'list') {
+        // Only a sibling `<wtPath>-bak` is registered, NOT the target wtPath.
+        // Use the forward-slash form git emits on the porcelain output.
+        const bak = `${expectedWtPath.replace(/\\/g, '/')}-bak`;
+        return { stdout: `worktree ${bak}\nHEAD ${sha}\ndetached\n` };
+      }
+      return { stdout: '' };
+    }) as unknown as typeof import('execa').execa;
+
+    const result = await ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    expect(result).toBe(expectedWtPath);
+    // Create branch taken: `worktree add --detach <wtPath> <sha>` ran...
+    const add = calls.find((c) => c.cmd === 'git' && c.args[1] === 'add');
+    expect(add).toBeDefined();
+    expect(add?.args).toContain('--detach');
+    expect(add?.args).toContain(expectedWtPath);
+    expect(add?.args).toContain(sha);
+    // ...and the reuse branch (reset --hard) was NOT taken.
+    expect(calls.some((c) => c.cmd === 'git' && c.args[0] === 'reset')).toBe(false);
+  });
+
   it('(c) node_modules present: skips `pnpm install`', async () => {
     nodeModulesPresent = true;
     const { impl, calls } = makeExeca({ worktreeExists: true });

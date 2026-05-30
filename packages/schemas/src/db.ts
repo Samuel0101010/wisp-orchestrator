@@ -114,6 +114,14 @@ export const plans = sqliteTable('plans', {
     .references(() => projects.id, { onDelete: 'cascade' }),
   dagJson: text('dag_json', { mode: 'json' }).$type<unknown>().notNull(),
   status: text('status', { enum: planStatusValues }).notNull(),
+  // v2.0.27 (migration 0019). Plans are selected as "latest" by recency; the
+  // PK is a random UUIDv4 (not time-sortable), so ordering by id returned a
+  // stale plan ~50% of the time for multi-plan (iteration) projects. This
+  // timestamp is the authoritative recency key. Existing rows backfill to 0
+  // in the migration so any post-migration plan correctly outranks them.
+  createdAt: integer('created_at', { mode: 'timestamp_ms' })
+    .notNull()
+    .$defaultFn(() => new Date()),
   // Nullable for root plans; set to the predecessor's id when this is a QA-replan child.
   // FK lives in the SQL migration (self-referential Drizzle .references() has ordering issues).
   parentPlanId: text('parent_plan_id'),

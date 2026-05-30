@@ -3,6 +3,10 @@ node_modules/
 
 # Scratch / local-only working dirs
 .tmp/
+# git-filter-repo rewrite rule inputs (contain private email/username — never commit)
+.git-rewrite-*.txt
+# Per-session e2e audit scratch scripts (never run by Playwright; testMatch is *.spec.ts)
+tests/e2e/audit-*.mjs
 
 # Build outputs
 dist/

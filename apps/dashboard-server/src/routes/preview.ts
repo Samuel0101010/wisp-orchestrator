@@ -47,10 +47,23 @@ import {
 export interface PreviewRouterDeps {
   /** Test seam — swap the registry. */
   registry?: PreviewProcessRegistry;
+  /**
+   * Test seam — swap the framework/dev-command detector. Defaults to the real
+   * pure `detectProjectType` (reads the worktree's package.json), so production
+   * behaviour is unchanged when this is omitted.
+   */
+  detectProjectType?: typeof detectProjectType;
+  /**
+   * Test seam — swap the worktree resolver. Defaults to the real
+   * `ensurePreviewWorktree`, so production behaviour is unchanged when omitted.
+   */
+  ensurePreviewWorktree?: typeof ensurePreviewWorktree;
 }
 
 export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPluginAsync {
   const registry = deps.registry ?? previewProcesses;
+  const detect = deps.detectProjectType ?? detectProjectType;
+  const ensureWorktree = deps.ensurePreviewWorktree ?? ensurePreviewWorktree;
 
   const router: FastifyPluginAsync = async (app) => {
     app.post(
@@ -85,7 +98,7 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
         // is the authoritative, installable copy of the current main.
         let previewCwd: string;
         try {
-          previewCwd = await ensurePreviewWorktree(project.repoPath, projectId);
+          previewCwd = await ensureWorktree(project.repoPath, projectId);
         } catch (err) {
           reply.code(500);
           return { error: 'worktree_setup_failed', detail: String(err) };
@@ -98,7 +111,7 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
         // Read it from the WORKTREE (not project.repoPath) so a stale
         // repoPath package.json can't mismatch the content we actually spawn
         // against — the worktree was just `git reset --hard`'d to main.
-        const detection = detectProjectType(previewCwd);
+        const detection = detect(previewCwd);
         if (!devCmd || !probeUrl) {
           devCmd = devCmd ?? detection.devCommand;
           probeUrl = probeUrl ?? detection.probeUrl;
@@ -352,7 +365,7 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
  * "abnormal closure") throw if passed to `.close()`. Map those to undefined so
  * the proxy doesn't crash forwarding a peer's abnormal close.
  */
-function normalizeCloseCode(code: number | undefined): number | undefined {
+export function normalizeCloseCode(code: number | undefined): number | undefined {
   if (code == null) return undefined;
   if (code === 1005 || code === 1006) return undefined;
   if (code < 1000 || code > 4999) return undefined;
