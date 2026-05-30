@@ -10,6 +10,7 @@ files:
   - apps/dashboard-server/src/routes/org-chart.ts
 related:
   - 2026-05-29-wisp-dogfood-preview-after-run-working-tree.md
+  - 2026-05-31-wisp-live-ui-testing-gotchas.md
   - 2026-05-29-better-sqlite3-node24-prebuilt-gap.md
 ---
 
