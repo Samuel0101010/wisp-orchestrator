@@ -9,6 +9,7 @@ files:
 related:
   - 2026-05-18-wisp-v2-0-2-reliability-hardening-patterns.md
   - 2026-05-29-wisp-dogfood-preview-after-run-working-tree.md
+  - 2026-05-30-drizzle-hand-written-migrations-plan-recency.md
 ---
 
 # v2.0.21 — Node-24 install failure (better-sqlite3 prebuilt gap) + chat fixes

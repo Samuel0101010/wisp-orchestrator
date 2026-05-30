@@ -16,6 +16,7 @@ files:
 related:
   - 2026-05-29-better-sqlite3-node24-prebuilt-gap.md
   - 2026-05-18-wisp-v2-0-2-reliability-hardening-patterns.md
+  - 2026-05-30-drizzle-hand-written-migrations-plan-recency.md
 ---
 
 # Dogfooding v2.0.21 — preview-after-run gap (working tree never synced) + minor preview quirks
