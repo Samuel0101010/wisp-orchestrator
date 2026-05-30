@@ -249,7 +249,14 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           .from(projectBriefs)
           .where(eq(projectBriefs.projectId, projectId))
           .get();
+        // Iterations consume project-state + change-requests, NOT the brief, so
+        // a finalised brief is not a precondition for them. Without this, the
+        // preview "Run Iteration" flow 412'd for any project created unbriefed
+        // (chat generate_plan / sidebar) — even though it had a successful run
+        // and project-state to iterate against.
+        const isIteration = (parseChangeRequestIdsFromBody(req.body)?.length ?? 0) > 0;
         const allowUnbriefed =
+          isIteration ||
           (req.headers[UNBRIEFED_OVERRIDE_HEADER] as string | undefined)?.trim() === '1';
         if (!allowUnbriefed && (!brief || !brief.briefReady)) {
           reply.code(412);

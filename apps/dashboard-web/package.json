@@ -1,6 +1,6 @@
 {
   "name": "@wisp/dashboard-web",
-  "version": "2.0.27",
+  "version": "2.0.28",
   "private": true,
   "description": "WISP dashboard frontend — React 19 + Tailwind v4 visual team builder and live execution graph.",
   "keywords": [

@@ -525,7 +525,14 @@ async function handleGeneratePlan(
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-allow-unbriefed': '1' },
         body: '{}',
-        signal: AbortSignal.timeout(240_000),
+        // Plan generation runs a single opus architect turn that builds the
+        // whole DAG; for a richer goal this legitimately takes 5-6 min. The
+        // old 240s ceiling aborted the fetch mid-generation, which (a) marked
+        // the action 'failed' even though the plan succeeded moments later and
+        // (b) left an orphaned unlocked draft (the aborted client fetch does
+        // NOT cancel the server-side handler, so the architect still wrote it).
+        // 15 min gives generous headroom; a real hang still fails eventually.
+        signal: AbortSignal.timeout(900_000),
       });
       const planData = (await planRes.json().catch(() => ({}))) as {
         id?: string;

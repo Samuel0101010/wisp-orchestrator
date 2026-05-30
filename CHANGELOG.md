@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.28 — create→run→iterate dogfood fixes
+
+Found by driving the full lifecycle live as a user (create a Tip Calculator via chat → plan → run → preview → iterate). Two real reliability bugs in the create/iterate path, both fixed.
+
+### Fixed
+
+- **generate_plan aborted slow plan generation (false "failed" + orphaned draft).** The chat `generate_plan` directive's loopback fetch to the plan route used a 240s (4 min) abort timeout. A single opus architect turn on a richer goal legitimately takes ~5-6 min, so the fetch aborted mid-generation: the action card flipped to **failed** even though the plan succeeded moments later, and — because aborting the client fetch does NOT cancel the server-side handler — the architect still wrote an **orphaned unlocked draft**. Raised the timeout to 900s (15 min); a genuine hang still fails eventually.
+- **Iterations were blocked (412) for unbriefed projects.** The plan route gates generation on a finalised brief, but **iterations consume project-state + change-requests, not the brief** — so the gate should not apply to them. A project created via chat `generate_plan` or the sidebar (both unbriefed) could run an initial plan but then hit `412 brief_not_ready` from the preview's "Run Iteration" flow. The gate now treats any request carrying `changeRequestIds` (i.e. an iteration) as exempt, so iterating a successfully-run unbriefed project works without finalising a brief.
+
+### Tests
+
+- Two new `iteration-plan` cases: an unbriefed project still 412s on a plain plan POST, but an iteration (change-requests present) bypasses the brief gate and produces an `iteration` plan. Server suite 509 → 511.
+
+### Known issues (surfaced by the dogfood, not yet fixed)
+
+- On Windows, if a scaffold commits `node_modules` into its task branch (e.g. before writing a `.gitignore`), the next task's `git worktree add` can fail with `exit 128` (file-creation/MAX_PATH) and cascade-cancel the run. Workaround: ensure the repo has a `.gitignore` excluding `node_modules`. A follow-up will exclude heavy dirs from task commits in the orchestrator.
+- Iteration plan generation can occasionally return `422 plan_generation_failed` when the architect exhausts its attempts producing a valid DAG for a given change-request + project-state context.
+
 ## 2.0.27 — Plan-recency fix + v2.0.24-26 test hardening
 
 A correctness + verification release. Headline fix: the "latest plan" for a project was selected by ordering on the primary key, but that key is a random UUIDv4 with no time component, so it returned a stale plan ~50% of the time once a project had 2+ plans — affecting the plan read, the chat `start_run` directive's plan lookup, and the org-chart. This adds an authoritative `created_at` recency key (migration 0019) and closes the test-coverage gaps around the v2.0.24-26 features. The three shipped features (generate_plan, preview-after-run, HMR-WS) were also re-validated **live in the bundled web build** this round (a prior run had verified them only via the dev server).

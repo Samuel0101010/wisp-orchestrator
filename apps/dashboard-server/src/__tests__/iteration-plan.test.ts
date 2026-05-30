@@ -111,6 +111,22 @@ async function createProjectAndTeam(app: FastifyInstance): Promise<string> {
   return projectId;
 }
 
+/** Like createProjectAndTeam but leaves the brief UN-finalised (brief_ready = 0). */
+async function createProjectUnbriefed(app: FastifyInstance): Promise<string> {
+  const c = await app.inject({
+    method: 'POST',
+    url: '/api/projects',
+    payload: { name: 'iter-unbriefed', goal: 'g', repoPath: '/tmp/iter-ub' },
+  });
+  const projectId = c.json().id as string;
+  await app.inject({
+    method: 'PUT',
+    url: `/api/projects/${projectId}/team`,
+    payload: defaultTeam(),
+  });
+  return projectId;
+}
+
 beforeAll(() => {
   runMigrations();
 });
@@ -267,6 +283,62 @@ describe('plan kind detection + iteration context', () => {
       expect(r.statusCode).toBe(201);
       const ids: string[] = r.json().pendingChangeRequestIds;
       expect(ids).toEqual([crA]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('unbriefed project: a plain POST /plan (no change requests) is gated 412', async () => {
+    const app = await buildApp(defaultTeam());
+    await app.ready();
+    try {
+      const projectId = await createProjectUnbriefed(app);
+      const r = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/plan`,
+        payload: {},
+      });
+      expect(r.statusCode).toBe(412);
+      expect(r.json().error).toBe('brief_not_ready');
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('unbriefed project: an iteration (changeRequestIds present) bypasses the brief gate', async () => {
+    const app = await buildApp(defaultTeam());
+    await app.ready();
+    try {
+      const projectId = await createProjectUnbriefed(app);
+      await persistProjectState({
+        db,
+        projectId,
+        runId: null,
+        stateMdPath: null,
+        parsed: {
+          completedFeatures: ['v1 shipped'],
+          openTodos: [],
+          knownIssues: [],
+          architectureSnapshot: null,
+        },
+      });
+      const cr = randomUUID();
+      sqlite
+        .prepare(
+          `INSERT INTO change_requests (id, project_id, status, source, user_prompt, created_at) VALUES (?, ?, 'pending', 'text', ?, ?)`,
+        )
+        .run(cr, projectId, 'Improve the visual design', Date.now());
+
+      const r = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/plan`,
+        payload: { changeRequestIds: [cr] },
+      });
+      // Brief is NOT finalised, but because change requests are present this is
+      // an iteration (consumes project-state + change-requests), so the brief
+      // gate must NOT fire — the stubbed planner produces a valid iteration plan.
+      expect(r.statusCode).toBe(201);
+      expect(r.json().kind).toBe('iteration');
     } finally {
       await app.close();
     }
