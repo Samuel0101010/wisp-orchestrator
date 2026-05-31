@@ -1,5 +1,8 @@
 import './setup.js';
 import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
@@ -213,5 +216,40 @@ describe('build routes', () => {
     const projectId = await seedProject();
     const r = await app.inject({ method: 'GET', url: `/api/projects/${projectId}/artifact` });
     expect(r.statusCode).toBe(404);
+  });
+
+  it('GET /artifact streams the file with Content-Disposition when present', async () => {
+    app = await buildAppWith(makeFakePackager({} as PackagerResult));
+    const projectId = await seedProject();
+    const artifactPath = path.join(os.tmpdir(), `wisp-artifact-${randomUUID()}.msi`);
+    fs.writeFileSync(artifactPath, 'TEST_ARTIFACT_CONTENT');
+    try {
+      await db
+        .update(projectsTable)
+        .set({ artifactPath })
+        .where(eq(projectsTable.id, projectId))
+        .run();
+      const r = await app.inject({ method: 'GET', url: `/api/projects/${projectId}/artifact` });
+      expect(r.statusCode).toBe(200);
+      expect(r.body).toBe('TEST_ARTIFACT_CONTENT');
+      expect(r.headers['content-type']).toBe('application/octet-stream');
+      expect(r.headers['content-disposition']).toContain(path.basename(artifactPath));
+    } finally {
+      fs.rmSync(artifactPath, { force: true });
+    }
+  });
+
+  it('GET /artifact returns 404 when artifactPath is set but the file is gone', async () => {
+    app = await buildAppWith(makeFakePackager({} as PackagerResult));
+    const projectId = await seedProject();
+    const missing = path.join(os.tmpdir(), `wisp-artifact-missing-${randomUUID()}.msi`);
+    await db
+      .update(projectsTable)
+      .set({ artifactPath: missing })
+      .where(eq(projectsTable.id, projectId))
+      .run();
+    const r = await app.inject({ method: 'GET', url: `/api/projects/${projectId}/artifact` });
+    expect(r.statusCode).toBe(404);
+    expect(r.json().error).toBe('artifact not found');
   });
 });

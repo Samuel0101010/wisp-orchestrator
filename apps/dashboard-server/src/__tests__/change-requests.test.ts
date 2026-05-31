@@ -123,6 +123,51 @@ describe('Change-request CRUD', () => {
     expect(listDismissed.json().length).toBe(1);
   });
 
+  it('filters by the in-run and done lifecycle statuses', async () => {
+    const projectId = await createProject(app, 'cr-status');
+    // The runtime flips rows to in-run/done; drive the same transitions via PATCH
+    // so the filter is exercised without needing a live orchestrator run.
+    const seed = async (status: string): Promise<string> => {
+      const created = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/change-requests`,
+        payload: { source: 'text', userPrompt: `note for ${status}` },
+      });
+      const id = created.json().id;
+      const patched = await app.inject({
+        method: 'PATCH',
+        url: `/api/projects/${projectId}/change-requests/${id}`,
+        payload: { status },
+      });
+      expect(patched.statusCode).toBe(200);
+      expect(patched.json().status).toBe(status);
+      return id;
+    };
+    const inRunId = await seed('in-run');
+    const doneId = await seed('done');
+
+    const inRun = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${projectId}/change-requests?status=in-run`,
+    });
+    expect(inRun.json().length).toBe(1);
+    expect(inRun.json()[0].id).toBe(inRunId);
+
+    const done = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${projectId}/change-requests?status=done`,
+    });
+    expect(done.json().length).toBe(1);
+    expect(done.json()[0].id).toBe(doneId);
+
+    // The default (pending) filter excludes both lifecycle rows.
+    const pending = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${projectId}/change-requests`,
+    });
+    expect(pending.json()).toEqual([]);
+  });
+
   it('DELETE removes the row', async () => {
     const projectId = await createProject(app);
     const created = await app.inject({
