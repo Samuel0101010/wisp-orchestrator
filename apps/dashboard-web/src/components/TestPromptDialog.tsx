@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ interface Props {
  * 2 — this is for prompt-tweaking, not for getting real work done.
  */
 export function TestPromptDialog({ open, onOpenChange, draft }: Props) {
+  const { t } = useTranslation();
   const [sampleGoal, setSampleGoal] = useState(
     'Add a hello(name) function returning "Hello, <name>" to src/hello.ts plus a vitest test.',
   );
@@ -55,15 +57,14 @@ export function TestPromptDialog({ open, onOpenChange, draft }: Props) {
     >
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Test prompt — {draft.role || '(new role)'}</DialogTitle>
-          <DialogDescription>
-            Sends the role's system prompt + a sample goal to claude -p with maxTurns=2. Counts
-            against your subscription quota.
-          </DialogDescription>
+          <DialogTitle>
+            {t('testPrompt.title', { role: draft.role || t('testPrompt.newRole', '(new role)') })}
+          </DialogTitle>
+          <DialogDescription>{t('testPrompt.description')}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="probe-goal">Sample goal</Label>
+            <Label htmlFor="probe-goal">{t('testPrompt.sampleGoal')}</Label>
             <Textarea
               id="probe-goal"
               rows={3}
@@ -72,16 +73,12 @@ export function TestPromptDialog({ open, onOpenChange, draft }: Props) {
             />
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>
-              Model: <code>{draft.model}</code>
-            </span>
-            <span>
-              Tools: <code>{draft.allowedTools.length || 'defaults'}</code>
-            </span>
+            <span>{t('testPrompt.modelLabel', { model: draft.model })}</span>
+            <span>{t('testPrompt.toolsLabel', { count: draft.allowedTools.length })}</span>
           </div>
           {probe.isPending && (
             <div className="rounded-md border bg-muted p-3 text-sm" data-testid="probe-loading">
-              Running probe…
+              {t('testPrompt.running')}
             </div>
           )}
           {probe.isError && (
@@ -89,7 +86,7 @@ export function TestPromptDialog({ open, onOpenChange, draft }: Props) {
               className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
               data-testid="probe-error"
             >
-              <p className="font-semibold">Probe failed</p>
+              <p className="font-semibold">{t('testPrompt.failed')}</p>
               <p className="text-xs">{probe.error.message}</p>
               {errorBody && typeof errorBody.details === 'string' && (
                 <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap text-xs">
@@ -97,9 +94,7 @@ export function TestPromptDialog({ open, onOpenChange, draft }: Props) {
                 </pre>
               )}
               {errorBody && errorBody.error === 'auth-failed' && (
-                <p className="mt-2 text-xs">
-                  Hint: run <code>claude login</code> on the server host first.
-                </p>
+                <p className="mt-2 text-xs">{t('testPrompt.loginHint')}</p>
               )}
             </div>
           )}
@@ -110,34 +105,37 @@ export function TestPromptDialog({ open, onOpenChange, draft }: Props) {
             >
               <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                 <span>
-                  in: <strong>{probe.data.tokensIn.toLocaleString()}</strong>
+                  {t('testPrompt.metrics.in')}{' '}
+                  <strong>{probe.data.tokensIn.toLocaleString()}</strong>
                 </span>
                 <span>
-                  out: <strong>{probe.data.tokensOut.toLocaleString()}</strong>
+                  {t('testPrompt.metrics.out')}{' '}
+                  <strong>{probe.data.tokensOut.toLocaleString()}</strong>
                 </span>
                 <span>
-                  turns: <strong>{probe.data.turns}</strong>
+                  {t('testPrompt.metrics.turns')} <strong>{probe.data.turns}</strong>
                 </span>
                 <span>
-                  elapsed: <strong>{(probe.data.elapsedMs / 1000).toFixed(1)}s</strong>
+                  {t('testPrompt.metrics.elapsed')}{' '}
+                  <strong>{(probe.data.elapsedMs / 1000).toFixed(1)}s</strong>
                 </span>
               </div>
               <pre className="max-h-80 overflow-auto whitespace-pre-wrap text-xs">
-                {probe.data.response || '(empty response)'}
+                {probe.data.response || t('testPrompt.emptyResponse')}
               </pre>
             </div>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+            {t('testPrompt.close')}
           </Button>
           <Button
             onClick={handleRun}
             disabled={probe.isPending || !sampleGoal.trim()}
             data-testid="probe-run"
           >
-            {probe.isPending ? 'Running…' : 'Run probe'}
+            {probe.isPending ? t('testPrompt.runningShort') : t('testPrompt.runProbe')}
           </Button>
         </DialogFooter>
       </DialogContent>

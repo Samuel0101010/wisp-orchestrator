@@ -1378,8 +1378,9 @@ export function useAgentThreads(agentId: string | undefined) {
       if (!agentId) return [];
       try {
         return await apiFetch<AgentThread[]>(`/api/agents/${agentId}/threads`);
-      } catch {
-        return [];
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
       }
     },
   });
@@ -1425,8 +1426,9 @@ export function useThreadMessages(threadId: string | undefined) {
       if (!threadId) return [];
       try {
         return await apiFetch<AgentMessage[]>(`/api/threads/${threadId}/messages`);
-      } catch {
-        return [];
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
       }
     },
   });
@@ -1506,8 +1508,9 @@ export function useThreadParticipants(threadId: string | undefined) {
       if (!threadId) return [];
       try {
         return await apiFetch<ThreadParticipantSummary[]>(`/api/threads/${threadId}/participants`);
-      } catch {
-        return [];
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return [];
+        throw err;
       }
     },
   });
@@ -1580,8 +1583,9 @@ export function useThreadDetail(threadId: string | undefined) {
       if (!threadId) return null;
       try {
         return await apiFetch<ThreadDetailResponse>(`/api/threads/${threadId}`);
-      } catch {
-        return null;
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
       }
     },
   });

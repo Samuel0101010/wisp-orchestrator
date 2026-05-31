@@ -445,15 +445,23 @@ export function ChatRoute() {
           className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
         >
           {!selectedThreadId && <EmptyTranscript onStart={startNewThread} />}
-          {selectedThreadId && messageList.length === 0 && !sendMessage.isPending && (
-            <ConversationStarter
-              manager={manager}
-              onPickPrompt={(text) => {
-                setComposer(text);
-                requestAnimationFrame(() => composerRef.current?.focus());
-              }}
-            />
+          {selectedThreadId && messages.error && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+              {t('chat.messagesLoadFailed', 'Could not load messages. Retrying…')}
+            </div>
           )}
+          {selectedThreadId &&
+            !messages.error &&
+            messageList.length === 0 &&
+            !sendMessage.isPending && (
+              <ConversationStarter
+                manager={manager}
+                onPickPrompt={(text) => {
+                  setComposer(text);
+                  requestAnimationFrame(() => composerRef.current?.focus());
+                }}
+              />
+            )}
           {selectedThreadId && (
             <Transcript
               messages={messageList}
@@ -1151,12 +1159,17 @@ function ActionCard({ action }: { action: ChatActionRow }) {
       <div className={cardClass}>
         <div className="flex items-center gap-1.5">
           <Wrench className="size-3.5 shrink-0 text-success" aria-hidden />
-          <span className="text-muted-foreground">invoked skill</span>
+          <span className="text-muted-foreground">
+            {t('chat.action.invokedSkill', 'invoked skill')}
+          </span>
           <span className="font-mono font-semibold">
             {r?.skillName ?? payload?.name ?? 'unknown'}
           </span>
           <span className="text-muted-foreground">
-            ({tokens} tokens, {r?.durationMs ?? 0}ms)
+            {t('chat.action.skillStats', '({{tokens}} tokens, {{ms}}ms)', {
+              tokens,
+              ms: r?.durationMs ?? 0,
+            })}
           </span>
         </div>
       </div>

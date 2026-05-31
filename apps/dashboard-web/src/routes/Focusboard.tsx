@@ -247,10 +247,13 @@ export function Focusboard(): ReactElement {
         {/* Live run column */}
         <section className="flex w-[440px] shrink-0 flex-col gap-3 border-r p-4">
           <div className="grid grid-cols-2 gap-2">
-            <Kpi label="Tokens-In" value={fmtCompact(tokensIn)} />
-            <Kpi label="Tokens-Out" value={fmtCompact(tokensOut)} />
-            <Kpi label="Turns" value={fmtCompact(turns)} />
-            <Kpi label="Aufgaben" value={tasks.length ? `${tasksDone}/${tasks.length}` : '—'} />
+            <Kpi label={t('focus.kpi.tokensIn', 'Tokens-In')} value={fmtCompact(tokensIn)} />
+            <Kpi label={t('focus.kpi.tokensOut', 'Tokens-Out')} value={fmtCompact(tokensOut)} />
+            <Kpi label={t('focus.kpi.turns', 'Turns')} value={fmtCompact(turns)} />
+            <Kpi
+              label={t('focus.kpi.tasks', 'Aufgaben')}
+              value={tasks.length ? `${tasksDone}/${tasks.length}` : '—'}
+            />
           </div>
           <div className="text-3xs uppercase tracking-wider text-muted-foreground">
             {t('focus.kanban.title', 'Aufgaben')}

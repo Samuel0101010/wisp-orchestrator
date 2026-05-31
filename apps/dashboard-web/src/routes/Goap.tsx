@@ -804,6 +804,10 @@ export function GoapRoute() {
   const [enabled, setEnabled] = useState<Set<string>>(
     () => new Set(EXAMPLE_ACTIONS.map((a) => a.name)),
   );
+  // Names present in the previously-parsed actions JSON — lets us tell a
+  // brand-new action (default enabled) apart from an existing one the user
+  // toggled off (stays off) when the editor text changes.
+  const knownActionNamesRef = useRef<Set<string>>(new Set(EXAMPLE_ACTIONS.map((a) => a.name)));
   const [parseError, setParseError] = useState<{
     kind: 'json' | 'validation';
     message: string;
@@ -845,16 +849,17 @@ export function GoapRoute() {
       for (const a of parsed) {
         if (a && typeof a.name === 'string') names.add(a.name);
       }
+      const known = knownActionNamesRef.current;
       setEnabled((prev) => {
         const out = new Set<string>();
         for (const n of names) {
-          // existing names keep their previous on/off state; brand-new names
-          // default to enabled so they participate in the next plan.
-          if (prev.has(n) || !prev.size) out.add(n);
-          else out.add(n);
+          // brand-new names (absent from the previous actions JSON) default to
+          // enabled; names that already existed keep their previous on/off state.
+          if (!known.has(n) || prev.has(n)) out.add(n);
         }
         return out;
       });
+      knownActionNamesRef.current = names;
       setActionsJsonError(null);
     } catch (err) {
       setActionsJsonError(err instanceof Error ? err.message : String(err));

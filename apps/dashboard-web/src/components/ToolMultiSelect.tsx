@@ -46,6 +46,10 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
     onChange(value.filter((v) => v !== name));
   };
 
+  // Precomputed because the chip map below shadows `t` with the tool string.
+  const removeTitleCustom = t('toolMultiSelect.removeCustom', 'Custom — click to remove');
+  const removeTitle = t('toolMultiSelect.remove', 'Click to remove');
+
   return (
     <div className="flex flex-col gap-2" data-testid="tool-multiselect">
       <div className="flex flex-wrap items-center gap-2">
@@ -77,7 +81,7 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
                 variant={isCustom ? 'secondary' : 'default'}
                 className="cursor-pointer"
                 onClick={() => remove(t)}
-                title={isCustom ? 'Custom — click to remove' : 'Click to remove'}
+                title={isCustom ? removeTitleCustom : removeTitle}
                 data-testid={`tool-chip-${t}`}
               >
                 {t} ×
@@ -114,9 +118,15 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
             </div>
           ))}
           <div className="border-t pt-3">
-            <Label className="text-xs">Custom pattern</Label>
+            <Label className="text-xs">{t('toolMultiSelect.customLabel', 'Custom pattern')}</Label>
             <p className="mb-1 text-xs text-muted-foreground">
-              Add any tool name not in the catalog (e.g. <code>Bash(make:*)</code>).
+              {t(
+                'toolMultiSelect.customHelp',
+                'Add any tool name not in the catalog (e.g. {{example}}).',
+                {
+                  example: 'Bash(make:*)',
+                },
+              )}
             </p>
             <div className="flex gap-2">
               <Input
@@ -137,13 +147,12 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
                 onClick={addCustom}
                 data-testid="tool-multiselect-custom-add"
               >
-                Add
+                {t('toolMultiSelect.add', 'Add')}
               </Button>
             </div>
             {customTools.length > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
-                {customTools.length} custom tool{customTools.length === 1 ? '' : 's'} — shown as a
-                secondary badge above. Click any badge to remove.
+                {t('toolMultiSelect.customCount', { count: customTools.length })}
               </p>
             )}
           </div>

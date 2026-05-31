@@ -2,7 +2,13 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useTranslation } from 'react-i18next';
 
 export interface OutcomeDonutProps {
-  counts: { success?: number; failure?: number; cancelled?: number; unknown?: number };
+  counts: {
+    success?: number;
+    failure?: number;
+    cancelled?: number;
+    unknown?: number;
+    budget_exceeded?: number;
+  };
   height?: number;
 }
 
@@ -15,11 +21,15 @@ const TONES = {
 
 export function OutcomeDonut({ counts, height = 220 }: OutcomeDonutProps) {
   const { t } = useTranslation();
+  // A budget_exceeded run is a failure outcome (matches Home's classify()); fold
+  // it into the failure bucket so the donut total matches the run count and the
+  // run isn't silently dropped from the chart.
+  const merged = { ...counts, failure: (counts.failure ?? 0) + (counts.budget_exceeded ?? 0) };
   const data = (Object.keys(TONES) as Array<keyof typeof TONES>)
     .map((k) => ({
       key: k,
       label: t(`home.outcomeDonut.labels.${k}`),
-      value: counts[k] ?? 0,
+      value: merged[k] ?? 0,
       color: TONES[k],
     }))
     .filter((d) => d.value > 0);

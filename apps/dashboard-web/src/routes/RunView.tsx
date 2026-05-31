@@ -552,6 +552,7 @@ function RunHeaderActions({
             <Button
               variant="destructive"
               onClick={() => void handleCancel()}
+              disabled={cancel.isPending}
               data-testid="run-cancel-confirm"
             >
               {t('runView.cancelDialog.cancelRun')}
@@ -880,7 +881,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
               data-testid="ws-status-pill"
             >
               <Activity className="h-3 w-3" />
-              {wsStatus === 'closed' || wsStatus === 'error' ? t('runView.reconnecting') : wsStatus}
+              {wsStatus === 'idle' ? t('runView.connecting') : t('runView.reconnecting')}
             </Badge>
           )}
         </div>

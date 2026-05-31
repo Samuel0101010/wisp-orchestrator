@@ -200,15 +200,15 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
       <div className="border-b border-border/60 px-3 py-2">
         <div className="mb-1 flex items-baseline justify-between">
           <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-            threads · {threads.data?.length ?? 0}
+            {t('agentChat.threadsLabel', 'threads')} · {threads.data?.length ?? 0}
           </span>
           <button
             onClick={startNewThread}
             disabled={createThread.isPending || !selectedAgentId}
             className="flex items-center gap-1 font-mono text-2xs text-muted-foreground hover:text-foreground disabled:opacity-40"
-            title="New thread"
+            title={t('agentChat.newThread', 'New thread')}
           >
-            <Plus className="h-3 w-3" /> new
+            <Plus className="h-3 w-3" /> {t('agentChat.newThreadShort', 'new')}
           </button>
         </div>
         <div className={`flex flex-col gap-1 overflow-y-auto ${compact ? 'max-h-32' : 'max-h-48'}`}>
@@ -300,7 +300,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
             onClick={() => void send()}
             disabled={!composer.trim() || !selectedAgentId || sendMessage.isPending}
             className="grid h-9 w-9 flex-none place-items-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground"
-            aria-label="Send"
+            aria-label={t('agentChat.send', 'Send')}
           >
             {sendMessage.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
