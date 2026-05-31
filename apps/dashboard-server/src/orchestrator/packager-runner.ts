@@ -78,6 +78,31 @@ function tail(s: string): string {
   return s.length <= TAIL_BYTES ? s : s.slice(s.length - TAIL_BYTES);
 }
 
+/**
+ * Derive a unique, valid Tauri bundle identifier. `tauri init` defaults the
+ * identifier to `com.tauri.dev`, which `tauri build` hard-rejects ("must be
+ * unique across applications") — so without an explicit `--identifier` the
+ * build ALWAYS fails on a fresh scaffold. Reverse-DNS shape
+ * `com.wisp.<app-slug>-<projectId-prefix>`: the slug is sanitised to the
+ * allowed set (alphanumerics + hyphen) and forced to start with a letter, and
+ * the projectId suffix keeps it unique even when two projects share a name.
+ */
+export function bundleIdentifier(appName: string | undefined, projectId: string): string {
+  const slugify = (s: string): string =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  let slug = slugify(appName ?? '') || slugify(projectId) || 'app';
+  if (!/^[a-z]/.test(slug)) slug = `app-${slug}`;
+  const pid =
+    projectId
+      .replace(/[^a-z0-9]/gi, '')
+      .toLowerCase()
+      .slice(0, 8) || '0';
+  return `com.wisp.${slug}-${pid}`;
+}
+
 async function defaultExec(
   file: string,
   args: string[],
@@ -202,6 +227,10 @@ export async function runPackager(args: RunPackagerArgs): Promise<PackagerResult
         name,
         '--window-title',
         name,
+        // Without this the scaffold keeps the default `com.tauri.dev`, which
+        // `tauri build` refuses — the whole pipeline would fail every time.
+        '--identifier',
+        bundleIdentifier(args.appName, args.projectId),
         '--frontend-dist',
         '../dist',
         '--dev-url',

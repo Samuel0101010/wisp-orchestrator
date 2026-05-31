@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.30 — native packaging actually produces an artifact (Tauri bundle-identifier fix)
+
+Surfaced by forcing a real Tauri build end-to-end (the one "unforceable" verification left): the packager could never produce an installer on a fresh project.
+
+### Fixed
+
+- **`POST /build` always failed on a fresh scaffold with `tauri_build_failed`.** `packager-runner` ran `tauri init` without an `--identifier`, so the scaffold kept Tauri's default bundle identifier `com.tauri.dev` — which `tauri build` hard-rejects ("must be unique across applications"). The native-packaging path therefore never reached the compile/bundle step. It now derives a unique, valid reverse-DNS identifier (`com.wisp.<app-slug>-<projectId-prefix>`) and passes it to `tauri init`.
+
+### Verification
+
+- Real end-to-end build proven on the Pomodoro dogfood app: full Rust release compile (tauri 2.11.2 + wry/tao/webview2) in ~2 min, then a WiX `.msi` **and** an NSIS `.exe` installer; `GET /artifact` streamed the `.exe` (1,883,581 B) with the sha256 matching the build report bit-for-bit.
+- New tests exercise the previously-untested scaffold path (asserting `--identifier` is passed and is never `com.tauri.dev`) plus the identifier-derivation helper. dashboard-server 518 → 520; all 9 gates + CI green.
+
 ## 2.0.29 — runtime-report 404-polling fix (live-test polish)
 
 A small quality fix surfaced by an exhaustive live UI re-test of the v2.0.28 build — every route, control, and the full 33-item audit surface driven as a user. One real defect found and fixed.

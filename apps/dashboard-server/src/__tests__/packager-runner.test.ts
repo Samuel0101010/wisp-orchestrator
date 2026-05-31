@@ -3,7 +3,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { runPackager, type ExecImpl, type ExecResult } from '../orchestrator/packager-runner.js';
+import {
+  runPackager,
+  bundleIdentifier,
+  type ExecImpl,
+  type ExecResult,
+} from '../orchestrator/packager-runner.js';
 
 interface MockedCall {
   file: string;
@@ -234,5 +239,64 @@ describe('packager-runner', () => {
     expect(second.sha256).not.toBe(firstSha);
     expect(second.artifactPath).toBe(first.artifactPath);
     expect(fs.readFileSync(second.artifactPath!, 'utf8')).toBe('V2_DIFFERENT');
+  });
+
+  it('scaffolds with a unique --identifier, never the default com.tauri.dev', async () => {
+    // No src-tauri on disk -> the runner must scaffold via `tauri init`. A real
+    // forced build proved `tauri init` without --identifier keeps com.tauri.dev,
+    // which `tauri build` rejects ("must be unique"), so the build always failed.
+    const repoPath = mkTemp('pkg-test-');
+    const dataDir = mkTemp('pkg-data-');
+    const srcTauriDir = path.join(repoPath, 'src-tauri');
+    const bundleDir = path.join(srcTauriDir, 'target', 'release', 'bundle', 'nsis');
+    const capture: MockedCall[] = [];
+    const execImpl = makeExecImpl(
+      {
+        'pnpm exec tauri --version': { exitCode: 0, stdout: 'tauri-cli 2.11.2', stderr: '' },
+        'cargo --version': { exitCode: 0, stdout: 'cargo 1.95.0', stderr: '' },
+        'pnpm exec tauri init': () => {
+          fs.mkdirSync(srcTauriDir, { recursive: true }); // real init writes the scaffold
+          return { exitCode: 0, stdout: '', stderr: '' };
+        },
+        'pnpm build': { exitCode: 0, stdout: '', stderr: '' },
+        'pnpm exec tauri build': () => {
+          fs.mkdirSync(bundleDir, { recursive: true });
+          fs.writeFileSync(path.join(bundleDir, 'app_0.1.0_x64-setup.exe'), 'INSTALLER');
+          return { exitCode: 0, stdout: '', stderr: '' };
+        },
+      },
+      capture,
+    );
+
+    const r = await runPackager({
+      projectId: '66c414a0-4570-46e9-9a0c-95875b9e9f93',
+      runId: 'run-1',
+      repoPath,
+      packageTarget: 'tauri-exe',
+      appName: 'Pomodoro Focus Timer',
+      execImpl,
+      dataDirOverride: dataDir,
+    });
+    expect(r.ok).toBe(true);
+
+    const initCall = capture.find((c) => c.args.includes('init'));
+    expect(initCall).toBeDefined();
+    const idx = initCall!.args.indexOf('--identifier');
+    expect(idx).toBeGreaterThan(-1);
+    const identifier = initCall!.args[idx + 1];
+    expect(identifier).not.toBe('com.tauri.dev');
+    expect(identifier).toBe('com.wisp.pomodoro-focus-timer-66c414a0');
+  });
+
+  it('bundleIdentifier is unique, valid, and never the default', () => {
+    expect(bundleIdentifier('Pomodoro Focus Timer', '66c414a0-4570-46e9')).toBe(
+      'com.wisp.pomodoro-focus-timer-66c414a0',
+    );
+    // A digit/symbol-leading name still yields a valid letter-led identifier.
+    const weird = bundleIdentifier('123 app!!', 'abcd1234-ef');
+    expect(weird).not.toBe('com.tauri.dev');
+    expect(weird).toMatch(/^com\.wisp\.[a-z][a-z0-9-]*$/);
+    // Two projects with the same name still get distinct identifiers.
+    expect(bundleIdentifier('Same', 'aaaa1111-x')).not.toBe(bundleIdentifier('Same', 'bbbb2222-y'));
   });
 });
