@@ -47,7 +47,7 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
   };
 
   return (
-    <div className="flex flex-col gap-2" id={id} data-testid="tool-multiselect">
+    <div className="flex flex-col gap-2" data-testid="tool-multiselect">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs text-muted-foreground">
           {value.length === 0
@@ -56,6 +56,7 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
         </span>
         <div className="ml-auto">
           <Button
+            id={id}
             type="button"
             variant="outline"
             size="sm"

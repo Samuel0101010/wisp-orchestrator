@@ -1184,6 +1184,8 @@ export function GoapRoute() {
           >
             <Search className="h-3 w-3 text-[color:var(--wisp-ink-3)]" />
             <input
+              id="goap-filter"
+              name="goap-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               disabled={planM.isPending}

@@ -1234,7 +1234,7 @@
     "noThreads": "keine Threads — schreibe unten, um einen zu starten.",
     "startConversation": "Schreibe eine Nachricht unten, um die Konversation zu starten.",
     "agentThinking": "{{name}} denkt nach…",
-    "composerLabel": "an @{{name}}",
+    "composerLabel": "Nachricht an {{name}}",
     "selectAgent": "Agent auswählen",
     "cmdEnter": "Strg+Eingabe",
     "placeholder": {
@@ -1294,12 +1294,12 @@
     },
     "target": {
       "title": "Build-Ziel",
-      "description": "Wähle das Auslieferungsformat. Nur tauri-exe ist in v1.15 implementiert.",
+      "description": "Wähle das Auslieferungsformat. Derzeit ist nur tauri-exe implementiert.",
       "web": "Nur Web (kein Installer)",
       "tauri-exe": "Tauri-Desktop-Installer (Windows / macOS / Linux)",
       "electron-exe": "Electron-Installer",
       "pkg-bin": "pkg-Standalone-Binary",
-      "placeholder": "Platzhalter — in v1.15 nicht implementiert.",
+      "placeholder": "Platzhalter — noch nicht implementiert.",
       "saved": "Build-Ziel gespeichert",
       "saveFailed": "Build-Ziel konnte nicht gespeichert werden"
     }

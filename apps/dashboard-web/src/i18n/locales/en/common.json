@@ -1234,7 +1234,7 @@
     "noThreads": "no threads — type below to start one.",
     "startConversation": "Type a message below to start the conversation.",
     "agentThinking": "{{name}} is thinking…",
-    "composerLabel": "to @{{name}}",
+    "composerLabel": "Message to {{name}}",
     "selectAgent": "select an agent",
     "cmdEnter": "cmd+enter",
     "placeholder": {
@@ -1294,12 +1294,12 @@
     },
     "target": {
       "title": "Build target",
-      "description": "Choose how the project should be shipped. Only tauri-exe is implemented in v1.15.",
+      "description": "Choose how the project should be shipped. Currently only tauri-exe is implemented.",
       "web": "Web only (no installer)",
       "tauri-exe": "Tauri desktop installer (Windows / macOS / Linux)",
       "electron-exe": "Electron installer",
       "pkg-bin": "pkg standalone binary",
-      "placeholder": "Placeholder — not implemented in v1.15.",
+      "placeholder": "Placeholder — not yet implemented.",
       "saved": "Build target saved",
       "saveFailed": "Could not save build target"
     }

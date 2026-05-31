@@ -186,6 +186,8 @@ export function Focusboard(): ReactElement {
         </span>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
         <select
+          id="focus-project-select"
+          name="focus-project-select"
           aria-label={t('focus.pickProject', 'Projekt wählen')}
           className="rounded-md border bg-card px-2 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={projectId}

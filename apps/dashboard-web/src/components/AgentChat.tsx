@@ -167,6 +167,8 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
           </Link>
         </div>
         <select
+          id="agent-chat-select-agent"
+          name="agent-chat-select-agent"
           aria-label={t('agentChat.selectAgent')}
           value={selectedAgentId ?? ''}
           onChange={(e) => {
@@ -266,6 +268,9 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
         </div>
         <div className="flex items-end gap-2">
           <textarea
+            id="agent-chat-composer"
+            name="agent-chat-composer"
+            aria-label={t('agentChat.composerLabel', { name: selectedAgent?.name ?? '' })}
             value={composer}
             onChange={(e) => setComposer(e.target.value)}
             onKeyDown={handleKey}

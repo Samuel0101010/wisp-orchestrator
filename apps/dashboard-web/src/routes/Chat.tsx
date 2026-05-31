@@ -560,6 +560,8 @@ export function ChatRoute() {
               )}
               <textarea
                 ref={composerRef}
+                id="chat-composer"
+                name="chat-composer"
                 aria-label={t('chat.composer.ariaLabel')}
                 value={composer}
                 onChange={onComposerChange}
