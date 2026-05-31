@@ -299,6 +299,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
 
   const handleInitRepo = async (): Promise<void> => {
     if (!repoNotInit) return;
+    const lockedPlanId = repoNotInit.lockedPlanId;
     try {
       const res = await initRepo.mutateAsync(projectId);
       toast({
@@ -307,20 +308,28 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           : t('planEditor.toasts.repoInitialized'),
       });
       setRepoNotInit(null);
-      // Start the run directly with the already-locked plan id. Re-calling
-      // handleLockAndRun() would read the stale planRow.status='draft' from the
-      // closure and attempt a second lock → 409 from the server.
-      const lockedPlanId = repoNotInit.lockedPlanId;
+    } catch (err) {
+      toast({
+        title: t('planEditor.toasts.repoInitFailed'),
+        description: errorMessage(err),
+        variant: 'destructive',
+      });
+      return;
+    }
+    // Repo is initialized; start the run directly with the already-locked plan
+    // id. Re-calling handleLockAndRun() would read the stale planRow.status=
+    // 'draft' from the closure and attempt a second lock → 409. A failure HERE
+    // is a run-start failure, not a repo-init failure — toast accordingly.
+    try {
       const { runId } = await startRun.mutateAsync({ planId: lockedPlanId });
       toast({
         title: t('planEditor.toasts.runStarted'),
         description: t('planEditor.toasts.runStartedDesc', { id: runId.slice(0, 8) }),
       });
       navigate(`/projects/${projectId}/run/${runId}`);
-      return;
     } catch (err) {
       toast({
-        title: t('planEditor.toasts.repoInitFailed'),
+        title: t('planEditor.toasts.lockFailed'),
         description: errorMessage(err),
         variant: 'destructive',
       });

@@ -146,15 +146,6 @@
       "hotSub": "recently used",
       "staleSub": "not used 7d+",
       "hitRateSub": "{{n}} hits total"
-    },
-    "card": {
-      "model": "model",
-      "session": "session",
-      "cwd": "cwd",
-      "hash": "hash",
-      "lastUsed": "last used",
-      "hits": "hits",
-      "hot": "hot"
     }
   },
   "insights": {
@@ -521,7 +512,17 @@
       "rolesLoaded_other": "{{count}} roles loaded"
     },
     "addRole": "+ Add role ({{count}}/{{max}})",
-    "previewTaskPrompt": "Preview Task Prompt"
+    "previewTaskPrompt": "Preview Task Prompt",
+    "preview": {
+      "title": "What the agent sees",
+      "description": "The system prompt is fixed per role. The task prompt below is what the walker composes and feeds to claude -p — pick a role, edit the sample inputs, and inspect the result.",
+      "role": "Role",
+      "goal": "Goal (project-level)",
+      "taskPrompt": "Task prompt (per-task)",
+      "systemPromptHeading": "System prompt (sent as `--system-prompt`)",
+      "composedHeading": "Composed task prompt (piped to stdin)",
+      "close": "Close"
+    }
   },
   "teamRoleCard": {
     "newRole": "(new role)",
@@ -1224,7 +1225,8 @@
       "actionFailed": "Action failed: {{kind}}",
       "unknownError": "unknown error",
       "generic": "Action: {{kind}} · {{status}}"
-    }
+    },
+    "loadFailed": "Failed to load agents"
   },
   "agentChat": {
     "loading": "Loading agents…",
@@ -1250,7 +1252,8 @@
     },
     "message": {
       "you": "you"
-    }
+    },
+    "loadFailed": "Failed to load agents"
   },
   "avatarPicker": {
     "title": "Choose a profile picture",
@@ -1411,14 +1414,12 @@
   "notFound": {
     "title": "This view does not exist.",
     "body": "The URL doesn't match any route. Likely a stale link or a typo.",
-    "back": "Back to Mission Control",
-    "heading": "This page does not exist."
+    "back": "Back to Mission Control"
   },
   "errorBoundary": {
     "title": "Something went wrong.",
     "body": "This view threw an unexpected error. Try again — if it keeps happening, please report it as an issue.",
     "retry": "Try again",
-    "reload": "Reload page",
-    "heading": "Something went wrong."
+    "reload": "Reload page"
   }
 }

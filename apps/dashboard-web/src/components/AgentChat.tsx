@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Loader2, MessageSquare, Plus, Send, Trash2 } from 'lucide-react';
@@ -22,6 +22,7 @@ export interface AgentChatProps {
 
 export function AgentChat({ projectId = null, compact = false }: AgentChatProps) {
   const { t, i18n } = useTranslation();
+  const uid = useId();
   const agents = useAgents();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -135,6 +136,16 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
     );
   }
 
+  if (agents.error) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+        <MessageSquare className="h-6 w-6 text-destructive" aria-hidden="true" />
+        <div className="text-sm font-medium">{t('agentChat.loadFailed')}</div>
+        <p className="text-xs text-muted-foreground">{t('errors.retryHint')}</p>
+      </div>
+    );
+  }
+
   if (!agents.data || agents.data.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-4 text-center">
@@ -167,8 +178,8 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
           </Link>
         </div>
         <select
-          id="agent-chat-select-agent"
-          name="agent-chat-select-agent"
+          id={`${uid}-agent`}
+          name={`${uid}-agent`}
           aria-label={t('agentChat.selectAgent')}
           value={selectedAgentId ?? ''}
           onChange={(e) => {
@@ -268,8 +279,8 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
         </div>
         <div className="flex items-end gap-2">
           <textarea
-            id="agent-chat-composer"
-            name="agent-chat-composer"
+            id={`${uid}-composer`}
+            name={`${uid}-composer`}
             aria-label={t('agentChat.composerLabel', { name: selectedAgent?.name ?? '' })}
             value={composer}
             onChange={(e) => setComposer(e.target.value)}

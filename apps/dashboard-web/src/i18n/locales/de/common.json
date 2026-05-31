@@ -146,15 +146,6 @@
       "hotSub": "kürzlich verwendet",
       "staleSub": "seit 7T+ nicht genutzt",
       "hitRateSub": "{{n}} Treffer gesamt"
-    },
-    "card": {
-      "model": "Modell",
-      "session": "Session",
-      "cwd": "Verzeichnis",
-      "hash": "Hash",
-      "lastUsed": "zuletzt genutzt",
-      "hits": "Treffer",
-      "hot": "heiß"
     }
   },
   "insights": {
@@ -521,7 +512,17 @@
       "rolesLoaded_other": "{{count}} Rollen geladen"
     },
     "addRole": "+ Rolle hinzufügen ({{count}}/{{max}})",
-    "previewTaskPrompt": "Task-Prompt-Vorschau"
+    "previewTaskPrompt": "Task-Prompt-Vorschau",
+    "preview": {
+      "title": "Was der Agent sieht",
+      "description": "Der System-Prompt ist pro Rolle fix. Der Task-Prompt unten ist das, was der Walker zusammensetzt und an claude -p übergibt — wähle eine Rolle, bearbeite die Beispiel-Eingaben und prüfe das Ergebnis.",
+      "role": "Rolle",
+      "goal": "Ziel (Projekt-Ebene)",
+      "taskPrompt": "Task-Prompt (pro Task)",
+      "systemPromptHeading": "System-Prompt (als `--system-prompt` gesendet)",
+      "composedHeading": "Zusammengesetzter Task-Prompt (an stdin gepiped)",
+      "close": "Schließen"
+    }
   },
   "teamRoleCard": {
     "newRole": "(neue Rolle)",
@@ -1224,7 +1225,8 @@
       "actionFailed": "Aktion fehlgeschlagen: {{kind}}",
       "unknownError": "unbekannter Fehler",
       "generic": "Aktion: {{kind}} · {{status}}"
-    }
+    },
+    "loadFailed": "Agents konnten nicht geladen werden"
   },
   "agentChat": {
     "loading": "Lade Agents…",
@@ -1250,7 +1252,8 @@
     },
     "message": {
       "you": "du"
-    }
+    },
+    "loadFailed": "Agents konnten nicht geladen werden"
   },
   "avatarPicker": {
     "title": "Profilbild wählen",
@@ -1411,14 +1414,12 @@
   "notFound": {
     "title": "Diese Ansicht gibt es nicht.",
     "body": "Die URL passt zu keiner Route. Vermutlich ein veralteter Link oder ein Tippfehler.",
-    "back": "Zurück zu Mission Control",
-    "heading": "Diese Ansicht gibt es nicht."
+    "back": "Zurück zu Mission Control"
   },
   "errorBoundary": {
     "title": "Etwas ist schiefgegangen.",
     "body": "Diese Ansicht hat unerwartet einen Fehler ausgelöst. Versuche es erneut — falls es wiederholt auftritt, melde es bitte als Issue.",
     "retry": "Erneut versuchen",
-    "reload": "Seite neu laden",
-    "heading": "Etwas ist schiefgegangen."
+    "reload": "Seite neu laden"
   }
 }
