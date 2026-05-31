@@ -11,6 +11,7 @@ files:
 related:
   - 2026-05-31-wisp-live-ui-testing-gotchas.md
   - 2026-05-31-tauri-packager-bundle-identifier.md
+  - 2026-06-01-dashboard-confidence-audit-round2.md
 ---
 
 # Dashboard audit → fix round: i18n the dominant defect class (PR #80)
