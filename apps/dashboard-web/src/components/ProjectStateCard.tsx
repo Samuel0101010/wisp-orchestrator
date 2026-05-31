@@ -70,23 +70,26 @@ interface ColumnProps {
 
 function Column({ icon, label, items, testid, emptyKey }: ColumnProps) {
   const { t } = useTranslation();
+  // Strip LLM none-sentinels (e.g. "(none recorded)", "(none yet)") that the
+  // runtime-verifier occasionally writes as a placeholder bullet item.
+  const realItems = items.filter((it) => !it.trimStart().startsWith('(none'));
   return (
     <div className="flex flex-col gap-1.5" data-testid={testid}>
       <p className="flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
         {icon}
         {label}
-        <span className="font-mono text-muted-foreground/70">({items.length})</span>
+        <span className="font-mono text-muted-foreground/70">({realItems.length})</span>
       </p>
-      {items.length === 0 ? (
+      {realItems.length === 0 ? (
         <p className="text-xs italic text-muted-foreground/70">{t(emptyKey)}</p>
       ) : (
         <ul className="flex list-disc flex-col gap-0.5 pl-4 text-xs leading-snug">
-          {items.slice(0, 8).map((it, i) => (
+          {realItems.slice(0, 8).map((it, i) => (
             <li key={`${testid}-${i}`}>{it}</li>
           ))}
-          {items.length > 8 ? (
+          {realItems.length > 8 ? (
             <li className="list-none text-2xs text-muted-foreground">
-              {t('projectState.more', { count: items.length - 8 })}
+              {t('projectState.more', { count: realItems.length - 8 })}
             </li>
           ) : null}
         </ul>

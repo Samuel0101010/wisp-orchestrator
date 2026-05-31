@@ -307,9 +307,17 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           : t('planEditor.toasts.repoInitialized'),
       });
       setRepoNotInit(null);
-      // Retry the run-start automatically — the lock step is idempotent on a
-      // locked plan, so we hit the runtime fresh.
-      await handleLockAndRun();
+      // Start the run directly with the already-locked plan id. Re-calling
+      // handleLockAndRun() would read the stale planRow.status='draft' from the
+      // closure and attempt a second lock → 409 from the server.
+      const lockedPlanId = repoNotInit.lockedPlanId;
+      const { runId } = await startRun.mutateAsync({ planId: lockedPlanId });
+      toast({
+        title: t('planEditor.toasts.runStarted'),
+        description: t('planEditor.toasts.runStartedDesc', { id: runId.slice(0, 8) }),
+      });
+      navigate(`/projects/${projectId}/run/${runId}`);
+      return;
     } catch (err) {
       toast({
         title: t('planEditor.toasts.repoInitFailed'),
@@ -483,9 +491,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
                 readOnly={readOnly}
                 onChange={setLocalPlan}
               />
-            ) : (
-              <p className="text-xs text-muted-foreground">{t('planEditor.node.selectHint')}</p>
-            )}
+            ) : null}
           </div>
         </aside>
       </div>
@@ -617,7 +623,7 @@ export function PlanEditor() {
     const handleGenerate = async (): Promise<void> => {
       try {
         await generatePlan.mutateAsync();
-        toast({ title: t('planEditor.toasts.saved') });
+        toast({ title: t('planEditor.toasts.regenerated') });
       } catch (err) {
         toast({
           title: t('planEditor.toasts.regenFailed'),

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Database, Plus, X } from 'lucide-react';
 import { usePromptBundles, useDeletePromptBundle, type PromptBundleRow } from '@/api/queries';
@@ -259,6 +259,19 @@ export function PromptBundlesRoute() {
   const { t } = useTranslation();
   const q = usePromptBundles();
   const del = useDeletePromptBundle();
+  const [inflight, setInflight] = useState<Set<string>>(new Set());
+
+  const invalidate = (key: string): void => {
+    setInflight((prev) => new Set(prev).add(key));
+    del.mutate(key, {
+      onSettled: () =>
+        setInflight((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        }),
+    });
+  };
 
   const rows = q.data ?? [];
 
@@ -319,9 +332,9 @@ export function PromptBundlesRoute() {
             type="button"
             className="wisp-btn ghost"
             onClick={() => {
-              for (const r of rows) del.mutate(r.bundleKey);
+              for (const r of rows) invalidate(r.bundleKey);
             }}
-            disabled={!rows.length || del.isPending}
+            disabled={!rows.length || inflight.size > 0}
           >
             {t('promptBundles.actions.invalidateAll', 'Invalidate all')}
           </button>
@@ -422,8 +435,8 @@ export function PromptBundlesRoute() {
             <BundleCard
               key={b.bundleKey}
               bundle={b}
-              onInvalidate={(k) => del.mutate(k)}
-              busy={del.isPending && del.variables === b.bundleKey}
+              onInvalidate={invalidate}
+              busy={inflight.has(b.bundleKey)}
             />
           ))}
         </div>

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Bolt, ChevronRight, FolderOpen, Plus } from 'lucide-react';
 import {
   useCreateProject,
+  useDailyRunCount,
   useGlobalRuns,
   useProjects,
   useRunsSummary,
@@ -216,11 +217,11 @@ function HeroHeader({
   onNewProject: () => void;
   onQuickRun: () => void;
 }) {
-  const { t } = useTranslation();
-  const lang = t('lang', 'en') as string;
+  const { t, i18n } = useTranslation();
+  const lang = i18n.resolvedLanguage ?? i18n.language ?? 'en';
   const dateLabel = useMemo(() => {
     try {
-      return new Date().toLocaleDateString(lang === 'de' ? 'de-DE' : undefined, {
+      return new Date().toLocaleDateString(lang.startsWith('de') ? 'de-DE' : 'en-US', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -324,6 +325,7 @@ export function Home() {
   const summary = useRunsSummary(period === '24h' ? 1 : period === '30d' ? 30 : 7);
   const globalRuns = useGlobalRuns(100);
   const projects = useProjects();
+  const dailyCounts = useDailyRunCount();
   const { data: templates = [] } = useTemplates();
   const createProject = useCreateProject();
 
@@ -401,7 +403,10 @@ export function Home() {
   const successPercent = summary.data ? Math.round(summary.data.successRate * 100) : 0;
   const tokensByDay = summary.data?.tokensByDay ?? [];
   const outcomeCounts = summary.data?.outcomeCounts ?? {};
-  const totalToday = summary.data?.totalRuns ?? 0;
+  // "Today" KPI + hero greeting use the real 24h count; the 7-day window total
+  // (totalRuns) is what the Run-outcomes card header pairs with successPercent.
+  const totalToday = dailyCounts.data?.totalLast24h ?? 0;
+  const totalRuns = summary.data?.totalRuns ?? 0;
   const activeCount = summary.data?.activeCount ?? 0;
   const totalTokens = summary.data?.totalTokens ?? 0;
   const avgDuration = summary.data?.avgDurationMs ?? 0;
@@ -533,7 +538,11 @@ export function Home() {
           period={period}
           onPeriod={setPeriod}
           onNewProject={() => setNpOpen(true)}
-          onQuickRun={() => setNpOpen(true)}
+          onQuickRun={() => {
+            const id = projects.data?.[0]?.id;
+            if (id) navigate(`/projects/${id}/plan`);
+            else setNpOpen(true);
+          }}
         />
 
         {/* KPI strip — 5 cards, matches the Wisp design 1:1. */}
@@ -606,23 +615,27 @@ export function Home() {
                 </span>
               </div>
             </header>
-            <Suspense fallback={<ChartFallback />}>
-              <TokenAreaChart data={tokensByDay} />
-            </Suspense>
+            <div style={{ minHeight: 220 }}>
+              <Suspense fallback={<ChartFallback />}>
+                <TokenAreaChart data={tokensByDay} />
+              </Suspense>
+            </div>
           </div>
           <div className="wisp-card">
             <header className="mb-3">
               <div className="t-eyebrow">{t('home.charts.outcomes', 'Run outcomes')}</div>
               <div style={{ fontFamily: 'var(--f-head)', fontSize: 16, fontWeight: 500 }}>
-                {totalToday}{' '}
+                {totalRuns}{' '}
                 <span style={{ color: 'var(--wisp-ink-3)' }}>
                   · {successPercent}% {t('home.charts.successRate', 'success')}
                 </span>
               </div>
             </header>
-            <Suspense fallback={<ChartFallback />}>
-              <OutcomeDonut counts={outcomeCounts} />
-            </Suspense>
+            <div style={{ minHeight: 220 }}>
+              <Suspense fallback={<ChartFallback />}>
+                <OutcomeDonut counts={outcomeCounts} />
+              </Suspense>
+            </div>
           </div>
         </section>
 
