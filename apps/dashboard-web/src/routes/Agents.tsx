@@ -12,6 +12,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { toast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 import { Bot, Edit2, Plus, Trash2, ImageIcon, Users, ShieldCheck, Sparkles } from 'lucide-react';
 import {
@@ -176,7 +177,7 @@ function AgentCard({
 }) {
   const { t, i18n } = useTranslation();
   const usage = useAgentUsage(agent.id);
-  const refCount = usage.data?.usage.length ?? 0;
+  const refCount = usage.error ? null : (usage.data?.usage.length ?? 0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const del = useDeleteAgent();
 
@@ -210,7 +211,11 @@ function AgentCard({
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">
         <span className="inline-flex items-center gap-1">
           <Users className="h-3 w-3" />
-          {refCount > 0 ? t('agents.card.onTeams', { count: refCount }) : t('agents.card.unused')}
+          {refCount === null
+            ? '—'
+            : refCount > 0
+              ? t('agents.card.onTeams', { count: refCount })
+              : t('agents.card.unused')}
         </span>
         <span className="font-mono">
           {t('agents.card.tools', { count: agent.allowedTools.length })}
@@ -256,9 +261,11 @@ function AgentCard({
               {t('agents.deleteConfirm.title', { name: agent.name })}
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              {refCount > 0
-                ? t('agents.deleteConfirm.usedOn', { count: refCount })
-                : t('agents.deleteConfirm.unused')}
+              {refCount === null
+                ? t('errors.retryHint')
+                : refCount > 0
+                  ? t('agents.deleteConfirm.usedOn', { count: refCount })
+                  : t('agents.deleteConfirm.unused')}
             </p>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
@@ -270,10 +277,16 @@ function AgentCard({
               <button
                 onClick={async () => {
                   try {
-                    await del.mutateAsync({ id: agent.id, force: refCount > 0 });
+                    await del.mutateAsync({ id: agent.id, force: (refCount ?? 0) > 0 });
                     setConfirmDelete(false);
                   } catch (err) {
                     console.error(err);
+                    toast({
+                      variant: 'destructive',
+                      title: t('agents.deleteFailed'),
+                      description: t('errors.retryHint'),
+                    });
+                    setConfirmDelete(false);
                   }
                 }}
                 disabled={del.isPending}

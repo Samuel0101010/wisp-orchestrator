@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Activity } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 import {
   useWorkers,
   useWorkerRuns,
@@ -61,6 +62,15 @@ function RunsPanel({ name }: { name: string }) {
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-4 w-2/3" />
       </div>
+    );
+  }
+  if (runsQ.error) {
+    return (
+      <ErrorBanner
+        title={t('workers.runsFailed')}
+        message={t('errors.retryHint')}
+        onRetry={() => runsQ.refetch()}
+      />
     );
   }
   const rows = runsQ.data ?? [];
@@ -234,7 +244,14 @@ export function WorkersRoute() {
                       name={w.name}
                       isApiPending={runWorker.isPending && runWorker.variables === w.name}
                       onRun={() => {
-                        runWorker.mutate(w.name);
+                        runWorker.mutate(w.name, {
+                          onError: () =>
+                            toast({
+                              variant: 'destructive',
+                              title: t('workers.runWorkerFailed'),
+                              description: t('errors.retryHint'),
+                            }),
+                        });
                         setSelected(w.name);
                       }}
                     />
