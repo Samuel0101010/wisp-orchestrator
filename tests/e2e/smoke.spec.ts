@@ -55,7 +55,7 @@ test.describe('Phase F1 smoke', () => {
       .getByTestId('sidebar')
       .getByRole('button', { name: tt(lang, 'navigation.newProject') })
       .click();
-    await expect(page.getByText(tt(lang, 'newProject.title'), { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: tt(lang, 'newProject.title') })).toBeVisible();
 
     await page.getByLabel(tt(lang, 'newProject.fields.name')).fill('smoke-todo');
     await page
