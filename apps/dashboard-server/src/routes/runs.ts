@@ -10,6 +10,7 @@ import {
   plans,
   projects,
   runs,
+  runStatusValues,
   tasks,
 } from '@wisp/schemas';
 import { db } from '../db/index.js';
@@ -103,6 +104,7 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
               .transform((v) => v === true || v === 'true'),
             include: z.enum(['project']).optional(),
             limit: z.coerce.number().int().min(1).max(500).optional().default(50),
+            status: z.enum(runStatusValues).optional(),
           })
           .parse(req.query ?? {});
 
@@ -135,6 +137,7 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
             .from(runs)
             .innerJoin(plans, eq(runs.planId, plans.id))
             .innerJoin(projects, eq(plans.projectId, projects.id))
+            .where(query.status ? eq(runs.status, query.status) : undefined)
             .orderBy(desc(runs.startedAt))
             .limit(query.limit)
             .all();
@@ -144,6 +147,7 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
         const all = await db
           .select()
           .from(runs)
+          .where(query.status ? eq(runs.status, query.status) : undefined)
           .orderBy(desc(runs.startedAt))
           .limit(query.limit)
           .all();
