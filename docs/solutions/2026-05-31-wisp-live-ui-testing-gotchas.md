@@ -50,3 +50,15 @@ Live in the rebuilt bundle: opened the cancelled run, waited 13s, counted `runti
 - **Preview edit-mode element-pick is fully drivable:** real MCP-click the "Bearbeiten" toggle, then the same-origin iframe's elements appear as snapshot uids — MCP-click one and the inspector posts the captured CSS selector + rect back to the parent, opening the "In Queue" panel that creates a `source:'visual'` change-request.
 - **Destructive testing without data loss:** open the confirm dialog then cancel (Settings "Alle löschen"), or act on a freshly-created throwaway (new thread → delete it; an unbriefed test project for a run). Reuse an existing orphan **draft** plan to exercise the plan-editor with **no new plan-gen**.
 - **`prompt-bundle invalidate` has no confirm** (fires `del.mutate` immediately) — leave the warm cache alone unless you mean it; verify wiring from code, not a live click.
+
+## Follow-up (2026-05-31): "unforceable live" ≠ "untestable"
+
+After the live pass, an adversarial re-audit (4 lenses, each with a skeptic-verify stage) asked the sharper question: of the items I'd deferred as *"can't force through the UI"*, which are actually cheap **integration tests**? Three of six were — and the test DB / temp files force exactly what the live UI couldn't. Shipped tests-only as `cb4f7ef` (server 511→518, no release):
+
+- **Artifact download** (deferred "needs a Tauri build"): the *download* needs Tauri, but the server's `GET /artifact` stream is plain Fastify — seed a temp file + set `artifactPath` in the DB, `app.inject()`, assert 200 + body + `Content-Disposition`. Fastify `inject` buffers a `createReadStream` response into `res.body`.
+- **CR `in-run`/`done` filters** (deferred "can't reach those states live"): the lifecycle states are operationally hard to reach, but `PATCH` accepts any `changeRequestStatusValues` — so `POST`→`PATCH` drives the exact transitions the runtime does, then `GET ?status=` proves the `WHERE` is right for every enum value. No raw SQL needed.
+- **prompt-bundles route** (= the server half of Settings "clear prompt-bundles", which loops the per-key `DELETE`): seed a row + a throwaway temp `cwd`, `DELETE`, assert 204 + row gone + cwd removed; unknown key → 404; missing-cwd path still deletes the row. **Never point a delete test's `cwd`/path at real data** — `mkdtempSync` or a guaranteed-nonexistent path only.
+
+Two live-pass "findings" the re-audit corrected: the **rate-limit banner UI was already tested** (`RunView.test.tsx` injects a `pausedReason:'rate-limit'` event — only the *server-side 429 detection* is unforceable), and the **Settings "mass-delete data persisted"** was a deliberate confirm-cancel in the live pass, not a bug. Lesson: before filing a live observation as a defect, check whether a unit/integration test already covers it (or whether you just cancelled the dialog).
+
+- **The skeptic-verify stage earns its keep:** 14 raw-"actionable" findings → only 3 confirmed; the skeptics refuted 11 (by-design, already-tested, or not-actually-cheap). For a self-audit of your own "done" claims, a refute-by-default second pass is worth the tokens.
