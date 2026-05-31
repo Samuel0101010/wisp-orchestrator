@@ -9,6 +9,7 @@ related:
   - 2026-05-30-drizzle-hand-written-migrations-plan-recency.md
   - 2026-05-29-wisp-dogfood-preview-after-run-working-tree.md
   - 2026-05-31-tauri-packager-bundle-identifier.md
+  - 2026-05-31-dashboard-i18n-audit-fix-round.md
 ---
 
 # Live UI-testing the WISP dashboard end-to-end: gotchas + the one bug it found
