@@ -166,11 +166,11 @@ export function CommandPalette() {
           <span className="inline-flex items-center gap-1">
             <kbd className="rounded border bg-background px-1">↑</kbd>
             <kbd className="rounded border bg-background px-1">↓</kbd>
-            <span>navigate</span>
+            <span>{t('commandPalette.navigate', 'navigate')}</span>
           </span>
           <span className="inline-flex items-center gap-1">
             <kbd className="rounded border bg-background px-1">↵</kbd>
-            <span>open</span>
+            <span>{t('commandPalette.open', 'open')}</span>
           </span>
         </div>
       </Command>

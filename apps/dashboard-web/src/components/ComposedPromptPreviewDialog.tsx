@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ interface Props {
  * apps/dashboard-web/src/data/composedPrompt.ts.
  */
 export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [roleId, setRoleId] = useState<string>(team.roles[0]?.role ?? '');
   const [goal, setGoal] = useState(defaultGoal ?? '');
@@ -57,7 +59,7 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" data-testid="composed-preview-trigger">
-          Preview Task Prompt
+          {t('teamBuilder.previewTaskPrompt', 'Preview Task Prompt')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl">

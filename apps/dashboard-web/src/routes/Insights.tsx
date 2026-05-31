@@ -6,6 +6,7 @@ import { useRunSummaries } from '@/api/queries';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { EmptyState } from '@/components/ui/empty-state';
+import { statusLabel } from '@/lib/status-labels';
 
 interface TrajectoryRow {
   id: string;
@@ -105,7 +106,7 @@ export function InsightsRoute() {
                             : 'text-destructive'
                         }
                       >
-                        {traj.outcome}
+                        {statusLabel(traj.outcome, t)}
                       </span>
                     </td>
                     <td className="max-w-md truncate px-3 py-1.5">{traj.prompt}</td>

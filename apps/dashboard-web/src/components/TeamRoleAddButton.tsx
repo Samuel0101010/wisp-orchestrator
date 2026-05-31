@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export function TeamRoleAddButton({ onAdd, disabled, count, max }: Props) {
+  const { t } = useTranslation();
   return (
     <Button
       variant="outline"
@@ -16,7 +18,7 @@ export function TeamRoleAddButton({ onAdd, disabled, count, max }: Props) {
       data-testid="add-role"
       className="w-full"
     >
-      + Add role ({count}/{max})
+      {t('teamBuilder.addRole', '+ Add role ({{count}}/{{max}})', { count, max })}
     </Button>
   );
 }
