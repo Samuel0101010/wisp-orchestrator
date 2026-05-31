@@ -242,8 +242,8 @@ function BundleCard({
         type="button"
         onClick={() => onInvalidate(bundle.bundleKey)}
         disabled={busy}
-        aria-label="Invalidate bundle"
-        title="Invalidate"
+        aria-label={t('promptBundles.actions.invalidate', 'Invalidate bundle')}
+        title={t('promptBundles.actions.invalidateTitle', 'Invalidate')}
         className="wisp-btn icon ghost absolute bottom-3 left-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100"
         style={{
           color: 'hsl(var(--rose-h) var(--rose-s) 80%)',

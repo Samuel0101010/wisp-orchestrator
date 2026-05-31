@@ -323,6 +323,7 @@ export function Home() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('7d');
   const summary = useRunsSummary(period === '24h' ? 1 : period === '30d' ? 30 : 7);
+  const windowLabel = t(`home.period.${period}`, period);
   const globalRuns = useGlobalRuns(100);
   const projects = useProjects();
   const dailyCounts = useDailyRunCount();
@@ -462,7 +463,7 @@ export function Home() {
     },
     {
       id: 'tokens',
-      label: t('home.kpis.tokensWindow', 'Tokens · 7d'),
+      label: t('home.kpis.tokensWindow', 'Tokens · {{window}}', { window: windowLabel }),
       value: formatTokensCompact(totalTokens),
       trend: tokenSpark.at(-1)! > (tokenSpark.at(-2) ?? 0) ? 'up' : 'flat',
       spark: tokenSpark.length ? tokenSpark : [0, 0, 0, 0, 0, 0, 0],
@@ -470,7 +471,7 @@ export function Home() {
     },
     {
       id: 'success',
-      label: t('home.kpis.successRate', 'Success · 7d'),
+      label: t('home.kpis.successRate', 'Success rate · {{window}}', { window: windowLabel }),
       value: `${successPercent}`,
       suffix: '%',
       trend: successPercent >= 80 ? 'up' : successPercent >= 50 ? 'flat' : 'down',
@@ -479,7 +480,7 @@ export function Home() {
     },
     {
       id: 'avg',
-      label: t('home.kpis.avgDuration', 'Avg duration'),
+      label: t('home.kpis.avgDuration', 'Avg duration · {{window}}', { window: windowLabel }),
       value: formatDuration(avgDuration),
       trend: 'flat',
       spark: runsSpark.length ? runsSpark : [0, 0, 0, 0, 0, 0, 0],
@@ -567,14 +568,14 @@ export function Home() {
           <div className="flex items-center gap-2">
             <span className="wisp-chip">
               <span className="wisp-dot coral pulse" />{' '}
-              {t('home.live.runningCount', '{{n}} running', {
-                n: liveRuns.filter((r) => r.status === 'running').length,
+              {t('home.live.runningCount', '{{count}} running', {
+                count: liveRuns.filter((r) => r.status === 'running').length,
               })}
             </span>
             <span className="wisp-chip">
               <span className="wisp-dot amber" />{' '}
-              {t('home.live.pausedCount', '{{n}} paused', {
-                n: liveRuns.filter((r) => r.status === 'paused').length,
+              {t('home.live.pausedCount', '{{count}} paused', {
+                count: liveRuns.filter((r) => r.status === 'paused').length,
               })}
             </span>
           </div>
@@ -600,7 +601,10 @@ export function Home() {
                   </span>
                   <span style={{ color: 'var(--wisp-ink-3)' }}>
                     {' '}
-                    · {t('home.charts.tokenThroughputDesc', 'last 7 days · all projects')}
+                    ·{' '}
+                    {t('home.charts.tokenThroughputDesc', 'last {{window}} · all projects', {
+                      window: windowLabel,
+                    })}
                   </span>
                 </div>
               </div>

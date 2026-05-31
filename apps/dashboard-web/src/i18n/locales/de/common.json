@@ -131,7 +131,9 @@
       "reset": "Zurücksetzen",
       "resetting": "Setze zurück…",
       "invalidateAll": "Alle ungültig machen",
-      "pin": "Bundle anheften"
+      "pin": "Bundle anheften",
+      "invalidate": "Bundle ungültig machen",
+      "invalidateTitle": "Ungültig machen"
     },
     "loading": "Lade Bundles…",
     "loadFailed": "Bundles konnten nicht geladen werden",
@@ -286,7 +288,14 @@
     "selected_one": "{{count}} Tool ausgewählt",
     "selected_other": "{{count}} Tools ausgewählt",
     "pick": "Tools auswählen",
-    "hide": "Tools verbergen"
+    "hide": "Tools verbergen",
+    "customLabel": "Eigenes Muster",
+    "customHelp": "Beliebigen Tool-Namen hinzufügen, der nicht im Katalog ist (z. B. {{example}}).",
+    "add": "Hinzufügen",
+    "removeCustom": "Eigenes — zum Entfernen klicken",
+    "remove": "Zum Entfernen klicken",
+    "customCount_one": "{{count}} eigenes Tool — als sekundäres Badge oben angezeigt. Zum Entfernen ein Badge anklicken.",
+    "customCount_other": "{{count}} eigene Tools — als sekundäre Badges oben angezeigt. Zum Entfernen ein Badge anklicken."
   },
   "modelInfo": {
     "costClass": {
@@ -703,7 +712,8 @@
       "budgetExceeded": "{{kind}}-Budget überschritten",
       "budgetExceededDesc": "Der Run wird abgebrochen.",
       "rateLimitHit": "Rate-Limit getroffen"
-    }
+    },
+    "connecting": "Verbinde…"
   },
   "firstRunModal": {
     "title": "WISP nutzt dein Claude-Abo",
@@ -726,7 +736,11 @@
       "turns": "Turns:",
       "elapsed": "Dauer:"
     },
-    "emptyResponse": "(leere Antwort)"
+    "emptyResponse": "(leere Antwort)",
+    "newRole": "(neue Rolle)",
+    "close": "Schließen",
+    "runProbe": "Probe starten",
+    "runningShort": "Läuft…"
   },
   "templatePicker": {
     "loading": "Vorlagen laden…",
@@ -771,18 +785,18 @@
     "kpis": {
       "activeRuns": "Aktive Runs",
       "activeCaption": "läuft oder pausiert",
-      "tokensWindow": "Tokens · 7 Tage",
+      "tokensWindow": "Tokens · {{window}}",
       "totalRunsCaption_one": "{{count}} Run im Zeitraum",
       "totalRunsCaption_other": "{{count}} Runs im Zeitraum",
-      "successRate": "Erfolgsrate · 7 Tage",
+      "successRate": "Erfolgsrate · {{window}}",
       "successCaption": "{{ok}}/{{total}} erfolgreich",
-      "avgDuration": "Ø Dauer · 7 Tage",
+      "avgDuration": "Ø Dauer · {{window}}",
       "avgCaption": "über abgeschlossene Runs",
       "today": "Heute"
     },
     "charts": {
       "tokenThroughput": "Token-Durchsatz",
-      "tokenThroughputDesc": "letzte 7 Tage · alle Projekte",
+      "tokenThroughputDesc": "letzte {{window}} · alle Projekte",
       "outcomes": "Run-Ergebnisse",
       "outcomesDesc": "letzte 7 Tage",
       "tokensTooltipLabel": "Tokens",
@@ -795,8 +809,10 @@
       "active": "aktiv",
       "empty": "Keine aktiven Runs — starte einen aus einem Projekt.",
       "turns": "Turns",
-      "runningCount": "{{n}} läuft",
-      "pausedCount": "{{n}} pausiert"
+      "runningCount_one": "{{count}} läuft",
+      "runningCount_other": "{{count}} laufen",
+      "pausedCount_one": "{{count}} pausiert",
+      "pausedCount_other": "{{count}} pausiert"
     },
     "byProject": {
       "title": "Nach Projekt",
@@ -844,16 +860,23 @@
       "morning": "Guten Morgen.",
       "afternoon": "Guten Tag.",
       "evening": "Guten Abend.",
-      "suffix": "{{count}} Runs heute.",
       "idle": "Keine aktiven Agents · bereit, wenn du es bist.",
-      "workingShort": "{{count}} Agents aktiv"
+      "suffix_one": "{{count}} Run heute.",
+      "suffix_other": "{{count}} Runs heute.",
+      "workingShort_one": "{{count}} Agent aktiv",
+      "workingShort_other": "{{count}} Agents aktiv"
     },
     "actions": {
       "newProject": "Neues Projekt",
       "quickRun": "Schnell starten"
     },
     "eyebrow": "Mission Control",
-    "periodGroup": "Zeitraum"
+    "periodGroup": "Zeitraum",
+    "period": {
+      "24h": "24 Stunden",
+      "7d": "7 Tage",
+      "30d": "30 Tage"
+    }
   },
   "projectDetail": {
     "subtitle": "Projekt-Übersicht, Team, Plan und Run-Historie.",
@@ -1144,7 +1167,8 @@
     "draft": "Entwurf",
     "locked": "Gesperrt",
     "success": "Erfolg",
-    "failure": "Fehler"
+    "failure": "Fehler",
+    "budget_exceeded": "Budget überschritten"
   },
   "chat": {
     "loading": "Lade Team…",
@@ -1224,9 +1248,12 @@
       "planGenerated": "Plan generiert",
       "actionFailed": "Aktion fehlgeschlagen: {{kind}}",
       "unknownError": "unbekannter Fehler",
-      "generic": "Aktion: {{kind}} · {{status}}"
+      "generic": "Aktion: {{kind}} · {{status}}",
+      "invokedSkill": "Skill ausgeführt",
+      "skillStats": "({{tokens}} Tokens, {{ms}} ms)"
     },
-    "loadFailed": "Agents konnten nicht geladen werden"
+    "loadFailed": "Agents konnten nicht geladen werden",
+    "messagesLoadFailed": "Nachrichten konnten nicht geladen werden. Neuer Versuch…"
   },
   "agentChat": {
     "loading": "Lade Agents…",
@@ -1253,7 +1280,11 @@
     "message": {
       "you": "du"
     },
-    "loadFailed": "Agents konnten nicht geladen werden"
+    "loadFailed": "Agents konnten nicht geladen werden",
+    "newThread": "Neuer Thread",
+    "newThreadShort": "neu",
+    "send": "Senden",
+    "threadsLabel": "Threads"
   },
   "avatarPicker": {
     "title": "Profilbild wählen",
@@ -1409,7 +1440,13 @@
       "openFullView": "Vollansicht öffnen"
     },
     "noProjectsHint": "Erstelle ein Projekt über die Seitenleiste, dann kannst du es hier scharfschalten.",
-    "projectNotFound": "Projekt nicht gefunden."
+    "projectNotFound": "Projekt nicht gefunden.",
+    "kpi": {
+      "tokensIn": "Tokens-In",
+      "tokensOut": "Tokens-Out",
+      "turns": "Turns",
+      "tasks": "Aufgaben"
+    }
   },
   "notFound": {
     "title": "Diese Ansicht gibt es nicht.",

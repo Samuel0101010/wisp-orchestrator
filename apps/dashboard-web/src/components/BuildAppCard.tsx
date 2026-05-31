@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
+import { ApiError } from '@/api/client';
 import {
   useBuildStatus,
   useChangeRequests,
@@ -97,27 +98,34 @@ export function BuildAppCard({ projectId, packageTarget }: BuildAppCardProps): R
   const handleBuild = async (): Promise<void> => {
     try {
       const result = await startBuild.mutateAsync();
-      if (result.ok) {
-        toast({ title: t('buildApp.toasts.success') });
-      } else {
-        const errKey = result.error ?? 'tauri_build_failed';
-        toast({
-          title: t('buildApp.toasts.failed'),
-          description: t(`buildApp.errors.${errKey}`),
-          variant: 'destructive',
-        });
-      }
+      // A non-ok HTTP response throws from apiFetch and lands in catch; a
+      // resolved promise means the build succeeded.
+      if (result.ok) toast({ title: t('buildApp.toasts.success') });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      // Server may return 422 with a typed error body; extract it.
-      const match =
-        /tauri_cli_missing|rust_toolchain_missing|web_build_failed|tauri_build_failed|artifact_not_found/.exec(
-          msg,
-        );
-      const errKey = (match?.[0] as PackagerError | undefined) ?? 'tauri_build_failed';
+      // The server returns the typed code in the error BODY (ApiError.body),
+      // not in the message — read it there. A known PackagerError gets a
+      // localized hint; route-level rejections (409/400) carry a human-readable
+      // message; otherwise fall back to the generic build-failed copy.
+      const known: PackagerError[] = [
+        'tauri_cli_missing',
+        'rust_toolchain_missing',
+        'web_build_failed',
+        'tauri_build_failed',
+        'artifact_not_found',
+        'unsupported_target',
+      ];
+      const body =
+        err instanceof ApiError && err.body && typeof err.body === 'object'
+          ? (err.body as { error?: string; message?: string })
+          : null;
+      const code = body?.error;
+      const description =
+        code && (known as string[]).includes(code)
+          ? t(`buildApp.errors.${code}`)
+          : (body?.message ?? t('buildApp.errors.tauri_build_failed'));
       toast({
         title: t('buildApp.toasts.failed'),
-        description: t(`buildApp.errors.${errKey}`),
+        description,
         variant: 'destructive',
       });
     }

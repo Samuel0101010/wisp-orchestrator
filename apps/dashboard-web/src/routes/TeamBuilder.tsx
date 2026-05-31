@@ -58,21 +58,24 @@ import { BackToProject } from '@/components/BackToProject';
 
 const MAX_ROLES = 8;
 
-function specToDraft(spec: AgentSpec): DraftAgent {
+// Exported for unit tests — the agentId soft-link must survive this round-trip.
+export function specToDraft(spec: AgentSpec): DraftAgent {
   return {
     role: spec.role,
     model: spec.model,
     allowedTools: [...spec.allowedTools],
     systemPrompt: spec.systemPrompt,
+    agentId: spec.agentId,
   };
 }
 
-function draftToSpec(d: DraftAgent): AgentSpec {
+export function draftToSpec(d: DraftAgent): AgentSpec {
   return {
     role: d.role.trim(),
     model: d.model,
     allowedTools: d.allowedTools,
     systemPrompt: d.systemPrompt,
+    ...(d.agentId ? { agentId: d.agentId } : {}),
   };
 }
 
@@ -126,6 +129,7 @@ function teamsEqual(a: DraftAgent[], b: Team): boolean {
     const x = a[i]!;
     const y = b.roles[i]!;
     if (x.role !== y.role) return false;
+    if (x.agentId !== y.agentId) return false;
     if (x.model !== y.model) return false;
     if (x.systemPrompt !== y.systemPrompt) return false;
     if (x.allowedTools.length !== y.allowedTools.length) return false;

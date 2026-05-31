@@ -3,7 +3,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { TeamBuilder } from './TeamBuilder';
+import { TeamBuilder, specToDraft, draftToSpec } from './TeamBuilder';
+import type { AgentSpec } from '@wisp/schemas';
 
 const originalFetch = globalThis.fetch;
 
@@ -296,5 +297,32 @@ describe('TeamBuilder', () => {
     const body = putBody as { roles: { role: string }[] };
     expect(body.roles).toHaveLength(4);
     expect(body.roles[3]!.role).toBe('reviewer');
+  });
+
+  // Regression for the silent agentId data-loss bug: a team created from chat
+  // carries an agentId soft-link per role; the draft round-trip used to drop it,
+  // severing the link on every re-save.
+  it('round-trips a role agentId through specToDraft → draftToSpec', () => {
+    const spec: AgentSpec = {
+      role: 'architect',
+      model: 'opus',
+      allowedTools: ['Read'],
+      systemPrompt: 'x'.repeat(60),
+      agentId: 'agent-architect-1',
+    };
+    expect(specToDraft(spec).agentId).toBe('agent-architect-1');
+    expect(draftToSpec(specToDraft(spec)).agentId).toBe('agent-architect-1');
+  });
+
+  it('does not invent an agentId for a role that has none', () => {
+    const spec: AgentSpec = {
+      role: 'developer',
+      model: 'sonnet',
+      allowedTools: [],
+      systemPrompt: 'y'.repeat(60),
+    };
+    const round = draftToSpec(specToDraft(spec));
+    expect(round.agentId).toBeUndefined();
+    expect('agentId' in round).toBe(false);
   });
 });

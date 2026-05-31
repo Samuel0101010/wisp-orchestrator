@@ -26,6 +26,12 @@ export interface DraftAgent {
    */
   allowedTools: string[];
   systemPrompt: string;
+  /**
+   * Optional soft-link to a persistent agent in the registry. Not user-editable
+   * in the card — carried through specToDraft/draftToSpec so re-saving a team
+   * created from chat (which sets agentId) does not silently strip the link.
+   */
+  agentId?: string;
 }
 
 const ROLE_REGEX = /^[a-z][a-z0-9-]*$/;
