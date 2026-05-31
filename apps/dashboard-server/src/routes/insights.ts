@@ -16,9 +16,8 @@ export const insightsRoutes: FastifyPluginAsync = async (app) => {
             .from(trajectories)
             .where(eq(trajectories.projectId, projectId))
             .orderBy(desc(trajectories.createdAt))
-            .limit(50)
             .all()
-        : db.select().from(trajectories).orderBy(desc(trajectories.createdAt)).limit(50).all();
+        : db.select().from(trajectories).orderBy(desc(trajectories.createdAt)).all();
       return rows.map((r) => ({
         id: r.id,
         projectId: r.projectId,

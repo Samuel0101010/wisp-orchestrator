@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Database, Plus, X } from 'lucide-react';
 import { usePromptBundles, useDeletePromptBundle, type PromptBundleRow } from '@/api/queries';
@@ -138,6 +138,7 @@ function BundleCard({
   onInvalidate: (key: string) => void;
   busy: boolean;
 }) {
+  const { t } = useTranslation();
   const ago = fmtAgo(bundle.lastUsedAt);
   const tone = toneFor(bundle.bundleKey);
   const cwdLabel = cwdBasename(bundle.cwd);
@@ -164,7 +165,7 @@ function BundleCard({
           }}
         >
           <span className="wisp-dot coral pulse" style={{ width: 5, height: 5 }} />
-          hot
+          {t('promptBundles.cols.hot', 'hot')}
         </div>
       )}
 
@@ -201,10 +202,10 @@ function BundleCard({
           available data (we don't store tools count or system-prompt size
           per bundle, so session/cwd are the most informative proxies). */}
       <div className="mb-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5">
-        <KV k="model" v={bundle.model} />
-        <KV k="session" v={session} />
-        <KV k="cwd" v={cwdLabel || '—'} />
-        <KV k="hash" v={subId} />
+        <KV k={t('promptBundles.cols.model', 'model')} v={bundle.model} />
+        <KV k={t('promptBundles.cols.session', 'session')} v={session} />
+        <KV k={t('promptBundles.cols.cwd', 'cwd')} v={cwdLabel || '—'} />
+        <KV k={t('promptBundles.cols.hash', 'hash')} v={subId} />
       </div>
 
       <div className="my-2 h-px" style={{ background: 'var(--wisp-hairline)' }} />
@@ -213,7 +214,7 @@ function BundleCard({
       <div className="flex items-center justify-between">
         <div>
           <div className="t-faint" style={{ fontSize: 10.5 }}>
-            last used
+            {t('promptBundles.cols.lastUsed', 'last used')}
           </div>
           <div
             style={{
@@ -226,7 +227,7 @@ function BundleCard({
         </div>
         <div className="text-right">
           <div className="t-faint" style={{ fontSize: 10.5 }}>
-            hits
+            {t('promptBundles.cols.hits', 'hits')}
           </div>
           <div style={{ fontFamily: 'var(--f-display)', fontSize: 20, lineHeight: 1 }}>
             {bundle.hitCount}
@@ -258,6 +259,19 @@ export function PromptBundlesRoute() {
   const { t } = useTranslation();
   const q = usePromptBundles();
   const del = useDeletePromptBundle();
+  const [inflight, setInflight] = useState<Set<string>>(new Set());
+
+  const invalidate = (key: string): void => {
+    setInflight((prev) => new Set(prev).add(key));
+    del.mutate(key, {
+      onSettled: () =>
+        setInflight((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        }),
+    });
+  };
 
   const rows = q.data ?? [];
 
@@ -318,9 +332,9 @@ export function PromptBundlesRoute() {
             type="button"
             className="wisp-btn ghost"
             onClick={() => {
-              for (const r of rows) del.mutate(r.bundleKey);
+              for (const r of rows) invalidate(r.bundleKey);
             }}
-            disabled={!rows.length || del.isPending}
+            disabled={!rows.length || inflight.size > 0}
           >
             {t('promptBundles.actions.invalidateAll', 'Invalidate all')}
           </button>
@@ -421,8 +435,8 @@ export function PromptBundlesRoute() {
             <BundleCard
               key={b.bundleKey}
               bundle={b}
-              onInvalidate={(k) => del.mutate(k)}
-              busy={del.isPending && del.variables === b.bundleKey}
+              onInvalidate={invalidate}
+              busy={inflight.has(b.bundleKey)}
             />
           ))}
         </div>

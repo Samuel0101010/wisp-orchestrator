@@ -240,6 +240,7 @@ function GoapIconGlyph({ kind, color }: { kind: IconKind; color: string }) {
 }
 
 function GoapNodeCard({ node, hw, hh }: { node: LaidNode; hw: number; hh: number }) {
+  const { t } = useTranslation();
   const w = hw * 2;
   const h = hh * 2;
   const live = node.state === 'live';
@@ -322,7 +323,7 @@ function GoapNodeCard({ node, hw, hh }: { node: LaidNode; hw: number; hh: number
         {node.name}
       </text>
       <text x={36} y={32} fontFamily="var(--f-mono)" fontSize="10" fill="var(--wisp-ink-3)">
-        cost {node.cost}
+        {t('goap.node.cost', 'cost {{cost}}', { cost: node.cost })}
       </text>
       <line x1="14" y1="44" x2={w - 14} y2="44" stroke="var(--wisp-hairline)" />
       <g transform="translate(14, 52)">
@@ -989,15 +990,15 @@ export function GoapRoute() {
 
   const goalLabel = useMemo(() => {
     const keys = Object.keys(goal);
-    if (!keys.length) return 'satisfied';
+    if (!keys.length) return t('goap.node.satisfied', 'satisfied');
     return keys.slice(0, 2).join(', ');
-  }, [goal]);
+  }, [goal, t]);
 
   const startLabel = useMemo(() => {
     const keys = Object.keys(initial);
-    if (!keys.length) return 'empty';
+    if (!keys.length) return t('goap.node.empty', 'empty');
     return keys.slice(0, 2).join(', ');
-  }, [initial]);
+  }, [initial, t]);
 
   return (
     <div className="wisp-fade-up flex h-[calc(100vh-3.5rem-3rem)] flex-col">
@@ -1183,6 +1184,8 @@ export function GoapRoute() {
           >
             <Search className="h-3 w-3 text-[color:var(--wisp-ink-3)]" />
             <input
+              id="goap-filter"
+              name="goap-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               disabled={planM.isPending}

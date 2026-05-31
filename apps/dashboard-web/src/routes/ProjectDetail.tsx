@@ -36,6 +36,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
+import { statusLabel } from '@/lib/status-labels';
 import { ApiError } from '@/api/client';
 import { toast } from '@/components/ui/use-toast';
 import { DefinitionOfDoneCard } from '@/components/DefinitionOfDoneCard';
@@ -506,7 +507,7 @@ function RunsCard({
                         <StatusDotBadge status={r.status} pulse={r.status === 'running'} />
                       </td>
                       <td className="px-2 py-2 text-muted-foreground">
-                        {r.outcome ?? t('projectDetail.runs.running')}
+                        {r.outcome ? statusLabel(r.outcome, t) : t('projectDetail.runs.running')}
                       </td>
                       <td className="px-2 py-2 text-muted-foreground">{formatDate(r.startedAt)}</td>
                       <td className="px-2 py-2 text-muted-foreground">

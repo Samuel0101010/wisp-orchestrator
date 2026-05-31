@@ -189,7 +189,7 @@ test.describe('Wave 3 — Manager-agent project happy-path', () => {
       .getByTestId('sidebar')
       .getByRole('button', { name: tt(lang, 'navigation.newProject') })
       .click();
-    await expect(page.getByText(tt(lang, 'newProject.title'), { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: tt(lang, 'newProject.title') })).toBeVisible();
 
     // Fill name + goal + repo. Default template is fine.
     await page.getByLabel(tt(lang, 'newProject.fields.name')).fill('wave3-test');

@@ -1284,13 +1284,7 @@ export function useRunsSummary(windowDays = 7) {
 export function useAgents() {
   return useQuery<Agent[]>({
     queryKey: ['agents'],
-    queryFn: async () => {
-      try {
-        return await apiFetch<Agent[]>('/api/agents');
-      } catch {
-        return [];
-      }
-    },
+    queryFn: () => apiFetch<Agent[]>('/api/agents'),
   });
 }
 
@@ -1369,11 +1363,7 @@ export function useAgentUsage(agentId: string | undefined) {
     staleTime: 60_000,
     queryFn: async () => {
       if (!agentId) return { usage: [] };
-      try {
-        return await apiFetch<AgentUsage>(`/api/agents/${agentId}/usage`);
-      } catch {
-        return { usage: [] };
-      }
+      return apiFetch<AgentUsage>(`/api/agents/${agentId}/usage`);
     },
   });
 }

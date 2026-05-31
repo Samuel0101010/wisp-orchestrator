@@ -82,7 +82,9 @@
     "loadingRuns": "Lade Runs…",
     "noRuns": "Noch keine Runs.",
     "emptyTitle": "Keine Workers registriert",
-    "emptyDescription": "Cron-Jobs werden serverseitig registriert. Sobald aktiv erscheinen sie hier."
+    "emptyDescription": "Cron-Jobs werden serverseitig registriert. Sobald aktiv erscheinen sie hier.",
+    "runsFailed": "Run-Historie konnte nicht geladen werden",
+    "runWorkerFailed": "Worker konnte nicht ausgeführt werden"
   },
   "skills": {
     "title": "Skills",
@@ -104,7 +106,11 @@
     "emptyTitle": "Keine Skills gefunden",
     "emptyDescription": "Lege SKILL.md-Dateien unter .claude/skills an oder installiere ein Plugin mit Skills.",
     "reload": "Skills neu laden",
-    "reloading": "Lade neu…"
+    "reloading": "Lade neu…",
+    "args": "args:",
+    "noArgs": "(keine Argumente)",
+    "argsLabel": "Argumente:",
+    "reloadFailed": "Skills konnten nicht neu geladen werden"
   },
   "promptBundles": {
     "title": "Prompt-Bundles",
@@ -116,16 +122,31 @@
       "model": "Modell",
       "session": "Session",
       "hits": "Hits",
-      "lastUsed": "Zuletzt genutzt"
+      "lastUsed": "Zuletzt genutzt",
+      "cwd": "CWD",
+      "hash": "HASH",
+      "hot": "aktiv"
     },
     "actions": {
       "reset": "Zurücksetzen",
-      "resetting": "Setze zurück…"
+      "resetting": "Setze zurück…",
+      "invalidateAll": "Alle ungültig machen",
+      "pin": "Bundle anheften"
     },
     "loading": "Lade Bundles…",
     "loadFailed": "Bundles konnten nicht geladen werden",
     "emptyTitle": "Noch keine Bundles im Cache",
-    "emptyDescription": "Rufe einen Skill auf oder schicke eine Chat-Nachricht, um den Cache zu füllen."
+    "emptyDescription": "Rufe einen Skill auf oder schicke eine Chat-Nachricht, um den Cache zu füllen.",
+    "eyebrow": "Warmer Session-Cache",
+    "kpis": {
+      "hitRate": "Cache-Trefferquote",
+      "tokensSaved": "Tokens gespart · 7T",
+      "hotBundles": "Heiße Bundles",
+      "stale": "Veraltet",
+      "hotSub": "kürzlich verwendet",
+      "staleSub": "seit 7T+ nicht genutzt",
+      "hitRateSub": "{{n}} Treffer gesamt"
+    }
   },
   "insights": {
     "title": "Insights",
@@ -208,7 +229,9 @@
       "progressLabel": "Plan-Fortschritt",
       "ariaPlanned": "Plan-Visualisierung: {{steps}} Schritte, Kosten {{cost}}",
       "ariaEmpty": "Plan-Visualisierung: Ziel bereits erfüllt",
-      "ariaPreview": "Plan-Vorschau: {{count}} Aktionen geplant"
+      "ariaPreview": "Plan-Vorschau: {{count}} Aktionen geplant",
+      "costLabel": "Kosten {{cost}}",
+      "startEmpty": "(leer)"
     },
     "headline": {
       "computed": "Berechneter Plan",
@@ -222,7 +245,9 @@
       "queued_other": "{{count}} Aktionen geplant",
       "noActionsNeeded": "keine Aktionen nötig",
       "cost": "Kosten",
-      "estCost": "geschätzte Kosten"
+      "estCost": "geschätzte Kosten",
+      "queued": "{{count}} Aktionen wartend",
+      "steps": "{{count}} Schritte"
     },
     "library": {
       "noMatches": "Keine Aktionen passen zum Filter.",
@@ -249,6 +274,11 @@
     "empty": {
       "title": "Goal-Planer bereit",
       "description": "Gib links Startzustand, Ziel und Aktionen ein, um einen Plan zu berechnen."
+    },
+    "node": {
+      "cost": "Kosten {{cost}}",
+      "empty": "leer",
+      "satisfied": "erfüllt"
     }
   },
   "toolMultiSelect": {
@@ -335,7 +365,8 @@
     "loading": "Lade Agents…",
     "loadFailed": "Agents konnten nicht geladen werden",
     "emptyTitle": "Noch keine eigenen Agents",
-    "emptyDescription": "Lege deinen ersten Agent an, um Teams zu bauen."
+    "emptyDescription": "Lege deinen ersten Agent an, um Teams zu bauen.",
+    "deleteFailed": "Agent konnte nicht gelöscht werden"
   },
   "buttons": {
     "save": "Speichern",
@@ -386,7 +417,9 @@
     "promptBundles": "Prompt-Bundles",
     "todayRuns": "Runs · heute",
     "runsLabel": "Runs",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "expandSidebar": "Seitenleiste ausfahren",
+    "collapseSidebar": "Seitenleiste einklappen"
   },
   "projectMenu": {
     "trigger": "Projekt-Optionen",
@@ -422,7 +455,8 @@
       "hoursAgo": "vor {{count}} h",
       "daysAgo": "vor {{count}} T",
       "justNow": "gerade eben"
-    }
+    },
+    "searchPlaceholder": "Projekte, Agents, Runs suchen…"
   },
   "newProject": {
     "title": "Neues Projekt",
@@ -476,6 +510,18 @@
       "rolesLoaded": "{{count}} Rolle(n) geladen",
       "rolesLoaded_one": "{{count}} Rolle geladen",
       "rolesLoaded_other": "{{count}} Rollen geladen"
+    },
+    "addRole": "+ Rolle hinzufügen ({{count}}/{{max}})",
+    "previewTaskPrompt": "Task-Prompt-Vorschau",
+    "preview": {
+      "title": "Was der Agent sieht",
+      "description": "Der System-Prompt ist pro Rolle fix. Der Task-Prompt unten ist das, was der Walker zusammensetzt und an claude -p übergibt — wähle eine Rolle, bearbeite die Beispiel-Eingaben und prüfe das Ergebnis.",
+      "role": "Rolle",
+      "goal": "Ziel (Projekt-Ebene)",
+      "taskPrompt": "Task-Prompt (pro Task)",
+      "systemPromptHeading": "System-Prompt (als `--system-prompt` gesendet)",
+      "composedHeading": "Zusammengesetzter Task-Prompt (an stdin gepiped)",
+      "close": "Schließen"
     }
   },
   "teamRoleCard": {
@@ -708,7 +754,9 @@
     "actions": "Aktionen",
     "projects": "Projekte",
     "runs": "Letzte Runs",
-    "gotoMissionControl": "Zu Mission Control"
+    "gotoMissionControl": "Zu Mission Control",
+    "navigate": "navigieren",
+    "open": "öffnen"
   },
   "breadcrumbs": {
     "project": "Projekt",
@@ -729,20 +777,26 @@
       "successRate": "Erfolgsrate · 7 Tage",
       "successCaption": "{{ok}}/{{total}} erfolgreich",
       "avgDuration": "Ø Dauer · 7 Tage",
-      "avgCaption": "über abgeschlossene Runs"
+      "avgCaption": "über abgeschlossene Runs",
+      "today": "Heute"
     },
     "charts": {
       "tokenThroughput": "Token-Durchsatz",
       "tokenThroughputDesc": "letzte 7 Tage · alle Projekte",
       "outcomes": "Run-Ergebnisse",
       "outcomesDesc": "letzte 7 Tage",
-      "tokensTooltipLabel": "Tokens"
+      "tokensTooltipLabel": "Tokens",
+      "successRate": "Erfolg",
+      "tokensIn": "ein",
+      "tokensOut": "aus"
     },
     "live": {
       "title": "Jetzt live",
       "active": "aktiv",
       "empty": "Keine aktiven Runs — starte einen aus einem Projekt.",
-      "turns": "Turns"
+      "turns": "Turns",
+      "runningCount": "{{n}} läuft",
+      "pausedCount": "{{n}} pausiert"
     },
     "byProject": {
       "title": "Nach Projekt",
@@ -785,7 +839,21 @@
         "cancelled": "Abgebrochen",
         "unknown": "Ausstehend"
       }
-    }
+    },
+    "greeting": {
+      "morning": "Guten Morgen.",
+      "afternoon": "Guten Tag.",
+      "evening": "Guten Abend.",
+      "suffix": "{{count}} Runs heute.",
+      "idle": "Keine aktiven Agents · bereit, wenn du es bist.",
+      "workingShort": "{{count}} Agents aktiv"
+    },
+    "actions": {
+      "newProject": "Neues Projekt",
+      "quickRun": "Schnell starten"
+    },
+    "eyebrow": "Mission Control",
+    "periodGroup": "Zeitraum"
   },
   "projectDetail": {
     "subtitle": "Projekt-Übersicht, Team, Plan und Run-Historie.",
@@ -1157,7 +1225,8 @@
       "actionFailed": "Aktion fehlgeschlagen: {{kind}}",
       "unknownError": "unbekannter Fehler",
       "generic": "Aktion: {{kind}} · {{status}}"
-    }
+    },
+    "loadFailed": "Agents konnten nicht geladen werden"
   },
   "agentChat": {
     "loading": "Lade Agents…",
@@ -1167,7 +1236,7 @@
     "noThreads": "keine Threads — schreibe unten, um einen zu starten.",
     "startConversation": "Schreibe eine Nachricht unten, um die Konversation zu starten.",
     "agentThinking": "{{name}} denkt nach…",
-    "composerLabel": "an @{{name}}",
+    "composerLabel": "Nachricht an {{name}}",
     "selectAgent": "Agent auswählen",
     "cmdEnter": "Strg+Eingabe",
     "placeholder": {
@@ -1183,7 +1252,8 @@
     },
     "message": {
       "you": "du"
-    }
+    },
+    "loadFailed": "Agents konnten nicht geladen werden"
   },
   "avatarPicker": {
     "title": "Profilbild wählen",
@@ -1227,12 +1297,12 @@
     },
     "target": {
       "title": "Build-Ziel",
-      "description": "Wähle das Auslieferungsformat. Nur tauri-exe ist in v1.15 implementiert.",
+      "description": "Wähle das Auslieferungsformat. Derzeit ist nur tauri-exe implementiert.",
       "web": "Nur Web (kein Installer)",
       "tauri-exe": "Tauri-Desktop-Installer (Windows / macOS / Linux)",
       "electron-exe": "Electron-Installer",
       "pkg-bin": "pkg-Standalone-Binary",
-      "placeholder": "Platzhalter — in v1.15 nicht implementiert.",
+      "placeholder": "Platzhalter — noch nicht implementiert.",
       "saved": "Build-Ziel gespeichert",
       "saveFailed": "Build-Ziel konnte nicht gespeichert werden"
     }
@@ -1320,5 +1390,36 @@
         "runs": "Run-Historie ist read-only — Runs hängen an Projekten. Lösche Projekte, um Runs zu entfernen."
       }
     }
+  },
+  "focus": {
+    "title": "Focusboard",
+    "pickProject": "Wähle ein Projekt",
+    "noProjects": "Noch keine Projekte",
+    "chat": {
+      "title": "Chat"
+    },
+    "kanban": {
+      "title": "Kanban",
+      "empty": "Keine Tasks"
+    },
+    "actions": {
+      "cancel": "Abbrechen",
+      "pause": "Pausieren",
+      "resume": "Fortsetzen",
+      "openFullView": "Vollansicht öffnen"
+    },
+    "noProjectsHint": "Erstelle ein Projekt über die Seitenleiste, dann kannst du es hier scharfschalten.",
+    "projectNotFound": "Projekt nicht gefunden."
+  },
+  "notFound": {
+    "title": "Diese Ansicht gibt es nicht.",
+    "body": "Die URL passt zu keiner Route. Vermutlich ein veralteter Link oder ein Tippfehler.",
+    "back": "Zurück zu Mission Control"
+  },
+  "errorBoundary": {
+    "title": "Etwas ist schiefgegangen.",
+    "body": "Diese Ansicht hat unerwartet einen Fehler ausgelöst. Versuche es erneut — falls es wiederholt auftritt, melde es bitte als Issue.",
+    "retry": "Erneut versuchen",
+    "reload": "Seite neu laden"
   }
 }

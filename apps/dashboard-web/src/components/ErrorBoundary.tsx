@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import i18n from '@/i18n';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -32,18 +33,22 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         <div role="alert" className="mx-auto flex max-w-lg flex-col gap-4 p-8 text-sm">
-          <div className="text-base font-semibold text-destructive">Etwas ist schiefgegangen.</div>
+          <div className="text-base font-semibold text-destructive">
+            {i18n.t('errorBoundary.title', 'Something went wrong.')}
+          </div>
           <div className="text-muted-foreground">
-            Diese Ansicht hat unerwartet einen Fehler ausgelöst. Versuche es erneut — falls es
-            wiederholt auftritt, melde es bitte als Issue.
+            {i18n.t(
+              'errorBoundary.body',
+              'This view encountered an unexpected error. Try again — if it persists, please report it as an issue.',
+            )}
           </div>
           <pre className="overflow-auto rounded bg-muted p-3 text-xs">
             {this.state.error.message}
           </pre>
           <div className="flex gap-2">
-            <Button onClick={this.reset}>Erneut versuchen</Button>
+            <Button onClick={this.reset}>{i18n.t('errorBoundary.retry', 'Try again')}</Button>
             <Button variant="secondary" onClick={this.reload}>
-              Seite neu laden
+              {i18n.t('errorBoundary.reload', 'Reload page')}
             </Button>
           </div>
         </div>

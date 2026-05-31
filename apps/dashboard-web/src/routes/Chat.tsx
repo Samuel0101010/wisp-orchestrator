@@ -323,6 +323,15 @@ export function ChatRoute() {
       </div>
     );
   }
+  if (agents.error) {
+    return (
+      <div className="flex h-[80vh] flex-col items-center justify-center gap-3 text-center">
+        <Sparkles className="h-7 w-7 text-destructive" />
+        <div className="text-base font-semibold">{t('chat.loadFailed')}</div>
+        <p className="max-w-md text-sm text-muted-foreground">{t('errors.retryHint')}</p>
+      </div>
+    );
+  }
   if (!manager) {
     return (
       <div className="flex h-[80vh] flex-col items-center justify-center gap-3 text-center">
@@ -560,6 +569,8 @@ export function ChatRoute() {
               )}
               <textarea
                 ref={composerRef}
+                id="chat-composer"
+                name="chat-composer"
                 aria-label={t('chat.composer.ariaLabel')}
                 value={composer}
                 onChange={onComposerChange}

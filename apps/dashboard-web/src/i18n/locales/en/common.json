@@ -82,7 +82,9 @@
     "loadingRuns": "Loading runs…",
     "noRuns": "No runs yet.",
     "emptyTitle": "No workers registered",
-    "emptyDescription": "Background jobs (cron) are registered server-side. Once enabled they show up here."
+    "emptyDescription": "Background jobs (cron) are registered server-side. Once enabled they show up here.",
+    "runsFailed": "Failed to load run history",
+    "runWorkerFailed": "Failed to trigger worker"
   },
   "skills": {
     "title": "Skills",
@@ -104,7 +106,11 @@
     "emptyTitle": "No skills discovered",
     "emptyDescription": "Add SKILL.md files under .claude/skills or install a plugin that ships skills.",
     "reload": "Reload skills",
-    "reloading": "Reloading…"
+    "reloading": "Reloading…",
+    "args": "args:",
+    "noArgs": "(no args)",
+    "argsLabel": "args:",
+    "reloadFailed": "Failed to reload skills"
   },
   "promptBundles": {
     "title": "Prompt-Bundle Cache",
@@ -116,16 +122,31 @@
       "model": "Model",
       "session": "Session",
       "hits": "Hits",
-      "lastUsed": "Last used"
+      "lastUsed": "Last used",
+      "cwd": "CWD",
+      "hash": "HASH",
+      "hot": "hot"
     },
     "actions": {
       "reset": "Reset",
-      "resetting": "Resetting…"
+      "resetting": "Resetting…",
+      "invalidateAll": "Invalidate all",
+      "pin": "Pin bundle"
     },
     "loading": "Loading bundles…",
     "loadFailed": "Failed to load bundles",
     "emptyTitle": "No bundles cached yet",
-    "emptyDescription": "Invoke a skill or send a chat message to populate the cache."
+    "emptyDescription": "Invoke a skill or send a chat message to populate the cache.",
+    "eyebrow": "Warm session cache",
+    "kpis": {
+      "hitRate": "Cache hit rate",
+      "tokensSaved": "Tokens saved · 7d",
+      "hotBundles": "Hot bundles",
+      "stale": "Stale",
+      "hotSub": "recently used",
+      "staleSub": "not used 7d+",
+      "hitRateSub": "{{n}} hits total"
+    }
   },
   "insights": {
     "title": "Insights",
@@ -208,7 +229,9 @@
       "progressLabel": "Plan progress",
       "ariaPlanned": "Plan visualization: {{steps}} steps, cost {{cost}}",
       "ariaEmpty": "Plan visualization: goal already satisfied",
-      "ariaPreview": "Plan preview: {{count}} actions queued"
+      "ariaPreview": "Plan preview: {{count}} actions queued",
+      "costLabel": "cost {{cost}}",
+      "startEmpty": "(empty)"
     },
     "headline": {
       "computed": "Computed plan",
@@ -222,7 +245,9 @@
       "queued_other": "{{count}} actions queued",
       "noActionsNeeded": "no actions needed",
       "cost": "cost",
-      "estCost": "est cost"
+      "estCost": "est cost",
+      "queued": "{{count}} actions queued",
+      "steps": "{{count}} steps"
     },
     "library": {
       "noMatches": "No actions match this filter.",
@@ -249,6 +274,11 @@
     "empty": {
       "title": "Goal Planner ready",
       "description": "Enter an initial state, goal, and actions on the left to compute a plan."
+    },
+    "node": {
+      "cost": "cost {{cost}}",
+      "empty": "empty",
+      "satisfied": "satisfied"
     }
   },
   "toolMultiSelect": {
@@ -335,7 +365,8 @@
     "loading": "Loading agents…",
     "loadFailed": "Failed to load agents",
     "emptyTitle": "No custom agents yet",
-    "emptyDescription": "Create your first agent to start building teams."
+    "emptyDescription": "Create your first agent to start building teams.",
+    "deleteFailed": "Failed to delete agent"
   },
   "buttons": {
     "save": "Save",
@@ -386,7 +417,9 @@
     "promptBundles": "Prompt Bundles",
     "todayRuns": "Runs · today",
     "runsLabel": "runs",
-    "settings": "Settings"
+    "settings": "Settings",
+    "expandSidebar": "Expand sidebar",
+    "collapseSidebar": "Collapse sidebar"
   },
   "projectMenu": {
     "trigger": "Project options",
@@ -422,7 +455,8 @@
       "hoursAgo": "{{count}} h ago",
       "daysAgo": "{{count}} d ago",
       "justNow": "just now"
-    }
+    },
+    "searchPlaceholder": "Search projects, agents, runs…"
   },
   "newProject": {
     "title": "New Project",
@@ -476,6 +510,18 @@
       "rolesLoaded": "{{count}} role(s) loaded",
       "rolesLoaded_one": "{{count}} role loaded",
       "rolesLoaded_other": "{{count}} roles loaded"
+    },
+    "addRole": "+ Add role ({{count}}/{{max}})",
+    "previewTaskPrompt": "Preview Task Prompt",
+    "preview": {
+      "title": "What the agent sees",
+      "description": "The system prompt is fixed per role. The task prompt below is what the walker composes and feeds to claude -p — pick a role, edit the sample inputs, and inspect the result.",
+      "role": "Role",
+      "goal": "Goal (project-level)",
+      "taskPrompt": "Task prompt (per-task)",
+      "systemPromptHeading": "System prompt (sent as `--system-prompt`)",
+      "composedHeading": "Composed task prompt (piped to stdin)",
+      "close": "Close"
     }
   },
   "teamRoleCard": {
@@ -708,7 +754,9 @@
     "actions": "Actions",
     "projects": "Projects",
     "runs": "Recent runs",
-    "gotoMissionControl": "Go to Mission Control"
+    "gotoMissionControl": "Go to Mission Control",
+    "navigate": "navigate",
+    "open": "open"
   },
   "breadcrumbs": {
     "project": "Project",
@@ -729,20 +777,26 @@
       "successRate": "Success rate · 7 days",
       "successCaption": "{{ok}}/{{total}} successful",
       "avgDuration": "Avg duration · 7 days",
-      "avgCaption": "across completed runs"
+      "avgCaption": "across completed runs",
+      "today": "Today"
     },
     "charts": {
       "tokenThroughput": "Token throughput",
       "tokenThroughputDesc": "last 7 days · all projects",
       "outcomes": "Run outcomes",
       "outcomesDesc": "last 7 days",
-      "tokensTooltipLabel": "tokens"
+      "tokensTooltipLabel": "tokens",
+      "successRate": "success",
+      "tokensIn": "in",
+      "tokensOut": "out"
     },
     "live": {
       "title": "Live now",
       "active": "active",
       "empty": "No active runs — kick one off from a project.",
-      "turns": "turns"
+      "turns": "turns",
+      "runningCount": "{{n}} running",
+      "pausedCount": "{{n}} paused"
     },
     "byProject": {
       "title": "By project",
@@ -785,7 +839,21 @@
         "cancelled": "Cancelled",
         "unknown": "Pending"
       }
-    }
+    },
+    "greeting": {
+      "morning": "Good morning.",
+      "afternoon": "Good afternoon.",
+      "evening": "Good evening.",
+      "suffix": "{{count}} runs today.",
+      "idle": "No live agents · ready when you are.",
+      "workingShort": "{{count}} agents working"
+    },
+    "actions": {
+      "newProject": "New project",
+      "quickRun": "Quick run"
+    },
+    "eyebrow": "Mission Control",
+    "periodGroup": "Time period"
   },
   "projectDetail": {
     "subtitle": "Project overview, team, plan, and run history.",
@@ -1157,7 +1225,8 @@
       "actionFailed": "Action failed: {{kind}}",
       "unknownError": "unknown error",
       "generic": "Action: {{kind}} · {{status}}"
-    }
+    },
+    "loadFailed": "Failed to load agents"
   },
   "agentChat": {
     "loading": "Loading agents…",
@@ -1167,7 +1236,7 @@
     "noThreads": "no threads — type below to start one.",
     "startConversation": "Type a message below to start the conversation.",
     "agentThinking": "{{name}} is thinking…",
-    "composerLabel": "to @{{name}}",
+    "composerLabel": "Message to {{name}}",
     "selectAgent": "select an agent",
     "cmdEnter": "cmd+enter",
     "placeholder": {
@@ -1183,7 +1252,8 @@
     },
     "message": {
       "you": "you"
-    }
+    },
+    "loadFailed": "Failed to load agents"
   },
   "avatarPicker": {
     "title": "Choose a profile picture",
@@ -1227,12 +1297,12 @@
     },
     "target": {
       "title": "Build target",
-      "description": "Choose how the project should be shipped. Only tauri-exe is implemented in v1.15.",
+      "description": "Choose how the project should be shipped. Currently only tauri-exe is implemented.",
       "web": "Web only (no installer)",
       "tauri-exe": "Tauri desktop installer (Windows / macOS / Linux)",
       "electron-exe": "Electron installer",
       "pkg-bin": "pkg standalone binary",
-      "placeholder": "Placeholder — not implemented in v1.15.",
+      "placeholder": "Placeholder — not yet implemented.",
       "saved": "Build target saved",
       "saveFailed": "Could not save build target"
     }
@@ -1320,5 +1390,36 @@
         "runs": "Run history is read-only — runs are derived from projects. Delete projects to remove their runs."
       }
     }
+  },
+  "focus": {
+    "title": "Focusboard",
+    "pickProject": "Pick a project",
+    "noProjects": "No projects yet",
+    "chat": {
+      "title": "Chat"
+    },
+    "kanban": {
+      "title": "Kanban",
+      "empty": "No tasks"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "pause": "Pause",
+      "resume": "Resume",
+      "openFullView": "Open full view"
+    },
+    "noProjectsHint": "Create a project from the sidebar, then you can launch it here.",
+    "projectNotFound": "Project not found."
+  },
+  "notFound": {
+    "title": "This view does not exist.",
+    "body": "The URL doesn't match any route. Likely a stale link or a typo.",
+    "back": "Back to Mission Control"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong.",
+    "body": "This view threw an unexpected error. Try again — if it keeps happening, please report it as an issue.",
+    "retry": "Try again",
+    "reload": "Reload page"
   }
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ interface Props {
  * apps/dashboard-web/src/data/composedPrompt.ts.
  */
 export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [roleId, setRoleId] = useState<string>(team.roles[0]?.role ?? '');
   const [goal, setGoal] = useState(defaultGoal ?? '');
@@ -57,21 +59,18 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" data-testid="composed-preview-trigger">
-          Preview Task Prompt
+          {t('teamBuilder.previewTaskPrompt', 'Preview Task Prompt')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>What the agent sees</DialogTitle>
-          <DialogDescription>
-            The system prompt is fixed per role. The task prompt below is what the walker composes
-            and feeds to claude -p — pick a role, edit the sample inputs, and inspect the result.
-          </DialogDescription>
+          <DialogTitle>{t('teamBuilder.preview.title')}</DialogTitle>
+          <DialogDescription>{t('teamBuilder.preview.description')}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="preview-role">Role</Label>
+              <Label htmlFor="preview-role">{t('teamBuilder.preview.role')}</Label>
               <select
                 id="preview-role"
                 value={role?.role ?? ''}
@@ -87,7 +86,7 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="preview-goal">Goal (project-level)</Label>
+              <Label htmlFor="preview-goal">{t('teamBuilder.preview.goal')}</Label>
               <Input
                 id="preview-goal"
                 value={goal}
@@ -96,7 +95,7 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="preview-task">Task prompt (per-task)</Label>
+              <Label htmlFor="preview-task">{t('teamBuilder.preview.taskPrompt')}</Label>
               <Textarea
                 id="preview-task"
                 rows={3}
@@ -136,7 +135,7 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
           <div className="flex flex-col gap-3">
             <div>
               <p className="text-xs font-medium text-muted-foreground">
-                System prompt (sent as `--system-prompt`)
+                {t('teamBuilder.preview.systemPromptHeading')}
               </p>
               <pre
                 className="mt-1 max-h-32 overflow-auto rounded-md border bg-muted p-2 text-xs2"
@@ -147,7 +146,7 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
             </div>
             <div>
               <p className="text-xs font-medium text-muted-foreground">
-                Composed task prompt (piped to stdin)
+                {t('teamBuilder.preview.composedHeading')}
               </p>
               <pre
                 className="mt-1 max-h-[55vh] overflow-auto rounded-md border bg-muted p-2 text-xs2"
@@ -159,7 +158,7 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={() => setOpen(false)}>Close</Button>
+          <Button onClick={() => setOpen(false)}>{t('teamBuilder.preview.close')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

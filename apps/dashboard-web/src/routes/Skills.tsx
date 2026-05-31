@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Wrench } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
 import { useSkills, useReloadSkills } from '@/api/queries';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -81,7 +82,16 @@ export function SkillsRoute() {
           </p>
         </div>
         <button
-          onClick={() => reload.mutate()}
+          onClick={() =>
+            reload.mutate(undefined, {
+              onError: () =>
+                toast({
+                  variant: 'destructive',
+                  title: t('skills.reloadFailed'),
+                  description: t('errors.retryHint'),
+                }),
+            })
+          }
           disabled={reload.isPending}
           className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
