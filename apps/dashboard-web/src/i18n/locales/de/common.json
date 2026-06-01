@@ -1168,7 +1168,8 @@
     "locked": "Gesperrt",
     "success": "Erfolg",
     "failure": "Fehler",
-    "budget_exceeded": "Budget überschritten"
+    "budget_exceeded": "Budget überschritten",
+    "skipped": "Übersprungen"
   },
   "chat": {
     "loading": "Lade Team…",
