@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.31 — dashboard audit hardening (i18n, data-correctness, regression tests)
+
+Two adversarial confidence-audit rounds over every dashboard tab (#80, #81) plus follow-ups (#82, #83). No feature changes — correctness, i18n, and test coverage. A new installer gets these automatically (the plugin tracks `main`).
+
+### Fixed
+
+- **i18n raw-token leaks via `statusLabel`.** A status/outcome enum value with no `status.*` key rendered the raw snake_case token in **both** locales. Added `status.budget_exceeded` (RunView/ProjectDetail/Insights) and `status.skipped` (RunView task badge + aria-label). A guard test now asserts every plan/run/task status + run outcome that can reach `statusLabel` has a key in both locales.
+- **TeamBuilder silently dropped a role's `agentId` soft-link on re-save**, severing the link to a chat-created agent — and the dirty-check ignored it, so there was no warning. It now round-trips through `specToDraft`/`draftToSpec`/`teamsEqual`.
+- **The Run-outcomes donut dropped `budget_exceeded` runs** — they vanished from the chart and skewed the total against the card's run count. Folded into the failure bucket (matching the per-project rollup's classification).
+- **BuildAppCard showed "Tauri build failed" for *every* build error** — it regex-matched the generic `err.message` instead of the typed code in `ApiError.body.error`. It now maps the real packager code (or the server's message for route-level rejections).
+- **Chat thread queries swallowed 500s as empty threads** — the four sub-resource catches are narrowed to 404-only (matching `useRun`), plus a messages-load error banner.
+- **Home "Today" KPI + greeting** showed the 7-day total mislabeled as today (now `totalLast24h`); the hero **Quick run** was a no-op duplicate (now navigates to the first project's plan); period captions were hardcoded "7 days" while the 24h/7d/30d toggle drove the numbers (now period-aware); greeting + live chips pluralize correctly.
+- **PlanEditor** repo-init no longer re-locks an already-locked plan (was a 409 + false-fail toast). **Goap** "enabled actions" no longer re-enables a toggled-off action on a JSON edit (dead-branch fix). **RunView** cancel-confirm guards against a double-fire, and the ws-status pill shows "connecting" instead of the raw `idle` token.
+- Localized the remaining hardcoded strings: AgentChat (new-thread/send), Focusboard KPIs, TestPromptDialog, ToolMultiSelect, PromptBundles, the Chat invoke-skill card, and NotFound/ErrorBoundary.
+- **Server:** `GET /api/runs?status=` now filters (validated against `runStatusValues`); `GET /api/insights/trajectories` no longer caps at 50, so the Settings count + clear-all cover every record.
+
+### Tests
+
+- Regression tests for every fix above (incl. a DE/EN locale-parity guard — 1089 keys each, and the statusLabel coverage guard). All 8 local gates + Playwright e2e (54 passed) green on each merge.
+
+### Docs
+
+- Documented the `plugin marketplace add` **SSH-clone gotcha** (`Permission denied (publickey)` on a fresh machine even for this public repo) and its one-time `insteadOf` workaround, in the README, getting-started, and troubleshooting guides.
+
 ## 2.0.30 — native packaging actually produces an artifact (Tauri bundle-identifier fix)
 
 Surfaced by forcing a real Tauri build end-to-end (the one "unforceable" verification left): the packager could never produce an installer on a fresh project.

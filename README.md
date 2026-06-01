@@ -9,7 +9,7 @@
 <p align="center"><b>Watch a team of Claude agents build, preview, and iterate on your app — live in your browser.</b></p>
 
 <p align="center">
-  <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases"><img src="https://img.shields.io/badge/Release-v2.0.30-C2A148?style=for-the-badge" alt="Release v2.0.30"></a>
+  <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases"><img src="https://img.shields.io/badge/Release-v2.0.31-C2A148?style=for-the-badge" alt="Release v2.0.31"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue?style=for-the-badge" alt="License: Apache 2.0"></a>
   <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
@@ -112,6 +112,14 @@ claude /wisp-dashboard
 (For local development, replace the first line with `claude plugin marketplace add /absolute/path/to/agent-harness`.)
 
 The `/wisp-dashboard` command runs the launcher script for your platform (`scripts/launch-dashboard.ps1` on Windows, `scripts/launch-dashboard.sh` on POSIX). On the **first** invocation after a fresh install, the launcher auto-runs `pnpm install && pnpm build` (~1-2 minutes — pnpm must be on PATH). On subsequent invocations it boots straight to the server. Either way it picks a free port in `4400-4500`, writes connection state to `${CLAUDE_PLUGIN_DATA}/state.json`, and opens the dashboard in your default browser.
+
+> **If `claude plugin marketplace add` fails with `Permission denied (publickey)`:** it clones over SSH by default, which fails on a machine with no GitHub SSH key — even for this public repo. Tell git to use HTTPS for GitHub once, then re-run:
+>
+> ```sh
+> git config --global "url.https://github.com/.insteadOf" "git@github.com:"
+> ```
+>
+> (In PowerShell keep the space between the two quoted arguments.)
 
 ### From source (developer mode)
 

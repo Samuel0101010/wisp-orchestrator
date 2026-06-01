@@ -6,6 +6,33 @@ This guide assumes a working knowledge of the [Quickstart](../README.md#quicksta
 
 ---
 
+## Problem: `claude plugin marketplace add` fails with `Permission denied (publickey)`
+
+**Symptom**
+
+```
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+```
+
+The very first install command (`claude plugin marketplace add Samuel0101010/wisp-orchestrator`) aborts before the plugin is ever registered.
+
+**Cause**
+
+`plugin marketplace add owner/repo` clones over SSH by default. On a machine with no GitHub SSH key configured, that clone fails — even though `wisp-orchestrator` is a **public** repo that needs no authentication over HTTPS.
+
+**Fix**
+
+Tell git to rewrite GitHub SSH URLs to HTTPS once, then re-run the command:
+
+```sh
+git config --global "url.https://github.com/.insteadOf" "git@github.com:"
+```
+
+In PowerShell, keep the space between the two quoted arguments. The setting is global and harmless — it only changes how `github.com` remotes are resolved.
+
+---
+
 ## Problem: `claude` CLI not found on PATH
 
 **Symptom**
