@@ -60,4 +60,13 @@ describe('ToolMultiSelect', () => {
     fireEvent.click(screen.getByTestId('tool-chip-Read'));
     expect(screen.getByTestId('harness-count')).toHaveTextContent('0');
   });
+
+  it('renders localized custom-pattern controls (no raw i18n keys)', () => {
+    render(<Harness initial={['Bash(make:*)']} />);
+    expect(screen.getByText('Custom pattern')).toBeInTheDocument();
+    expect(screen.getByTestId('tool-multiselect-custom-add')).toHaveTextContent('Add');
+    expect(screen.getByText(/1 custom tool/i)).toBeInTheDocument();
+    // a missing key would render the raw "toolMultiSelect.*" path
+    expect(screen.queryByText(/toolMultiSelect\./)).toBeNull();
+  });
 });

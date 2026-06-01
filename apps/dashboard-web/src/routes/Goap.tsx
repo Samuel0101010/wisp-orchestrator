@@ -794,6 +794,25 @@ function jsonOrUndefined<T>(s: string): T | undefined {
   }
 }
 
+/**
+ * Reconcile the enabled-action set when the actions JSON changes: brand-new
+ * names (absent from the previously-parsed `known` set) default to enabled;
+ * names that already existed keep their previous on/off state. Exported for
+ * unit testing — the dead-branch bug here used to re-enable a toggled-off action
+ * on any JSON edit.
+ */
+export function reconcileEnabledActions(
+  prev: Set<string>,
+  known: Set<string>,
+  names: Set<string>,
+): Set<string> {
+  const out = new Set<string>();
+  for (const n of names) {
+    if (!known.has(n) || prev.has(n)) out.add(n);
+  }
+  return out;
+}
+
 export function GoapRoute() {
   const { t } = useTranslation();
   const [initialJson, setInitialJson] = useState(EXAMPLE_INITIAL);
@@ -850,15 +869,7 @@ export function GoapRoute() {
         if (a && typeof a.name === 'string') names.add(a.name);
       }
       const known = knownActionNamesRef.current;
-      setEnabled((prev) => {
-        const out = new Set<string>();
-        for (const n of names) {
-          // brand-new names (absent from the previous actions JSON) default to
-          // enabled; names that already existed keep their previous on/off state.
-          if (!known.has(n) || prev.has(n)) out.add(n);
-        }
-        return out;
-      });
+      setEnabled((prev) => reconcileEnabledActions(prev, known, names));
       knownActionNamesRef.current = names;
       setActionsJsonError(null);
     } catch (err) {

@@ -8,15 +8,27 @@ import { RunView } from './RunView';
 import { useRunStore } from '@/store/run';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-// ---------- mock the WS hook so the test owns the event stream ----------
+// ---------- mock the WS hook so the test owns the event stream + status ----------
 let pushEvent: ((ev: HarnessEvent) => void) | null = null;
+let wsStatusValue: 'idle' | 'open' | 'closed' | 'error' = 'open';
 vi.mock('@/api/ws', () => {
   return {
     useRunEvents: () => {
       const [events, setEvents] = useState<HarnessEvent[]>([]);
       pushEvent = (ev: HarnessEvent) => setEvents((prev) => [...prev, ev]);
-      return { events, status: 'open' as const };
+      return { events, status: wsStatusValue };
     },
+  };
+});
+
+// Override only useCancelRun's pending state so the cancel-confirm guard is
+// testable; every other query hook stays real (the snapshot is still fetched).
+let cancelPending = false;
+vi.mock('@/api/queries', async (importActual) => {
+  const actual = (await importActual()) as typeof import('@/api/queries');
+  return {
+    ...actual,
+    useCancelRun: () => ({ isPending: cancelPending, mutateAsync: vi.fn(async () => undefined) }),
   };
 });
 
@@ -31,6 +43,8 @@ let postCalls: { url: string; method?: string }[] = [];
 
 beforeEach(() => {
   postCalls = [];
+  wsStatusValue = 'open';
+  cancelPending = false;
   fetchHandler = () => new Response('{}', { status: 404 });
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString();
@@ -251,5 +265,32 @@ describe('RunView', () => {
     expect(await screen.findByTestId('shutdown-paused-banner')).toBeInTheDocument();
     expect(screen.queryByTestId('user-paused-banner')).not.toBeInTheDocument();
     expect(screen.getByTestId('shutdown-paused-resume')).toBeEnabled();
+  });
+
+  it('renders the ws-status pill as "connecting" (not the raw "idle" token) before the socket opens', async () => {
+    wsStatusValue = 'idle';
+    fetchHandler = (url) => {
+      if (/\/api\/runs\/run-1$/.test(url)) {
+        return new Response(JSON.stringify(snapshot()), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    };
+    renderRunView();
+    const pill = await screen.findByTestId('ws-status-pill');
+    expect(pill).toHaveTextContent(/connecting/i);
+    expect(pill).not.toHaveTextContent('idle');
+  });
+
+  it('disables the cancel-confirm button while a cancel is in flight', async () => {
+    cancelPending = true;
+    fetchHandler = (url) => {
+      if (/\/api\/runs\/run-1$/.test(url)) {
+        return new Response(JSON.stringify(snapshot()), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    };
+    renderRunView();
+    fireEvent.click(await screen.findByTestId('run-cancel-button'));
+    expect(await screen.findByTestId('run-cancel-confirm')).toBeDisabled();
   });
 });
