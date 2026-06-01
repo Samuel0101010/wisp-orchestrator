@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BuildAppCard } from './BuildAppCard';
 import type { PackagerResult } from '@/api/queries';
+import { toast } from '@/components/ui/use-toast';
+import i18n from '@/i18n';
+
+vi.mock('@/components/ui/use-toast', () => ({ toast: vi.fn() }));
 
 const originalFetch = globalThis.fetch;
 
@@ -46,6 +50,7 @@ function freshState(overrides: Partial<State> = {}): State {
 
 beforeEach(() => {
   state = freshState();
+  vi.mocked(toast).mockClear();
   globalThis.fetch = vi.fn(async (input, init) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (url.endsWith('/runs') && (!init || init.method === undefined || init.method === 'GET')) {
@@ -144,5 +149,23 @@ describe('BuildAppCard', () => {
     });
     // The basename of the returned artifact should render somewhere visible.
     expect(screen.getByText(/demo\.msi/)).toBeInTheDocument();
+  });
+
+  it('maps a 422 packager error from the response BODY to its localized hint (not the generic)', async () => {
+    // Regression: the catch used to regex-match err.message (always the generic
+    // "Request failed: …"), so every failure showed "Tauri build failed". The typed
+    // code lives in ApiError.body.error.
+    state = freshState({
+      buildResponse: { ok: false, error: 'tauri_cli_missing' },
+      buildResponseStatus: 422,
+    });
+    renderCard('tauri-exe');
+    const btn = await screen.findByTestId('build-app-button');
+    await waitFor(() => expect((btn as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(btn);
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    const lastArg = vi.mocked(toast).mock.calls.at(-1)?.[0] as { description?: string } | undefined;
+    expect(lastArg?.description).toBe(i18n.t('buildApp.errors.tauri_cli_missing'));
+    expect(lastArg?.description).not.toBe(i18n.t('buildApp.errors.tauri_build_failed'));
   });
 });

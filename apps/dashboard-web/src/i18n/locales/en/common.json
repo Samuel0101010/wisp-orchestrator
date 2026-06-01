@@ -1168,7 +1168,8 @@
     "locked": "Locked",
     "success": "Success",
     "failure": "Failure",
-    "budget_exceeded": "Over budget"
+    "budget_exceeded": "Over budget",
+    "skipped": "Skipped"
   },
   "chat": {
     "loading": "Loading team…",
