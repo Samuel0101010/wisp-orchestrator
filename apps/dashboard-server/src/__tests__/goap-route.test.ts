@@ -115,4 +115,39 @@ describe('/api/goap/plan', () => {
     expect(res.json().error).toBe('invalid_body');
     expect(Array.isArray(res.json().issues)).toBe(true);
   });
+
+  it('rejects an oversized actions array (>200) with 400', async () => {
+    const many = Array.from({ length: 201 }, (_, i) => ({
+      name: `a${i}`,
+      cost: 1,
+      preconditions: {},
+      effects: { [`f${i}`]: true },
+    }));
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/goap/plan',
+      payload: { initial: {}, goal: { f0: true }, actions: many },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toBe('invalid_body');
+  });
+
+  it('returns 422 search_exhausted instead of hanging on an exponential search', async () => {
+    // 16 independent flag-setting actions toward an unreachable goal forces the
+    // solver to exhaust 2^16 states; the expansion cap aborts and the route
+    // maps the typed error to a clean 422 rather than pinning the event loop.
+    const many = Array.from({ length: 16 }, (_, i) => ({
+      name: `set-${i}`,
+      cost: 1,
+      preconditions: {},
+      effects: { [`f${i}`]: true },
+    }));
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/goap/plan',
+      payload: { initial: {}, goal: { unreachable: true }, actions: many },
+    });
+    expect(res.statusCode).toBe(422);
+    expect(res.json()).toEqual({ error: 'search_exhausted' });
+  }, 15_000);
 });

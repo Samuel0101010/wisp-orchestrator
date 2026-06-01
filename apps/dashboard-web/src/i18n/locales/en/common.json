@@ -191,7 +191,6 @@
   },
   "goap": {
     "title": "Goal Planner",
-    "subtitle": "Goal-oriented action planning. Define start state, goal predicates, and available actions; the planner returns a sequence of actions.",
     "subtitleLong": "Define start and goal state, pick available actions — the planner returns the shortest sequence.",
     "eyebrow": "Goal-Oriented Action Planning",
     "worldState": "World state",
@@ -200,7 +199,8 @@
       "actions": "actions",
       "cost": "cost",
       "eta": "eta",
-      "enabledRatio": "{{enabled}} of {{total}} enabled"
+      "enabledRatio": "{{enabled}} of {{total}} enabled",
+      "etaValue": "~{{minutes}} min"
     },
     "actionsLibrary": "Actions library",
     "filterActions": "Filter actions…",
@@ -217,8 +217,7 @@
       "loadExample": "Load example",
       "clear": "Clear",
       "clearHint": "Clear the current plan result",
-      "planHint": "Run plan (Cmd/Ctrl+Enter)",
-      "reset": "Re-plan"
+      "planHint": "Run plan (Cmd/Ctrl+Enter)"
     },
     "worldStateLabels": {
       "empty": "(empty)"
@@ -228,12 +227,11 @@
       "goal": "Goal",
       "overflow": "+{{count}} more not shown",
       "overflowTitle": "The canvas shows at most 8 nodes — the full plan is listed below.",
-      "progressLabel": "Plan progress",
-      "ariaPlanned": "Plan visualization: {{steps}} steps, cost {{cost}}",
       "ariaEmpty": "Plan visualization: goal already satisfied",
-      "ariaPreview": "Plan preview: {{count}} actions queued",
-      "costLabel": "cost {{cost}}",
-      "startEmpty": "(empty)"
+      "ariaPlanned_one": "Plan visualization: {{count}} step, cost {{cost}}",
+      "ariaPlanned_other": "Plan visualization: {{count}} steps, cost {{cost}}",
+      "ariaPreview_one": "Plan preview: {{count}} action queued",
+      "ariaPreview_other": "Plan preview: {{count}} actions queued"
     },
     "headline": {
       "computed": "Computed plan",
@@ -247,9 +245,7 @@
       "queued_other": "{{count}} actions queued",
       "noActionsNeeded": "no actions needed",
       "cost": "cost",
-      "estCost": "est cost",
-      "queued": "{{count}} actions queued",
-      "steps": "{{count}} steps"
+      "estCost": "est cost"
     },
     "library": {
       "noMatches": "No actions match this filter.",
@@ -263,19 +259,19 @@
     "errors": {
       "noActionsEnabled": "No actions enabled — pick at least one action from the library.",
       "jsonPrefix": "JSON error:",
-      "requestPrefix": "Planner request failed:"
+      "requestPrefix": "Planner request failed:",
+      "malformedAction": "Each action needs a string name and a numeric cost.",
+      "duplicateName": "Duplicate action name: {{name}}",
+      "notBoolean": "State values must be true or false.",
+      "searchExhausted": "Search space too large — reduce the actions or simplify the goal.",
+      "invalidFields": "Invalid input — {{detail}}"
     },
-    "noResult": "Submit a problem to see the plan.",
     "result": {
       "title": "Plan",
       "noPlan": "No plan exists for this initial/goal/actions combination.",
       "alreadySat": "Goal already satisfied — empty plan.",
       "malformed": "Planner returned an unexpected response — please retry or check the server logs.",
       "costInline": "cost: {{cost}}"
-    },
-    "empty": {
-      "title": "Goal Planner ready",
-      "description": "Enter an initial state, goal, and actions on the left to compute a plan."
     },
     "node": {
       "cost": "cost {{cost}}",

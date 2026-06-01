@@ -191,7 +191,6 @@
   },
   "goap": {
     "title": "Goal-Planer",
-    "subtitle": "Goal-Oriented Action Planning. Definiere Start-Zustand, Ziel-Prädikate und verfügbare Aktionen; der Planer liefert eine Aktions-Sequenz.",
     "subtitleLong": "Definiere Start- und Zielzustand, wähle verfügbare Aktionen — der Planer berechnet die kürzeste Sequenz.",
     "eyebrow": "Goal-Oriented Action Planning",
     "worldState": "Welt-Zustand",
@@ -200,7 +199,8 @@
       "actions": "Aktionen",
       "cost": "Kosten",
       "eta": "ETA",
-      "enabledRatio": "{{enabled}} von {{total}} aktiv"
+      "enabledRatio": "{{enabled}} von {{total}} aktiv",
+      "etaValue": "~{{minutes}} min"
     },
     "actionsLibrary": "Aktions-Bibliothek",
     "filterActions": "Aktionen filtern…",
@@ -217,8 +217,7 @@
       "loadExample": "Beispiel laden",
       "clear": "Zurücksetzen",
       "clearHint": "Aktuelles Plan-Ergebnis löschen",
-      "planHint": "Plan erstellen (Strg/Cmd+Eingabe)",
-      "reset": "Plan neu"
+      "planHint": "Plan erstellen (Strg/Cmd+Eingabe)"
     },
     "worldStateLabels": {
       "empty": "(leer)"
@@ -228,12 +227,11 @@
       "goal": "Ziel",
       "overflow": "+{{count}} weitere nicht angezeigt",
       "overflowTitle": "Der Canvas zeigt maximal 8 Knoten — der vollständige Plan steht unten.",
-      "progressLabel": "Plan-Fortschritt",
-      "ariaPlanned": "Plan-Visualisierung: {{steps}} Schritte, Kosten {{cost}}",
       "ariaEmpty": "Plan-Visualisierung: Ziel bereits erfüllt",
-      "ariaPreview": "Plan-Vorschau: {{count}} Aktionen geplant",
-      "costLabel": "Kosten {{cost}}",
-      "startEmpty": "(leer)"
+      "ariaPlanned_one": "Plan-Visualisierung: {{count}} Schritt, Kosten {{cost}}",
+      "ariaPlanned_other": "Plan-Visualisierung: {{count}} Schritte, Kosten {{cost}}",
+      "ariaPreview_one": "Plan-Vorschau: {{count}} Aktion geplant",
+      "ariaPreview_other": "Plan-Vorschau: {{count}} Aktionen geplant"
     },
     "headline": {
       "computed": "Berechneter Plan",
@@ -247,9 +245,7 @@
       "queued_other": "{{count}} Aktionen geplant",
       "noActionsNeeded": "keine Aktionen nötig",
       "cost": "Kosten",
-      "estCost": "geschätzte Kosten",
-      "queued": "{{count}} Aktionen wartend",
-      "steps": "{{count}} Schritte"
+      "estCost": "geschätzte Kosten"
     },
     "library": {
       "noMatches": "Keine Aktionen passen zum Filter.",
@@ -263,19 +259,19 @@
     "errors": {
       "noActionsEnabled": "Keine Aktionen aktiv — wähle mindestens eine Aktion aus der Bibliothek.",
       "jsonPrefix": "JSON-Fehler:",
-      "requestPrefix": "Planer-Anfrage fehlgeschlagen:"
+      "requestPrefix": "Planer-Anfrage fehlgeschlagen:",
+      "malformedAction": "Jede Aktion braucht einen String-Namen und numerische Kosten.",
+      "duplicateName": "Doppelter Aktionsname: {{name}}",
+      "notBoolean": "Zustandswerte müssen true oder false sein.",
+      "searchExhausted": "Suchraum zu groß — reduziere die Aktionen oder vereinfache das Ziel.",
+      "invalidFields": "Ungültige Eingabe — {{detail}}"
     },
-    "noResult": "Sende ein Problem ab, um den Plan zu sehen.",
     "result": {
       "title": "Plan-Ergebnis",
       "noPlan": "Für diese Kombination aus Start, Ziel und Aktionen existiert kein Plan.",
       "alreadySat": "Ziel bereits erfüllt — leerer Plan.",
       "malformed": "Der Planer hat eine unerwartete Antwort geliefert — bitte erneut versuchen oder die Server-Logs prüfen.",
       "costInline": "Kosten: {{cost}}"
-    },
-    "empty": {
-      "title": "Goal-Planer bereit",
-      "description": "Gib links Startzustand, Ziel und Aktionen ein, um einen Plan zu berechnen."
     },
     "node": {
       "cost": "Kosten {{cost}}",
