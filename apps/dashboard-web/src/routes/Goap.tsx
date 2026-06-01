@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { AlertTriangle, ChevronDown, FolderOpen, Play, RefreshCw, Search } from 'lucide-react';
 import { usePlanGoap, type GoapAction, type GoapPlanResponse } from '@/api/queries';
+import { ApiError } from '@/api/client';
 import { cn } from '@/lib/utils';
 
 const EXAMPLE_INITIAL = '{}';
@@ -45,11 +47,10 @@ interface Layout {
   /** viewBox width — always 1100; carried here for symmetry with height. */
   viewBoxW: number;
   /**
-   * viewBox height. Single-row layouts use a tall viewBox (~950) so the
-   * SVG content's aspect ratio matches the typical canvas card (~1.16),
-   * which makes the SVG fill the card vertically instead of leaving big
-   * empty bands above/below the plan row.
-   * U-shape layouts keep the canonical 540 height (design parity).
+   * viewBox height — always 540 for every branch (empty, single-row, U-shape).
+   * The SVG uses preserveAspectRatio="xMidYMid meet" against 1100×540; single-
+   * row cards are additionally height-clamped to 360px at the call site so the
+   * row sits centered without a tall empty band.
    */
   viewBoxH: number;
   /** Center y of the atmosphere ellipses (glows). Tracks the plan row. */
@@ -63,6 +64,73 @@ function shortFlag(rec: Record<string, boolean> | undefined, fallback: string) {
   const k = keys[0]!;
   const head = rec[k] ? k : `!${k}`;
   return keys.length > 1 ? `${head} +${keys.length - 1}` : head;
+}
+
+/** Hard-truncate a label with an ellipsis so it can't overflow its SVG card /
+ *  marker (the canvas <text> has no clip/textLength). Exported for testing. */
+export function clip(s: string, max = 16): string {
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
+/**
+ * A library/canvas action is only well-formed if it has a string name AND a
+ * finite numeric cost. Without the cost check a hand-edited action like
+ * {"name":"x"} flows into the cost sum and renders "NaN". Exported for testing.
+ */
+export function isValidAction(a: unknown): a is GoapAction {
+  const o = a as GoapAction | null | undefined;
+  return !!o && typeof o.name === 'string' && typeof o.cost === 'number' && Number.isFinite(o.cost);
+}
+
+/** A world-state JSON value is only valid if it is a plain object whose values
+ *  are all booleans — the backend schema is z.record(string, boolean), so a
+ *  number/string value would 400. Exported for testing. */
+export function isBooleanRecord(v: unknown): boolean {
+  return (
+    !!v &&
+    typeof v === 'object' &&
+    !Array.isArray(v) &&
+    Object.values(v as Record<string, unknown>).every((x) => typeof x === 'boolean')
+  );
+}
+
+/**
+ * Turn a planner request failure into an actionable message: the backend's
+ * per-field zod issues (400) or a "search too large" notice (422), instead of
+ * the opaque "Request failed: 400 Bad Request" that ApiError.message carries.
+ * Exported for testing.
+ */
+export function formatPlannerError(err: unknown, t: TFunction): string {
+  if (err instanceof ApiError) {
+    const body = err.body as
+      | { error?: string; issues?: Array<{ path?: Array<string | number>; message?: string }> }
+      | undefined;
+    if (err.status === 422 && body?.error === 'search_exhausted') {
+      return t(
+        'goap.errors.searchExhausted',
+        'Search space too large — reduce the actions or simplify the goal.',
+      );
+    }
+    if (err.status === 400 && Array.isArray(body?.issues) && body.issues.length > 0) {
+      const detail = body.issues
+        .map((i) => `${(i.path ?? []).join('.') || '(root)'}: ${i.message ?? ''}`)
+        .join('; ');
+      return t('goap.errors.invalidFields', 'Invalid input — {{detail}}', { detail });
+    }
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
+/** First action name that appears more than once, or null. GOAP action names
+ *  are identifiers; duplicates collide in the name-keyed enabled Set and the
+ *  React list key, so we reject them. Exported for testing. */
+export function findDuplicateName(names: string[]): string | null {
+  const seen = new Set<string>();
+  for (const n of names) {
+    if (seen.has(n)) return n;
+    seen.add(n);
+  }
+  return null;
 }
 
 /**
@@ -320,7 +388,8 @@ function GoapNodeCard({ node, hw, hh }: { node: LaidNode; hw: number; hh: number
         fontWeight="500"
         fill={live || done ? 'var(--wisp-ink)' : 'var(--wisp-ink-2)'}
       >
-        {node.name}
+        <title>{node.name}</title>
+        {clip(node.name)}
       </text>
       <text x={36} y={32} fontFamily="var(--f-mono)" fontSize="10" fill="var(--wisp-ink-3)">
         {t('goap.node.cost', 'cost {{cost}}', { cost: node.cost })}
@@ -473,7 +542,6 @@ function GoapCanvas({
   summary,
   headlineState,
   overflowCount = 0,
-  showProgress = true,
 }: {
   layout: Layout;
   startLabel: string;
@@ -483,7 +551,6 @@ function GoapCanvas({
   summary: { done: number; running: number; queued: number; cost: number; eta: string };
   headlineState: 'ready' | 'planned' | 'empty';
   overflowCount?: number;
-  showProgress?: boolean;
 }) {
   const { t } = useTranslation();
   const HW = 78;
@@ -547,11 +614,6 @@ function GoapCanvas({
     });
   }
 
-  const progressPct = Math.min(
-    100,
-    Math.round((summary.done / Math.max(1, summary.done + summary.running + summary.queued)) * 100),
-  );
-
   return (
     <div className="relative h-full w-full">
       {/* Header overlay */}
@@ -614,32 +676,6 @@ function GoapCanvas({
             </div>
           )}
         </div>
-        {showProgress && (
-          <div
-            className="overflow-hidden rounded-[2px]"
-            style={{
-              height: 3,
-              background: 'var(--wisp-glass-inset)',
-              border: '1px solid var(--wisp-hairline)',
-            }}
-            role="progressbar"
-            aria-valuenow={progressPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={t('goap.canvas.progressLabel', 'Plan progress')}
-          >
-            <div
-              style={{
-                width: `${progressPct}%`,
-                height: '100%',
-                background:
-                  'linear-gradient(90deg, var(--mint) 0%, var(--mint) 60%, var(--coral) 100%)',
-                boxShadow: 'var(--wisp-glow-coral)',
-                transition: 'width 1.2s var(--wisp-easing)',
-              }}
-            />
-          </div>
-        )}
       </div>
 
       <svg
@@ -850,55 +886,93 @@ export function GoapRoute() {
   }, [goalJson]);
   const actions = useMemo(() => {
     const v = jsonOrUndefined<GoapAction[]>(actionsJson);
-    return Array.isArray(v) && v.every((a) => a && typeof a.name === 'string')
-      ? v
-      : EXAMPLE_ACTIONS;
+    // Un-parseable (mid-edit syntax error) → keep the example visible so the
+    // canvas doesn't flash empty. Parsed but malformed (any element missing a
+    // string name or finite cost) → [] so the library shows its empty state
+    // and the stats read 0 — never phantom example actions that match neither
+    // the JSON nor what would be submitted.
+    if (v === undefined) return EXAMPLE_ACTIONS;
+    return Array.isArray(v) && v.every(isValidAction) ? v : [];
   }, [actionsJson]);
   // Wrapping `setActionsJson` so any new action name added via the editor is
   // auto-enabled and any deleted names drop out of the enabled set. Without
   // this, a user adding `{"name":"newAction",...}` to the textarea would see
   // the action listed in the library but it would be silently excluded from
   // the planner submit because `enabled` still held only the example names.
-  const setActionsJson = useCallback((next: string) => {
-    setActionsJsonRaw(next);
-    try {
-      const parsed = JSON.parse(next) as GoapAction[];
-      if (!Array.isArray(parsed)) throw new Error('actions must be an array');
-      const names = new Set<string>();
-      for (const a of parsed) {
-        if (a && typeof a.name === 'string') names.add(a.name);
+  const setActionsJson = useCallback(
+    (next: string) => {
+      setActionsJsonRaw(next);
+      try {
+        const parsed = JSON.parse(next) as GoapAction[];
+        if (!Array.isArray(parsed)) throw new Error('actions must be an array');
+        if (!parsed.every(isValidAction)) {
+          setActionsJsonError(
+            t('goap.errors.malformedAction', 'Each action needs a string name and a numeric cost.'),
+          );
+          return;
+        }
+        const nameList = parsed.map((a) => a.name);
+        const dup = findDuplicateName(nameList);
+        if (dup) {
+          setActionsJsonError(
+            t('goap.errors.duplicateName', 'Duplicate action name: {{name}}', { name: dup }),
+          );
+          return;
+        }
+        const names = new Set<string>(nameList);
+        const known = knownActionNamesRef.current;
+        setEnabled((prev) => reconcileEnabledActions(prev, known, names));
+        knownActionNamesRef.current = names;
+        setActionsJsonError(null);
+      } catch (err) {
+        setActionsJsonError(err instanceof Error ? err.message : String(err));
       }
-      const known = knownActionNamesRef.current;
-      setEnabled((prev) => reconcileEnabledActions(prev, known, names));
-      knownActionNamesRef.current = names;
-      setActionsJsonError(null);
-    } catch (err) {
-      setActionsJsonError(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
+    },
+    [t],
+  );
 
-  const setInitialJson_ = useCallback((next: string) => {
-    setInitialJson(next);
-    try {
-      JSON.parse(next);
-      setInitialJsonError(null);
-    } catch (err) {
-      setInitialJsonError(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
-  const setGoalJson_ = useCallback((next: string) => {
-    setGoalJson(next);
-    try {
-      JSON.parse(next);
-      setGoalJsonError(null);
-    } catch (err) {
-      setGoalJsonError(err instanceof Error ? err.message : String(err));
-    }
-  }, []);
+  const setInitialJson_ = useCallback(
+    (next: string) => {
+      setInitialJson(next);
+      try {
+        if (!isBooleanRecord(JSON.parse(next))) {
+          setInitialJsonError(t('goap.errors.notBoolean', 'State values must be true or false.'));
+          return;
+        }
+        setInitialJsonError(null);
+      } catch (err) {
+        setInitialJsonError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [t],
+  );
+  const setGoalJson_ = useCallback(
+    (next: string) => {
+      setGoalJson(next);
+      try {
+        if (!isBooleanRecord(JSON.parse(next))) {
+          setGoalJsonError(t('goap.errors.notBoolean', 'State values must be true or false.'));
+          return;
+        }
+        setGoalJsonError(null);
+      } catch (err) {
+        setGoalJsonError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [t],
+  );
 
   const submit = useCallback(() => {
     if (planM.isPending) return;
     setParseError(null);
+    // Refuse to submit while any field is flagged (syntax error, malformed
+    // shape, duplicate names, or non-boolean state values) so we never POST
+    // data the backend will reject with an opaque 400.
+    const fieldError = actionsJsonError || initialJsonError || goalJsonError;
+    if (fieldError) {
+      setParseError({ kind: 'json', message: fieldError });
+      return;
+    }
     try {
       const parsedActions = JSON.parse(actionsJson) as GoapAction[];
       const filtered = parsedActions.filter((a) => enabled.has(a.name));
@@ -924,7 +998,17 @@ export function GoapRoute() {
         message: err instanceof Error ? err.message : String(err),
       });
     }
-  }, [actionsJson, enabled, goalJson, initialJson, planM, t]);
+  }, [
+    actionsJson,
+    actionsJsonError,
+    initialJsonError,
+    goalJsonError,
+    enabled,
+    goalJson,
+    initialJson,
+    planM,
+    t,
+  ]);
 
   // Cmd/Ctrl+Enter triggers submit from anywhere on the route (matches
   // what users expect from JSON-editor flows in IDEs).
@@ -959,14 +1043,23 @@ export function GoapRoute() {
     planM.reset();
   };
 
-  // Build laid-out nodes: prefer plan from API; fallback to actions list.
+  // Only the actions the user has actually enabled — drives the preview canvas,
+  // the est-cost summary and the overflow badge so node count, "queued" count
+  // and Stats all agree.
+  const enabledActions = useMemo(
+    () => actions.filter((a) => enabled.has(a.name)),
+    [actions, enabled],
+  );
+
+  // Build laid-out nodes: prefer the computed plan; otherwise preview only the
+  // enabled actions (a disabled action must not appear as a queued node).
   const layout = useMemo(() => {
     const plan = planM.data?.plan;
     if (plan && plan.length > 0) {
       return layoutActions(plan, plan.length, -1);
     }
-    return layoutActions(actions, 0, -1);
-  }, [planM.data?.plan, actions]);
+    return layoutActions(enabledActions, 0, -1);
+  }, [planM.data?.plan, enabledActions]);
   const headlineState: 'ready' | 'planned' | 'empty' = planM.data?.plan
     ? planM.data.plan.length > 0
       ? 'planned'
@@ -975,20 +1068,25 @@ export function GoapRoute() {
 
   const summary = useMemo(() => {
     const plan = planM.data?.plan;
-    // Pre-plan "est cost" must reflect what would actually be submitted —
-    // i.e. only the actions the user has checked in the library. Including
-    // disabled actions in the fallback sum is misleading.
-    const enabledActions = actions.filter((a) => enabled.has(a.name));
+    // Pre-plan "est cost" reflects only the enabled actions (what would be
+    // submitted). Number.isFinite guards against a stray non-numeric cost ever
+    // leaking "NaN" into the Stats / headline / eta.
     const total = plan?.length ?? enabledActions.length;
-    const cost = planM.data?.totalCost ?? enabledActions.reduce((s, a) => s + a.cost, 0);
+    const fallbackCost = enabledActions.reduce(
+      (s, a) => s + (Number.isFinite(a.cost) ? a.cost : 0),
+      0,
+    );
+    const rawCost = planM.data?.totalCost ?? fallbackCost;
+    const cost = Number.isFinite(rawCost) ? rawCost : 0;
+    const minutes = Math.max(1, Math.round(cost / 4));
     return {
       done: plan ? plan.length : 0,
       running: 0,
       queued: plan ? 0 : total,
-      cost: cost ?? 0,
-      eta: `~${Math.max(1, Math.round((cost ?? 0) / 4))} min`,
+      cost,
+      eta: t('goap.stats.etaValue', '~{{minutes}} min', { minutes }),
     };
-  }, [planM.data, actions, enabled]);
+  }, [planM.data, enabledActions, t]);
 
   const filteredActions = useMemo(
     () => actions.filter((a) => !filter || a.name.toLowerCase().includes(filter.toLowerCase())),
@@ -1004,16 +1102,18 @@ export function GoapRoute() {
     });
   };
 
+  // Marker sub-labels are clipped so long user-chosen state keys can't run off
+  // the viewBox edge or collide with the first node card.
   const goalLabel = useMemo(() => {
     const keys = Object.keys(goal);
     if (!keys.length) return t('goap.node.satisfied', 'satisfied');
-    return keys.slice(0, 2).join(', ');
+    return clip(keys.slice(0, 2).join(', '), 20);
   }, [goal, t]);
 
   const startLabel = useMemo(() => {
     const keys = Object.keys(initial);
     if (!keys.length) return t('goap.node.empty', 'empty');
-    return keys.slice(0, 2).join(', ');
+    return clip(keys.slice(0, 2).join(', '), 20);
   }, [initial, t]);
 
   return (
@@ -1160,8 +1260,8 @@ export function GoapRoute() {
           role="region"
           aria-label={
             headlineState === 'planned'
-              ? t('goap.canvas.ariaPlanned', 'Plan visualization: {{steps}} steps, cost {{cost}}', {
-                  steps: summary.done,
+              ? t('goap.canvas.ariaPlanned', 'Plan visualization: {{count}} steps, cost {{cost}}', {
+                  count: summary.done,
                   cost: summary.cost,
                 })
               : headlineState === 'empty'
@@ -1179,8 +1279,7 @@ export function GoapRoute() {
             goalSub={goalLabel}
             summary={summary}
             headlineState={headlineState}
-            overflowCount={Math.max(0, actions.length - 8)}
-            showProgress={headlineState !== 'ready'}
+            overflowCount={Math.max(0, (planM.data?.plan?.length ?? enabledActions.length) - 8)}
           />
         </div>
 
@@ -1218,9 +1317,9 @@ export function GoapRoute() {
                   : t('goap.library.empty', 'No actions defined. Edit JSON to add some.')}
               </div>
             )}
-            {filteredActions.map((a) => (
+            {filteredActions.map((a, i) => (
               <label
-                key={a.name}
+                key={`${a.name}-${i}`}
                 className={cn(
                   'wisp-surface flex cursor-pointer items-start gap-2.5 p-2.5',
                   planM.isPending && 'pointer-events-none opacity-60',
@@ -1278,53 +1377,68 @@ export function GoapRoute() {
           <div id="goap-json-editor" className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
             {[
               {
+                field: 'start',
                 label: t('goap.fields.start', 'Start'),
                 value: initialJson,
                 set: setInitialJson_,
                 error: initialJsonError,
               },
               {
+                field: 'goal',
                 label: t('goap.fields.goal', 'Goal'),
                 value: goalJson,
                 set: setGoalJson_,
                 error: goalJsonError,
               },
               {
+                field: 'actions',
                 label: t('goap.fields.actions', 'Actions'),
                 value: actionsJson,
                 set: setActionsJson,
                 error: actionsJsonError,
               },
-            ].map(({ label, value, set, error }) => (
-              <div key={label} className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <label className="t-eyebrow">{label}</label>
-                  {error && (
-                    <span
-                      className="t-mono"
-                      style={{ fontSize: 10.5, color: 'var(--rose)' }}
-                      title={error}
-                    >
-                      {t('goap.editor.invalidJson', 'invalid JSON')}
-                    </span>
-                  )}
+            ].map(({ field, label, value, set, error }) => {
+              const fieldId = `goap-field-${field}`;
+              const errId = `${fieldId}-err`;
+              return (
+                <div key={field} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor={fieldId} className="t-eyebrow">
+                      {label}
+                    </label>
+                    {error && (
+                      <span
+                        id={errId}
+                        role="alert"
+                        className="t-mono flex items-center gap-1"
+                        style={{ fontSize: 10.5, color: 'var(--rose)' }}
+                        title={error}
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        {t('goap.editor.invalidJson', 'invalid JSON')}
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    id={fieldId}
+                    name={fieldId}
+                    value={value}
+                    onChange={(e) => set(e.target.value)}
+                    disabled={planM.isPending}
+                    aria-invalid={!!error}
+                    aria-describedby={error ? errId : undefined}
+                    aria-errormessage={error ? errId : undefined}
+                    className="h-40 rounded-md border p-2 font-mono text-xs focus:outline-none focus:ring-2 disabled:opacity-60"
+                    style={{
+                      borderColor: error ? 'var(--rose)' : 'var(--wisp-hairline)',
+                      background: 'var(--wisp-glass-inset)',
+                      color: 'var(--wisp-ink)',
+                    }}
+                    spellCheck={false}
+                  />
                 </div>
-                <textarea
-                  value={value}
-                  onChange={(e) => set(e.target.value)}
-                  disabled={planM.isPending}
-                  aria-label={label}
-                  aria-invalid={!!error}
-                  className="h-40 rounded-md border p-2 font-mono text-xs focus:outline-none focus:ring-2 disabled:opacity-60"
-                  style={{
-                    borderColor: error ? 'var(--rose)' : 'var(--wisp-hairline)',
-                    background: 'var(--wisp-glass-inset)',
-                    color: 'var(--wisp-ink)',
-                  }}
-                  spellCheck={false}
-                />
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
         {parseError && (
@@ -1352,7 +1466,7 @@ export function GoapRoute() {
             <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
               {t('goap.errors.requestPrefix', 'Planner request failed:')}{' '}
-              {planM.error instanceof Error ? planM.error.message : String(planM.error)}
+              {formatPlannerError(planM.error, t)}
             </span>
           </div>
         )}
