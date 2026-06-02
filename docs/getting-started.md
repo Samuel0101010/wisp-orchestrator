@@ -78,7 +78,9 @@ the Dashboard for the canonical names):
 - **Skills** — installed plugin skills
 - **Workers** — real-time view of each agent's subprocess
 - **Insights** — trajectories, costs, replan history
-- **GOAP Planner** — interactive DAG canvas
+- **GOAP Planner** — a standalone GOAP (Goal-Oriented Action Planning) solver
+  sandbox for experimenting with states, actions, and costs (it does **not**
+  plan or drive your runs — see the heads-up in §7)
 - **Prompt Bundles** — cached prompts for re-use
 - **Settings** (bottom of the sidebar) — theme, language, data clearing
 
@@ -125,14 +127,22 @@ terminal nodes).
 
 ## 7. Review the team and plan
 
-The **GOAP Planner** view opens automatically once the plan is generated.
-You'll see the DAG rendered as a React Flow canvas. Click any node to open
-its side panel, where you can edit:
+The **Plan Editor** (`/projects/<id>/plan`) opens automatically once the plan
+is generated. You'll see the DAG rendered as a React Flow canvas. Click any
+node to open its side panel, where you can edit:
 
 - the per-task **prompt**
 - **dependencies** on other nodes
 - **success criteria** (which build / test / lint commands gate completion)
 - **maxTurns** budget
+
+> **Heads-up — this is _not_ the sidebar's "GOAP Planner" tab.** That tab
+> (`/goap`) is a separate, standalone _Goal-Oriented Action Planning solver
+> sandbox_: you hand it a start state, a goal, and a set of actions with
+> preconditions / effects / costs, and it returns the cheapest action
+> sequence. It is an educational visualization — it never creates teams, edits
+> this plan, or dispatches runs. The actual run planning you do in this **Plan
+> Editor** is produced by the LLM planner agent (step 6), not by GOAP.
 
 If you used the `ts-library` template, every task already has an agent
 assigned — the picker is in the side panel's "Agent" slot.
@@ -144,7 +154,7 @@ effect on the next plan generation.
 ## 8. Run it
 
 When the plan looks right, click **Lock & Run** at the top right of the
-plan editor. The plan transitions from `draft` to `locked` and the Walker
+**Plan Editor**. The plan transitions from `draft` to `locked` and the Walker
 begins dispatching tasks.
 
 Switch to the **Workers** view to watch the agents work in real time. Each
