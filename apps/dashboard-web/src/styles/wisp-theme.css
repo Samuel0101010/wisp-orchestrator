@@ -392,9 +392,20 @@ body {
 }
 .wisp-btn.icon {
   padding: 6px;
-  width: 30px;
-  height: 30px;
+  /* DESIGN.md touch-target floor: >=36x36 for icon buttons. */
+  width: 36px;
+  height: 36px;
   justify-content: center;
+}
+
+/* Visible keyboard focus (DESIGN.md: 2px ring, >=3:1 contrast). Mouse clicks
+   stay clean via :focus-visible. The `.focus-ring` utility is for custom or
+   native controls that otherwise suppress their outline. */
+.wisp-btn:focus-visible,
+.wisp-nav-item:focus-visible,
+.focus-ring:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
 }
 
 /* text helpers */
