@@ -1,14 +1,11 @@
 /**
- * Aurora — fixed warm ambient background that sits behind the app chrome.
- * Mirrors the Wisp design handoff (kSh9k4g-wVwW3DlwB6i7fw / aurora.jsx):
- * theme-aware radial wash, drifting coral accent blob, fine grain overlay.
- * `aria-hidden` because it carries no semantic content.
+ * App background — a flat, fixed base layer behind the app chrome.
+ *
+ * DESIGN.md forbids gradient / aurora / mesh backgrounds ("Aurora im Background
+ * = nicht okay"), so this renders a single flat `--wisp-bg-0` wash: no radial
+ * gradient, no drifting coral blob, no grain. `aria-hidden` — no semantic
+ * content. (Name kept for the existing import in App.tsx.)
  */
 export function AuroraBackground() {
-  return (
-    <div className="wisp-aurora-root" aria-hidden="true">
-      <div className="wisp-aurora-accent" />
-      <div className="wisp-aurora-grain" />
-    </div>
-  );
+  return <div className="wisp-aurora-root" aria-hidden="true" />;
 }
