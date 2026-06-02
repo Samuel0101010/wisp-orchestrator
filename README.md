@@ -45,13 +45,13 @@ Then click **New project**, type a goal ("Build a Kanban board in React + Vite +
 
 ## Dashboard tour
 
-|                  ![Preview](docs/assets/screenshots/preview.png)                  |        ![Goal Planner](docs/assets/screenshots/goal-planner.png)         |
-| :-------------------------------------------------------------------------------: | :----------------------------------------------------------------------: |
-| **Preview** — proxied iframe of the running app, with click-to-pick visual edits. | **Goal Planner** — Goal-Oriented Action Planning with a live A\* search. |
-|                   ![Agents](docs/assets/screenshots/agents.png)                   |                ![Chat](docs/assets/screenshots/chat.png)                 |
-|                **Agents** — registry of roles available to teams.                 |                  **Chat** — team conversation surface.                   |
-|           ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png)           |            ![Settings](docs/assets/screenshots/settings.png)             |
-|                  **Prompt Bundles** — cached bundles for re-use.                  |         **Settings** — theme, language, selective data clearing.         |
+|                  ![Preview](docs/assets/screenshots/preview.png)                  |                 ![Goal Planner](docs/assets/screenshots/goal-planner.png)                  |
+| :-------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------: |
+| **Preview** — proxied iframe of the running app, with click-to-pick visual edits. | **Goal Planner** — a standalone Goal-Oriented Action Planning sandbox (least-cost search). |
+|                   ![Agents](docs/assets/screenshots/agents.png)                   |                         ![Chat](docs/assets/screenshots/chat.png)                          |
+|                **Agents** — registry of roles available to teams.                 |                           **Chat** — team conversation surface.                            |
+|           ![Prompt Bundles](docs/assets/screenshots/prompt-bundles.png)           |                     ![Settings](docs/assets/screenshots/settings.png)                      |
+|                  **Prompt Bundles** — cached bundles for re-use.                  |                  **Settings** — theme, language, selective data clearing.                  |
 
 ## Status
 
@@ -61,7 +61,7 @@ Then click **New project**, type a goal ("Build a Kanban board in React + Vite +
 
 - **Iteration loop.** Once an initial run completes, the user can request changes against the previewed app (click-to-pick element + change-request, or freeform prompt). The orchestrator generates an iteration plan that builds on prior runs and reuses the existing worktree, surfacing the diff back into the live preview without a manual rebuild step.
 - **Reverse-proxy preview.** Vite/SvelteKit dev servers spawn under `/preview/<projectId>/` so the iframe sees the running app via the same origin as the dashboard. Auto-reload when an iteration run completes; manual refresh button in the preview header.
-- **Goal Planner.** Goal-Oriented Action Planning tab with interactive plan visualization, JSON editor, action library with filtering, and a live A\* search returning the cheapest sequence to the goal predicates. Useful for designing structured planner inputs before commiting to a long run.
+- **Goal Planner.** A standalone Goal-Oriented Action Planning _sandbox_: interactive plan visualization, JSON editor, filterable action library, and a least-cost search returning the cheapest action sequence to your goal predicates. A self-contained tool for exploring how a goal decomposes into steps — it does not create teams, edit plans, or drive runs (the LLM planner agent and Plan Editor do that).
 - **Auto-resolver agent.** When a dependency-merge run hits conflicts in `pnpm-lock.yaml` or `package.json`, the orchestrator spawns a dedicated resolver agent to land a clean merge before continuing the parent run.
 - **Hardened subprocess control.** Transient retries on Anthropic 5xx + Overloaded, worktree-race retries, inactivity watchdog that cancels stuck tasks with a structured event so the planner can re-route.
 - **Notifications popover.** Top-bar bell lists the last 8 global runs across projects with status pills, relative-time labels anchored on `endedAt ?? startedAt`, and links into each run.
