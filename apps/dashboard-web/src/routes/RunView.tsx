@@ -56,14 +56,10 @@ import type { TFunction } from 'i18next';
 import { statusLabel } from '@/lib/status-labels';
 import { roleHsl } from '@/lib/role-color';
 
-const COLUMN_ORDER: TaskColumn[] = [
-  'pending',
-  'running',
-  'verifying',
-  'done',
-  'failed',
-  'cancelled',
-];
+// 'verifying' is intentionally omitted: columnFor() never routes a task to it
+// (it's reserved in the TaskColumn union for a future status), so rendering it
+// only ever produced a permanently-empty sixth column.
+const COLUMN_ORDER: TaskColumn[] = ['pending', 'running', 'done', 'failed', 'cancelled'];
 
 function formatCompactNumber(n: number): string {
   if (n < 1000) return String(n);
@@ -258,11 +254,13 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
         {/* Inside a kanban column (~120 px content width), a full status pill
             with a translated label like "FEHLGESCHLAGEN" overflows and gets
             clipped to garbage like "FEHLGESC". The column header already
-            carries the status name; here we just need an at-a-glance dot. */}
+            carries the status name; here we render the status as a compact
+            Lucide glyph so it's distinguished by SHAPE, not colour alone. */}
         <StatusDotBadge
           status={task.status}
           pulse={live}
           iconOnly
+          glyph
           aria-label={statusLabel(task.status, t)}
           className="shrink-0"
         />
@@ -589,7 +587,7 @@ function RunPausedBanner({ runId, pausedReason, resumeAt, nowMs }: RunPausedBann
   if (pausedReason === 'rate-limit') {
     return (
       <div
-        className="flex items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300"
+        className="flex items-center justify-between gap-3 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning"
         data-testid="rate-limit-banner"
       >
         <div className="flex items-center gap-2">
@@ -678,7 +676,7 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
   }, [tasks]);
 
   return (
-    <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden md:grid-cols-3 lg:grid-cols-6">
+    <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden md:grid-cols-3 lg:grid-cols-5">
       {COLUMN_ORDER.map((col) => (
         <div
           key={col}
@@ -816,85 +814,99 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
   return (
     <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-3 pb-6" data-testid="run-view">
       <BackToProject />
-      <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
-        <div className="flex items-center gap-3">
-          {projectId && (
-            <Link
-              to={`/projects/${projectId}/plan`}
-              className="text-xs text-muted-foreground hover:underline"
-            >
-              {t('runView.backToPlan')}
-            </Link>
-          )}
-          <h1 className="text-lg font-semibold">
-            {t('runView.runPrefix', { id: run.id.slice(0, 8) })}
-          </h1>
-          <span data-testid="run-status" className="inline-flex">
-            <StatusPill
-              variant="solid"
-              tone={runStatusTone(run.status)}
-              live={run.status === 'running'}
-            >
-              {statusLabel(run.status, t)}
-              {/* Outcome echoes status verbatim for cancelled/failed runs.
-                  Only show it when it adds new information. */}
-              {run.outcome && run.outcome !== run.status ? ` (${statusLabel(run.outcome, t)})` : ''}
-            </StatusPill>
-          </span>
-          {(snapshot.run.chainIteration ?? 0) > 0 && (
-            <Link
-              to={
-                snapshot.run.parentRunId
-                  ? `/projects/${projectId}/run/${snapshot.run.parentRunId}`
-                  : '#'
-              }
-              className="inline-flex items-center gap-1 rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-700 hover:bg-indigo-500/20 dark:text-indigo-300"
-              data-testid="chain-iteration-badge"
-              title={t('projectDetail.productionMode.chainParent')}
-            >
-              <ShieldCheck className="h-3 w-3" />
-              {t('projectDetail.productionMode.chainIterationShort', {
-                current: snapshot.run.chainIteration,
-              })}
-            </Link>
-          )}
-          {snapshot.run.errorReason === 'max_turns' && (
-            <span
-              className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400"
-              data-testid="max-turns-badge"
-            >
-              {t('runView.maxTurnsRetry', {
-                count: snapshot.run.retryCount,
-                next: snapshot.run.nextRetryAt
-                  ? t('runView.maxTurnsNext', {
-                      time: new Date(snapshot.run.nextRetryAt).toLocaleTimeString(),
-                    })
-                  : '',
-              })}
+      <div className="flex flex-col gap-2 rounded-md border bg-card p-3">
+        {/* Primary row: keep it to title + status + actions (+ the rare
+            plan-version chip). The transient/secondary badges drop to the
+            meta sub-line below so this row stays scannable. */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {projectId && (
+              <Link
+                to={`/projects/${projectId}/plan`}
+                className="text-xs text-muted-foreground hover:underline"
+              >
+                {t('runView.backToPlan')}
+              </Link>
+            )}
+            <h1 className="text-lg font-semibold">
+              {t('runView.runPrefix', { id: run.id.slice(0, 8) })}
+            </h1>
+            <span data-testid="run-status" className="inline-flex">
+              <StatusPill
+                variant="solid"
+                tone={runStatusTone(run.status)}
+                live={run.status === 'running'}
+              >
+                {statusLabel(run.status, t)}
+                {/* Outcome echoes status verbatim for cancelled/failed runs.
+                    Only show it when it adds new information. */}
+                {run.outcome && run.outcome !== run.status
+                  ? ` (${statusLabel(run.outcome, t)})`
+                  : ''}
+              </StatusPill>
             </span>
-          )}
-          <PlanVersionBadge planId={run.planId} />
-          {wsStatus !== 'open' && (
-            <Badge
-              variant="outline"
-              className="flex items-center gap-1 text-2xs"
-              data-testid="ws-status-pill"
-            >
-              <Activity className="h-3 w-3" />
-              {wsStatus === 'idle' ? t('runView.connecting') : t('runView.reconnecting')}
-            </Badge>
-          )}
+            <PlanVersionBadge planId={run.planId} />
+          </div>
+          <RunHeaderActions
+            runId={run.id}
+            planId={run.planId}
+            projectId={projectId ?? ''}
+            status={run.status}
+            pausedReason={run.pausedReason}
+            resumeAt={run.resumeAt}
+            nowMs={nowMs}
+            onAfterAction={refetch}
+          />
         </div>
-        <RunHeaderActions
-          runId={run.id}
-          planId={run.planId}
-          projectId={projectId ?? ''}
-          status={run.status}
-          pausedReason={run.pausedReason}
-          resumeAt={run.resumeAt}
-          nowMs={nowMs}
-          onAfterAction={refetch}
-        />
+        {/* Meta sub-line: secondary signals, only when one is present. */}
+        {((snapshot.run.chainIteration ?? 0) > 0 ||
+          snapshot.run.errorReason === 'max_turns' ||
+          wsStatus !== 'open') && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {(snapshot.run.chainIteration ?? 0) > 0 && (
+              <Link
+                to={
+                  snapshot.run.parentRunId
+                    ? `/projects/${projectId}/run/${snapshot.run.parentRunId}`
+                    : '#'
+                }
+                className="inline-flex items-center gap-1 rounded-full border border-info/40 bg-info/10 px-2 py-0.5 text-2xs font-medium text-info hover:bg-info/20"
+                data-testid="chain-iteration-badge"
+                title={t('projectDetail.productionMode.chainParent')}
+              >
+                <ShieldCheck className="h-3 w-3" />
+                {t('projectDetail.productionMode.chainIterationShort', {
+                  current: snapshot.run.chainIteration,
+                })}
+              </Link>
+            )}
+            {snapshot.run.errorReason === 'max_turns' && (
+              <span
+                className="rounded bg-warning/20 px-2 py-0.5 text-2xs font-medium text-warning"
+                data-testid="max-turns-badge"
+              >
+                {t('runView.maxTurnsRetry', {
+                  count: snapshot.run.retryCount,
+                  next: snapshot.run.nextRetryAt
+                    ? t('runView.maxTurnsNext', {
+                        time: new Date(snapshot.run.nextRetryAt).toLocaleTimeString(),
+                      })
+                    : '',
+                })}
+              </span>
+            )}
+            {wsStatus !== 'open' && (
+              <Badge
+                variant="outline"
+                className="flex items-center gap-1 text-2xs"
+                data-testid="ws-status-pill"
+              >
+                <Activity className="h-3 w-3" />
+                {wsStatus === 'idle' ? t('runView.connecting') : t('runView.reconnecting')}
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
 
       <ResourceBar
@@ -935,7 +947,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
         run.status === 'paused' &&
         (run.pausedReason === 'rate-limit' || run.pausedReason === 'shutdown') && (
           <div
-            className="flex items-center gap-2 rounded border border-emerald-500/40 bg-emerald-500/10 p-2 text-xs text-emerald-700 dark:text-emerald-300"
+            className="flex items-center gap-2 rounded border border-success/40 bg-success/10 p-2 text-xs text-success"
             data-testid="autopilot-watching"
           >
             <Activity className="h-3.5 w-3.5" />
@@ -966,13 +978,17 @@ function toastForEvent(ev: HarnessEvent, t: TFunction): void {
     toast({
       title: t('runView.toasts.budgetWarning', {
         percent: Math.round(ev.payload.percent),
-        kind: ev.payload.kind,
+        // Localize the resource kind (time/turns/tokens) before interpolating
+        // it into the sentence — otherwise a DE user sees the raw English enum.
+        kind: t(`runView.resourceBar.${ev.payload.kind}`),
       }),
       description: t('runView.toasts.budgetWarningDesc'),
     });
   } else if (ev.type === 'resource.exceeded') {
     toast({
-      title: t('runView.toasts.budgetExceeded', { kind: ev.payload.kind }),
+      title: t('runView.toasts.budgetExceeded', {
+        kind: t(`runView.resourceBar.${ev.payload.kind}`),
+      }),
       description: t('runView.toasts.budgetExceededDesc'),
       variant: 'destructive',
     });

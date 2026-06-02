@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { statusLabel } from '@/lib/status-labels';
+import { statusLabel, statusMeta } from '@/lib/status-labels';
 
 export type StatusTone = 'running' | 'success' | 'failed' | 'pending' | 'paused' | 'neutral';
 
@@ -63,6 +63,12 @@ export interface StatusDotBadgeProps extends Omit<
   pulse?: boolean;
   /** Hide the textual label — useful for very compact lists where the dot alone communicates. */
   iconOnly?: boolean;
+  /**
+   * Render the status's Lucide glyph (from statusMeta) instead of the colour
+   * dot, so status is conveyed by SHAPE — not colour alone (WCAG 2.2). Pairs
+   * with iconOnly. Backward-compatible: callers that omit it keep the dot.
+   */
+  glyph?: boolean;
 }
 
 export function StatusDotBadge({
@@ -72,12 +78,16 @@ export function StatusDotBadge({
   pulse,
   className,
   iconOnly,
+  glyph,
   ...rest
 }: StatusDotBadgeProps) {
   const { t } = useTranslation();
   const resolvedTone = tone ?? statusToTone(status);
   const toneStyle = toneClasses[resolvedTone];
   const text = label ?? (status ? statusLabel(status, t) : resolvedTone);
+  const meta = glyph && status ? statusMeta(status) : null;
+  const Glyph = meta?.Icon ?? null;
+  const glyphSpin = (meta?.live ?? false) && Boolean(pulse);
   return (
     <span
       className={cn(
@@ -90,17 +100,21 @@ export function StatusDotBadge({
       data-status={resolvedTone}
       {...rest}
     >
-      <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', toneStyle.dot)}>
-        {pulse && (
-          <span
-            className={cn(
-              'absolute inset-0 -m-0.5 animate-ping rounded-full opacity-60',
-              toneStyle.dot,
-            )}
-            aria-hidden
-          />
-        )}
-      </span>
+      {Glyph ? (
+        <Glyph className={cn('size-3 shrink-0', glyphSpin && 'animate-spin')} aria-hidden />
+      ) : (
+        <span className={cn('relative inline-flex h-1.5 w-1.5 rounded-full', toneStyle.dot)}>
+          {pulse && (
+            <span
+              className={cn(
+                'absolute inset-0 -m-0.5 animate-ping rounded-full opacity-60',
+                toneStyle.dot,
+              )}
+              aria-hidden
+            />
+          )}
+        </span>
+      )}
       {!iconOnly && <span>{text}</span>}
     </span>
   );

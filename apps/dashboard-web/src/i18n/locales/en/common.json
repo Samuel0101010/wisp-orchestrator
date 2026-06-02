@@ -642,6 +642,7 @@
     "resourceBar": {
       "time": "Time",
       "turns": "Turns",
+      "tokens": "Tokens",
       "pool": "Pool",
       "tokensInOut": "{{in}} in · {{out}} out",
       "tokensIn": "{{in}} in",
