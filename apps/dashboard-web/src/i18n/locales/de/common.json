@@ -191,7 +191,7 @@
   },
   "goap": {
     "title": "Goal-Planer",
-    "subtitleLong": "Definiere Start- und Zielzustand, wähle verfügbare Aktionen — der Planer berechnet die kürzeste Sequenz.",
+    "subtitleLong": "Definiere Start- und Zielzustand, wähle verfügbare Aktionen — der Planer berechnet die kürzeste Sequenz. Eine eigenständige Spielwiese für GOAP — sie steuert deine Runs nicht.",
     "eyebrow": "Goal-Oriented Action Planning",
     "worldState": "Welt-Zustand",
     "stats": {

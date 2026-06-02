@@ -191,7 +191,7 @@
   },
   "goap": {
     "title": "Goal Planner",
-    "subtitleLong": "Define start and goal state, pick available actions — the planner returns the shortest sequence.",
+    "subtitleLong": "Define start and goal state, pick available actions — the planner returns the shortest sequence. A standalone sandbox for exploring GOAP; it does not drive your runs.",
     "eyebrow": "Goal-Oriented Action Planning",
     "worldState": "World state",
     "stats": {
