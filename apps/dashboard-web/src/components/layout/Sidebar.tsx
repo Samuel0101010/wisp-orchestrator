@@ -50,6 +50,7 @@ import {
 import { ApiError, apiFetch } from '@/api/client';
 import { useUiStore } from '@/store/ui';
 import { cn } from '@/lib/utils';
+import { statusLabel, statusMeta } from '@/lib/status-labels';
 
 /* ----- Wisp project tones for the project list dots ------------------ */
 const PROJECT_TONES = ['coral', 'sky', 'amber', 'mint', 'rose'] as const;
@@ -230,10 +231,9 @@ export function Sidebar() {
     [t, hasProject],
   );
 
-  const dailyTotal = useMemo(() => {
-    if (!dailyCounts.data) return 0;
-    return Object.values(dailyCounts.data.byProject).reduce((s, n) => s + n, 0);
-  }, [dailyCounts.data]);
+  // Single source of truth for "today" — the same 24h total the TopBar renders,
+  // instead of re-summing byProject (which can diverge from the TopBar number).
+  const dailyTotal = dailyCounts.data?.totalLast24h ?? 0;
   void onHomeOrProject;
 
   if (collapsed) {
@@ -249,6 +249,7 @@ export function Sidebar() {
                   <Link
                     to={item.to}
                     data-testid={item.testId}
+                    aria-current={active ? 'page' : undefined}
                     className={cn(
                       'wisp-nav-item justify-center px-0',
                       active && 'on',
@@ -310,6 +311,7 @@ export function Sidebar() {
               to={item.to}
               className={cn('wisp-nav-item', active && 'on')}
               data-testid={item.testId}
+              aria-current={active ? 'page' : undefined}
             >
               <span style={{ color: active ? 'var(--coral)' : 'var(--wisp-ink-3)' }}>
                 {item.icon}
@@ -543,6 +545,7 @@ function ProjectRow({
   onDelete,
 }: ProjectRowProps) {
   const { t } = useTranslation();
+  const failedMeta = statusMeta('failed');
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -600,6 +603,7 @@ function ProjectRow({
           <Link
             to={`/projects/${id}`}
             className={cn('wisp-nav-item flex-1 pl-2.5 pr-8', active && 'on')}
+            aria-current={active ? 'page' : undefined}
           >
             <span
               className={cn('wisp-dot', tone, hot && 'pulse')}
@@ -617,12 +621,16 @@ function ProjectRow({
             )}
             {hot && (
               <span className="wisp-chip coral" style={{ padding: '0 6px', fontSize: 10 }}>
-                live
+                {t('navigation.live', 'live')}
               </span>
             )}
             {warn && (
-              <span className="wisp-chip amber" style={{ padding: '0 6px', fontSize: 10 }}>
-                paused
+              <span
+                className="inline-flex shrink-0 items-center text-[color:var(--rose)]"
+                title={statusLabel('failed', t)}
+                aria-label={statusLabel('failed', t)}
+              >
+                <failedMeta.Icon className="h-3 w-3" aria-hidden />
               </span>
             )}
           </Link>
