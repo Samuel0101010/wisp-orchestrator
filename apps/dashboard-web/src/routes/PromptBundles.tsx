@@ -5,7 +5,7 @@ import { usePromptBundles, useDeletePromptBundle, type PromptBundleRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
 
-const TONES = ['coral', 'mint', 'violet', 'sky', 'amber', 'rose'] as const;
+const TONES = ['coral', 'mint', 'sky', 'amber', 'rose'] as const;
 type Tone = (typeof TONES)[number];
 
 function toneFor(key: string): Tone {
@@ -368,7 +368,7 @@ export function PromptBundlesRoute() {
           label={t('promptBundles.kpis.hotBundles', 'Hot bundles')}
           value={kpis.hot}
           sub={t('promptBundles.kpis.hotSub', 'recently used')}
-          tone="violet"
+          tone="coral"
           testId="kpi-hot"
         />
         <MiniKpi

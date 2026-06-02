@@ -55,11 +55,6 @@
   --mint-l: 54%;
   --mint: hsl(var(--mint-h) var(--mint-s) var(--mint-l));
 
-  --violet-h: 260;
-  --violet-s: 22%;
-  --violet-l: 62%;
-  --violet: hsl(var(--violet-h) var(--violet-s) var(--violet-l));
-
   --amber-h: 32;
   --amber-s: 60%;
   --amber-l: 58%;
@@ -83,7 +78,6 @@
   --wisp-shadow-pop: 0 12px 50px -10px hsl(var(--coral-h) var(--coral-s) 55% / 0.32);
   --wisp-glow-coral: 0 0 30px -6px hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.45);
   --wisp-glow-mint: 0 0 30px -6px hsl(var(--mint-h) var(--mint-s) var(--mint-l) / 0.4);
-  --wisp-glow-violet: 0 0 30px -6px hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.4);
 
   /* radius */
   --r-1: 8px;
@@ -318,10 +312,6 @@ body {
   background: var(--rose);
   box-shadow: 0 0 0 2px hsl(var(--rose-h) var(--rose-s) var(--rose-l) / 0.18);
 }
-.wisp-dot.violet {
-  background: var(--violet);
-  box-shadow: 0 0 0 2px hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.18);
-}
 .wisp-dot.sky {
   background: var(--sky);
   box-shadow: 0 0 0 2px hsl(var(--sky-h) var(--sky-s) var(--sky-l) / 0.18);
@@ -379,11 +369,6 @@ body {
   color: hsl(var(--rose-h) var(--rose-s) 80%);
   border-color: hsl(var(--rose-h) var(--rose-s) var(--rose-l) / 0.3);
 }
-.wisp-chip.violet {
-  background: hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.14);
-  color: hsl(var(--violet-h) var(--violet-s) 82%);
-  border-color: hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.3);
-}
 [data-theme='light'] .wisp-chip.solid {
   color: #f6f3eb;
 }
@@ -398,9 +383,6 @@ body {
 }
 [data-theme='light'] .wisp-chip.rose {
   color: hsl(var(--rose-h) 50% 36%);
-}
-[data-theme='light'] .wisp-chip.violet {
-  color: hsl(var(--violet-h) 32% 36%);
 }
 
 /* buttons */
@@ -595,13 +577,6 @@ body {
     hsl(calc(var(--mint-h) + 8) var(--mint-s) calc(var(--mint-l) - 10%))
   );
 }
-.wisp-bar.violet > i {
-  background: linear-gradient(
-    90deg,
-    var(--violet),
-    hsl(calc(var(--violet-h) + 18) var(--violet-s) calc(var(--violet-l) - 5%))
-  );
-}
 .wisp-bar.amber > i {
   background: linear-gradient(
     90deg,
@@ -710,14 +685,6 @@ body {
     hsl(calc(var(--mint-h) + 8) var(--mint-s) calc(var(--mint-l) - 15%))
   );
   color: #06231d;
-}
-.wisp-av.violet {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--violet-h) var(--violet-s) calc(var(--violet-l) - 5%)),
-    hsl(calc(var(--violet-h) + 18) var(--violet-s) calc(var(--violet-l) - 15%))
-  );
-  color: #14082b;
 }
 .wisp-av.amber {
   background: linear-gradient(

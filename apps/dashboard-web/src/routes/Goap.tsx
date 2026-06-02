@@ -1218,7 +1218,7 @@ export function GoapRoute() {
                 className="mb-2 flex items-center gap-1.5"
                 style={{ fontFamily: 'var(--f-head)', fontSize: 12, color: 'var(--wisp-ink-2)' }}
               >
-                <span className="wisp-dot violet" /> {t('goap.stats.title', 'Stats')}
+                <span className="wisp-dot dim" /> {t('goap.stats.title', 'Stats')}
               </div>
               <div className="flex flex-col gap-1.5 text-[12.5px]">
                 <div className="flex items-baseline justify-between gap-2">

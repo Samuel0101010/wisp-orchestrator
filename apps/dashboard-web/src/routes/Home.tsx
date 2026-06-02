@@ -80,7 +80,7 @@ interface KpiSpec {
   suffix?: string;
   trend: ToneTrend;
   spark: number[];
-  tone: '' | 'coral' | 'mint' | 'violet' | 'amber' | 'rose';
+  tone: '' | 'coral' | 'mint' | 'amber' | 'rose';
   live?: boolean;
 }
 
@@ -99,7 +99,6 @@ function KpiSpark({ points, tone }: { points: number[]; tone: KpiSpec['tone'] })
   const colorVar = {
     coral: 'var(--coral)',
     mint: 'var(--mint)',
-    violet: 'var(--violet)',
     amber: 'var(--amber)',
     rose: 'var(--rose)',
     '': 'var(--coral)',
@@ -467,7 +466,7 @@ export function Home() {
       value: formatTokensCompact(totalTokens),
       trend: tokenSpark.at(-1)! > (tokenSpark.at(-2) ?? 0) ? 'up' : 'flat',
       spark: tokenSpark.length ? tokenSpark : [0, 0, 0, 0, 0, 0, 0],
-      tone: 'violet',
+      tone: '',
     },
     {
       id: 'success',
@@ -614,7 +613,7 @@ export function Home() {
                   {t('home.charts.tokensIn', 'in')}
                 </span>
                 <span className="wisp-chip">
-                  <span className="wisp-dot violet" />
+                  <span className="wisp-dot dim" />
                   {t('home.charts.tokensOut', 'out')}
                 </span>
               </div>

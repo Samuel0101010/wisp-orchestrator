@@ -52,7 +52,7 @@ import { useUiStore } from '@/store/ui';
 import { cn } from '@/lib/utils';
 
 /* ----- Wisp project tones for the project list dots ------------------ */
-const PROJECT_TONES = ['coral', 'sky', 'violet', 'amber', 'mint', 'rose'] as const;
+const PROJECT_TONES = ['coral', 'sky', 'amber', 'mint', 'rose'] as const;
 function projectTone(id: string): (typeof PROJECT_TONES)[number] {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
