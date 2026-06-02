@@ -1165,7 +1165,13 @@
     "success": "Success",
     "failure": "Failure",
     "budget_exceeded": "Over budget",
-    "skipped": "Skipped"
+    "skipped": "Skipped",
+    "ok": "OK",
+    "pass": "Passed",
+    "fail": "Failed",
+    "error": "Error",
+    "in-run": "In run",
+    "dismissed": "Dismissed"
   },
   "chat": {
     "loading": "Loading team…",

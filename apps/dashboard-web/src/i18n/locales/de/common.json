@@ -1163,9 +1163,15 @@
     "draft": "Entwurf",
     "locked": "Gesperrt",
     "success": "Erfolg",
-    "failure": "Fehler",
+    "failure": "Fehlgeschlagen",
     "budget_exceeded": "Budget überschritten",
-    "skipped": "Übersprungen"
+    "skipped": "Übersprungen",
+    "ok": "OK",
+    "pass": "Bestanden",
+    "fail": "Fehlgeschlagen",
+    "error": "Fehler",
+    "in-run": "Im Run",
+    "dismissed": "Verworfen"
   },
   "chat": {
     "loading": "Lade Team…",
