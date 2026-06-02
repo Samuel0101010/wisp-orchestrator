@@ -1437,6 +1437,9 @@
     "title": "Focusboard",
     "pickProject": "Wähle ein Projekt",
     "noProjects": "Noch keine Projekte",
+    "runStatus": {
+      "none": "Kein Run"
+    },
     "chat": {
       "title": "Chat"
     },
