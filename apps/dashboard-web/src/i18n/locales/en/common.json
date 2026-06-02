@@ -131,9 +131,15 @@
       "reset": "Reset",
       "resetting": "Resetting…",
       "invalidateAll": "Invalidate all",
-      "pin": "Pin bundle",
       "invalidate": "Invalidate bundle",
       "invalidateTitle": "Invalidate"
+    },
+    "confirmInvalidateAll": {
+      "title": "Invalidate all bundles?",
+      "description_one": "This drops the cached bundle. The next session re-warms the cache from scratch.",
+      "description_other": "This drops all {{count}} cached bundles. The next session re-warms the cache from scratch.",
+      "confirm": "Invalidate all",
+      "cancel": "Cancel"
     },
     "loading": "Loading bundles…",
     "loadFailed": "Failed to load bundles",
@@ -141,13 +147,13 @@
     "emptyDescription": "Invoke a skill or send a chat message to populate the cache.",
     "eyebrow": "Warm session cache",
     "kpis": {
-      "hitRate": "Cache hit rate",
-      "tokensSaved": "Tokens saved · 7d",
-      "hotBundles": "Hot bundles",
-      "stale": "Stale",
+      "totalHits": "Total hits",
+      "totalHitsSub_one": "across {{count}} bundle",
+      "totalHitsSub_other": "across {{count}} bundles",
+      "hotBundles": "Hot",
       "hotSub": "recently used",
-      "staleSub": "not used 7d+",
-      "hitRateSub": "{{n}} hits total"
+      "stale": "Stale",
+      "staleSub": "not used 7d+"
     }
   },
   "insights": {

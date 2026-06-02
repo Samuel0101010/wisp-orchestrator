@@ -131,9 +131,15 @@
       "reset": "Zurücksetzen",
       "resetting": "Setze zurück…",
       "invalidateAll": "Alle ungültig machen",
-      "pin": "Bundle anheften",
       "invalidate": "Bundle ungültig machen",
       "invalidateTitle": "Ungültig machen"
+    },
+    "confirmInvalidateAll": {
+      "title": "Alle Bundles ungültig machen?",
+      "description_one": "Das verwirft das gecachte Bundle. Die nächste Session wärmt den Cache von Grund auf neu.",
+      "description_other": "Das verwirft alle {{count}} gecachten Bundles. Die nächste Session wärmt den Cache von Grund auf neu.",
+      "confirm": "Alle ungültig machen",
+      "cancel": "Abbrechen"
     },
     "loading": "Lade Bundles…",
     "loadFailed": "Bundles konnten nicht geladen werden",
@@ -141,13 +147,13 @@
     "emptyDescription": "Rufe einen Skill auf oder schicke eine Chat-Nachricht, um den Cache zu füllen.",
     "eyebrow": "Warmer Session-Cache",
     "kpis": {
-      "hitRate": "Cache-Trefferquote",
-      "tokensSaved": "Tokens gespart · 7T",
-      "hotBundles": "Heiße Bundles",
-      "stale": "Veraltet",
+      "totalHits": "Treffer gesamt",
+      "totalHitsSub_one": "über {{count}} Bundle",
+      "totalHitsSub_other": "über {{count}} Bundles",
+      "hotBundles": "Aktiv",
       "hotSub": "kürzlich verwendet",
-      "staleSub": "seit 7T+ nicht genutzt",
-      "hitRateSub": "{{n}} Treffer gesamt"
+      "stale": "Veraltet",
+      "staleSub": "seit 7T+ nicht genutzt"
     }
   },
   "insights": {
