@@ -42,8 +42,8 @@ describe('ToolMultiSelect', () => {
     fireEvent.change(input, { target: { value: 'Bash(make:*)' } });
     fireEvent.click(screen.getByTestId('tool-multiselect-custom-add'));
     expect(screen.getByTestId('harness-list')).toHaveTextContent('Bash(make:*)');
-    // Custom chip is rendered with the trailing × — clicking removes.
-    fireEvent.click(screen.getByTestId('tool-chip-Bash(make:*)'));
+    // Removal is an explicit X button inside the chip, not the whole badge.
+    fireEvent.click(screen.getByTestId('tool-chip-remove-Bash(make:*)'));
     expect(screen.getByTestId('harness-count')).toHaveTextContent('0');
   });
 
@@ -55,9 +55,9 @@ describe('ToolMultiSelect', () => {
     expect(screen.getByTestId('harness-count')).toHaveTextContent('1');
   });
 
-  it('removes a catalog tool via its chip', () => {
+  it('removes a catalog tool via its remove button', () => {
     render(<Harness initial={['Read']} />);
-    fireEvent.click(screen.getByTestId('tool-chip-Read'));
+    fireEvent.click(screen.getByTestId('tool-chip-remove-Read'));
     expect(screen.getByTestId('harness-count')).toHaveTextContent('0');
   });
 

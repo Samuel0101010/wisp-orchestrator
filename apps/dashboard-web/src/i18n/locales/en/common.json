@@ -303,8 +303,10 @@
     "add": "Add",
     "removeCustom": "Custom — click to remove",
     "remove": "Click to remove",
-    "customCount_one": "{{count}} custom tool — shown as a secondary badge above. Click any badge to remove.",
-    "customCount_other": "{{count}} custom tools — shown as a secondary badge above. Click any badge to remove."
+    "removeAria": "Remove {{name}}",
+    "customMarker": "Custom tool",
+    "customCount_one": "{{count}} custom tool shown above.",
+    "customCount_other": "{{count}} custom tools shown above."
   },
   "modelInfo": {
     "costClass": {
@@ -523,6 +525,7 @@
     "title": "Team Builder",
     "selectProject": "Select a project to configure its team.",
     "subtitle": "Configure the agents for {{name}}.",
+    "loading": "Loading the team…",
     "saveAsTemplateDialog": {
       "title": "Save team as template",
       "description": "Stores this team configuration to disk under your data dir. You can pick it from the New Project dialog later.",
@@ -536,7 +539,7 @@
     "generateTitle": {
       "noTeamUnsaved": "Configure roles and save the team first",
       "saveFirst": "Save the team first to generate a plan",
-      "unsaved": "Unsaved changes — save first to generate a plan",
+      "unsaved": "Unsaved changes: save first to generate a plan",
       "noTeam": "Save the team first",
       "noProject": "Select a project first",
       "noGoal": "Set a goal on the project first",

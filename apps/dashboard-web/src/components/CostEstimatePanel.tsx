@@ -58,13 +58,13 @@ export function CostEstimatePanel({ team, projectId }: Props) {
       <CardContent className="flex flex-col gap-2 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('costPanel.teamWeight')}</span>
-          <span className="font-medium" data-testid="cost-weight">
+          <span className="font-medium tabular-nums" data-testid="cost-weight">
             {sumWeight} ({weightLabel})
           </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">{t('costPanel.roles')}</span>
-          <span>
+          <span className="tabular-nums">
             {team.roles.map((r) => `${r.role}=${MODEL_INFO[r.model].costWeight}`).join(', ')}
           </span>
         </div>
@@ -73,7 +73,7 @@ export function CostEstimatePanel({ team, projectId }: Props) {
             <span className="text-muted-foreground">
               {t('costPanel.avgTokens', { count: completed.length })}
             </span>
-            <span className="font-medium" data-testid="cost-avg-tokens">
+            <span className="font-medium tabular-nums" data-testid="cost-avg-tokens">
               {avgTokens.toLocaleString()} {t('costPanel.tokens')}
             </span>
           </div>

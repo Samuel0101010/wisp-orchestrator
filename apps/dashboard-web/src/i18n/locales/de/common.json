@@ -303,8 +303,10 @@
     "add": "Hinzufügen",
     "removeCustom": "Eigenes — zum Entfernen klicken",
     "remove": "Zum Entfernen klicken",
-    "customCount_one": "{{count}} eigenes Tool — als sekundäres Badge oben angezeigt. Zum Entfernen ein Badge anklicken.",
-    "customCount_other": "{{count}} eigene Tools — als sekundäre Badges oben angezeigt. Zum Entfernen ein Badge anklicken."
+    "removeAria": "{{name}} entfernen",
+    "customMarker": "Eigenes Tool",
+    "customCount_one": "{{count}} eigenes Tool oben angezeigt.",
+    "customCount_other": "{{count}} eigene Tools oben angezeigt."
   },
   "modelInfo": {
     "costClass": {
@@ -523,6 +525,7 @@
     "title": "Team-Builder",
     "selectProject": "Wähle ein Projekt, um sein Team zu konfigurieren.",
     "subtitle": "Konfiguriere die Agents für {{name}}.",
+    "loading": "Lade das Team…",
     "saveAsTemplateDialog": {
       "title": "Team als Vorlage speichern",
       "description": "Speichert diese Teamkonfiguration auf Festplatte unter deinem Daten-Verzeichnis. Du kannst sie später im Neues-Projekt-Dialog auswählen.",
@@ -536,7 +539,7 @@
     "generateTitle": {
       "noTeamUnsaved": "Rollen konfigurieren und Team zuerst speichern",
       "saveFirst": "Team zuerst speichern, um einen Plan zu generieren",
-      "unsaved": "Ungespeicherte Änderungen — zuerst speichern",
+      "unsaved": "Ungespeicherte Änderungen: zuerst speichern",
       "noTeam": "Speichere zuerst das Team",
       "noProject": "Wähle zuerst ein Projekt",
       "noGoal": "Setze zuerst ein Ziel im Projekt",

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Info } from 'lucide-react';
 import {
   DndContext,
   KeyboardSensor,
@@ -31,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/use-toast';
 import {
   useGeneratePlan,
@@ -334,33 +336,51 @@ export function TeamBuilder() {
         </p>
       </div>
       <CostEstimatePanel team={draftTeam} projectId={projectId} />
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={ids} strategy={rectSortingStrategy}>
-          <div className="grid gap-4 lg:grid-cols-3">
-            {draft.map((d, i) => (
-              <SortableTeamRoleCard
-                key={ids[i] ?? i}
-                id={ids[i] ?? `fallback-${i}`}
-                draft={d}
-                index={i}
-                onChange={(next) => setDraft((arr) => arr.map((a, j) => (j === i ? next : a)))}
-                onRemove={() => {
-                  if (draft.length <= 1) return;
-                  setDraft((arr) => arr.filter((_, j) => j !== i));
-                  setIds((arr) => arr.filter((_, j) => j !== i));
-                }}
-                onMoveUp={() => moveRole(i, i - 1)}
-                onMoveDown={() => moveRole(i, i + 1)}
-                canRemove={draft.length > 1}
-                canMoveUp={i > 0}
-                canMoveDown={i < draft.length - 1}
-                isDuplicate={d.role.trim() !== '' && dups.has(d.role.trim())}
-                onTestPrompt={() => setTestPromptId(ids[i] ?? null)}
-              />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {teamQuery.isFetching && !hydrated ? (
+        <div
+          className="grid gap-4 lg:grid-cols-3"
+          data-testid="team-hydration-skeleton"
+          role="status"
+          aria-busy="true"
+          aria-label={t('teamBuilder.loading')}
+        >
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-3 rounded-md border border-border bg-card p-4">
+              <Skeleton className="h-5 w-1/3" />
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-40 w-full" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={ids} strategy={rectSortingStrategy}>
+            <div className="grid gap-4 lg:grid-cols-3">
+              {draft.map((d, i) => (
+                <SortableTeamRoleCard
+                  key={ids[i] ?? i}
+                  id={ids[i] ?? `fallback-${i}`}
+                  draft={d}
+                  index={i}
+                  onChange={(next) => setDraft((arr) => arr.map((a, j) => (j === i ? next : a)))}
+                  onRemove={() => {
+                    if (draft.length <= 1) return;
+                    setDraft((arr) => arr.filter((_, j) => j !== i));
+                    setIds((arr) => arr.filter((_, j) => j !== i));
+                  }}
+                  onMoveUp={() => moveRole(i, i - 1)}
+                  onMoveDown={() => moveRole(i, i + 1)}
+                  canRemove={draft.length > 1}
+                  canMoveUp={i > 0}
+                  canMoveDown={i < draft.length - 1}
+                  isDuplicate={d.role.trim() !== '' && dups.has(d.role.trim())}
+                  onTestPrompt={() => setTestPromptId(ids[i] ?? null)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
       <TeamRoleAddButton
         onAdd={() => {
           if (draft.length >= MAX_ROLES) return;
@@ -449,6 +469,15 @@ export function TeamBuilder() {
           {generatePlan.isPending ? t('buttons.generating') : t('buttons.generatePlan')}
         </Button>
       </div>
+      {generateTitle && (
+        <p
+          className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground"
+          data-testid="generate-gate-reason"
+        >
+          <Info className="size-3.5 shrink-0" aria-hidden />
+          {generateTitle}
+        </p>
+      )}
       {(() => {
         if (testPromptId == null) return null;
         const idx = ids.indexOf(testPromptId);
