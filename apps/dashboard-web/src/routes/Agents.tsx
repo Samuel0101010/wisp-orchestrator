@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
-import { Bot, Edit2, Plus, Trash2, ImageIcon, Users, ShieldCheck, Sparkles } from 'lucide-react';
+import { Bot, Edit2, Plus, Trash2, Users, ShieldCheck, Sparkles } from 'lucide-react';
 import {
   useAgents,
   useAgentUsage,
@@ -24,7 +24,6 @@ import {
 } from '@/api/queries';
 import type { Agent, CreateAgentInput, UpdateAgentInput } from '@wisp/schemas';
 import { Avatar } from '@/components/Avatar';
-import { AvatarPicker } from '@/components/AvatarPicker';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { fmtRel } from '@/lib/fmt-rel';
@@ -48,9 +47,18 @@ export function AgentsRoute() {
   const agents = useAgents();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [query, setQuery] = useState('');
 
-  const seedAgents = (agents.data ?? []).filter((a) => a.kind === 'seed');
-  const userAgents = (agents.data ?? []).filter((a) => a.kind !== 'seed');
+  const q = query.trim().toLowerCase();
+  const matchesQuery = (a: Agent): boolean =>
+    !q || a.name.toLowerCase().includes(q) || (a.description ?? '').toLowerCase().includes(q);
+  // Recently-touched agents float to the top so the in-play crew reads first.
+  const byRecency = (a: Agent, b: Agent): number =>
+    new Date(b.updatedAt as string | number | Date).getTime() -
+    new Date(a.updatedAt as string | number | Date).getTime();
+  const all = agents.data ?? [];
+  const seedAgents = all.filter((a) => a.kind === 'seed' && matchesQuery(a)).sort(byRecency);
+  const userAgents = all.filter((a) => a.kind !== 'seed' && matchesQuery(a)).sort(byRecency);
 
   return (
     <div className="flex flex-col gap-8">
@@ -59,13 +67,23 @@ export function AgentsRoute() {
           <h1 className="text-2xl font-semibold tracking-tight">{t('agents.title')}</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{t('agents.subtitleLead')}</p>
         </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          {t('agents.actions.new')}
-        </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('agents.searchPlaceholder')}
+            aria-label={t('agents.searchPlaceholder')}
+            className="w-44 rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-56"
+          />
+          <button
+            onClick={() => setCreating(true)}
+            className="flex shrink-0 items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            {t('agents.actions.new')}
+          </button>
+        </div>
       </header>
 
       {agents.isLoading && (
@@ -120,7 +138,15 @@ export function AgentsRoute() {
               : t('agents.sections.yourSubEmpty')
           }
         />
-        {userAgents.length === 0 && !agents.isLoading ? (
+        {userAgents.length > 0 ? (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {userAgents.map((a) => (
+              <AgentCard key={a.id} agent={a} onEdit={() => setEditingId(a.id)} />
+            ))}
+          </div>
+        ) : agents.isLoading || agents.error ? null : q ? (
+          <p className="mt-3 text-sm text-muted-foreground">{t('agents.noMatches')}</p>
+        ) : (
           <div className="mt-3 flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/40 py-10 text-center text-sm text-muted-foreground">
             <Bot className="h-6 w-6 opacity-60" />
             <span>{t('agents.emptyTitle')}</span>
@@ -130,12 +156,6 @@ export function AgentsRoute() {
             >
               {t('agents.actions.createFirst')}
             </button>
-          </div>
-        ) : (
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-            {userAgents.map((a) => (
-              <AgentCard key={a.id} agent={a} onEdit={() => setEditingId(a.id)} />
-            ))}
           </div>
         )}
       </section>
@@ -161,7 +181,7 @@ function SectionHeading({
     <div className="flex items-baseline gap-2 border-b pb-2">
       {icon}
       <h2 className="text-base font-semibold">{title}</h2>
-      <span className="text-xs text-muted-foreground">— {sub}</span>
+      <span className="text-xs text-muted-foreground">· {sub}</span>
     </div>
   );
 }
@@ -178,18 +198,26 @@ function AgentCard({
   const { t, i18n } = useTranslation();
   const usage = useAgentUsage(agent.id);
   const refCount = usage.error ? null : (usage.data?.usage.length ?? 0);
+  const unused = refCount === 0;
+  // Seed agents store English descriptions in the DB; look up a localized
+  // override by name so the built-in team isn't English-only in a DE UI.
+  // User agents keep their own (DB) description.
+  const description = isSeed
+    ? t(`agents.seed.${agent.name.toLowerCase()}.description`, {
+        defaultValue: agent.description ?? '',
+      })
+    : (agent.description ?? '');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const del = useDeleteAgent();
 
   return (
-    <div className="group flex h-full flex-col rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-info/30">
+    <div
+      className={`group flex h-full flex-col rounded-xl border bg-card p-4 shadow-sm transition-colors hover:border-info/30 ${
+        unused ? 'border-border/50' : 'border-border'
+      }`}
+    >
       <div className="flex items-start gap-3">
-        <Avatar
-          name={agent.name}
-          avatarUrl={agent.avatarUrl ?? null}
-          color={agent.color ?? null}
-          size={48}
-        />
+        <Avatar name={agent.name} avatarUrl={null} color={agent.color ?? null} size={48} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <h3 className="truncate text-sm font-semibold">{agent.name}</h3>
@@ -197,19 +225,17 @@ function AgentCard({
               {agent.model}
             </span>
             {isSeed && (
-              <span className="rounded-full bg-info/15 px-2 py-0.5 text-3xs font-semibold uppercase tracking-wider text-info">
+              <span className="rounded-full bg-info/15 px-2 py-0.5 text-2xs font-semibold uppercase tracking-wider text-info">
                 seed
               </span>
             )}
           </div>
-          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-            {agent.description ?? '—'}
-          </p>
+          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{description || '—'}</p>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-2xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1">
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1 tabular-nums">
           <Users className="h-3 w-3" />
           {refCount === null
             ? '—'
@@ -217,7 +243,7 @@ function AgentCard({
               ? t('agents.card.onTeams', { count: refCount })
               : t('agents.card.unused')}
         </span>
-        <span className="font-mono">
+        <span className="font-mono tabular-nums" title={agent.allowedTools.join(', ')}>
           {t('agents.card.tools', { count: agent.allowedTools.length })}
         </span>
         <span className="ml-auto font-mono">
@@ -320,8 +346,6 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
   );
   const [description, setDescription] = useState(existing?.description ?? '');
   const [color, setColor] = useState(existing?.color ?? '');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(existing?.avatarUrl ?? null);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const create = useCreateAgent();
@@ -336,7 +360,6 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
       setTools(existing.allowedTools);
       setDescription(existing.description ?? '');
       setColor(existing.color ?? '');
-      setAvatarUrl(existing.avatarUrl ?? null);
     }
   }, [mode, existing]);
 
@@ -364,7 +387,6 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
           allowedTools: tools,
           description: description.trim() || undefined,
           color: color.trim() || undefined,
-          avatarUrl: avatarUrl ?? undefined,
         };
         await create.mutateAsync(input);
       } else if (mode === 'edit' && agentId) {
@@ -375,7 +397,6 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
           allowedTools: tools,
           description: description.trim() || undefined,
           color: color.trim() || undefined,
-          avatarUrl: avatarUrl ?? undefined,
         };
         await update.mutateAsync({ id: agentId, patch });
       }
@@ -408,22 +429,12 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-5 py-4">
           {/* Avatar + Name + Model row */}
           <div className="flex items-start gap-4">
-            <button
-              type="button"
-              onClick={() => setPickerOpen(true)}
-              className="group relative shrink-0"
-              title={t('agents.dialog.choosePicture')}
-            >
-              <Avatar
-                name={name || t('agents.dialog.defaultName')}
-                avatarUrl={avatarUrl}
-                color={color || null}
-                size={64}
-              />
-              <div className="absolute inset-0 grid place-items-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                <ImageIcon className="h-5 w-5 text-white" />
-              </div>
-            </button>
+            <Avatar
+              name={name || t('agents.dialog.defaultName')}
+              avatarUrl={null}
+              color={color || null}
+              size={64}
+            />
             <div className="grid flex-1 grid-cols-2 gap-3">
               <div>
                 <label
@@ -438,7 +449,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t('agents.dialog.namePlaceholder')}
-                  className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:border-info"
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </div>
               <div>
@@ -480,7 +491,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
               onChange={(e) => setSystemPrompt(e.target.value)}
               rows={6}
               placeholder={t('agents.dialog.systemPromptPlaceholder')}
-              className="mt-1 w-full resize-y rounded-md border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-info"
+              className="mt-1 w-full resize-y rounded-md border bg-background px-3 py-2 font-mono text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <div
               className={`mt-1 text-2xs ${systemPrompt.length > 8000 ? 'text-destructive' : 'text-muted-foreground'}`}
@@ -494,54 +505,36 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
               {t('agents.dialog.allowedTools')}
             </label>
             <div className="mt-1 flex flex-wrap gap-1.5">
-              {DEFAULT_TOOLS.map((t) => {
-                const on = tools.includes(t);
+              {DEFAULT_TOOLS.map((tool) => {
+                const on = tools.includes(tool);
                 return (
                   <button
-                    key={t}
-                    onClick={() => toggleTool(t)}
+                    key={tool}
+                    onClick={() => toggleTool(tool)}
                     className={`rounded-full border px-2.5 py-0.5 font-mono text-2xs tracking-tight ${on ? 'border-info bg-info/15 text-info' : 'text-muted-foreground hover:text-foreground'}`}
                   >
-                    {t}
+                    {tool}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="agent-desc"
-                className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
-              >
-                {t('agents.dialog.description')}
-              </label>
-              <input
-                id="agent-desc"
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t('agents.dialog.descriptionPlaceholder')}
-                className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus:border-info"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="agent-color"
-                className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
-              >
-                {t('agents.dialog.accentColor')}
-              </label>
-              <input
-                id="agent-color"
-                type="text"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                placeholder={t('agents.dialog.colorPlaceholder')}
-                className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 font-mono text-xs outline-none focus:border-info"
-              />
-            </div>
+          <div>
+            <label
+              htmlFor="agent-desc"
+              className="block text-xs font-medium uppercase tracking-wider text-muted-foreground"
+            >
+              {t('agents.dialog.description')}
+            </label>
+            <input
+              id="agent-desc"
+              type="text"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('agents.dialog.descriptionPlaceholder')}
+              className="mt-1 w-full rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
           </div>
 
           {error && (
@@ -572,14 +565,6 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
           </button>
         </footer>
       </div>
-
-      <AvatarPicker
-        open={pickerOpen}
-        selected={avatarUrl}
-        name={name || t('agents.dialog.defaultName')}
-        onSelect={setAvatarUrl}
-        onClose={() => setPickerOpen(false)}
-      />
     </div>
   );
 }

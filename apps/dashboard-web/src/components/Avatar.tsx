@@ -1,7 +1,11 @@
 /**
  * Round profile-picture component used in chat bubbles, participant lists,
- * agent cards. Renders an <img> when avatarUrl is set, otherwise a coloured
+ * agent cards. Renders an <img> for a custom avatar URL, otherwise a coloured
  * disc with the initials — same pattern as Microsoft Teams.
+ *
+ * The bundled `/avatars/*` portrait photos (seed-*.jpg, generic-*.jpg) were a
+ * realistic-human-face slop tell, so they are ignored here and fall back to
+ * the deterministic initials disc. Genuine external avatar URLs still render.
  *
  * Color is deterministic from the agent name so the same agent always gets
  * the same accent across re-renders. Override via `color` prop (an HSL
@@ -51,7 +55,7 @@ export function Avatar({
   const dim = `${size}px`;
   const fontSize = `${Math.max(10, Math.round(size * 0.4))}px`;
 
-  if (avatarUrl) {
+  if (avatarUrl && !avatarUrl.startsWith('/avatars/')) {
     return (
       <img
         src={avatarUrl}

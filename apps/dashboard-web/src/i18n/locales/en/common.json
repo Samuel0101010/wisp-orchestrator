@@ -316,6 +316,29 @@
     "subtitle_one": "{{count}} agent in registry",
     "subtitle_other": "{{count}} agents in registry",
     "subtitleLead": "The built-in dev team is always here for chat. Add your own agents for one-off specialties or project-specific personas.",
+    "searchPlaceholder": "Filter agents…",
+    "noMatches": "No agents match your filter.",
+    "seed": {
+      "marcus": {
+        "description": "Project Manager · coordinates the team, brainstorms with you, and can create + start projects."
+      },
+      "sarah": {
+        "description": "Requirements Interviewer · extracts a complete project brief before planning starts."
+      },
+      "riley": { "description": "Native packaging engineer · Tauri / Electron / pkg artifacts." },
+      "theo": {
+        "description": "Team Lead · synthesises state + events + handoffs into routing decisions."
+      },
+      "elena": { "description": "ML / AI Engineer · LLM pipelines, embeddings, evals." },
+      "javier": { "description": "Security / SRE · threat modelling, OWASP, secrets." },
+      "noah": { "description": "Technical Writer · READMEs, API refs, runbooks." },
+      "lena": { "description": "Senior Frontend Engineer · React, TypeScript, design systems." },
+      "diego": { "description": "Senior Backend Engineer · Node, Postgres, APIs." },
+      "aiko": { "description": "Mobile Engineer · iOS, Android, React Native." },
+      "sven": { "description": "DevOps / Platform · CI/CD, infra, observability." },
+      "priya": { "description": "QA Engineer · test strategy, Playwright, accessibility." },
+      "maya": { "description": "Product Designer · UX, IA, design tokens." }
+    },
     "sections": {
       "builtin": "Built-in team",
       "builtinSub_one": "{{count}} seed agent · always available in chat",
