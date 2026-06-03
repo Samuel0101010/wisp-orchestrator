@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
-import { Bot, Edit2, Plus, Trash2, Users, ShieldCheck, Sparkles } from 'lucide-react';
+import { Bot, Edit2, Plus, Trash2, ImageIcon, Users, ShieldCheck, Sparkles } from 'lucide-react';
 import {
   useAgents,
   useAgentUsage,
@@ -24,6 +24,7 @@ import {
 } from '@/api/queries';
 import type { Agent, CreateAgentInput, UpdateAgentInput } from '@wisp/schemas';
 import { Avatar } from '@/components/Avatar';
+import { AvatarPicker } from '@/components/AvatarPicker';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { fmtRel } from '@/lib/fmt-rel';
@@ -217,7 +218,12 @@ function AgentCard({
       }`}
     >
       <div className="flex items-start gap-3">
-        <Avatar name={agent.name} avatarUrl={null} color={agent.color ?? null} size={48} />
+        <Avatar
+          name={agent.name}
+          avatarUrl={agent.avatarUrl ?? null}
+          color={agent.color ?? null}
+          size={48}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <h3 className="truncate text-sm font-semibold">{agent.name}</h3>
@@ -346,6 +352,8 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
   );
   const [description, setDescription] = useState(existing?.description ?? '');
   const [color, setColor] = useState(existing?.color ?? '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(existing?.avatarUrl ?? null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const create = useCreateAgent();
@@ -360,6 +368,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
       setTools(existing.allowedTools);
       setDescription(existing.description ?? '');
       setColor(existing.color ?? '');
+      setAvatarUrl(existing.avatarUrl ?? null);
     }
   }, [mode, existing]);
 
@@ -387,6 +396,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
           allowedTools: tools,
           description: description.trim() || undefined,
           color: color.trim() || undefined,
+          avatarUrl: avatarUrl ?? undefined,
         };
         await create.mutateAsync(input);
       } else if (mode === 'edit' && agentId) {
@@ -397,6 +407,7 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
           allowedTools: tools,
           description: description.trim() || undefined,
           color: color.trim() || undefined,
+          avatarUrl: avatarUrl ?? undefined,
         };
         await update.mutateAsync({ id: agentId, patch });
       }
@@ -429,12 +440,22 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-5 py-4">
           {/* Avatar + Name + Model row */}
           <div className="flex items-start gap-4">
-            <Avatar
-              name={name || t('agents.dialog.defaultName')}
-              avatarUrl={null}
-              color={color || null}
-              size={64}
-            />
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="group relative shrink-0"
+              title={t('agents.dialog.choosePicture')}
+            >
+              <Avatar
+                name={name || t('agents.dialog.defaultName')}
+                avatarUrl={avatarUrl}
+                color={color || null}
+                size={64}
+              />
+              <div className="absolute inset-0 grid place-items-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <ImageIcon className="h-5 w-5 text-white" />
+              </div>
+            </button>
             <div className="grid flex-1 grid-cols-2 gap-3">
               <div>
                 <label
@@ -565,6 +586,14 @@ function AgentDialog({ mode, agentId, onClose }: AgentDialogProps) {
           </button>
         </footer>
       </div>
+
+      <AvatarPicker
+        open={pickerOpen}
+        selected={avatarUrl}
+        name={name || t('agents.dialog.defaultName')}
+        onSelect={setAvatarUrl}
+        onClose={() => setPickerOpen(false)}
+      />
     </div>
   );
 }
