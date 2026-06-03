@@ -163,6 +163,7 @@
   "insights": {
     "title": "Insights",
     "trajectoriesTitle": "Past trajectories",
+    "jumpNav": "Jump to section",
     "trajectoriesEmpty": "No trajectories captured yet.",
     "trajectories": {
       "empty": {
@@ -196,7 +197,9 @@
       "model": "Model",
       "phase": "Phase",
       "mean": "Mean",
-      "samples": "Samples"
+      "samples": "Samples",
+      "alphaTitle": "Alpha (successes prior)",
+      "betaTitle": "Beta (failures prior)"
     }
   },
   "goap": {

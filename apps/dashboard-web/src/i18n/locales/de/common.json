@@ -163,6 +163,7 @@
   "insights": {
     "title": "Insights",
     "trajectoriesTitle": "Vergangene Trajectories",
+    "jumpNav": "Zu Abschnitt springen",
     "trajectoriesEmpty": "Noch keine Trajectories erfasst.",
     "trajectories": {
       "empty": {
@@ -196,7 +197,9 @@
       "model": "Modell",
       "phase": "Phase",
       "mean": "Mittelwert",
-      "samples": "Samples"
+      "samples": "Samples",
+      "alphaTitle": "Alpha (Erfolge a priori)",
+      "betaTitle": "Beta (Fehlschläge a priori)"
     }
   },
   "goap": {
