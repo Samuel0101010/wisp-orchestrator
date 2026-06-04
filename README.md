@@ -35,6 +35,8 @@ Most agent UIs run a single agent in a chat box. Orchestrators hide the plan beh
 
 ## Quickstart (60 seconds)
 
+> First time on this machine and `git` has no GitHub SSH key? Run the one-time HTTPS shim from [Install](#install) **before** command 1, or it fails with `Permission denied (publickey)` — even though the repo is public. Prerequisites: `git`, Node 22/24 LTS, and the `claude` CLI on `PATH`.
+
 ```sh
 claude plugin marketplace add Samuel0101010/wisp-orchestrator
 claude plugin install wisp@wisp-local
@@ -69,8 +71,8 @@ Then click **New project**, type a goal ("Build a Kanban board in React + Vite +
 
 ## Requirements
 
-- Node.js >= 20.10
-- pnpm >= 9
+- Node.js >= 20.10 (**Node 22 LTS or 24 LTS recommended** — they ship a prebuilt `better-sqlite3`, so the first-launch build needs no C++ toolchain)
+- pnpm >= 9 (bootstrapped for you on first launch via corepack/npm — no manual install needed)
 - Claude Code CLI (the `claude` binary) on `PATH`
 - Claude Max subscription (the orchestrator inherits `~/.claude/` credentials and unsets `ANTHROPIC_API_KEY` so subprocesses never silently fall back to API billing)
 - Windows, macOS, or Linux
@@ -103,6 +105,16 @@ There are two supported paths.
 
 ### As a Claude Code plugin (preferred)
 
+**Prerequisites on a fresh machine:** `git`, **Node 22 LTS or 24 LTS** (>= 20.10 works, but an LTS ships a prebuilt `better-sqlite3` so the first build needs no compiler), and the standalone `claude` CLI on `PATH`. pnpm is bootstrapped for you on first launch.
+
+**One-time, only if `git` has no GitHub SSH key:** `claude plugin marketplace add` clones over SSH by default, which fails with `Permission denied (publickey)` even for this public repo. Tell git to use HTTPS for GitHub once, **before** the commands below:
+
+```sh
+git config --global "url.https://github.com/.insteadOf" "git@github.com:"
+```
+
+(In PowerShell keep the space between the two quoted arguments.)
+
 ```sh
 claude plugin marketplace add Samuel0101010/wisp-orchestrator
 claude plugin install wisp@wisp-local
@@ -111,15 +123,9 @@ claude /wisp-dashboard
 
 (For local development, replace the first line with `claude plugin marketplace add /absolute/path/to/agent-harness`.)
 
-The `/wisp-dashboard` command runs the launcher script for your platform (`scripts/launch-dashboard.ps1` on Windows, `scripts/launch-dashboard.sh` on POSIX). On the **first** invocation after a fresh install, the launcher auto-runs `pnpm install && pnpm build` (~1-2 minutes — pnpm must be on PATH). On subsequent invocations it boots straight to the server. Either way it picks a free port in `4400-4500`, writes connection state to `${CLAUDE_PLUGIN_DATA}/state.json`, and opens the dashboard in your default browser.
+The `/wisp-dashboard` command runs the launcher script for your platform (`scripts/launch-dashboard.ps1` on Windows, `scripts/launch-dashboard.sh` on POSIX). On the **first** invocation after a fresh install, the launcher auto-runs `pnpm install && pnpm build` (~1-2 minutes; pnpm is bootstrapped via corepack/npm if absent). On subsequent invocations it boots straight to the server. Either way it picks a free port in `4400-4500`, writes connection state to `${CLAUDE_PLUGIN_DATA}/state.json`, and opens the dashboard in your default browser.
 
-> **If `claude plugin marketplace add` fails with `Permission denied (publickey)`:** it clones over SSH by default, which fails on a machine with no GitHub SSH key — even for this public repo. Tell git to use HTTPS for GitHub once, then re-run:
->
-> ```sh
-> git config --global "url.https://github.com/.insteadOf" "git@github.com:"
-> ```
->
-> (In PowerShell keep the space between the two quoted arguments.)
+**After the dashboard opens:** spawning agent runs needs the `claude` CLI authenticated (subscription, or `WISP_AUTH_MODE=api` with an `ANTHROPIC_API_KEY`). The dashboard boots and is browsable either way — but if auth is missing it shows a banner and `/api/health` carries the hint. Run `claude login` and restart `/wisp-dashboard` if you see it.
 
 ### From source (developer mode)
 
