@@ -38,8 +38,11 @@
   /* ink — warm off-white */
   --wisp-ink: rgba(246, 240, 230, 0.98);
   --wisp-ink-2: rgba(246, 240, 230, 0.82);
-  --wisp-ink-3: rgba(246, 240, 230, 0.64);
-  --wisp-ink-4: rgba(246, 240, 230, 0.46);
+  /* ink-3/ink-4 carry small-text captions (t-eyebrow 10px, t-faint). On the
+     flat dark base (the aurora wash that used to lift them is gone) they must
+     clear WCAG AA 4.5:1 on their own — bumped from 0.64/0.46. */
+  --wisp-ink-3: rgba(246, 240, 230, 0.7);
+  --wisp-ink-4: rgba(246, 240, 230, 0.56);
   --wisp-ink-5: rgba(246, 240, 230, 0.24);
 
   /* accents — desaturated, Claude-like. h/s/l components so live tweaks
@@ -239,6 +242,12 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    /* Zero the delay too: staggered entry animations use `backwards` fill,
+       which otherwise holds the element at its (opacity:0) start frame for the
+       whole delay — a jarring flash for reduced-motion users, and it leaves
+       text below AA contrast mid-hold. With delay:0 the element settles to its
+       end state immediately. */
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
