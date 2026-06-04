@@ -211,9 +211,7 @@
       "title": "Stats",
       "actions": "Aktionen",
       "cost": "Kosten",
-      "eta": "ETA",
-      "enabledRatio": "{{enabled}} von {{total}} aktiv",
-      "etaValue": "~{{minutes}} min"
+      "enabledRatio": "{{enabled}} von {{total}} aktiv"
     },
     "actionsLibrary": "Aktions-Bibliothek",
     "filterActions": "Aktionen filtern…",
