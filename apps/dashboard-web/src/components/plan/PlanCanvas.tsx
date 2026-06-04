@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import ReactFlow, {
   Background,
   BackgroundVariant,
+  Handle,
+  Position,
   type Edge as RFEdge,
   type Node as RFNode,
   type NodeProps,
@@ -14,7 +16,7 @@ import ReactFlow, {
 import dagre from 'dagre';
 import { Maximize2, ZoomIn, ZoomOut } from 'lucide-react';
 import type { Plan, TaskNode } from '@wisp/schemas';
-import { rolePillStyle } from '@/lib/role-color';
+import { rolePillStyle, roleStripeStyle } from '@/lib/role-color';
 import { IconButton } from '@/components/ui/icon-button';
 import 'reactflow/dist/style.css';
 
@@ -41,11 +43,20 @@ function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
       data-testid={`plan-node-${taskNode.id}`}
       data-role={taskNode.role}
       className={
-        'overflow-hidden rounded-md border bg-card text-card-foreground shadow-sm transition ' +
+        'rounded-md border bg-card text-card-foreground shadow-sm transition ' +
         (selected ? 'ring-2 ring-ring' : 'hover:ring-1 hover:ring-ring/40')
       }
-      style={{ width: NODE_WIDTH }}
+      style={{
+        width: NODE_WIDTH,
+        borderLeftWidth: 3,
+        borderLeftColor: roleStripeStyle(taskNode.role).background,
+      }}
     >
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!size-2 !border-0 !bg-muted-foreground/60"
+      />
       <div className="flex flex-col gap-1 p-3">
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold">{taskNode.id}</span>
@@ -59,10 +70,12 @@ function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
         <p className="line-clamp-1 text-xs text-muted-foreground" title={taskNode.prompt}>
           {oneLine || <span className="italic">{t('planEditor.canvas.noPrompt')}</span>}
         </p>
-        <span className="text-2xs text-muted-foreground-soft">
-          {t('planEditor.canvas.editHint')}
-        </span>
       </div>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!size-2 !border-0 !bg-muted-foreground/60"
+      />
     </div>
   );
 }
@@ -115,6 +128,7 @@ function buildRfEdges(plan: Plan): RFEdge[] {
 }
 
 function PlanCanvasInner({ plan, selectedNodeId, onSelectNode }: PlanCanvasProps) {
+  const { t } = useTranslation();
   const initialNodes = useMemo(() => buildRfNodes(plan, selectedNodeId), [plan, selectedNodeId]);
   const initialEdges = useMemo(() => buildRfEdges(plan), [plan]);
   const [nodes, setNodes, onNodesChange] = useNodesState<PlanNodeData>(initialNodes);
@@ -125,6 +139,16 @@ function PlanCanvasInner({ plan, selectedNodeId, onSelectNode }: PlanCanvasProps
     setNodes(buildRfNodes(plan, selectedNodeId));
     setEdges(buildRfEdges(plan));
   }, [plan, selectedNodeId, setNodes, setEdges]);
+
+  // Escape deselects the current node — keyboard parity with the pane click.
+  useEffect(() => {
+    if (selectedNodeId == null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onSelectNode(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [selectedNodeId, onSelectNode]);
 
   const handleNodeClick = useCallback(
     (_e: React.MouseEvent, node: RFNode) => {
@@ -138,20 +162,29 @@ function PlanCanvasInner({ plan, selectedNodeId, onSelectNode }: PlanCanvasProps
   }, [onSelectNode]);
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={NODE_TYPES}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      onNodeClick={handleNodeClick}
-      onPaneClick={handlePaneClick}
-      fitView
-      proOptions={{ hideAttribution: true }}
-    >
-      <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="hsl(var(--border))" />
-      <CustomControls />
-    </ReactFlow>
+    <div className="relative h-full w-full">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={NODE_TYPES}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
+        fitView
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="hsl(var(--border))" />
+        <CustomControls />
+      </ReactFlow>
+      {plan.nodes.length === 0 && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+          <p className="max-w-xs rounded-md border border-dashed border-border bg-card/80 px-4 py-3 text-center text-sm text-muted-foreground">
+            {t('planEditor.canvas.empty')}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 

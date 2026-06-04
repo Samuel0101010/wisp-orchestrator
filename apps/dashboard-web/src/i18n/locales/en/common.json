@@ -613,7 +613,13 @@
       "noNodeSelected": "No node selected",
       "selectHint": "Select a node to edit.",
       "instruction1": "Click a node in the graph to edit it here.",
-      "instruction2": "Drag nodes to rearrange the layout."
+      "instruction2": "Drag nodes to rearrange the layout.",
+      "sc": {
+        "build": "Build",
+        "test": "Test",
+        "lint": "Lint",
+        "custom": "Custom"
+      }
     },
     "lockDialog": {
       "title": "Lock & Run this plan?",
@@ -628,7 +634,7 @@
     },
     "canvas": {
       "noPrompt": "(no prompt)",
-      "editHint": "edit",
+      "empty": "No tasks in this plan. Regenerate to rebuild.",
       "controls": {
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",

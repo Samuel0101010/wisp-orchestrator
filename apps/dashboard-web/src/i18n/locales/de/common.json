@@ -613,7 +613,13 @@
       "noNodeSelected": "Kein Knoten ausgewählt",
       "selectHint": "Wähle einen Knoten zum Bearbeiten.",
       "instruction1": "Klicke einen Knoten im Graph, um ihn hier zu bearbeiten.",
-      "instruction2": "Ziehe Knoten, um das Layout anzupassen."
+      "instruction2": "Ziehe Knoten, um das Layout anzupassen.",
+      "sc": {
+        "build": "Build",
+        "test": "Test",
+        "lint": "Lint",
+        "custom": "Eigenes"
+      }
     },
     "lockDialog": {
       "title": "Diesen Plan sperren & starten?",
@@ -628,7 +634,7 @@
     },
     "canvas": {
       "noPrompt": "(kein Prompt)",
-      "editHint": "bearbeiten",
+      "empty": "Keine Tasks in diesem Plan. Zum Neuaufbau neu generieren.",
       "controls": {
         "zoomIn": "Heranzoomen",
         "zoomOut": "Herauszoomen",

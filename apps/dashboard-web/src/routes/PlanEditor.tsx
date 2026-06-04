@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FirstRunModal, hasAckedFirstRun } from '@/components/FirstRunModal';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Circle } from 'lucide-react';
 import { type Edge, type Plan, type Role, type TaskNode, validateDag } from '@wisp/schemas';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,13 @@ interface NodeEditorProps {
 function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
   const { t } = useTranslation();
   const otherIds = plan.nodes.filter((n) => n.id !== node.id).map((n) => n.id);
+  // Role is a free-form string in the schema, not a closed enum. Build the
+  // option list from the canonical roles plus any role already present in the
+  // plan (and this node's own role) so a non-standard role is shown and never
+  // silently overwritten when the user opens the constrained <select>.
+  const roleOptions = Array.from(
+    new Set<string>([...ROLES, ...plan.nodes.map((n) => n.role), node.role]),
+  );
 
   const updateNode = (mutate: (n: TaskNode) => TaskNode): void => {
     const nextNodes = plan.nodes.map((n) => (n.id === node.id ? mutate(n) : n));
@@ -111,7 +119,7 @@ function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
             updateNode((n) => ({ ...n, role: nextRole }));
           }}
         >
-          {ROLES.map((r) => (
+          {roleOptions.map((r) => (
             <option key={r} value={r}>
               {r}
             </option>
@@ -174,7 +182,7 @@ function NodeEditor({ plan, node, readOnly, onChange }: NodeEditorProps) {
           {(['build', 'test', 'lint', 'custom'] as const).map((key) => (
             <div key={key} className="flex flex-col gap-1">
               <Label htmlFor={`node-sc-${key}`} className="text-xs text-muted-foreground">
-                {key}
+                {t(`planEditor.node.sc.${key}`)}
               </Label>
               <Input
                 id={`node-sc-${key}`}
@@ -410,7 +418,11 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           </Badge>
           <PlanVersionBadge planId={planRow.id} />
           {dirty && (
-            <span className="text-xs text-muted-foreground" data-testid="dirty-indicator">
+            <span
+              className="flex items-center gap-1.5 text-xs text-warning"
+              data-testid="dirty-indicator"
+            >
+              <Circle className="size-2 shrink-0 fill-current" aria-hidden />
               {t('planEditor.unsavedChanges')}
             </span>
           )}
