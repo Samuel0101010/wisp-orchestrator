@@ -332,19 +332,39 @@
       "sarah": {
         "description": "Anforderungs-Interviewer · erstellt ein vollständiges Projekt-Briefing, bevor die Planung startet."
       },
-      "riley": { "description": "Native-Packaging-Engineer · Tauri- / Electron- / pkg-Artefakte." },
+      "riley": {
+        "description": "Native-Packaging-Engineer · Tauri- / Electron- / pkg-Artefakte."
+      },
       "theo": {
         "description": "Team-Lead · verdichtet Stand + Events + Handoffs zu Routing-Entscheidungen."
       },
-      "elena": { "description": "ML- / KI-Engineer · LLM-Pipelines, Embeddings, Evals." },
-      "javier": { "description": "Security / SRE · Threat-Modeling, OWASP, Secrets." },
-      "noah": { "description": "Technical Writer · READMEs, API-Referenzen, Runbooks." },
-      "lena": { "description": "Senior-Frontend-Engineer · React, TypeScript, Design-Systeme." },
-      "diego": { "description": "Senior-Backend-Engineer · Node, Postgres, APIs." },
-      "aiko": { "description": "Mobile-Engineer · iOS, Android, React Native." },
-      "sven": { "description": "DevOps / Platform · CI/CD, Infrastruktur, Observability." },
-      "priya": { "description": "QA-Engineer · Teststrategie, Playwright, Barrierefreiheit." },
-      "maya": { "description": "Produkt-Designer · UX, IA, Design-Tokens." }
+      "elena": {
+        "description": "ML- / KI-Engineer · LLM-Pipelines, Embeddings, Evals."
+      },
+      "javier": {
+        "description": "Security / SRE · Threat-Modeling, OWASP, Secrets."
+      },
+      "noah": {
+        "description": "Technical Writer · READMEs, API-Referenzen, Runbooks."
+      },
+      "lena": {
+        "description": "Senior-Frontend-Engineer · React, TypeScript, Design-Systeme."
+      },
+      "diego": {
+        "description": "Senior-Backend-Engineer · Node, Postgres, APIs."
+      },
+      "aiko": {
+        "description": "Mobile-Engineer · iOS, Android, React Native."
+      },
+      "sven": {
+        "description": "DevOps / Platform · CI/CD, Infrastruktur, Observability."
+      },
+      "priya": {
+        "description": "QA-Engineer · Teststrategie, Playwright, Barrierefreiheit."
+      },
+      "maya": {
+        "description": "Produkt-Designer · UX, IA, Design-Tokens."
+      }
     },
     "sections": {
       "builtin": "Built-in Team",
@@ -1532,5 +1552,9 @@
     "body": "Diese Ansicht hat unerwartet einen Fehler ausgelöst. Versuche es erneut — falls es wiederholt auftritt, melde es bitte als Issue.",
     "retry": "Erneut versuchen",
     "reload": "Seite neu laden"
+  },
+  "auth": {
+    "bannerTitle": "Agent-Runs benötigen Claude-Authentifizierung",
+    "bannerFallback": "Die claude-CLI ist nicht authentifiziert. Führe \"claude login\" aus und starte das Dashboard neu."
   }
 }

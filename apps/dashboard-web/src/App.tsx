@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { Outlet, Route, Routes } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
+import { AuthBanner } from '@/components/layout/AuthBanner';
 import { AuroraBackground } from '@/components/layout/AuroraBackground';
 import { CommandPalette } from '@/components/CommandPalette';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -57,6 +58,7 @@ function Shell() {
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <TopBar />
+          <AuthBanner />
           <main
             className="flex-1 overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
             tabIndex={0}

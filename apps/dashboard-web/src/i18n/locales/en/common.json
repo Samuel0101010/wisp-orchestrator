@@ -332,19 +332,39 @@
       "sarah": {
         "description": "Requirements Interviewer · extracts a complete project brief before planning starts."
       },
-      "riley": { "description": "Native packaging engineer · Tauri / Electron / pkg artifacts." },
+      "riley": {
+        "description": "Native packaging engineer · Tauri / Electron / pkg artifacts."
+      },
       "theo": {
         "description": "Team Lead · synthesises state + events + handoffs into routing decisions."
       },
-      "elena": { "description": "ML / AI Engineer · LLM pipelines, embeddings, evals." },
-      "javier": { "description": "Security / SRE · threat modelling, OWASP, secrets." },
-      "noah": { "description": "Technical Writer · READMEs, API refs, runbooks." },
-      "lena": { "description": "Senior Frontend Engineer · React, TypeScript, design systems." },
-      "diego": { "description": "Senior Backend Engineer · Node, Postgres, APIs." },
-      "aiko": { "description": "Mobile Engineer · iOS, Android, React Native." },
-      "sven": { "description": "DevOps / Platform · CI/CD, infra, observability." },
-      "priya": { "description": "QA Engineer · test strategy, Playwright, accessibility." },
-      "maya": { "description": "Product Designer · UX, IA, design tokens." }
+      "elena": {
+        "description": "ML / AI Engineer · LLM pipelines, embeddings, evals."
+      },
+      "javier": {
+        "description": "Security / SRE · threat modelling, OWASP, secrets."
+      },
+      "noah": {
+        "description": "Technical Writer · READMEs, API refs, runbooks."
+      },
+      "lena": {
+        "description": "Senior Frontend Engineer · React, TypeScript, design systems."
+      },
+      "diego": {
+        "description": "Senior Backend Engineer · Node, Postgres, APIs."
+      },
+      "aiko": {
+        "description": "Mobile Engineer · iOS, Android, React Native."
+      },
+      "sven": {
+        "description": "DevOps / Platform · CI/CD, infra, observability."
+      },
+      "priya": {
+        "description": "QA Engineer · test strategy, Playwright, accessibility."
+      },
+      "maya": {
+        "description": "Product Designer · UX, IA, design tokens."
+      }
     },
     "sections": {
       "builtin": "Built-in team",
@@ -1532,5 +1552,9 @@
     "body": "This view threw an unexpected error. Try again — if it keeps happening, please report it as an issue.",
     "retry": "Try again",
     "reload": "Reload page"
+  },
+  "auth": {
+    "bannerTitle": "Agent runs need Claude authentication",
+    "bannerFallback": "The claude CLI is not authenticated. Run \"claude login\", then restart the dashboard."
   }
 }
