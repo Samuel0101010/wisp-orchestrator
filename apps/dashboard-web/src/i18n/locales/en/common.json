@@ -926,6 +926,7 @@
     "summary": {
       "goal": "Goal",
       "repoPath": "Repo path",
+      "copyRepoPath": "Copy repo path",
       "team": "Team",
       "noTeam": "No team configured yet",
       "rolesCount_one": "{{count}} role",
@@ -969,13 +970,18 @@
         "actions": "Actions"
       },
       "openRun": "Open",
-      "running": "running"
+      "running": "running",
+      "chainParent": "Parent: {{id}}",
+      "chainHardening": "Hardening iteration",
+      "chainIter": "Iter {{n}}"
     },
     "toasts": {
       "runStarted": "Run started",
       "runStartFailed": "Could not start run",
       "goalUpdated": "Goal updated",
-      "goalUpdateFailed": "Could not update goal"
+      "goalUpdateFailed": "Could not update goal",
+      "repoPathCopied": "Repo path copied",
+      "copyFailed": "Copy failed"
     },
     "goalEdit": {
       "editButton": "Edit",
@@ -1122,6 +1128,8 @@
   },
   "briefCard": {
     "title": "Project brief",
+    "assistantName": "Sarah",
+    "completeness": "Brief completeness",
     "statusReady": "Finalised",
     "statusPending": "In progress",
     "descriptionReady": "The interview is finished. The planner reads from this brief.",
@@ -1159,6 +1167,7 @@
     "activate": "Activate lead",
     "tickNow": "Tick now",
     "ticking": "Thinking…",
+    "deleteNote": "Delete note",
     "empty": "No lead notes yet. Trigger a tick to get Theo's synthesis.",
     "blockers": "Blockers",
     "nextRole": "Next",

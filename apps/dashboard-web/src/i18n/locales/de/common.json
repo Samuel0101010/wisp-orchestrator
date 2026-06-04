@@ -926,6 +926,7 @@
     "summary": {
       "goal": "Ziel",
       "repoPath": "Repo-Pfad",
+      "copyRepoPath": "Repo-Pfad kopieren",
       "team": "Team",
       "noTeam": "Noch kein Team konfiguriert",
       "rolesCount_one": "{{count}} Rolle",
@@ -969,13 +970,18 @@
         "actions": "Aktionen"
       },
       "openRun": "Öffnen",
-      "running": "läuft"
+      "running": "läuft",
+      "chainParent": "Parent: {{id}}",
+      "chainHardening": "Härtungs-Iteration",
+      "chainIter": "Iter {{n}}"
     },
     "toasts": {
       "runStarted": "Run gestartet",
       "runStartFailed": "Run konnte nicht gestartet werden",
       "goalUpdated": "Ziel aktualisiert",
-      "goalUpdateFailed": "Ziel konnte nicht aktualisiert werden"
+      "goalUpdateFailed": "Ziel konnte nicht aktualisiert werden",
+      "repoPathCopied": "Repo-Pfad kopiert",
+      "copyFailed": "Kopieren fehlgeschlagen"
     },
     "goalEdit": {
       "editButton": "Bearbeiten",
@@ -1122,6 +1128,8 @@
   },
   "briefCard": {
     "title": "Projekt-Brief",
+    "assistantName": "Sarah",
+    "completeness": "Brief-Vollständigkeit",
     "statusReady": "Finalisiert",
     "statusPending": "In Arbeit",
     "descriptionReady": "Das Interview ist abgeschlossen. Der Planer liest aus diesem Brief.",
@@ -1159,6 +1167,7 @@
     "activate": "Lead aktivieren",
     "tickNow": "Jetzt synthetisieren",
     "ticking": "Denkt nach…",
+    "deleteNote": "Notiz löschen",
     "empty": "Noch keine Lead-Notizen. Starte einen Tick, damit Theo synthetisiert.",
     "blockers": "Blocker",
     "nextRole": "Als nächstes",

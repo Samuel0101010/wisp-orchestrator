@@ -147,7 +147,12 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
 
       <CardContent className="flex flex-col gap-3">
         <div className="flex items-center gap-3">
-          <Progress value={score} className="h-2" data-testid="brief-progress" />
+          <Progress
+            value={score}
+            className="h-2"
+            data-testid="brief-progress"
+            aria-label={t('briefCard.completeness')}
+          />
           <span className="font-mono text-xs text-muted-foreground" data-testid="brief-score">
             {score}%
           </span>
@@ -289,6 +294,7 @@ const Transcript = forwardRef<HTMLDivElement, TranscriptProps>(function Transcri
 });
 
 function Bubble({ message }: { message: InterviewTranscriptMessage }) {
+  const { t } = useTranslation();
   const isUser = message.role === 'user';
   return (
     <div
@@ -305,7 +311,7 @@ function Bubble({ message }: { message: InterviewTranscriptMessage }) {
         {!isUser && (
           <p className="mb-1 flex items-center gap-1 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
             <Bot className="h-3 w-3" />
-            Sarah
+            {t('briefCard.assistantName')}
           </p>
         )}
         <p className="whitespace-pre-wrap leading-snug">{message.content}</p>

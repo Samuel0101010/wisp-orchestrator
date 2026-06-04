@@ -190,7 +190,7 @@ function LeadNoteRowView({ note, onDelete }: { note: LeadNoteRow; onDelete: () =
           variant="ghost"
           onClick={onDelete}
           className="h-6 px-1 text-xs"
-          aria-label="delete"
+          aria-label={t('leadNotes.deleteNote')}
         >
           <Trash2 className="h-3 w-3" />
         </Button>
