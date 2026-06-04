@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.1.0 — dashboard UX/accessibility overhaul + Goal-Planner hardening
+
+A surface-by-surface design, UX, and accessibility pass across the whole dashboard (shared layer + 13 surfaces, #88), a bounded Goal-Planner solver (#85), fresh-machine install hardening (#89), and refreshed screenshots (#90). A new installer gets all of this automatically (the plugin tracks `main`); this tag just catches the version chip up to it.
+
+### Added
+
+- **Auth banner.** The dashboard boots and is browsable without an authenticated `claude` CLI, but spawning runs then fails. An app-wide, dismissible banner now surfaces the `/api/health` auth hint when the boot probe fails, so the requirement is visible at the point it matters instead of only in the server logs (#89).
+
+### Changed
+
+- **Dashboard design overhaul (#88).** A shared status layer (`statusMeta`/`StatusPill`/`StatusDotBadge`), consistent focus rings and ≥36px hit targets, a single coral accent (removed violet/fuchsia/indigo and the aurora background), color-blind-safe status pills (icon + text + colour), `tabular-nums` on live numbers, WCAG AA contrast, and DE/EN parity across all 13 surfaces. Real bugs fixed along the way: a **P1 plan-corruption** (the Plan-Editor role `<select>` hardcoded three roles and silently overwrote any other role — now the de-duped union of canonical + plan + node roles), **mis-anchored plan edges** (the custom React-Flow node rendered no `<Handle>`s), and removed **fabricated metrics** (GOAP ETA, Prompt-Bundles "tokens saved").
+
+### Fixed
+
+- **Goal Planner solver (#85).** Replaced an uncapped synchronous A* (an inadmissible heuristic returned non-optimal plans; an unbounded search froze the single Node event loop) with bounded uniform-cost search (Dijkstra + binary heap + dedup + a hard expansion cap → typed `GoapBudgetExceededError` → HTTP 422). Now provably optimal for cost-0 and multi-effect actions, and the UI shows a "search space too large" message instead of a misleading "no plan exists".
+- **Fresh-machine install frictions (#89).** The README now surfaces the SSH→HTTPS shim *before* the install commands (not as an after-the-fact callout) and lists prerequisites (git · Node 22/24 LTS · `claude` CLI). `useHealth` was dead code typed against a shape the server never returns — now wired to the real `{ ok, time, version, authProbe }`.
+
+### Docs
+
+- **Goal Planner is a standalone sandbox (#86, #87).** Clarified in the README and on the GOAP tab that the Goal Planner is a self-contained least-cost-search sandbox — it does not create teams, edit plans, or drive runs.
+- **Refreshed README screenshots (#90)** to the post-overhaul light-theme UI (the prior set was pre-overhaul and pre-i18n); also shrank the set from 18.8 MB to 3.5 MB.
+
+### Verification
+
+- All 8 local gates + Playwright e2e green on every merge. The overhaul's accessibility is covered by the axe e2e job (wcag2a+2aa, 8 pages × en/de); the auth-banner contrast was live-verified in both themes (title 13.6/13.4:1, hint 9.05/5.95:1).
+
 ## 2.0.31 — dashboard audit hardening (i18n, data-correctness, regression tests)
 
 Two adversarial confidence-audit rounds over every dashboard tab (#80, #81) plus follow-ups (#82, #83). No feature changes — correctness, i18n, and test coverage. A new installer gets these automatically (the plugin tracks `main`).

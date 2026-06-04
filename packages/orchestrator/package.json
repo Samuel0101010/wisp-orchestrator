@@ -1,6 +1,6 @@
 {
   "name": "@wisp/orchestrator",
-  "version": "2.0.31",
+  "version": "2.1.0",
   "private": true,
   "description": "WISP orchestrator core — plan graph, dispatch, retry, and gate logic.",
   "keywords": [
