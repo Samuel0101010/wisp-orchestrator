@@ -222,7 +222,7 @@ function BundleCard({
           </div>
           <div
             className="tabular-nums"
-            style={{ fontFamily: 'var(--f-display)', fontSize: 20, lineHeight: 1 }}
+            style={{ fontFamily: 'var(--f-mono)', fontSize: 20, lineHeight: 1 }}
           >
             {bundle.hitCount}
           </div>
