@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 const OUT_DIR = resolve(REPO_ROOT, 'docs', 'assets', 'screenshots');
-const BASE = 'http://localhost:4400';
+const BASE = process.env.WISP_DASHBOARD ?? 'http://localhost:4400';
 
 const ROUTES = [
   ['mission-control', '/'],
