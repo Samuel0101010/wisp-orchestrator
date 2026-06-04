@@ -19,7 +19,11 @@ import type {
 import { ApiError, apiFetch } from './client';
 
 export interface HealthResponse {
-  status: 'ok' | string;
+  ok: boolean;
+  time?: string;
+  version?: string;
+  /** Boot-time subscription-auth probe; null until it lands (it is not awaited at boot). */
+  authProbe: { ok: boolean; hint?: string } | null;
 }
 
 export function useHealth() {
@@ -27,6 +31,10 @@ export function useHealth() {
     queryKey: ['health'],
     queryFn: () => apiFetch<HealthResponse>('/api/health'),
     retry: false,
+    // The boot auth probe is async (spawns `claude`, lands 5-30s after listen),
+    // so poll modestly to catch the null->resolved transition and post-restart
+    // auth changes without hammering the endpoint.
+    refetchInterval: 15_000,
   });
 }
 
