@@ -447,6 +447,14 @@ body {
   letter-spacing: 0.04em;
 }
 
+/* Form placeholders. Tailwind's default (currentColor at 50%) lands right on
+   the WCAG AA 4.5:1 edge on the flat dark base — give it an explicit muted ink
+   token with margin so every input's placeholder clears AA deterministically. */
+::placeholder {
+  color: var(--wisp-ink-4);
+  opacity: 1;
+}
+
 /* hover-lift */
 .wisp-lift {
   transition:
