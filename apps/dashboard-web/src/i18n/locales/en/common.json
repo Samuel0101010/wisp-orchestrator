@@ -1257,13 +1257,15 @@
       "ariaLabel": "Message composer",
       "dismissError": "Dismiss error",
       "attach": "Attach files",
-      "removeAttachment": "Remove attachment"
+      "removeAttachment": "Remove attachment",
+      "mentionPicker": "Mention a teammate"
     },
     "participants": {
       "title": "People",
       "empty": "No conversation selected.",
       "permanent": "Marcus stays in every conversation. Add specialists to bring them into the chat — or @mention them inline.",
       "removeConfirm": "Remove {{name}} from this conversation?",
+      "removeLabel": "Remove",
       "roleLead": "Lead"
     },
     "addMember": {
@@ -1281,7 +1283,8 @@
       "startButton": "Start conversation",
       "starterName": "Marcus",
       "starterGreeting": "Hi! Tell me what you're thinking about — a feature idea, a bug to chase, or a fresh project. I'll loop in the specialists you need.",
-      "tip": "Tip: type <code>@Lena</code> to address the frontend lead directly.",
+      "tipBefore": "Tip: type",
+      "tipAfter": "to address a teammate directly.",
       "prompts": [
         "What is WISP and how do I use it?",
         "Start a new project: ",
@@ -1292,7 +1295,17 @@
       "typing": "Manager is typing…",
       "noResponse": "(no response)",
       "interrupted": "interrupted",
-      "timeout": "Timeout (180s)"
+      "timeout": "Timeout",
+      "error": {
+        "generic": "Error",
+        "timeout": "Timeout",
+        "pending": "Interrupted",
+        "budget_exceeded": "Budget exceeded",
+        "max_turns": "Max turns reached",
+        "aborted": "Aborted",
+        "failed": "Failed",
+        "error": "Error"
+      }
     },
     "action": {
       "projectCreated": "Project created · {{name}}",
@@ -1318,13 +1331,14 @@
     "loading": "Loading agents…",
     "noAgents": "No agents yet",
     "noAgentsBody": "Create your first agent to start chatting.",
+    "headerLabel": "Agent",
     "manageAgents": "Manage agents →",
     "noThreads": "no threads — type below to start one.",
     "startConversation": "Type a message below to start the conversation.",
     "agentThinking": "{{name}} is thinking…",
     "composerLabel": "Message to {{name}}",
     "selectAgent": "select an agent",
-    "cmdEnter": "cmd+enter",
+    "sendHint": "Enter ↵",
     "placeholder": {
       "reply": "reply…",
       "newThread": "start a new thread with @{{name}}",

@@ -1257,13 +1257,15 @@
       "ariaLabel": "Nachricht verfassen",
       "dismissError": "Fehler ausblenden",
       "attach": "Dateien anhängen",
-      "removeAttachment": "Anhang entfernen"
+      "removeAttachment": "Anhang entfernen",
+      "mentionPicker": "Teammitglied erwähnen"
     },
     "participants": {
       "title": "Personen",
       "empty": "Keine Konversation ausgewählt.",
       "permanent": "Marcus bleibt in jeder Konversation. Füge Spezialisten hinzu oder erwähne sie mit @.",
       "removeConfirm": "{{name}} aus dieser Konversation entfernen?",
+      "removeLabel": "Entfernen",
       "roleLead": "Lead"
     },
     "addMember": {
@@ -1281,7 +1283,8 @@
       "startButton": "Konversation starten",
       "starterName": "Marcus",
       "starterGreeting": "Hi! Erzähl mir, was du dir vorstellst — eine Feature-Idee, ein Bug-Hunt oder ein neues Projekt. Ich hole die Spezialisten dazu, die du brauchst.",
-      "tip": "Tipp: Tippe <code>@Lena</code>, um die Frontend-Lead direkt anzusprechen.",
+      "tipBefore": "Tipp: tippe",
+      "tipAfter": "um ein Teammitglied direkt anzusprechen.",
       "prompts": [
         "Was ist WISP und wie nutze ich es?",
         "Neues Projekt starten: ",
@@ -1292,7 +1295,17 @@
       "typing": "Manager schreibt…",
       "noResponse": "(keine Antwort)",
       "interrupted": "unterbrochen",
-      "timeout": "Timeout (180s)"
+      "timeout": "Zeitüberschreitung",
+      "error": {
+        "generic": "Fehler",
+        "timeout": "Zeitüberschreitung",
+        "pending": "Unterbrochen",
+        "budget_exceeded": "Budget überschritten",
+        "max_turns": "Max. Turns erreicht",
+        "aborted": "Abgebrochen",
+        "failed": "Fehlgeschlagen",
+        "error": "Fehler"
+      }
     },
     "action": {
       "projectCreated": "Projekt erstellt · {{name}}",
@@ -1318,13 +1331,14 @@
     "loading": "Lade Agents…",
     "noAgents": "Noch keine Agents",
     "noAgentsBody": "Erstelle deinen ersten Agent, um zu chatten.",
+    "headerLabel": "Agent",
     "manageAgents": "Agents verwalten →",
     "noThreads": "keine Threads — schreibe unten, um einen zu starten.",
     "startConversation": "Schreibe eine Nachricht unten, um die Konversation zu starten.",
     "agentThinking": "{{name}} denkt nach…",
     "composerLabel": "Nachricht an {{name}}",
     "selectAgent": "Agent auswählen",
-    "cmdEnter": "Strg+Eingabe",
+    "sendHint": "Enter ↵",
     "placeholder": {
       "reply": "antworten…",
       "newThread": "neuen Thread mit @{{name}} starten",
