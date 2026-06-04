@@ -210,6 +210,8 @@ export function ChatRoute() {
     const filtered = q === '' ? list : list.filter((p) => p.name.toLowerCase().includes(q));
     return filtered.slice(0, 8);
   }, [detail.data?.participants, mentionQuery]);
+  // The @-mention popup is open. Drives the composer's combobox ARIA state.
+  const mentionOpen = mentionQuery !== null && mentionCandidates.length > 0;
 
   // Update mention picker state from the latest composer text + caret.
   function syncMentionState(text: string, caret: number) {
@@ -583,16 +585,12 @@ export function ChatRoute() {
                 id="chat-composer"
                 name="chat-composer"
                 aria-label={t('chat.composer.ariaLabel')}
-                aria-expanded={mentionQuery !== null && mentionCandidates.length > 0}
-                aria-controls={
-                  mentionQuery !== null && mentionCandidates.length > 0
-                    ? 'chat-mention-listbox'
-                    : undefined
-                }
+                role={mentionOpen ? 'combobox' : undefined}
+                aria-autocomplete={mentionOpen ? 'list' : undefined}
+                aria-expanded={mentionOpen ? true : undefined}
+                aria-controls={mentionOpen ? 'chat-mention-listbox' : undefined}
                 aria-activedescendant={
-                  mentionQuery !== null && mentionCandidates.length > 0
-                    ? `chat-mention-option-${mentionIndex}`
-                    : undefined
+                  mentionOpen ? `chat-mention-option-${mentionIndex}` : undefined
                 }
                 value={composer}
                 onChange={onComposerChange}
