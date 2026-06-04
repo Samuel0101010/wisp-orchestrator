@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Check,
   ClipboardList,
+  Copy,
   ExternalLink,
   FolderGit2,
   GitMerge,
@@ -33,6 +34,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { IconButton } from '@/components/ui/icon-button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StatusDotBadge } from '@/components/StatusDotBadge';
@@ -153,7 +155,27 @@ export function ProjectDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="break-all font-mono text-xs">{p.repoPath}</p>
+            <div className="flex items-start gap-2">
+              <p className="min-w-0 flex-1 break-all font-mono text-xs">{p.repoPath}</p>
+              <IconButton
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0"
+                label={t('projectDetail.summary.copyRepoPath')}
+                icon={<Copy className="h-4 w-4" />}
+                data-testid="copy-repo-path"
+                onClick={() => {
+                  navigator.clipboard.writeText(p.repoPath).then(
+                    () => toast({ title: t('projectDetail.toasts.repoPathCopied') }),
+                    () =>
+                      toast({
+                        title: t('projectDetail.toasts.copyFailed'),
+                        variant: 'destructive',
+                      }),
+                  );
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -489,15 +511,17 @@ function RunsCard({
                         <span className="inline-flex items-center gap-1.5">
                           {iter > 0 && (
                             <span
-                              className="rounded-full bg-indigo-500/15 px-1.5 py-0.5 text-2xs font-medium text-indigo-700 dark:text-indigo-300"
+                              className="rounded-full border border-border bg-card px-1.5 py-0.5 text-2xs font-medium text-muted-foreground"
                               title={
                                 r.parentRunId
-                                  ? `Parent: ${r.parentRunId.slice(0, 8)}`
-                                  : 'Härtungs-Iteration'
+                                  ? t('projectDetail.runs.chainParent', {
+                                      id: r.parentRunId.slice(0, 8),
+                                    })
+                                  : t('projectDetail.runs.chainHardening')
                               }
                               data-testid={`run-chain-badge-${r.id}`}
                             >
-                              ↳ Iter {iter}
+                              ↳ {t('projectDetail.runs.chainIter', { n: iter })}
                             </span>
                           )}
                           {r.id.slice(0, 8)}
@@ -509,8 +533,10 @@ function RunsCard({
                       <td className="px-2 py-2 text-muted-foreground">
                         {r.outcome ? statusLabel(r.outcome, t) : t('projectDetail.runs.running')}
                       </td>
-                      <td className="px-2 py-2 text-muted-foreground">{formatDate(r.startedAt)}</td>
-                      <td className="px-2 py-2 text-muted-foreground">
+                      <td className="px-2 py-2 tabular-nums text-muted-foreground">
+                        {formatDate(r.startedAt)}
+                      </td>
+                      <td className="px-2 py-2 tabular-nums text-muted-foreground">
                         {formatDuration(r.startedAt, r.endedAt ?? null)}
                       </td>
                       <td className="px-2 py-2 text-right font-mono">{formatTokens(tokens)}</td>

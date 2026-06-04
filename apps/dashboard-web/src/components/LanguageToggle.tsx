@@ -3,9 +3,9 @@ import { Languages } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
 
-const LABELS: Record<SupportedLanguage, { native: string; flag: string }> = {
-  en: { native: 'English', flag: '🇬🇧' },
-  de: { native: 'Deutsch', flag: '🇩🇪' },
+const LABELS: Record<SupportedLanguage, { native: string }> = {
+  en: { native: 'English' },
+  de: { native: 'Deutsch' },
 };
 
 export function LanguageToggle() {
@@ -57,7 +57,6 @@ export function LanguageToggle() {
               }`}
               data-testid={`language-toggle-${lang}`}
             >
-              <span aria-hidden="true">{LABELS[lang].flag}</span>
               <span>{LABELS[lang].native}</span>
             </button>
           ))}

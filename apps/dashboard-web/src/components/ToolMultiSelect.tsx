@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Asterisk, X } from 'lucide-react';
 import { ALL_CATALOG_TOOL_NAMES, TOOL_CATALOG } from '@/data/toolCatalog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -46,7 +47,7 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
     onChange(value.filter((v) => v !== name));
   };
 
-  // Precomputed because the chip map below shadows `t` with the tool string.
+  // Hover titles for the per-chip remove button.
   const removeTitleCustom = t('toolMultiSelect.removeCustom', 'Custom — click to remove');
   const removeTitle = t('toolMultiSelect.remove', 'Click to remove');
 
@@ -73,18 +74,33 @@ export function ToolMultiSelect({ value, onChange, id, initialOpen = false }: Pr
       </div>
       {value.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {value.map((t) => {
-            const isCustom = !ALL_CATALOG_TOOL_NAMES.has(t);
+          {value.map((tool) => {
+            const isCustom = !ALL_CATALOG_TOOL_NAMES.has(tool);
             return (
               <Badge
-                key={t}
+                key={tool}
                 variant={isCustom ? 'secondary' : 'default'}
-                className="cursor-pointer"
-                onClick={() => remove(t)}
-                title={isCustom ? removeTitleCustom : removeTitle}
-                data-testid={`tool-chip-${t}`}
+                className="inline-flex items-center gap-1 pr-1"
+                data-testid={`tool-chip-${tool}`}
               >
-                {t} ×
+                {isCustom && (
+                  <Asterisk
+                    role="img"
+                    className="size-3 shrink-0"
+                    aria-label={t('toolMultiSelect.customMarker')}
+                  />
+                )}
+                <span>{tool}</span>
+                <button
+                  type="button"
+                  onClick={() => remove(tool)}
+                  title={isCustom ? removeTitleCustom : removeTitle}
+                  aria-label={t('toolMultiSelect.removeAria', { name: tool })}
+                  className="-mr-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-sm hover:bg-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  data-testid={`tool-chip-remove-${tool}`}
+                >
+                  <X className="size-3" aria-hidden />
+                </button>
               </Badge>
             );
           })}

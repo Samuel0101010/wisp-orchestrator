@@ -30,9 +30,9 @@ interface SeedDef {
   description: string;
   allowedTools: string[];
   /**
-   * Optional. Some seed personas (sarah/riley/theo) ship without a JPG so the UI
-   * falls back to initials — keeps the public/avatars/ payload small and avoids
-   * 404s on first paint of the Agents page.
+   * Optional portrait. Every seed persona now ships one (sarah/riley/theo reuse
+   * generic-*.jpg portraits from the picker pool); when absent the UI falls back
+   * to the deterministic initials disc.
    */
   avatarUrl?: string;
   color: string | null;
@@ -422,6 +422,7 @@ const SEEDS: SeedDef[] = [
       'Grep',
       'Bash(pnpm:*, npm:*, npx:*, cargo:*, tauri:*, git:*, node:*)',
     ],
+    avatarUrl: '/avatars/generic-03.jpg',
     // Darker orange (orange-700) so white initials on this background pass
     // WCAG AA contrast (4.5:1). The original #F97316 only reaches 2.8:1.
     color: '#C2410C',
@@ -433,6 +434,7 @@ const SEEDS: SeedDef[] = [
     systemPrompt: leadPrompt(),
     description: 'Team Lead · synthesises state + events + handoffs into routing decisions.',
     allowedTools: READ_ONLY_TOOLS,
+    avatarUrl: '/avatars/generic-05.jpg',
     // Darker violet (violet-700) — white initials pass 4.5:1 (original #8B5CF6 = 4.23:1).
     color: '#6D28D9',
   },
@@ -444,6 +446,7 @@ const SEEDS: SeedDef[] = [
     description:
       'Requirements Interviewer · extracts a complete project brief before planning starts.',
     allowedTools: READ_ONLY_TOOLS,
+    avatarUrl: '/avatars/generic-01.jpg',
     // Darker emerald (emerald-700) — white initials pass 4.5:1 (original #10B981 = 2.53:1).
     color: '#047857',
   },

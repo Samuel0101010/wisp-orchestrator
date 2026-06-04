@@ -105,6 +105,10 @@
     "loadFailed": "Failed to load skills",
     "emptyTitle": "No skills discovered",
     "emptyDescription": "Add SKILL.md files under .claude/skills or install a plugin that ships skills.",
+    "noMatchesTitle": "No matching skills",
+    "noMatchesDescription": "No skills match the current filter or search.",
+    "clearFilters": "Clear filters",
+    "searchPlaceholder": "Filter skills…",
     "reload": "Reload skills",
     "reloading": "Reloading…",
     "args": "args:",
@@ -131,9 +135,15 @@
       "reset": "Reset",
       "resetting": "Resetting…",
       "invalidateAll": "Invalidate all",
-      "pin": "Pin bundle",
       "invalidate": "Invalidate bundle",
       "invalidateTitle": "Invalidate"
+    },
+    "confirmInvalidateAll": {
+      "title": "Invalidate all bundles?",
+      "description_one": "This drops the cached bundle. The next session re-warms the cache from scratch.",
+      "description_other": "This drops all {{count}} cached bundles. The next session re-warms the cache from scratch.",
+      "confirm": "Invalidate all",
+      "cancel": "Cancel"
     },
     "loading": "Loading bundles…",
     "loadFailed": "Failed to load bundles",
@@ -141,18 +151,19 @@
     "emptyDescription": "Invoke a skill or send a chat message to populate the cache.",
     "eyebrow": "Warm session cache",
     "kpis": {
-      "hitRate": "Cache hit rate",
-      "tokensSaved": "Tokens saved · 7d",
-      "hotBundles": "Hot bundles",
-      "stale": "Stale",
+      "totalHits": "Total hits",
+      "totalHitsSub_one": "across {{count}} bundle",
+      "totalHitsSub_other": "across {{count}} bundles",
+      "hotBundles": "Hot",
       "hotSub": "recently used",
-      "staleSub": "not used 7d+",
-      "hitRateSub": "{{n}} hits total"
+      "stale": "Stale",
+      "staleSub": "not used 7d+"
     }
   },
   "insights": {
     "title": "Insights",
     "trajectoriesTitle": "Past trajectories",
+    "jumpNav": "Jump to section",
     "trajectoriesEmpty": "No trajectories captured yet.",
     "trajectories": {
       "empty": {
@@ -186,7 +197,9 @@
       "model": "Model",
       "phase": "Phase",
       "mean": "Mean",
-      "samples": "Samples"
+      "samples": "Samples",
+      "alphaTitle": "Alpha (successes prior)",
+      "betaTitle": "Beta (failures prior)"
     }
   },
   "goap": {
@@ -198,9 +211,7 @@
       "title": "Stats",
       "actions": "actions",
       "cost": "cost",
-      "eta": "eta",
-      "enabledRatio": "{{enabled}} of {{total}} enabled",
-      "etaValue": "~{{minutes}} min"
+      "enabledRatio": "{{enabled}} of {{total}} enabled"
     },
     "actionsLibrary": "Actions library",
     "filterActions": "Filter actions…",
@@ -290,8 +301,10 @@
     "add": "Add",
     "removeCustom": "Custom — click to remove",
     "remove": "Click to remove",
-    "customCount_one": "{{count}} custom tool — shown as a secondary badge above. Click any badge to remove.",
-    "customCount_other": "{{count}} custom tools — shown as a secondary badge above. Click any badge to remove."
+    "removeAria": "Remove {{name}}",
+    "customMarker": "Custom tool",
+    "customCount_one": "{{count}} custom tool shown above.",
+    "customCount_other": "{{count}} custom tools shown above."
   },
   "modelInfo": {
     "costClass": {
@@ -310,6 +323,29 @@
     "subtitle_one": "{{count}} agent in registry",
     "subtitle_other": "{{count}} agents in registry",
     "subtitleLead": "The built-in dev team is always here for chat. Add your own agents for one-off specialties or project-specific personas.",
+    "searchPlaceholder": "Filter agents…",
+    "noMatches": "No agents match your filter.",
+    "seed": {
+      "marcus": {
+        "description": "Project Manager · coordinates the team, brainstorms with you, and can create + start projects."
+      },
+      "sarah": {
+        "description": "Requirements Interviewer · extracts a complete project brief before planning starts."
+      },
+      "riley": { "description": "Native packaging engineer · Tauri / Electron / pkg artifacts." },
+      "theo": {
+        "description": "Team Lead · synthesises state + events + handoffs into routing decisions."
+      },
+      "elena": { "description": "ML / AI Engineer · LLM pipelines, embeddings, evals." },
+      "javier": { "description": "Security / SRE · threat modelling, OWASP, secrets." },
+      "noah": { "description": "Technical Writer · READMEs, API refs, runbooks." },
+      "lena": { "description": "Senior Frontend Engineer · React, TypeScript, design systems." },
+      "diego": { "description": "Senior Backend Engineer · Node, Postgres, APIs." },
+      "aiko": { "description": "Mobile Engineer · iOS, Android, React Native." },
+      "sven": { "description": "DevOps / Platform · CI/CD, infra, observability." },
+      "priya": { "description": "QA Engineer · test strategy, Playwright, accessibility." },
+      "maya": { "description": "Product Designer · UX, IA, design tokens." }
+    },
     "sections": {
       "builtin": "Built-in team",
       "builtinSub_one": "{{count}} seed agent · always available in chat",
@@ -422,6 +458,7 @@
     "promptBundles": "Prompt Bundles",
     "todayRuns": "Runs · today",
     "runsLabel": "runs",
+    "live": "live",
     "settings": "Settings",
     "expandSidebar": "Expand sidebar",
     "collapseSidebar": "Collapse sidebar"
@@ -486,6 +523,7 @@
     "title": "Team Builder",
     "selectProject": "Select a project to configure its team.",
     "subtitle": "Configure the agents for {{name}}.",
+    "loading": "Loading the team…",
     "saveAsTemplateDialog": {
       "title": "Save team as template",
       "description": "Stores this team configuration to disk under your data dir. You can pick it from the New Project dialog later.",
@@ -499,7 +537,7 @@
     "generateTitle": {
       "noTeamUnsaved": "Configure roles and save the team first",
       "saveFirst": "Save the team first to generate a plan",
-      "unsaved": "Unsaved changes — save first to generate a plan",
+      "unsaved": "Unsaved changes: save first to generate a plan",
       "noTeam": "Save the team first",
       "noProject": "Select a project first",
       "noGoal": "Set a goal on the project first",
@@ -573,7 +611,13 @@
       "noNodeSelected": "No node selected",
       "selectHint": "Select a node to edit.",
       "instruction1": "Click a node in the graph to edit it here.",
-      "instruction2": "Drag nodes to rearrange the layout."
+      "instruction2": "Drag nodes to rearrange the layout.",
+      "sc": {
+        "build": "Build",
+        "test": "Test",
+        "lint": "Lint",
+        "custom": "Custom"
+      }
     },
     "lockDialog": {
       "title": "Lock & Run this plan?",
@@ -588,7 +632,7 @@
     },
     "canvas": {
       "noPrompt": "(no prompt)",
-      "editHint": "edit",
+      "empty": "No tasks in this plan. Regenerate to rebuild.",
       "controls": {
         "zoomIn": "Zoom in",
         "zoomOut": "Zoom out",
@@ -635,6 +679,7 @@
     "resourceBar": {
       "time": "Time",
       "turns": "Turns",
+      "tokens": "Tokens",
       "pool": "Pool",
       "tokensInOut": "{{in}} in · {{out}} out",
       "tokensIn": "{{in}} in",
@@ -879,6 +924,7 @@
     "summary": {
       "goal": "Goal",
       "repoPath": "Repo path",
+      "copyRepoPath": "Copy repo path",
       "team": "Team",
       "noTeam": "No team configured yet",
       "rolesCount_one": "{{count}} role",
@@ -922,13 +968,18 @@
         "actions": "Actions"
       },
       "openRun": "Open",
-      "running": "running"
+      "running": "running",
+      "chainParent": "Parent: {{id}}",
+      "chainHardening": "Hardening iteration",
+      "chainIter": "Iter {{n}}"
     },
     "toasts": {
       "runStarted": "Run started",
       "runStartFailed": "Could not start run",
       "goalUpdated": "Goal updated",
-      "goalUpdateFailed": "Could not update goal"
+      "goalUpdateFailed": "Could not update goal",
+      "repoPathCopied": "Repo path copied",
+      "copyFailed": "Copy failed"
     },
     "goalEdit": {
       "editButton": "Edit",
@@ -1075,6 +1126,8 @@
   },
   "briefCard": {
     "title": "Project brief",
+    "assistantName": "Sarah",
+    "completeness": "Brief completeness",
     "statusReady": "Finalised",
     "statusPending": "In progress",
     "descriptionReady": "The interview is finished. The planner reads from this brief.",
@@ -1112,6 +1165,7 @@
     "activate": "Activate lead",
     "tickNow": "Tick now",
     "ticking": "Thinking…",
+    "deleteNote": "Delete note",
     "empty": "No lead notes yet. Trigger a tick to get Theo's synthesis.",
     "blockers": "Blockers",
     "nextRole": "Next",
@@ -1165,7 +1219,13 @@
     "success": "Success",
     "failure": "Failure",
     "budget_exceeded": "Over budget",
-    "skipped": "Skipped"
+    "skipped": "Skipped",
+    "ok": "OK",
+    "pass": "Passed",
+    "fail": "Failed",
+    "error": "Error",
+    "in-run": "In run",
+    "dismissed": "Dismissed"
   },
   "chat": {
     "loading": "Loading team…",
@@ -1195,13 +1255,15 @@
       "ariaLabel": "Message composer",
       "dismissError": "Dismiss error",
       "attach": "Attach files",
-      "removeAttachment": "Remove attachment"
+      "removeAttachment": "Remove attachment",
+      "mentionPicker": "Mention a teammate"
     },
     "participants": {
       "title": "People",
       "empty": "No conversation selected.",
       "permanent": "Marcus stays in every conversation. Add specialists to bring them into the chat — or @mention them inline.",
       "removeConfirm": "Remove {{name}} from this conversation?",
+      "removeLabel": "Remove",
       "roleLead": "Lead"
     },
     "addMember": {
@@ -1219,7 +1281,8 @@
       "startButton": "Start conversation",
       "starterName": "Marcus",
       "starterGreeting": "Hi! Tell me what you're thinking about — a feature idea, a bug to chase, or a fresh project. I'll loop in the specialists you need.",
-      "tip": "Tip: type <code>@Lena</code> to address the frontend lead directly.",
+      "tipBefore": "Tip: type",
+      "tipAfter": "to address a teammate directly.",
       "prompts": [
         "What is WISP and how do I use it?",
         "Start a new project: ",
@@ -1230,7 +1293,17 @@
       "typing": "Manager is typing…",
       "noResponse": "(no response)",
       "interrupted": "interrupted",
-      "timeout": "Timeout (180s)"
+      "timeout": "Timeout",
+      "error": {
+        "generic": "Error",
+        "timeout": "Timeout",
+        "pending": "Interrupted",
+        "budget_exceeded": "Budget exceeded",
+        "max_turns": "Max turns reached",
+        "aborted": "Aborted",
+        "failed": "Failed",
+        "error": "Error"
+      }
     },
     "action": {
       "projectCreated": "Project created · {{name}}",
@@ -1256,13 +1329,14 @@
     "loading": "Loading agents…",
     "noAgents": "No agents yet",
     "noAgentsBody": "Create your first agent to start chatting.",
+    "headerLabel": "Agent",
     "manageAgents": "Manage agents →",
     "noThreads": "no threads — type below to start one.",
     "startConversation": "Type a message below to start the conversation.",
     "agentThinking": "{{name}} is thinking…",
     "composerLabel": "Message to {{name}}",
     "selectAgent": "select an agent",
-    "cmdEnter": "cmd+enter",
+    "sendHint": "Enter ↵",
     "placeholder": {
       "reply": "reply…",
       "newThread": "start a new thread with @{{name}}",
@@ -1423,6 +1497,9 @@
     "title": "Focusboard",
     "pickProject": "Pick a project",
     "noProjects": "No projects yet",
+    "runStatus": {
+      "none": "No run"
+    },
     "chat": {
       "title": "Chat"
     },

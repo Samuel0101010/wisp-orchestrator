@@ -24,9 +24,6 @@ const EXAMPLE_ACTIONS: GoapAction[] = [
   },
 ];
 
-const ICONS = ['plan', 'build', 'tests', 'qa', 'security', 'docs', 'package', 'sign'] as const;
-type IconKind = (typeof ICONS)[number];
-
 interface LaidNode {
   x: number;
   y: number;
@@ -36,7 +33,6 @@ interface LaidNode {
   post: string;
   state: 'done' | 'live' | 'next';
   i: number;
-  icon: IconKind;
 }
 
 interface Layout {
@@ -53,8 +49,6 @@ interface Layout {
    * row sits centered without a tall empty band.
    */
   viewBoxH: number;
-  /** Center y of the atmosphere ellipses (glows). Tracks the plan row. */
-  ambientY: number;
 }
 
 function shortFlag(rec: Record<string, boolean> | undefined, fallback: string) {
@@ -149,7 +143,6 @@ function layoutActions(actions: GoapAction[], doneCount: number, liveIndex: numb
     post: shortFlag(a.effects, '—'),
     state: (i < doneCount ? 'done' : i === liveIndex ? 'live' : 'next') as 'done' | 'live' | 'next',
     i: i + 1,
-    icon: ICONS[i % ICONS.length] as IconKind,
   });
 
   if (n === 0) {
@@ -161,7 +154,6 @@ function layoutActions(actions: GoapAction[], doneCount: number, liveIndex: numb
       isUShape: false,
       viewBoxW: W,
       viewBoxH: H,
-      ambientY: H / 2,
     };
   }
 
@@ -188,7 +180,6 @@ function layoutActions(actions: GoapAction[], doneCount: number, liveIndex: numb
       isUShape: false,
       viewBoxW: W,
       viewBoxH: H,
-      ambientY: cy,
     };
   }
 
@@ -210,7 +201,6 @@ function layoutActions(actions: GoapAction[], doneCount: number, liveIndex: numb
     isUShape: true,
     viewBoxW: W,
     viewBoxH: H,
-    ambientY: TOP_Y,
   };
 }
 
@@ -241,79 +231,12 @@ function StateLine({ k, v, on }: { k: string; v: string; on?: boolean }) {
   );
 }
 
-function GoapIconGlyph({ kind, color }: { kind: IconKind; color: string }) {
-  const p = {
-    stroke: color,
-    strokeWidth: 1.4,
-    fill: 'none',
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-  };
-  switch (kind) {
-    case 'plan':
-      return (
-        <g {...p}>
-          <rect x="1" y="1" width="10" height="11" rx="1.5" />
-          <path d="M3 4h6M3 6h6M3 8h4" />
-        </g>
-      );
-    case 'build':
-      return (
-        <g {...p}>
-          <path d="M1 11l6-6l2.5-2.5L11 4l-6 6z" />
-          <path d="M9 5L7 3" />
-        </g>
-      );
-    case 'tests':
-      return (
-        <g {...p}>
-          <circle cx="6" cy="6" r="4.2" />
-          <path d="M4 6l1.6 1.6L8.5 4.5" />
-        </g>
-      );
-    case 'qa':
-      return (
-        <g {...p}>
-          <circle cx="5" cy="5" r="3.5" />
-          <path d="M7.5 7.5l3 3" />
-        </g>
-      );
-    case 'security':
-      return (
-        <g {...p}>
-          <path d="M6 1L1.5 3v3.5c0 3 2 4.5 4.5 5.2c2.5-0.7 4.5-2.2 4.5-5.2V3z" />
-        </g>
-      );
-    case 'docs':
-      return (
-        <g {...p}>
-          <path d="M3 1h4.5L10 3.5V11H3zM7.5 1v2.5H10M4.5 5.5h4M4.5 7.5h4M4.5 9.5h2.5" />
-        </g>
-      );
-    case 'package':
-      return (
-        <g {...p}>
-          <path d="M1 4l5-2.7l5 2.7v5.4l-5 2.7l-5-2.7zM1 4l5 2.7M11 4l-5 2.7M6 6.7v6" />
-        </g>
-      );
-    case 'sign':
-      return (
-        <g {...p}>
-          <path d="M1 9c2 0 1.7-6 4-6c2 0 2 6 4 6c1 0 1.5-0.4 2-1M1 11h10" />
-        </g>
-      );
-    default:
-      return null;
-  }
-}
-
 function GoapNodeCard({ node, hw, hh }: { node: LaidNode; hw: number; hh: number }) {
   const { t } = useTranslation();
   const w = hw * 2;
   const h = hh * 2;
   const live = node.state === 'live';
   const done = node.state === 'done';
-  const tone = live ? 'coral' : done ? 'mint' : null;
   const bgFill = live
     ? 'hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.08)'
     : done
@@ -346,21 +269,6 @@ function GoapNodeCard({ node, hw, hh }: { node: LaidNode; hw: number; hh: number
         strokeWidth={live ? 1.8 : 1.2}
       />
       <rect x={1} y={1} width={w - 2} height={1} fill="var(--wisp-ink-5)" />
-      <circle
-        cx={20}
-        cy={20}
-        r={11}
-        fill={
-          tone
-            ? `hsl(var(--${tone}-h) var(--${tone}-s) var(--${tone}-l) / 0.2)`
-            : 'var(--wisp-ink-5)'
-        }
-        stroke={tone ? `var(--${tone})` : 'var(--wisp-hairline-strong)'}
-        strokeWidth="1"
-      />
-      <g transform="translate(14, 14)">
-        <GoapIconGlyph kind={node.icon} color={tone ? `var(--${tone})` : 'var(--wisp-ink-2)'} />
-      </g>
       <circle
         cx={w - 14}
         cy={14}
@@ -548,14 +456,14 @@ function GoapCanvas({
   goalLabel: string;
   startSub: string;
   goalSub: string;
-  summary: { done: number; running: number; queued: number; cost: number; eta: string };
+  summary: { done: number; running: number; queued: number; cost: number };
   headlineState: 'ready' | 'planned' | 'empty';
   overflowCount?: number;
 }) {
   const { t } = useTranslation();
   const HW = 78;
   const HH = 43;
-  const { nodes, start, goal: goalPos, isUShape, viewBoxW: W, viewBoxH: H, ambientY } = layout;
+  const { nodes, start, goal: goalPos, isUShape, viewBoxW: W, viewBoxH: H } = layout;
 
   // Build edges from the layout. Single-row layouts use straight horizontal
   // edges (start → n1 → … → goal); U-shapes use a curved bend between top
@@ -635,7 +543,7 @@ function GoapCanvas({
                   </span>
                   <span className="t-faint" style={{ fontFamily: 'var(--f-mono)', fontSize: 12 }}>
                     {' '}
-                    · {t('goap.summary.cost', 'cost')} {summary.cost} · {summary.eta}
+                    · {t('goap.summary.cost', 'cost')} {summary.cost}
                   </span>
                 </>
               ) : headlineState === 'empty' ? (
@@ -651,7 +559,7 @@ function GoapCanvas({
                   </span>
                   <span className="t-faint" style={{ fontFamily: 'var(--f-mono)', fontSize: 12 }}>
                     {' '}
-                    · {t('goap.summary.estCost', 'est cost')} {summary.cost} · {summary.eta}
+                    · {t('goap.summary.estCost', 'est cost')} {summary.cost}
                   </span>
                 </>
               )}
@@ -690,21 +598,8 @@ function GoapCanvas({
           <pattern id="goap-dot" width="32" height="32" patternUnits="userSpaceOnUse">
             <circle cx="16" cy="16" r="0.9" fill="var(--wisp-svg-grid-dot)" />
           </pattern>
-          <radialGradient id="goap-now-glow">
-            <stop offset="0%" stopColor="var(--coral)" stopOpacity="0.32" />
-            <stop offset="100%" stopColor="var(--coral)" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="goap-done-glow">
-            <stop offset="0%" stopColor="var(--mint)" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="var(--mint)" stopOpacity="0" />
-          </radialGradient>
         </defs>
         <rect width={W} height={H} fill="url(#goap-dot)" />
-
-        {/* atmosphere blobs — anchored on the active plan row so the warm
-            wash sits behind the nodes regardless of single-row or U-shape. */}
-        <ellipse cx={W * 0.51} cy={ambientY} rx={180} ry={110} fill="url(#goap-now-glow)" />
-        <ellipse cx={W * 0.26} cy={ambientY} rx={160} ry={80} fill="url(#goap-done-glow)" />
 
         {edges.map((e, i) => (
           <GoapEdge key={i} from={e.from} to={e.to} state={e.state} bend={e.bend} />
@@ -1070,7 +965,7 @@ export function GoapRoute() {
     const plan = planM.data?.plan;
     // Pre-plan "est cost" reflects only the enabled actions (what would be
     // submitted). Number.isFinite guards against a stray non-numeric cost ever
-    // leaking "NaN" into the Stats / headline / eta.
+    // leaking "NaN" into the Stats / headline.
     const total = plan?.length ?? enabledActions.length;
     const fallbackCost = enabledActions.reduce(
       (s, a) => s + (Number.isFinite(a.cost) ? a.cost : 0),
@@ -1078,15 +973,13 @@ export function GoapRoute() {
     );
     const rawCost = planM.data?.totalCost ?? fallbackCost;
     const cost = Number.isFinite(rawCost) ? rawCost : 0;
-    const minutes = Math.max(1, Math.round(cost / 4));
     return {
       done: plan ? plan.length : 0,
       running: 0,
       queued: plan ? 0 : total,
       cost,
-      eta: t('goap.stats.etaValue', '~{{minutes}} min', { minutes }),
     };
-  }, [planM.data, enabledActions, t]);
+  }, [planM.data, enabledActions]);
 
   const filteredActions = useMemo(
     () => actions.filter((a) => !filter || a.name.toLowerCase().includes(filter.toLowerCase())),
@@ -1190,7 +1083,7 @@ export function GoapRoute() {
                 className="mb-2 flex items-center gap-1.5"
                 style={{ fontFamily: 'var(--f-head)', fontSize: 12, color: 'var(--wisp-ink-2)' }}
               >
-                <span className="wisp-dot amber" /> {t('goap.fields.start', 'Start')}
+                <span className="wisp-dot dim" /> {t('goap.fields.start', 'Start')}
               </div>
               <div className="flex flex-col gap-1">
                 {Object.entries(initial).length === 0 ? (
@@ -1205,12 +1098,14 @@ export function GoapRoute() {
                 className="mb-2 flex items-center gap-1.5"
                 style={{ fontFamily: 'var(--f-head)', fontSize: 12, color: 'var(--wisp-ink-2)' }}
               >
-                <span className="wisp-dot mint" /> {t('goap.fields.goal', 'Goal')}
+                <span className="wisp-dot dim" /> {t('goap.fields.goal', 'Goal')}
               </div>
               <div className="flex flex-col gap-1">
-                {Object.entries(goal).map(([k, v]) => (
-                  <StateLine key={k} k={k} v={String(v)} on />
-                ))}
+                {Object.entries(goal).length === 0 ? (
+                  <StateLine k={t('goap.worldStateLabels.empty', '(empty)')} v="—" />
+                ) : (
+                  Object.entries(goal).map(([k, v]) => <StateLine key={k} k={k} v={String(v)} on />)
+                )}
               </div>
             </div>
             <div>
@@ -1218,7 +1113,7 @@ export function GoapRoute() {
                 className="mb-2 flex items-center gap-1.5"
                 style={{ fontFamily: 'var(--f-head)', fontSize: 12, color: 'var(--wisp-ink-2)' }}
               >
-                <span className="wisp-dot violet" /> {t('goap.stats.title', 'Stats')}
+                <span className="wisp-dot dim" /> {t('goap.stats.title', 'Stats')}
               </div>
               <div className="flex flex-col gap-1.5 text-[12.5px]">
                 <div className="flex items-baseline justify-between gap-2">
@@ -1235,10 +1130,6 @@ export function GoapRoute() {
                   <span className="t-mono" style={{ color: 'var(--wisp-ink-2)' }}>
                     {summary.cost}
                   </span>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="t-eyebrow">{t('goap.stats.eta', 'eta')}</span>
-                  <span style={{ color: 'var(--wisp-ink-2)' }}>{summary.eta}</span>
                 </div>
               </div>
             </div>

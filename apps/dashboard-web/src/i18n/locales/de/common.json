@@ -105,6 +105,10 @@
     "loadFailed": "Skills konnten nicht geladen werden",
     "emptyTitle": "Keine Skills gefunden",
     "emptyDescription": "Lege SKILL.md-Dateien unter .claude/skills an oder installiere ein Plugin mit Skills.",
+    "noMatchesTitle": "Keine passenden Skills",
+    "noMatchesDescription": "Keine Skills passen zum aktuellen Filter oder zur Suche.",
+    "clearFilters": "Filter zurücksetzen",
+    "searchPlaceholder": "Skills filtern…",
     "reload": "Skills neu laden",
     "reloading": "Lade neu…",
     "args": "args:",
@@ -131,9 +135,15 @@
       "reset": "Zurücksetzen",
       "resetting": "Setze zurück…",
       "invalidateAll": "Alle ungültig machen",
-      "pin": "Bundle anheften",
       "invalidate": "Bundle ungültig machen",
       "invalidateTitle": "Ungültig machen"
+    },
+    "confirmInvalidateAll": {
+      "title": "Alle Bundles ungültig machen?",
+      "description_one": "Das verwirft das gecachte Bundle. Die nächste Session wärmt den Cache von Grund auf neu.",
+      "description_other": "Das verwirft alle {{count}} gecachten Bundles. Die nächste Session wärmt den Cache von Grund auf neu.",
+      "confirm": "Alle ungültig machen",
+      "cancel": "Abbrechen"
     },
     "loading": "Lade Bundles…",
     "loadFailed": "Bundles konnten nicht geladen werden",
@@ -141,18 +151,19 @@
     "emptyDescription": "Rufe einen Skill auf oder schicke eine Chat-Nachricht, um den Cache zu füllen.",
     "eyebrow": "Warmer Session-Cache",
     "kpis": {
-      "hitRate": "Cache-Trefferquote",
-      "tokensSaved": "Tokens gespart · 7T",
-      "hotBundles": "Heiße Bundles",
-      "stale": "Veraltet",
+      "totalHits": "Treffer gesamt",
+      "totalHitsSub_one": "über {{count}} Bundle",
+      "totalHitsSub_other": "über {{count}} Bundles",
+      "hotBundles": "Aktiv",
       "hotSub": "kürzlich verwendet",
-      "staleSub": "seit 7T+ nicht genutzt",
-      "hitRateSub": "{{n}} Treffer gesamt"
+      "stale": "Veraltet",
+      "staleSub": "seit 7T+ nicht genutzt"
     }
   },
   "insights": {
     "title": "Insights",
     "trajectoriesTitle": "Vergangene Trajectories",
+    "jumpNav": "Zu Abschnitt springen",
     "trajectoriesEmpty": "Noch keine Trajectories erfasst.",
     "trajectories": {
       "empty": {
@@ -186,7 +197,9 @@
       "model": "Modell",
       "phase": "Phase",
       "mean": "Mittelwert",
-      "samples": "Samples"
+      "samples": "Samples",
+      "alphaTitle": "Alpha (Erfolge a priori)",
+      "betaTitle": "Beta (Fehlschläge a priori)"
     }
   },
   "goap": {
@@ -198,9 +211,7 @@
       "title": "Stats",
       "actions": "Aktionen",
       "cost": "Kosten",
-      "eta": "ETA",
-      "enabledRatio": "{{enabled}} von {{total}} aktiv",
-      "etaValue": "~{{minutes}} min"
+      "enabledRatio": "{{enabled}} von {{total}} aktiv"
     },
     "actionsLibrary": "Aktions-Bibliothek",
     "filterActions": "Aktionen filtern…",
@@ -290,8 +301,10 @@
     "add": "Hinzufügen",
     "removeCustom": "Eigenes — zum Entfernen klicken",
     "remove": "Zum Entfernen klicken",
-    "customCount_one": "{{count}} eigenes Tool — als sekundäres Badge oben angezeigt. Zum Entfernen ein Badge anklicken.",
-    "customCount_other": "{{count}} eigene Tools — als sekundäre Badges oben angezeigt. Zum Entfernen ein Badge anklicken."
+    "removeAria": "{{name}} entfernen",
+    "customMarker": "Eigenes Tool",
+    "customCount_one": "{{count}} eigenes Tool oben angezeigt.",
+    "customCount_other": "{{count}} eigene Tools oben angezeigt."
   },
   "modelInfo": {
     "costClass": {
@@ -310,6 +323,29 @@
     "subtitle_one": "{{count}} Agent in der Registry",
     "subtitle_other": "{{count}} Agents in der Registry",
     "subtitleLead": "Das Built-in-Dev-Team ist immer für Chats verfügbar. Lege eigene Agents für Spezial-Aufgaben oder projektbezogene Personas an.",
+    "searchPlaceholder": "Agents filtern…",
+    "noMatches": "Keine Agents passen zum Filter.",
+    "seed": {
+      "marcus": {
+        "description": "Projektmanager · koordiniert das Team, brainstormt mit dir und kann Projekte anlegen + starten."
+      },
+      "sarah": {
+        "description": "Anforderungs-Interviewer · erstellt ein vollständiges Projekt-Briefing, bevor die Planung startet."
+      },
+      "riley": { "description": "Native-Packaging-Engineer · Tauri- / Electron- / pkg-Artefakte." },
+      "theo": {
+        "description": "Team-Lead · verdichtet Stand + Events + Handoffs zu Routing-Entscheidungen."
+      },
+      "elena": { "description": "ML- / KI-Engineer · LLM-Pipelines, Embeddings, Evals." },
+      "javier": { "description": "Security / SRE · Threat-Modeling, OWASP, Secrets." },
+      "noah": { "description": "Technical Writer · READMEs, API-Referenzen, Runbooks." },
+      "lena": { "description": "Senior-Frontend-Engineer · React, TypeScript, Design-Systeme." },
+      "diego": { "description": "Senior-Backend-Engineer · Node, Postgres, APIs." },
+      "aiko": { "description": "Mobile-Engineer · iOS, Android, React Native." },
+      "sven": { "description": "DevOps / Platform · CI/CD, Infrastruktur, Observability." },
+      "priya": { "description": "QA-Engineer · Teststrategie, Playwright, Barrierefreiheit." },
+      "maya": { "description": "Produkt-Designer · UX, IA, Design-Tokens." }
+    },
     "sections": {
       "builtin": "Built-in Team",
       "builtinSub_one": "{{count}} Seed-Agent · immer im Chat verfügbar",
@@ -422,6 +458,7 @@
     "promptBundles": "Prompt-Bundles",
     "todayRuns": "Runs · heute",
     "runsLabel": "Runs",
+    "live": "live",
     "settings": "Einstellungen",
     "expandSidebar": "Seitenleiste ausfahren",
     "collapseSidebar": "Seitenleiste einklappen"
@@ -486,6 +523,7 @@
     "title": "Team-Builder",
     "selectProject": "Wähle ein Projekt, um sein Team zu konfigurieren.",
     "subtitle": "Konfiguriere die Agents für {{name}}.",
+    "loading": "Lade das Team…",
     "saveAsTemplateDialog": {
       "title": "Team als Vorlage speichern",
       "description": "Speichert diese Teamkonfiguration auf Festplatte unter deinem Daten-Verzeichnis. Du kannst sie später im Neues-Projekt-Dialog auswählen.",
@@ -499,7 +537,7 @@
     "generateTitle": {
       "noTeamUnsaved": "Rollen konfigurieren und Team zuerst speichern",
       "saveFirst": "Team zuerst speichern, um einen Plan zu generieren",
-      "unsaved": "Ungespeicherte Änderungen — zuerst speichern",
+      "unsaved": "Ungespeicherte Änderungen: zuerst speichern",
       "noTeam": "Speichere zuerst das Team",
       "noProject": "Wähle zuerst ein Projekt",
       "noGoal": "Setze zuerst ein Ziel im Projekt",
@@ -573,7 +611,13 @@
       "noNodeSelected": "Kein Knoten ausgewählt",
       "selectHint": "Wähle einen Knoten zum Bearbeiten.",
       "instruction1": "Klicke einen Knoten im Graph, um ihn hier zu bearbeiten.",
-      "instruction2": "Ziehe Knoten, um das Layout anzupassen."
+      "instruction2": "Ziehe Knoten, um das Layout anzupassen.",
+      "sc": {
+        "build": "Build",
+        "test": "Test",
+        "lint": "Lint",
+        "custom": "Eigenes"
+      }
     },
     "lockDialog": {
       "title": "Diesen Plan sperren & starten?",
@@ -588,7 +632,7 @@
     },
     "canvas": {
       "noPrompt": "(kein Prompt)",
-      "editHint": "bearbeiten",
+      "empty": "Keine Tasks in diesem Plan. Zum Neuaufbau neu generieren.",
       "controls": {
         "zoomIn": "Heranzoomen",
         "zoomOut": "Herauszoomen",
@@ -635,6 +679,7 @@
     "resourceBar": {
       "time": "Zeit",
       "turns": "Turns",
+      "tokens": "Tokens",
       "pool": "Pool",
       "tokensInOut": "{{in}} ein · {{out}} aus",
       "tokensIn": "{{in}} ein",
@@ -879,6 +924,7 @@
     "summary": {
       "goal": "Ziel",
       "repoPath": "Repo-Pfad",
+      "copyRepoPath": "Repo-Pfad kopieren",
       "team": "Team",
       "noTeam": "Noch kein Team konfiguriert",
       "rolesCount_one": "{{count}} Rolle",
@@ -922,13 +968,18 @@
         "actions": "Aktionen"
       },
       "openRun": "Öffnen",
-      "running": "läuft"
+      "running": "läuft",
+      "chainParent": "Parent: {{id}}",
+      "chainHardening": "Härtungs-Iteration",
+      "chainIter": "Iter {{n}}"
     },
     "toasts": {
       "runStarted": "Run gestartet",
       "runStartFailed": "Run konnte nicht gestartet werden",
       "goalUpdated": "Ziel aktualisiert",
-      "goalUpdateFailed": "Ziel konnte nicht aktualisiert werden"
+      "goalUpdateFailed": "Ziel konnte nicht aktualisiert werden",
+      "repoPathCopied": "Repo-Pfad kopiert",
+      "copyFailed": "Kopieren fehlgeschlagen"
     },
     "goalEdit": {
       "editButton": "Bearbeiten",
@@ -1075,6 +1126,8 @@
   },
   "briefCard": {
     "title": "Projekt-Brief",
+    "assistantName": "Sarah",
+    "completeness": "Brief-Vollständigkeit",
     "statusReady": "Finalisiert",
     "statusPending": "In Arbeit",
     "descriptionReady": "Das Interview ist abgeschlossen. Der Planer liest aus diesem Brief.",
@@ -1112,6 +1165,7 @@
     "activate": "Lead aktivieren",
     "tickNow": "Jetzt synthetisieren",
     "ticking": "Denkt nach…",
+    "deleteNote": "Notiz löschen",
     "empty": "Noch keine Lead-Notizen. Starte einen Tick, damit Theo synthetisiert.",
     "blockers": "Blocker",
     "nextRole": "Als nächstes",
@@ -1163,9 +1217,15 @@
     "draft": "Entwurf",
     "locked": "Gesperrt",
     "success": "Erfolg",
-    "failure": "Fehler",
+    "failure": "Fehlgeschlagen",
     "budget_exceeded": "Budget überschritten",
-    "skipped": "Übersprungen"
+    "skipped": "Übersprungen",
+    "ok": "OK",
+    "pass": "Bestanden",
+    "fail": "Fehlgeschlagen",
+    "error": "Fehler",
+    "in-run": "Im Run",
+    "dismissed": "Verworfen"
   },
   "chat": {
     "loading": "Lade Team…",
@@ -1195,13 +1255,15 @@
       "ariaLabel": "Nachricht verfassen",
       "dismissError": "Fehler ausblenden",
       "attach": "Dateien anhängen",
-      "removeAttachment": "Anhang entfernen"
+      "removeAttachment": "Anhang entfernen",
+      "mentionPicker": "Teammitglied erwähnen"
     },
     "participants": {
       "title": "Personen",
       "empty": "Keine Konversation ausgewählt.",
       "permanent": "Marcus bleibt in jeder Konversation. Füge Spezialisten hinzu oder erwähne sie mit @.",
       "removeConfirm": "{{name}} aus dieser Konversation entfernen?",
+      "removeLabel": "Entfernen",
       "roleLead": "Lead"
     },
     "addMember": {
@@ -1219,7 +1281,8 @@
       "startButton": "Konversation starten",
       "starterName": "Marcus",
       "starterGreeting": "Hi! Erzähl mir, was du dir vorstellst — eine Feature-Idee, ein Bug-Hunt oder ein neues Projekt. Ich hole die Spezialisten dazu, die du brauchst.",
-      "tip": "Tipp: Tippe <code>@Lena</code>, um die Frontend-Lead direkt anzusprechen.",
+      "tipBefore": "Tipp: tippe",
+      "tipAfter": "um ein Teammitglied direkt anzusprechen.",
       "prompts": [
         "Was ist WISP und wie nutze ich es?",
         "Neues Projekt starten: ",
@@ -1230,7 +1293,17 @@
       "typing": "Manager schreibt…",
       "noResponse": "(keine Antwort)",
       "interrupted": "unterbrochen",
-      "timeout": "Timeout (180s)"
+      "timeout": "Zeitüberschreitung",
+      "error": {
+        "generic": "Fehler",
+        "timeout": "Zeitüberschreitung",
+        "pending": "Unterbrochen",
+        "budget_exceeded": "Budget überschritten",
+        "max_turns": "Max. Turns erreicht",
+        "aborted": "Abgebrochen",
+        "failed": "Fehlgeschlagen",
+        "error": "Fehler"
+      }
     },
     "action": {
       "projectCreated": "Projekt erstellt · {{name}}",
@@ -1256,13 +1329,14 @@
     "loading": "Lade Agents…",
     "noAgents": "Noch keine Agents",
     "noAgentsBody": "Erstelle deinen ersten Agent, um zu chatten.",
+    "headerLabel": "Agent",
     "manageAgents": "Agents verwalten →",
     "noThreads": "keine Threads — schreibe unten, um einen zu starten.",
     "startConversation": "Schreibe eine Nachricht unten, um die Konversation zu starten.",
     "agentThinking": "{{name}} denkt nach…",
     "composerLabel": "Nachricht an {{name}}",
     "selectAgent": "Agent auswählen",
-    "cmdEnter": "Strg+Eingabe",
+    "sendHint": "Enter ↵",
     "placeholder": {
       "reply": "antworten…",
       "newThread": "neuen Thread mit @{{name}} starten",
@@ -1423,6 +1497,9 @@
     "title": "Focusboard",
     "pickProject": "Wähle ein Projekt",
     "noProjects": "Noch keine Projekte",
+    "runStatus": {
+      "none": "Kein Run"
+    },
     "chat": {
       "title": "Chat"
     },

@@ -87,20 +87,19 @@ export function AutopilotToggle({
     );
   };
 
-  let buttonLabel: string;
-  if (toggle.isPending) {
-    buttonLabel = t('runView.autopilot.saving');
-  } else if (dirty) {
-    buttonLabel = t('runView.autopilot.save');
-  } else {
-    buttonLabel = t('runView.autopilot.saved');
-  }
-  const buttonDisabled = toggle.isPending || !dirty;
+  const buttonLabel = toggle.isPending
+    ? t('runView.autopilot.saving')
+    : t('runView.autopilot.save');
 
   return (
     <div className="flex items-center gap-3 rounded border border-border bg-card p-3 text-sm">
       <label className="flex items-center gap-2">
-        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
+          className="focus-ring rounded"
+        />
         <span className="font-medium">{t('runView.autopilot.label')}</span>
       </label>
       <span
@@ -114,7 +113,7 @@ export function AutopilotToggle({
         type="number"
         min={1}
         placeholder={t('runView.autopilot.budgetMinPlaceholder')}
-        className="w-24 rounded border border-border bg-background px-2 py-1"
+        className="focus-ring w-24 rounded border border-border bg-background px-2 py-1"
         value={budgetMin}
         onChange={(e) => setBudgetMin(e.target.value)}
         disabled={!enabled}
@@ -124,22 +123,35 @@ export function AutopilotToggle({
         type="number"
         min={1}
         placeholder={t('runView.autopilot.budgetTokensPlaceholder')}
-        className="w-32 rounded border border-border bg-background px-2 py-1"
+        className="focus-ring w-32 rounded border border-border bg-background px-2 py-1"
         value={budgetTok}
         onChange={(e) => setBudgetTok(e.target.value)}
         disabled={!enabled}
         aria-label={t('runView.autopilot.budgetTokensPlaceholder')}
       />
-      <button
-        onClick={save}
-        disabled={buttonDisabled}
-        data-testid="autopilot-save"
-        data-dirty={dirty}
-        className="inline-flex items-center gap-1.5 rounded bg-primary px-3 py-1 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-60"
-      >
-        {!toggle.isPending && !dirty && <Check className="h-3.5 w-3.5" />}
-        {buttonLabel}
-      </button>
+      {!dirty && !toggle.isPending ? (
+        // Resting/clean state: a quiet confirmation, not a disabled primary
+        // button (which reads as a broken action). The dirty state below is
+        // the only actionable affordance.
+        <span
+          data-testid="autopilot-save"
+          data-dirty={false}
+          className="inline-flex items-center gap-1.5 px-3 py-1 text-muted-foreground"
+        >
+          <Check className="h-3.5 w-3.5" />
+          {t('runView.autopilot.saved')}
+        </span>
+      ) : (
+        <button
+          onClick={save}
+          disabled={toggle.isPending}
+          data-testid="autopilot-save"
+          data-dirty={dirty}
+          className="focus-ring inline-flex items-center gap-1.5 rounded bg-primary px-3 py-1 text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-60"
+        >
+          {buttonLabel}
+        </button>
+      )}
     </div>
   );
 }

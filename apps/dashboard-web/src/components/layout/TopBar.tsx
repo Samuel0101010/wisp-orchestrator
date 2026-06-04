@@ -19,7 +19,7 @@ function formatCompactNumber(n: number): string {
   return `${(n / 1_000_000).toFixed(1)}M`;
 }
 
-const ONLINE_TONES = ['coral', 'sky', 'violet', 'mint', 'amber', 'rose'] as const;
+const ONLINE_TONES = ['coral', 'sky', 'mint', 'amber', 'rose'] as const;
 
 function dispatchCmdK() {
   const evt = new KeyboardEvent('keydown', {

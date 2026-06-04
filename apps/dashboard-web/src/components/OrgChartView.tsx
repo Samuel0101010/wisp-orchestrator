@@ -106,6 +106,21 @@ function AgentNode({ data }: NodeProps<AgentNodeData>) {
 
 const NODE_TYPES = { agent: AgentNode };
 
+// Stable empty-data fallback. Inlining this object literal at the `q.data ?? …`
+// call site mints a fresh reference on every render while the query is pending,
+// which busts the `useMemo([data])` below and re-fires the node/edge resync
+// effect each render — driving React Flow's <StoreUpdater> into a "Maximum
+// update depth exceeded" infinite loop (crashes the whole Team-Chart tab via the
+// ErrorBoundary). Hoisting keeps the reference stable so the effect only runs
+// when real data actually arrives.
+const EMPTY_ORG_CHART: OrgChartResponse = {
+  roles: [],
+  edges: [],
+  liveStatus: [],
+  latestPlanId: null,
+  latestRunId: null,
+};
+
 function layoutRoles(
   roles: OrgChartRole[],
   edges: OrgChartEdge[],
@@ -167,13 +182,7 @@ function OrgChartViewInner({ projectId }: OrgChartViewProps) {
   const { t } = useTranslation();
   const q = useOrgChart(projectId);
 
-  const data: OrgChartResponse = q.data ?? {
-    roles: [],
-    edges: [],
-    liveStatus: [],
-    latestPlanId: null,
-    latestRunId: null,
-  };
+  const data: OrgChartResponse = q.data ?? EMPTY_ORG_CHART;
 
   const [selectedRole, setSelectedRole] = useState<OrgChartRole | null>(null);
   const onNodeClick = useCallback((_e: unknown, node: RFNode<AgentNodeData>) => {

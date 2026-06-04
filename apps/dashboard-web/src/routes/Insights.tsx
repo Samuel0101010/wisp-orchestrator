@@ -1,12 +1,22 @@
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, FileText, Activity } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { apiFetch } from '@/api/client';
 import { useRunSummaries } from '@/api/queries';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { EmptyState } from '@/components/ui/empty-state';
-import { statusLabel } from '@/lib/status-labels';
+import { StatusPill } from '@/components/ui/status-pill';
+import { statusLabel, statusMeta } from '@/lib/status-labels';
+
+/**
+ * Prose styling for rendered run-summary Markdown — same token-driven rules
+ * as the chat transcript so headings/bold/lists/code read consistently.
+ */
+const SUMMARY_PROSE =
+  'max-w-prose space-y-2 break-words text-sm leading-relaxed [&_a]:text-info [&_a]:underline [&_code]:rounded [&_code]:bg-foreground/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_h1]:text-base [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-foreground/10 [&_pre]:p-2 [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5';
 
 interface TrajectoryRow {
   id: string;
@@ -39,7 +49,7 @@ function LoadingRows({ rows = 3 }: { rows?: number }) {
 }
 
 export function InsightsRoute() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const trajQ = useQuery<TrajectoryRow[]>({
     queryKey: ['insights', 'trajectories'],
     queryFn: () => apiFetch('/api/insights/trajectories'),
@@ -54,14 +64,27 @@ export function InsightsRoute() {
     <div className="space-y-8">
       <header>
         <h1 className="text-2xl font-semibold">{t('insights.title')}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('insights.trajectoriesTitle')} · {t('insights.summariesTitle')} ·{' '}
-          {t('insights.priorsTitle')}
-        </p>
+        <nav aria-label={t('insights.jumpNav')} className="mt-2 flex flex-wrap gap-2 text-sm">
+          {(
+            [
+              ['#insights-trajectories', 'insights.trajectoriesTitle'],
+              ['#insights-summaries', 'insights.summariesTitle'],
+              ['#insights-priors', 'insights.priorsTitle'],
+            ] as const
+          ).map(([href, key]) => (
+            <a
+              key={href}
+              href={href}
+              className="rounded-md border border-border bg-card px-2.5 py-1 text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {t(key)}
+            </a>
+          ))}
+        </nav>
       </header>
 
       <section className="space-y-2" aria-labelledby="insights-trajectories">
-        <h2 id="insights-trajectories" className="text-lg font-semibold">
+        <h2 id="insights-trajectories" className="scroll-mt-20 text-lg font-semibold">
           {t('insights.trajectoriesTitle')}
         </h2>
         {trajQ.isLoading ? (
@@ -93,26 +116,30 @@ export function InsightsRoute() {
                 </tr>
               </thead>
               <tbody>
-                {trajQ.data?.map((traj) => (
-                  <tr key={traj.id} className="border-t border-border">
-                    <td className="px-3 py-1.5 text-xs tabular-nums">
-                      {new Date(traj.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <span
-                        className={
-                          traj.outcome === 'success'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-destructive'
-                        }
-                      >
-                        {statusLabel(traj.outcome, t)}
-                      </span>
-                    </td>
-                    <td className="max-w-md truncate px-3 py-1.5">{traj.prompt}</td>
-                    <td className="px-3 py-1.5 font-mono tabular-nums">{traj.tokensTotal}</td>
-                  </tr>
-                ))}
+                {trajQ.data?.map((traj) => {
+                  const meta = statusMeta(traj.outcome);
+                  const OutcomeIcon = meta.Icon;
+                  return (
+                    <tr key={traj.id} className="border-t border-border">
+                      <td className="px-3 py-1.5 text-xs tabular-nums">
+                        {new Date(traj.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <StatusPill
+                          tone={meta.tone}
+                          live={meta.live}
+                          icon={<OutcomeIcon className="size-3" />}
+                        >
+                          {statusLabel(traj.outcome, t)}
+                        </StatusPill>
+                      </td>
+                      <td className="max-w-md truncate px-3 py-1.5">{traj.prompt}</td>
+                      <td className="px-3 py-1.5 font-mono tabular-nums">
+                        {traj.tokensTotal.toLocaleString(i18n.language)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -120,7 +147,7 @@ export function InsightsRoute() {
       </section>
 
       <section className="space-y-2" aria-labelledby="insights-summaries">
-        <h2 id="insights-summaries" className="text-lg font-semibold">
+        <h2 id="insights-summaries" className="scroll-mt-20 text-lg font-semibold">
           {t('insights.summariesTitle')}
         </h2>
         {summariesQ.isLoading ? (
@@ -146,7 +173,9 @@ export function InsightsRoute() {
                   <span>{new Date(s.createdAt).toLocaleString()}</span>
                   <span className="font-mono">{s.runId.slice(0, 8)}</span>
                 </div>
-                <pre className="whitespace-pre-wrap font-sans leading-relaxed">{s.summaryMd}</pre>
+                <div className={SUMMARY_PROSE}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.summaryMd}</ReactMarkdown>
+                </div>
               </li>
             ))}
           </ul>
@@ -154,7 +183,7 @@ export function InsightsRoute() {
       </section>
 
       <section className="space-y-2" aria-labelledby="insights-priors">
-        <h2 id="insights-priors" className="text-lg font-semibold">
+        <h2 id="insights-priors" className="scroll-mt-20 text-lg font-semibold">
           {t('insights.priorsTitle')}
         </h2>
         {priorsQ.isLoading ? (
@@ -182,8 +211,16 @@ export function InsightsRoute() {
                   <th className="px-3 py-2">{t('insights.cols.role')}</th>
                   <th className="px-3 py-2">{t('insights.cols.phase')}</th>
                   <th className="px-3 py-2">{t('insights.cols.model')}</th>
-                  <th className="px-3 py-2">α</th>
-                  <th className="px-3 py-2">β</th>
+                  <th className="px-3 py-2 normal-case">
+                    <abbr title={t('insights.cols.alphaTitle')} className="no-underline">
+                      α
+                    </abbr>
+                  </th>
+                  <th className="px-3 py-2 normal-case">
+                    <abbr title={t('insights.cols.betaTitle')} className="no-underline">
+                      β
+                    </abbr>
+                  </th>
                   <th className="px-3 py-2">{t('insights.cols.mean')}</th>
                   <th className="px-3 py-2">{t('insights.cols.samples')}</th>
                 </tr>

@@ -1,18 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Activity } from 'lucide-react';
+import { Activity, CheckCircle2, ChevronRight, Pause } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import {
-  useWorkers,
-  useWorkerRuns,
-  useRunWorker,
-  type WorkerSummary,
-  type WorkerRunRow,
-} from '@/api/queries';
+import { useWorkers, useWorkerRuns, useRunWorker, type WorkerSummary } from '@/api/queries';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { StatusPill } from '@/components/ui/status-pill';
+import { statusLabel, statusMeta } from '@/lib/status-labels';
 
 const MIN_PAINT_MS = 800;
 
@@ -37,12 +33,6 @@ function usePendingPaint(name: string, isApiPending: boolean): boolean {
     return () => clearTimeout(t);
   }, [paintPending, isApiPending, name]);
   return paintPending;
-}
-
-function statusColor(status: WorkerRunRow['status']): string {
-  if (status === 'ok') return 'text-emerald-600 dark:text-emerald-400';
-  if (status === 'failed') return 'text-destructive';
-  return 'text-amber-600 dark:text-amber-400';
 }
 
 function fmtTs(ts: number | string | null | undefined): string {
@@ -90,27 +80,44 @@ function RunsPanel({ name }: { name: string }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.id} className="border-b border-border last:border-0">
-              <td className="py-1.5 pr-4 font-mono text-xs text-muted-foreground">
-                {r.id.slice(0, 8)}
-              </td>
-              <td className="py-1.5 pr-4 text-xs tabular-nums">{fmtTs(r.startedAt)}</td>
-              <td className="py-1.5 pr-4 text-xs tabular-nums">{fmtTs(r.endedAt)}</td>
-              <td className={`py-1.5 pr-4 text-xs font-medium ${statusColor(r.status)}`}>
-                {r.status}
-              </td>
-              <td className="py-1.5 font-mono text-xs text-muted-foreground">
-                {r.errorReason ? (
-                  <span className="text-destructive">{r.errorReason}</span>
-                ) : r.resultJson != null ? (
-                  <span>{JSON.stringify(r.resultJson).slice(0, 120)}</span>
-                ) : (
-                  '—'
-                )}
-              </td>
-            </tr>
-          ))}
+          {rows.map((r) => {
+            const meta = statusMeta(r.status);
+            const StatusIcon = meta.Icon;
+            const resultStr = r.resultJson != null ? JSON.stringify(r.resultJson) : null;
+            return (
+              <tr key={r.id} className="border-b border-border last:border-0">
+                <td className="py-1.5 pr-4 font-mono text-xs text-muted-foreground">
+                  {r.id.slice(0, 8)}
+                </td>
+                <td className="py-1.5 pr-4 text-xs tabular-nums">{fmtTs(r.startedAt)}</td>
+                <td className="py-1.5 pr-4 text-xs tabular-nums">{fmtTs(r.endedAt)}</td>
+                <td className="py-1.5 pr-4">
+                  <StatusPill
+                    tone={meta.tone}
+                    icon={<StatusIcon className={meta.live ? 'size-3 animate-spin' : 'size-3'} />}
+                  >
+                    {statusLabel(r.status, t)}
+                  </StatusPill>
+                </td>
+                <td className="py-1.5 font-mono text-xs text-muted-foreground">
+                  {r.errorReason ? (
+                    <span
+                      className="block max-w-[32ch] truncate text-destructive"
+                      title={r.errorReason}
+                    >
+                      {r.errorReason}
+                    </span>
+                  ) : resultStr != null ? (
+                    <span className="block max-w-[40ch] truncate" title={resultStr}>
+                      {resultStr}
+                    </span>
+                  ) : (
+                    '—'
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -130,10 +137,7 @@ function RunButton({
   const paintPending = usePendingPaint(name, isApiPending);
   return (
     <button
-      onClick={(e) => {
-        e.stopPropagation();
-        onRun();
-      }}
+      onClick={onRun}
       disabled={paintPending}
       aria-label={t('workers.actions.runWorker', { name })}
       className="rounded border border-border bg-card px-3 py-1 text-xs hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
@@ -148,6 +152,15 @@ export function WorkersRoute() {
   const workersQ = useWorkers();
   const runWorker = useRunWorker();
   const [selected, setSelected] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Surface the run-history panel when a worker is selected — it renders below
+  // the table and would otherwise stay off-screen. Honor reduced-motion.
+  useEffect(() => {
+    if (!selected || !panelRef.current) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    panelRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+  }, [selected]);
 
   if (workersQ.isLoading) {
     return (
@@ -211,28 +224,43 @@ export function WorkersRoute() {
                 <tr
                   key={w.name}
                   className={
-                    'cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-accent/40 ' +
-                    (selected === w.name ? 'bg-accent/60' : '')
+                    'border-b border-border last:border-0 transition-colors ' +
+                    (selected === w.name ? 'bg-accent/60' : 'hover:bg-accent/40')
                   }
-                  onClick={() => setSelected(selected === w.name ? null : w.name)}
                 >
-                  <td className="px-4 py-2.5 font-mono font-semibold">{w.name}</td>
+                  <td className="px-4 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(selected === w.name ? null : w.name)}
+                      aria-expanded={selected === w.name}
+                      aria-controls={`worker-history-${w.name}`}
+                      className="focus-ring -mx-1 flex items-center gap-1.5 rounded px-1 font-mono font-semibold"
+                    >
+                      <ChevronRight
+                        className={
+                          'size-3.5 shrink-0 text-muted-foreground transition-transform ' +
+                          (selected === w.name ? 'rotate-90' : '')
+                        }
+                        aria-hidden
+                      />
+                      {w.name}
+                    </button>
+                  </td>
                   <td className="px-4 py-2.5 font-mono text-xs2 tracking-wide text-muted-foreground">
                     {w.cronSpec}
                   </td>
                   <td className="px-4 py-2.5">
                     {w.enabled ? (
-                      <span className="rounded px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      <StatusPill tone="success" icon={<CheckCircle2 className="size-3" />}>
                         {t('workers.badge.enabled')}
-                      </span>
+                      </StatusPill>
                     ) : (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span
-                            tabIndex={0}
-                            className="rounded px-2 py-0.5 text-xs font-medium bg-secondary text-secondary-foreground cursor-help"
-                          >
-                            {t('workers.badge.disabled')}
+                          <span tabIndex={0} className="cursor-help">
+                            <StatusPill tone="neutral" icon={<Pause className="size-3" />}>
+                              {t('workers.badge.disabled')}
+                            </StatusPill>
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>{t('workers.disabledTooltip')}</TooltipContent>
@@ -264,9 +292,14 @@ export function WorkersRoute() {
       )}
 
       {selected && (
-        <div className="space-y-3 rounded-md border border-border bg-card p-4">
+        <div
+          ref={panelRef}
+          id={`worker-history-${selected}`}
+          className="space-y-3 rounded-md border border-border bg-card p-4"
+        >
           <h2 className="text-sm font-semibold">
-            {t('workers.history')} — <span className="font-mono">{selected}</span>
+            {t('workers.history')} <span className="text-muted-foreground">·</span>{' '}
+            <span className="font-mono">{selected}</span>
           </h2>
           <RunsPanel name={selected} />
         </div>

@@ -58,6 +58,7 @@ import { useThreadStream } from '@/api/ws';
 import type { Agent, AgentMessage, AgentThread } from '@wisp/schemas';
 import { Avatar } from '@/components/Avatar';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { IconButton } from '@/components/ui/icon-button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -209,6 +210,8 @@ export function ChatRoute() {
     const filtered = q === '' ? list : list.filter((p) => p.name.toLowerCase().includes(q));
     return filtered.slice(0, 8);
   }, [detail.data?.participants, mentionQuery]);
+  // The @-mention popup is open. Drives the composer's combobox ARIA state.
+  const mentionOpen = mentionQuery !== null && mentionCandidates.length > 0;
 
   // Update mention picker state from the latest composer text + caret.
   function syncMentionState(text: string, caret: number) {
@@ -545,12 +548,14 @@ export function ChatRoute() {
               {mentionQuery !== null && mentionCandidates.length > 0 && (
                 <div
                   role="listbox"
-                  aria-label="Mention picker"
+                  id="chat-mention-listbox"
+                  aria-label={t('chat.composer.mentionPicker')}
                   className="absolute bottom-full left-2 z-10 mb-1 w-64 overflow-hidden rounded-lg border bg-popover shadow-lg"
                 >
                   {mentionCandidates.map((p, idx) => (
                     <button
                       key={p.agentId}
+                      id={`chat-mention-option-${idx}`}
                       type="button"
                       role="option"
                       aria-selected={idx === mentionIndex}
@@ -580,6 +585,13 @@ export function ChatRoute() {
                 id="chat-composer"
                 name="chat-composer"
                 aria-label={t('chat.composer.ariaLabel')}
+                role={mentionOpen ? 'combobox' : undefined}
+                aria-autocomplete={mentionOpen ? 'list' : undefined}
+                aria-expanded={mentionOpen ? true : undefined}
+                aria-controls={mentionOpen ? 'chat-mention-listbox' : undefined}
+                aria-activedescendant={
+                  mentionOpen ? `chat-mention-option-${mentionIndex}` : undefined
+                }
                 value={composer}
                 onChange={onComposerChange}
                 onKeyUp={(e) => {
@@ -713,11 +725,9 @@ function ThreadRow({
   onDelete: () => void;
 }) {
   const { t } = useTranslation();
-  const [hover, setHover] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   return (
     <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       className={`group flex cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-accent ${
         active ? 'bg-accent' : ''
       }`}
@@ -729,20 +739,27 @@ function ThreadRow({
         </div>
         <div className="text-2xs text-muted-foreground">{fmtRel(thread.updatedAt, lang)}</div>
       </div>
-      {hover && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (confirm(t('chat.thread.deleteConfirm'))) {
-              onDelete();
-            }
-          }}
-          className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-          title={t('chat.thread.deleteLabel')}
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
-      )}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setConfirmOpen(true);
+        }}
+        className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
+        title={t('chat.thread.deleteLabel')}
+        aria-label={t('chat.thread.deleteLabel')}
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t('chat.thread.deleteLabel')}
+        description={t('chat.thread.deleteConfirm')}
+        confirmLabel={t('chat.thread.deleteLabel')}
+        cancelLabel={t('buttons.cancel')}
+        destructive
+        onConfirm={onDelete}
+      />
     </div>
   );
 }
@@ -759,6 +776,7 @@ function ParticipantRow({
   onRemove: (() => Promise<void>) | null;
 }) {
   const { t } = useTranslation();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   return (
     <div className="group flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent">
       <Avatar
@@ -777,16 +795,24 @@ function ParticipantRow({
         </span>
       )}
       {onRemove && (
-        <IconButton
-          icon={<X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />}
-          label={t('tooltips.removeMember')}
-          className="opacity-0 transition-opacity group-hover:opacity-100"
-          onClick={() => {
-            if (confirm(t('chat.participants.removeConfirm', { name: participant.name }))) {
-              void onRemove();
-            }
-          }}
-        />
+        <>
+          <IconButton
+            icon={<X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />}
+            label={t('tooltips.removeMember')}
+            className="opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+            onClick={() => setConfirmOpen(true)}
+          />
+          <ConfirmDialog
+            open={confirmOpen}
+            onOpenChange={setConfirmOpen}
+            title={t('chat.participants.removeLabel')}
+            description={t('chat.participants.removeConfirm', { name: participant.name })}
+            confirmLabel={t('chat.participants.removeLabel')}
+            cancelLabel={t('buttons.cancel')}
+            destructive
+            onConfirm={() => void onRemove()}
+          />
+        </>
       )}
     </div>
   );
@@ -798,7 +824,7 @@ function EmptyTranscript({ onStart }: { onStart: () => void }) {
   const { t } = useTranslation();
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 py-12 text-center">
-      <Sparkles className="h-10 w-10 text-info" />
+      <MessageSquarePlus className="h-10 w-10 text-info" />
       <div className="text-lg font-semibold">{t('chat.greeter.title')}</div>
       <p className="max-w-md text-sm text-muted-foreground">{t('chat.greeter.body')}</p>
       <Button onClick={onStart}>
@@ -825,10 +851,11 @@ function ConversationStarter({
         <div className="space-y-2 text-sm">
           <div className="font-semibold">{t('chat.greeter.starterName')}</div>
           <p className="text-muted-foreground">{t('chat.greeter.starterGreeting')}</p>
-          <p
-            className="text-xs text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1"
-            dangerouslySetInnerHTML={{ __html: t('chat.greeter.tip') }}
-          />
+          <p className="text-xs text-muted-foreground">
+            {t('chat.greeter.tipBefore')}{' '}
+            <code className="rounded bg-muted px-1">@{manager.name}</code>{' '}
+            {t('chat.greeter.tipAfter')}
+          </p>
           {promptList.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-1">
               {promptList.map((p) => (
@@ -988,7 +1015,9 @@ function MessageBlock({
             message.errorReason !== 'pending' &&
             message.errorReason !== 'timeout' && (
               <span className="rounded bg-destructive/20 px-1 text-3xs uppercase text-foreground">
-                {message.errorReason}
+                {t(`chat.transcript.error.${message.errorReason}`, {
+                  defaultValue: t('chat.transcript.error.generic'),
+                })}
               </span>
             )}
         </div>

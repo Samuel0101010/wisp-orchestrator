@@ -79,54 +79,8 @@ interface KpiSpec {
   value: string;
   suffix?: string;
   trend: ToneTrend;
-  spark: number[];
-  tone: '' | 'coral' | 'mint' | 'violet' | 'amber' | 'rose';
+  tone: '' | 'coral' | 'mint' | 'amber' | 'rose';
   live?: boolean;
-}
-
-function KpiSpark({ points, tone }: { points: number[]; tone: KpiSpec['tone'] }) {
-  if (!points?.length) return null;
-  const w = 200;
-  const h = 36;
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const range = max - min || 1;
-  const step = points.length > 1 ? w / (points.length - 1) : w;
-  const path = points
-    .map((v, i) => `${i === 0 ? 'M' : 'L'} ${i * step} ${h - ((v - min) / range) * h}`)
-    .join(' ');
-  const area = `${path} L ${w} ${h} L 0 ${h} Z`;
-  const colorVar = {
-    coral: 'var(--coral)',
-    mint: 'var(--mint)',
-    violet: 'var(--violet)',
-    amber: 'var(--amber)',
-    rose: 'var(--rose)',
-    '': 'var(--coral)',
-  }[tone];
-  // Deterministic per-tone — sparks of the same tone share one gradient
-  // definition. Math.random() here used to leak a fresh <linearGradient>
-  // node into the SVG on every render.
-  const gid = `wisp-spark-${tone || 'coral'}`;
-  const last = points[points.length - 1] ?? 0;
-  return (
-    <svg
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-      style={{ display: 'block', width: '100%', height: h }}
-      aria-hidden
-    >
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={colorVar} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={colorVar} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#${gid})`} />
-      <path d={path} fill="none" stroke={colorVar} strokeWidth="1.6" />
-      <circle cx={w} cy={h - ((last - min) / range) * h} r="2.5" fill={colorVar} />
-    </svg>
-  );
 }
 
 function KpiCard({ kpi, delay = 0 }: { kpi: KpiSpec; delay?: number }) {
@@ -175,7 +129,6 @@ function KpiCard({ kpi, delay = 0 }: { kpi: KpiSpec; delay?: number }) {
           <span className="wisp-dot coral pulse" style={{ width: 10, height: 10, marginLeft: 6 }} />
         )}
       </div>
-      <KpiSpark points={kpi.spark} tone={kpi.tone} />
     </div>
   );
 }
@@ -247,8 +200,8 @@ function HeroHeader({
           className="m-0"
           style={{
             fontFamily: 'var(--f-display)',
-            fontSize: 44,
-            lineHeight: 1.08,
+            fontSize: 28,
+            lineHeight: 1.15,
             fontWeight: 400,
             letterSpacing: '-0.02em',
           }}
@@ -412,36 +365,8 @@ export function Home() {
   const totalTokens = summary.data?.totalTokens ?? 0;
   const avgDuration = summary.data?.avgDurationMs ?? 0;
 
-  // Compute spark series for KPIs from `tokensByDay`.
+  // Last-7 token series drives only the tokens KPI trend arrow.
   const tokenSpark = useMemo(() => tokensByDay.map((d) => d?.tokens ?? 0).slice(-7), [tokensByDay]);
-  // Daily totals: fallback to a flat 0-series so the spark stays a rendered shape.
-  const runsSpark = useMemo(() => {
-    const buckets = Array.from({ length: 7 }, () => 0);
-    (globalRuns.data ?? []).forEach((r) => {
-      if (!r.startedAt) return;
-      const days = Math.floor(
-        (Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000,
-      );
-      if (days >= 0 && days < 7) buckets[6 - days] = (buckets[6 - days] ?? 0) + 1;
-    });
-    return buckets;
-  }, [globalRuns.data]);
-  const successSpark = useMemo(() => {
-    // approximated trend: success-rate per day from the runs window
-    const ok = Array.from({ length: 7 }, () => 0);
-    const tot = Array.from({ length: 7 }, () => 0);
-    (globalRuns.data ?? []).forEach((r) => {
-      if (!r.startedAt) return;
-      const days = Math.floor(
-        (Date.now() - new Date(r.startedAt as string).getTime()) / 86_400_000,
-      );
-      if (days < 0 || days >= 7) return;
-      const idx = 6 - days;
-      tot[idx] = (tot[idx] ?? 0) + 1;
-      if (classify(r) === 'success') ok[idx] = (ok[idx] ?? 0) + 1;
-    });
-    return ok.map((o, i) => (tot[i] ? Math.round((o / (tot[i] ?? 1)) * 100) : 0));
-  }, [globalRuns.data]);
 
   const kpis: KpiSpec[] = [
     {
@@ -449,7 +374,6 @@ export function Home() {
       label: t('home.kpis.activeRuns', 'Live runs'),
       value: String(activeCount),
       trend: activeCount > 0 ? 'up' : 'flat',
-      spark: runsSpark.length ? runsSpark : [0, 0, 0, 0, 0, 0, 0],
       tone: 'coral',
       live: activeCount > 0,
     },
@@ -458,7 +382,6 @@ export function Home() {
       label: t('home.kpis.today', 'Today'),
       value: String(totalToday),
       trend: totalToday > 0 ? 'up' : 'flat',
-      spark: runsSpark.length ? runsSpark : [0, 0, 0, 0, 0, 0, 0],
       tone: '',
     },
     {
@@ -466,8 +389,7 @@ export function Home() {
       label: t('home.kpis.tokensWindow', 'Tokens · {{window}}', { window: windowLabel }),
       value: formatTokensCompact(totalTokens),
       trend: tokenSpark.at(-1)! > (tokenSpark.at(-2) ?? 0) ? 'up' : 'flat',
-      spark: tokenSpark.length ? tokenSpark : [0, 0, 0, 0, 0, 0, 0],
-      tone: 'violet',
+      tone: '',
     },
     {
       id: 'success',
@@ -475,7 +397,6 @@ export function Home() {
       value: `${successPercent}`,
       suffix: '%',
       trend: successPercent >= 80 ? 'up' : successPercent >= 50 ? 'flat' : 'down',
-      spark: successSpark.length ? successSpark : [0, 0, 0, 0, 0, 0, 0],
       tone: successPercent >= 80 ? 'mint' : successPercent >= 50 ? '' : 'rose',
     },
     {
@@ -483,7 +404,6 @@ export function Home() {
       label: t('home.kpis.avgDuration', 'Avg duration · {{window}}', { window: windowLabel }),
       value: formatDuration(avgDuration),
       trend: 'flat',
-      spark: runsSpark.length ? runsSpark : [0, 0, 0, 0, 0, 0, 0],
       tone: '',
     },
   ];
@@ -614,7 +534,7 @@ export function Home() {
                   {t('home.charts.tokensIn', 'in')}
                 </span>
                 <span className="wisp-chip">
-                  <span className="wisp-dot violet" />
+                  <span className="wisp-dot dim" />
                   {t('home.charts.tokensOut', 'out')}
                 </span>
               </div>

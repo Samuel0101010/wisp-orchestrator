@@ -38,8 +38,11 @@
   /* ink — warm off-white */
   --wisp-ink: rgba(246, 240, 230, 0.98);
   --wisp-ink-2: rgba(246, 240, 230, 0.82);
-  --wisp-ink-3: rgba(246, 240, 230, 0.64);
-  --wisp-ink-4: rgba(246, 240, 230, 0.46);
+  /* ink-3/ink-4 carry small-text captions (t-eyebrow 10px, t-faint). On the
+     flat dark base (the aurora wash that used to lift them is gone) they must
+     clear WCAG AA 4.5:1 on their own — bumped from 0.64/0.46. */
+  --wisp-ink-3: rgba(246, 240, 230, 0.7);
+  --wisp-ink-4: rgba(246, 240, 230, 0.56);
   --wisp-ink-5: rgba(246, 240, 230, 0.24);
 
   /* accents — desaturated, Claude-like. h/s/l components so live tweaks
@@ -54,11 +57,6 @@
   --mint-s: 30%;
   --mint-l: 54%;
   --mint: hsl(var(--mint-h) var(--mint-s) var(--mint-l));
-
-  --violet-h: 260;
-  --violet-s: 22%;
-  --violet-l: 62%;
-  --violet: hsl(var(--violet-h) var(--violet-s) var(--violet-l));
 
   --amber-h: 32;
   --amber-s: 60%;
@@ -83,7 +81,6 @@
   --wisp-shadow-pop: 0 12px 50px -10px hsl(var(--coral-h) var(--coral-s) 55% / 0.32);
   --wisp-glow-coral: 0 0 30px -6px hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.45);
   --wisp-glow-mint: 0 0 30px -6px hsl(var(--mint-h) var(--mint-s) var(--mint-l) / 0.4);
-  --wisp-glow-violet: 0 0 30px -6px hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.4);
 
   /* radius */
   --r-1: 8px;
@@ -152,67 +149,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Aurora background — calmer warm radial wash + drifting coral accent + grain. */
+/* App background — flat base wash (DESIGN.md: no gradient / aurora / mesh). */
 .wisp-aurora-root {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
-  background:
-    radial-gradient(
-      ellipse 70% 50% at 85% -5%,
-      hsl(var(--coral-h) 40% 25% / 0.42),
-      transparent 55%
-    ),
-    radial-gradient(ellipse 60% 50% at 0% 110%, hsl(30 25% 14% / 0.55), transparent 60%),
-    var(--wisp-bg-0);
+  /* Flat base. DESIGN.md forbids gradient/aurora/mesh backgrounds
+     ("Aurora im Background = nicht okay") — no radial wash, drift, or grain. */
+  background: var(--wisp-bg-0);
   transition: background 0.4s var(--wisp-easing);
-}
-[data-theme='light'] .wisp-aurora-root {
-  background:
-    radial-gradient(
-      ellipse 70% 50% at 85% -5%,
-      hsl(var(--coral-h) 80% 88% / 0.55),
-      transparent 55%
-    ),
-    radial-gradient(ellipse 60% 50% at 0% 110%, hsl(38 50% 92% / 0.7), transparent 60%),
-    var(--wisp-bg-0);
-}
-.wisp-aurora-accent {
-  position: absolute;
-  top: -10%;
-  right: -10%;
-  width: 60vw;
-  height: 60vw;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle at center,
-    hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.08) 0%,
-    transparent 60%
-  );
-  filter: blur(60px);
-  animation: wisp-drift 44s ease-in-out infinite;
-}
-[data-theme='light'] .wisp-aurora-accent {
-  background: radial-gradient(
-    circle at center,
-    hsl(var(--coral-h) var(--coral-s) var(--coral-l) / 0.1) 0%,
-    transparent 60%
-  );
-}
-.wisp-aurora-grain {
-  position: absolute;
-  inset: -20px;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-  background-size: 160px 160px;
-  opacity: 0.32;
-  mix-blend-mode: overlay;
-}
-[data-theme='light'] .wisp-aurora-grain {
-  opacity: 0.55;
-  mix-blend-mode: multiply;
-  filter: invert(1);
 }
 
 /* --- utilities ---------------------------------------------------------- */
@@ -242,15 +189,6 @@ body {
 }
 
 /* keyframes */
-@keyframes wisp-drift {
-  0%,
-  100% {
-    transform: translate3d(-6%, -4%, 0) scale(1.05);
-  }
-  50% {
-    transform: translate3d(6%, 3%, 0) scale(1);
-  }
-}
 @keyframes wisp-halo {
   0% {
     transform: scale(0.6);
@@ -295,6 +233,27 @@ body {
   animation: wisp-fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
+/* Honor the OS "reduce motion" setting everywhere: neutralize all animations
+   (halo pulse, fade-up/in, bar-fill, border-beam, …) and transitions.
+   DESIGN.md: "Reduced-Motion durchgehend respektiert … alle non-essential
+   Auto-Animations werden no-op." */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    /* Zero the delay too: staggered entry animations use `backwards` fill,
+       which otherwise holds the element at its (opacity:0) start frame for the
+       whole delay — a jarring flash for reduced-motion users, and it leaves
+       text below AA contrast mid-hold. With delay:0 the element settles to its
+       end state immediately. */
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* status dot */
 .wisp-dot {
   position: relative;
@@ -317,10 +276,6 @@ body {
 .wisp-dot.rose {
   background: var(--rose);
   box-shadow: 0 0 0 2px hsl(var(--rose-h) var(--rose-s) var(--rose-l) / 0.18);
-}
-.wisp-dot.violet {
-  background: var(--violet);
-  box-shadow: 0 0 0 2px hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.18);
 }
 .wisp-dot.sky {
   background: var(--sky);
@@ -379,11 +334,6 @@ body {
   color: hsl(var(--rose-h) var(--rose-s) 80%);
   border-color: hsl(var(--rose-h) var(--rose-s) var(--rose-l) / 0.3);
 }
-.wisp-chip.violet {
-  background: hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.14);
-  color: hsl(var(--violet-h) var(--violet-s) 82%);
-  border-color: hsl(var(--violet-h) var(--violet-s) var(--violet-l) / 0.3);
-}
 [data-theme='light'] .wisp-chip.solid {
   color: #f6f3eb;
 }
@@ -398,9 +348,6 @@ body {
 }
 [data-theme='light'] .wisp-chip.rose {
   color: hsl(var(--rose-h) 50% 36%);
-}
-[data-theme='light'] .wisp-chip.violet {
-  color: hsl(var(--violet-h) 32% 36%);
 }
 
 /* buttons */
@@ -454,9 +401,20 @@ body {
 }
 .wisp-btn.icon {
   padding: 6px;
-  width: 30px;
-  height: 30px;
+  /* DESIGN.md touch-target floor: >=36x36 for icon buttons. */
+  width: 36px;
+  height: 36px;
   justify-content: center;
+}
+
+/* Visible keyboard focus (DESIGN.md: 2px ring, >=3:1 contrast). Mouse clicks
+   stay clean via :focus-visible. The `.focus-ring` utility is for custom or
+   native controls that otherwise suppress their outline. */
+.wisp-btn:focus-visible,
+.wisp-nav-item:focus-visible,
+.focus-ring:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
 }
 
 /* text helpers */
@@ -487,6 +445,14 @@ body {
   font-size: 11px;
   color: var(--wisp-ink-3);
   letter-spacing: 0.04em;
+}
+
+/* Form placeholders. Tailwind's default (currentColor at 50%) lands right on
+   the WCAG AA 4.5:1 edge on the flat dark base — give it an explicit muted ink
+   token with margin so every input's placeholder clears AA deterministically. */
+::placeholder {
+  color: var(--wisp-ink-4);
+  opacity: 1;
 }
 
 /* hover-lift */
@@ -593,13 +559,6 @@ body {
     90deg,
     var(--mint),
     hsl(calc(var(--mint-h) + 8) var(--mint-s) calc(var(--mint-l) - 10%))
-  );
-}
-.wisp-bar.violet > i {
-  background: linear-gradient(
-    90deg,
-    var(--violet),
-    hsl(calc(var(--violet-h) + 18) var(--violet-s) calc(var(--violet-l) - 5%))
   );
 }
 .wisp-bar.amber > i {
@@ -710,14 +669,6 @@ body {
     hsl(calc(var(--mint-h) + 8) var(--mint-s) calc(var(--mint-l) - 15%))
   );
   color: #06231d;
-}
-.wisp-av.violet {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--violet-h) var(--violet-s) calc(var(--violet-l) - 5%)),
-    hsl(calc(var(--violet-h) + 18) var(--violet-s) calc(var(--violet-l) - 15%))
-  );
-  color: #14082b;
 }
 .wisp-av.amber {
   background: linear-gradient(

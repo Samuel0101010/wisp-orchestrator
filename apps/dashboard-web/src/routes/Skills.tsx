@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Wrench } from 'lucide-react';
+import { Wrench, SearchX } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useSkills, useReloadSkills } from '@/api/queries';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorBanner } from '@/components/ui/error-banner';
@@ -15,19 +16,12 @@ function sourceBucket(source: string): Exclude<SourceFilter, 'all'> {
   return 'seed';
 }
 
-function sourceBadgeClasses(source: string): string {
-  // Tailwind palette per origin so a glance at the page reveals provenance.
-  if (source === 'seed') return 'bg-sky-500/15 text-sky-700 dark:text-sky-300';
-  if (source === 'project') return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300';
-  if (source === 'user') return 'bg-amber-500/15 text-amber-800 dark:text-amber-300';
-  return 'bg-fuchsia-500/15 text-fuchsia-700 dark:text-fuchsia-300';
-}
-
 export function SkillsRoute() {
   const { t } = useTranslation();
   const skillsQ = useSkills();
   const reload = useReloadSkills();
   const [filter, setFilter] = useState<SourceFilter>('all');
+  const [query, setQuery] = useState('');
 
   const skills = useMemo(() => skillsQ.data ?? [], [skillsQ.data]);
   const counts = useMemo(() => {
@@ -35,8 +29,18 @@ export function SkillsRoute() {
     for (const s of skills) c[sourceBucket(s.source)] += 1;
     return c;
   }, [skills]);
-  const visible =
-    filter === 'all' ? skills : skills.filter((s) => sourceBucket(s.source) === filter);
+
+  const q = query.trim().toLowerCase();
+  const visible = useMemo(() => {
+    const bucketed =
+      filter === 'all' ? skills : skills.filter((s) => sourceBucket(s.source) === filter);
+    const searched = q
+      ? bucketed.filter(
+          (s) => s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
+        )
+      : bucketed;
+    return [...searched].sort((a, b) => a.name.localeCompare(b.name));
+  }, [skills, filter, q]);
 
   if (skillsQ.isLoading) {
     return (
@@ -81,22 +85,33 @@ export function SkillsRoute() {
             {t('skills.subtitle', { count: skills.length })}
           </p>
         </div>
-        <button
-          onClick={() =>
-            reload.mutate(undefined, {
-              onError: () =>
-                toast({
-                  variant: 'destructive',
-                  title: t('skills.reloadFailed'),
-                  description: t('errors.retryHint'),
-                }),
-            })
-          }
-          disabled={reload.isPending}
-          className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {reload.isPending ? t('skills.reloading') : t('skills.reload')}
-        </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t('skills.searchPlaceholder')}
+            aria-label={t('skills.searchPlaceholder')}
+            className="w-44 rounded-md border bg-background px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-56"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              reload.mutate(undefined, {
+                onError: () =>
+                  toast({
+                    variant: 'destructive',
+                    title: t('skills.reloadFailed'),
+                    description: t('errors.retryHint'),
+                  }),
+              })
+            }
+            disabled={reload.isPending}
+          >
+            {reload.isPending ? t('skills.reloading') : t('skills.reload')}
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-wrap gap-1.5 text-xs" role="tablist" aria-label={t('skills.title')}>
@@ -137,12 +152,28 @@ export function SkillsRoute() {
         })}
       </div>
 
-      {visible.length === 0 ? (
+      {skills.length === 0 ? (
         <EmptyState
           icon={<Wrench className="h-6 w-6" />}
           title={t('skills.emptyTitle')}
-          description={
-            skills.length === 0 ? t('skills.emptyDescription') : t('skills.emptyDescription')
+          description={t('skills.emptyDescription')}
+        />
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={<SearchX className="h-6 w-6" />}
+          title={t('skills.noMatchesTitle')}
+          description={t('skills.noMatchesDescription')}
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setFilter('all');
+                setQuery('');
+              }}
+            >
+              {t('skills.clearFilters')}
+            </Button>
           }
         />
       ) : (
@@ -155,11 +186,11 @@ export function SkillsRoute() {
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-mono text-base font-semibold">{s.name}</h3>
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <span
-                    className={`rounded px-2 py-0.5 text-xs font-medium ${sourceBadgeClasses(s.source)}`}
-                  >
-                    {t(`skills.filter.${sourceBucket(s.source)}`)}
-                  </span>
+                  {filter === 'all' && (
+                    <span className="rounded border border-border bg-card px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      {t(`skills.filter.${sourceBucket(s.source)}`)}
+                    </span>
+                  )}
                   <span className="rounded bg-secondary px-2 py-0.5 text-xs font-medium uppercase text-secondary-foreground">
                     {s.model}
                   </span>
@@ -168,7 +199,7 @@ export function SkillsRoute() {
               <p className="mt-2 text-sm text-muted-foreground">{s.description}</p>
               {s.argumentHint && (
                 <p className="mt-2 font-mono text-xs text-muted-foreground">
-                  args: {s.argumentHint}
+                  {t('skills.argsLabel')} {s.argumentHint}
                 </p>
               )}
               {s.allowedTools.length > 0 ? (
@@ -183,7 +214,7 @@ export function SkillsRoute() {
                   ))}
                 </div>
               ) : (
-                <p className="mt-3 font-mono text-xs italic text-muted-foreground-soft">
+                <p className="mt-3 font-mono text-xs text-muted-foreground">
                   {t('skills.noTools')}
                 </p>
               )}

@@ -13,6 +13,8 @@ import {
   type ProjectRunRow,
 } from '@/api/queries';
 import { Button } from '@/components/ui/button';
+import { StatusPill } from '@/components/ui/status-pill';
+import { statusLabel, statusMeta } from '@/lib/status-labels';
 import { PreviewFrame } from '@/components/PreviewFrame';
 import { AgentChat } from '@/components/AgentChat';
 import { useFocusStore } from '@/store/focus';
@@ -46,27 +48,6 @@ function Kpi({ label, value }: KpiProps): ReactElement {
       <div className="mt-1 text-lg font-semibold tabular-nums">{value}</div>
     </div>
   );
-}
-
-function runStatusTone(status: string | null | undefined): {
-  bg: string;
-  fg: string;
-  label: string;
-} {
-  switch (status) {
-    case 'running':
-      return { bg: 'bg-emerald-500/10', fg: 'text-emerald-400', label: 'läuft' };
-    case 'paused':
-      return { bg: 'bg-amber-500/10', fg: 'text-amber-400', label: 'pausiert' };
-    case 'failed':
-      return { bg: 'bg-rose-500/10', fg: 'text-rose-400', label: 'fehlgeschlagen' };
-    case 'completed':
-      return { bg: 'bg-sky-500/10', fg: 'text-sky-400', label: 'fertig' };
-    case 'cancelled':
-      return { bg: 'bg-muted', fg: 'text-muted-foreground', label: 'abgebrochen' };
-    default:
-      return { bg: 'bg-muted', fg: 'text-muted-foreground', label: 'kein Run' };
-  }
 }
 
 export function Focusboard(): ReactElement {
@@ -112,7 +93,8 @@ export function Focusboard(): ReactElement {
   const cancelRun = useCancelRun(activeRun?.id);
 
   const status = activeRun?.status ?? null;
-  const tone = runStatusTone(status);
+  const statusInfo = statusMeta(status ?? '');
+  const StatusIcon = statusInfo.Icon;
 
   // Live elapsed for running runs.
   const [now, setNow] = useState(() => Date.now());
@@ -139,27 +121,17 @@ export function Focusboard(): ReactElement {
   const tokensOut = runDetail.data?.run.tokensOutTotal ?? activeRun?.tokensOutTotal ?? 0;
   const turns = runDetail.data?.run.turnsTotal ?? activeRun?.turnsTotal ?? 0;
   const tasks = runDetail.data?.tasks ?? [];
-  const tasksDone = tasks.filter((t) => t.status === 'done').length;
-  const tasksFailed = tasks.filter((t) => t.status === 'failed').length;
-  const tasksRunning = tasks.filter((t) => t.status === 'running').length;
-  const tasksPending = tasks.length - tasksDone - tasksFailed - tasksRunning;
+  const tasksDone = tasks.filter((task) => task.status === 'done').length;
 
   if (!projects.data || projects.data.length === 0) {
     return (
       <div className="-m-6 flex h-[calc(100vh-4rem)] items-center justify-center p-12">
         <div className="max-w-md text-center">
           <div className="text-3xs uppercase tracking-wider text-muted-foreground">
-            {t('focus.title', 'Focusboard')}
+            {t('focus.title')}
           </div>
-          <div className="mt-2 text-xl font-semibold">
-            {t('focus.noProjects', 'Noch keine Projekte')}
-          </div>
-          <div className="mt-2 text-sm text-muted-foreground">
-            {t(
-              'focus.noProjectsHint',
-              'Erstelle ein Projekt über die Seitenleiste, dann kannst du es hier scharfschalten.',
-            )}
-          </div>
+          <div className="mt-2 text-xl font-semibold">{t('focus.noProjects')}</div>
+          <div className="mt-2 text-sm text-muted-foreground">{t('focus.noProjectsHint')}</div>
         </div>
       </div>
     );
@@ -169,9 +141,7 @@ export function Focusboard(): ReactElement {
     return (
       <div className="-m-6 flex h-[calc(100vh-4rem)] items-center justify-center p-12">
         <div className="text-sm text-muted-foreground">
-          {project.isError
-            ? t('focus.projectNotFound', 'Projekt nicht gefunden.')
-            : t('focus.pickProject', 'Projekt wählen…')}
+          {project.isError ? t('focus.projectNotFound') : t('focus.pickProject')}
         </div>
       </div>
     );
@@ -182,13 +152,13 @@ export function Focusboard(): ReactElement {
       {/* Header bar */}
       <header className="flex shrink-0 items-center gap-3 border-b bg-card/40 px-4 py-2.5">
         <span className="text-3xs uppercase tracking-wider text-muted-foreground">
-          {t('focus.title', 'Focusboard')}
+          {t('focus.title')}
         </span>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
         <select
           id="focus-project-select"
           name="focus-project-select"
-          aria-label={t('focus.pickProject', 'Projekt wählen')}
+          aria-label={t('focus.pickProject')}
           className="rounded-md border bg-card px-2 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={projectId}
           onChange={(e) => navigate(`/focus/${e.target.value}`)}
@@ -199,12 +169,13 @@ export function Focusboard(): ReactElement {
             </option>
           ))}
         </select>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-3xs font-medium uppercase tracking-wider ${tone.bg} ${tone.fg}`}
+        <StatusPill
+          tone={statusInfo.tone}
+          live={statusInfo.live}
+          icon={<StatusIcon className={statusInfo.live ? 'size-3 animate-spin' : 'size-3'} />}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${tone.fg.replace('text-', 'bg-')}`} />
-          {tone.label}
-        </span>
+          {status ? statusLabel(status, t) : t('focus.runStatus.none')}
+        </StatusPill>
         <span className="text-3xs tabular-nums text-muted-foreground">{fmtDuration(elapsed)}</span>
         <div className="flex-1" />
         <div className="flex items-center gap-1.5">
@@ -216,13 +187,13 @@ export function Focusboard(): ReactElement {
               disabled={pauseRun.isPending}
             >
               <Pause className="mr-1.5 h-3.5 w-3.5" />
-              {t('focus.actions.pause', 'Pausieren')}
+              {t('focus.actions.pause')}
             </Button>
           )}
           {status === 'paused' && (
             <Button size="sm" onClick={() => resumeRun.mutate()} disabled={resumeRun.isPending}>
               <Play className="mr-1.5 h-3.5 w-3.5" />
-              {t('focus.actions.resume', 'Fortsetzen')}
+              {t('focus.actions.resume')}
             </Button>
           )}
           {(status === 'running' || status === 'paused') && (
@@ -233,11 +204,11 @@ export function Focusboard(): ReactElement {
               disabled={cancelRun.isPending}
             >
               <Square className="mr-1.5 h-3.5 w-3.5" />
-              {t('focus.actions.cancel', 'Abbrechen')}
+              {t('focus.actions.cancel')}
             </Button>
           )}
           <Button size="sm" variant="ghost" onClick={() => navigate(`/projects/${projectId}`)}>
-            {t('focus.actions.openFullView', 'Volle Ansicht')}
+            {t('focus.actions.openFullView')}
           </Button>
         </div>
       </header>
@@ -245,43 +216,52 @@ export function Focusboard(): ReactElement {
       {/* Body */}
       <div className="flex min-h-0 flex-1">
         {/* Live run column */}
-        <section className="flex w-[440px] shrink-0 flex-col gap-3 border-r p-4">
+        <section className="flex w-[360px] shrink-0 flex-col gap-3 border-r p-4 xl:w-[440px]">
           <div className="grid grid-cols-2 gap-2">
-            <Kpi label={t('focus.kpi.tokensIn', 'Tokens-In')} value={fmtCompact(tokensIn)} />
-            <Kpi label={t('focus.kpi.tokensOut', 'Tokens-Out')} value={fmtCompact(tokensOut)} />
-            <Kpi label={t('focus.kpi.turns', 'Turns')} value={fmtCompact(turns)} />
+            <Kpi label={t('focus.kpi.tokensIn')} value={fmtCompact(tokensIn)} />
+            <Kpi label={t('focus.kpi.tokensOut')} value={fmtCompact(tokensOut)} />
+            <Kpi label={t('focus.kpi.turns')} value={fmtCompact(turns)} />
             <Kpi
-              label={t('focus.kpi.tasks', 'Aufgaben')}
+              label={t('focus.kpi.tasks')}
               value={tasks.length ? `${tasksDone}/${tasks.length}` : '—'}
             />
           </div>
           <div className="text-3xs uppercase tracking-wider text-muted-foreground">
-            {t('focus.kanban.title', 'Aufgaben')}
+            {t('focus.kanban.title')}
           </div>
           <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
             {tasks.length === 0 ? (
               <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">
-                {t('focus.kanban.empty', 'Noch keine Aufgaben.')}
+                {t('focus.kanban.empty')}
               </div>
             ) : (
               tasks.map((task) => {
-                const color =
+                // Stripe colour is reinforcement only — the status icon + label
+                // carry the meaning (colour-blind safe). Semantic tokens, not
+                // raw Tailwind palette literals.
+                const stripe =
                   task.status === 'done'
-                    ? 'border-l-emerald-500'
+                    ? 'border-l-success'
                     : task.status === 'failed'
-                      ? 'border-l-rose-500'
+                      ? 'border-l-destructive'
                       : task.status === 'running'
-                        ? 'border-l-sky-500'
-                        : 'border-l-muted';
+                        ? 'border-l-info'
+                        : 'border-l-border';
+                const meta = statusMeta(task.status);
+                const TaskIcon = meta.Icon;
                 return (
                   <div
                     key={task.id}
-                    className={`rounded-md border border-l-4 ${color} bg-card/60 px-2.5 py-1.5 text-xs`}
+                    className={`rounded-md border border-l-4 ${stripe} bg-card/60 px-2.5 py-1.5 text-xs`}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="truncate font-medium">{task.title ?? task.id}</span>
-                      <span className="ml-2 shrink-0 text-3xs uppercase text-muted-foreground">
-                        {task.status}
+                      <span className="inline-flex shrink-0 items-center gap-1 text-3xs uppercase text-muted-foreground">
+                        <TaskIcon
+                          className={meta.live ? 'size-3 animate-spin' : 'size-3'}
+                          aria-hidden
+                        />
+                        {statusLabel(task.status, t)}
                       </span>
                     </div>
                   </div>
@@ -289,13 +269,6 @@ export function Focusboard(): ReactElement {
               })
             )}
           </div>
-          {(tasksRunning > 0 || tasksFailed > 0 || tasksPending > 0) && (
-            <div className="flex gap-3 text-3xs text-muted-foreground">
-              <span>läuft: {tasksRunning}</span>
-              <span>offen: {tasksPending}</span>
-              <span>fehler: {tasksFailed}</span>
-            </div>
-          )}
         </section>
 
         {/* Preview pane */}
@@ -303,12 +276,13 @@ export function Focusboard(): ReactElement {
           <PreviewFrame projectId={projectId} />
         </section>
 
-        {/* Chat rail */}
-        <aside className="flex w-[300px] shrink-0 flex-col border-l">
+        {/* Chat rail — hidden below lg so the three fixed-width panes don't
+            overflow narrow laptops; the full Team Chat stays at /chat. */}
+        <aside className="hidden w-[300px] shrink-0 flex-col border-l lg:flex">
           <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
             <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-3xs uppercase tracking-wider text-muted-foreground">
-              {t('focus.chat.title', 'Team-Chat')}
+              {t('focus.chat.title')}
             </span>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">

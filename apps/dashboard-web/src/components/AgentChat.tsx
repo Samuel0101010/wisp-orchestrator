@@ -122,7 +122,11 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    // Enter sends; Shift+Enter inserts a newline — same convention as the main
+    // /chat composer. Guard IME composition so CJK candidate selection (Enter
+    // with isComposing / keyCode 229) never sends mid-composition.
+    const ne = e.nativeEvent as unknown as { isComposing?: boolean; keyCode?: number };
+    if (e.key === 'Enter' && !e.shiftKey && !ne.isComposing && ne.keyCode !== 229) {
       e.preventDefault();
       void send();
     }
@@ -168,13 +172,13 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
       <header className="flex flex-col gap-2 border-b border-border/60 px-3 py-2">
         <div className="flex items-baseline justify-between">
           <span className="font-mono text-2xs uppercase tracking-widest text-muted-foreground">
-            agent
+            {t('agentChat.headerLabel')}
           </span>
           <Link
             to="/agents"
             className="font-mono text-2xs text-muted-foreground hover:text-foreground"
           >
-            manage →
+            {t('agentChat.manageAgents')}
           </Link>
         </div>
         <select
@@ -275,7 +279,7 @@ export function AgentChat({ projectId = null, compact = false }: AgentChatProps)
               ? t('agentChat.composerLabel', { name: selectedAgent.name })
               : t('agentChat.selectAgent')}
           </span>
-          <span>{t('agentChat.cmdEnter')}</span>
+          <span>{t('agentChat.sendHint')}</span>
         </div>
         <div className="flex items-end gap-2">
           <textarea
@@ -377,7 +381,9 @@ function MessageBubble({
         {message.errorReason ? (
           <span>
             <span className="font-mono text-2xs uppercase tracking-widest text-destructive">
-              {message.errorReason}
+              {t(`chat.transcript.error.${message.errorReason}`, {
+                defaultValue: t('chat.transcript.error.generic'),
+              })}
             </span>
             {message.content ? (
               <>

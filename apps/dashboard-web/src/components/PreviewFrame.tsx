@@ -274,7 +274,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   return (
     <div className="flex flex-col gap-4">
       <Card data-testid="preview-frame">
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0 pb-3">
           <div className="flex flex-col gap-1">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Eye className="h-4 w-4 text-muted-foreground" />
@@ -293,7 +293,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
             </CardTitle>
             <CardDescription className="text-xs">{t('preview.description')}</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
               type="button"
               size="sm"

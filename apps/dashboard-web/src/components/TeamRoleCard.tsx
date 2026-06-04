@@ -114,7 +114,7 @@ export function TeamRoleCard({
                 {...dragHandleProps}
                 className="inline-flex h-9 w-7 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 title={t('teamRoleCard.drag')}
-                aria-label="Drag handle"
+                aria-label={t('teamRoleCard.drag')}
                 data-testid={`drag-handle-${index}`}
               >
                 <GripVertical className="h-4 w-4" />
@@ -210,7 +210,7 @@ export function TeamRoleCard({
             value={draft.systemPrompt}
             onChange={(e) => onChange({ ...draft, systemPrompt: e.target.value })}
           />
-          <p className={lengthClass} data-testid={`prompt-count-${draft.role}`}>
+          <p className={`${lengthClass} tabular-nums`} data-testid={`prompt-count-${draft.role}`}>
             {promptOver
               ? t('teamRoleCard.promptCount.over', { count: promptLen })
               : promptShort

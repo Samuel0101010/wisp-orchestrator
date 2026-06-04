@@ -120,7 +120,7 @@ export function DefinitionOfDoneCard({ projectId }: { projectId: string }) {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                    className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
                     onClick={() => void handleDelete(c.id)}
                     aria-label={t('dod.actions.delete')}
                   >

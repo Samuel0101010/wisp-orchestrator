@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Database, Plus, X } from 'lucide-react';
+import { Clock, Database, Flame, X, Zap } from 'lucide-react';
 import { usePromptBundles, useDeletePromptBundle, type PromptBundleRow } from '@/api/queries';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { fmtRel } from '@/lib/fmt-rel';
 
-const TONES = ['coral', 'mint', 'violet', 'sky', 'amber', 'rose'] as const;
+const TONES = ['coral', 'mint', 'sky', 'amber', 'rose'] as const;
 type Tone = (typeof TONES)[number];
 
 function toneFor(key: string): Tone {
@@ -14,19 +16,18 @@ function toneFor(key: string): Tone {
   return TONES[Math.abs(h) % TONES.length]!;
 }
 
-function fmtAgo(input: number | string): { label: string; hot: boolean; stale: boolean } {
+// Liveness classification only — the human-readable label comes from the
+// shared, locale-correct fmtRel() (Intl.RelativeTimeFormat). hot = used within
+// the last 30 min; stale = not used for 7+ days. `nowMs` is snapshotted once
+// per render so every card + KPI reads the same clock.
+function bundleAge(
+  input: number | string,
+  nowMs: number,
+): { hot: boolean; stale: boolean; valid: boolean } {
   const ms = typeof input === 'number' ? input : new Date(input).getTime();
-  if (!Number.isFinite(ms)) return { label: '—', hot: false, stale: false };
-  const delta = Math.max(0, Date.now() - ms);
-  const min = Math.round(delta / 60_000);
-  const hr = Math.round(delta / 3_600_000);
-  const d = Math.round(delta / 86_400_000);
-  let label: string;
-  if (min < 1) label = 'just now';
-  else if (min < 60) label = `${min}m ago`;
-  else if (hr < 24) label = `${hr}h ago`;
-  else label = `${d}d ago`;
-  return { label, hot: min < 30, stale: d >= 7 };
+  if (!Number.isFinite(ms)) return { hot: false, stale: false, valid: false };
+  const delta = Math.max(0, nowMs - ms);
+  return { hot: delta < 30 * 60_000, stale: delta >= 7 * 86_400_000, valid: true };
 }
 
 function shortHash(s: string): string {
@@ -52,48 +53,33 @@ function cwdBasename(cwd: string | null | undefined): string {
   return '';
 }
 
-function formatCompact(n: number): string {
-  if (n < 1000) return String(n);
-  if (n < 10_000) return `${(n / 1000).toFixed(1)}k`;
-  if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
-  return `${(n / 1_000_000).toFixed(1)}M`;
-}
-
-// Rough average bundle size in tokens (system prompt + tools schema). Used
-// only to estimate "tokens saved" on the KPI ribbon when no exact size is
-// stored alongside each bundle. Tuned to land in the same ballpark as the
-// design's mock value (74% / 3.2M).
-const TOKENS_PER_BUNDLE_HIT = 6000;
-// Average $ per 1M input tokens across the three Claude tiers.
-const COST_PER_M_TOKENS = 4;
-
 function MiniKpi({
   label,
   value,
   sub,
   tone,
+  Icon,
   testId,
 }: {
   label: string;
   value: string | number;
   sub?: string;
-  tone: Tone;
+  tone: Tone | 'ink';
+  Icon: typeof Zap;
   testId?: string;
 }) {
+  const iconColor = tone === 'ink' ? 'var(--wisp-ink-3)' : `var(--${tone})`;
   return (
-    <div className="wisp-card wisp-lift" data-testid={testId}>
-      <div className="t-eyebrow mb-1.5">{label}</div>
-      <div className="flex items-baseline gap-2">
-        <span
-          style={{
-            fontFamily: 'var(--f-display)',
-            fontSize: 32,
-            color: `var(--${tone})`,
-            lineHeight: 1,
-          }}
-        >
-          {value}
-        </span>
+    <div className="wisp-card" data-testid={testId}>
+      <div className="t-eyebrow mb-1.5 flex items-center gap-1.5">
+        <Icon className="h-3.5 w-3.5" style={{ color: iconColor }} aria-hidden />
+        {label}
+      </div>
+      <div
+        className="tabular-nums"
+        style={{ fontFamily: 'var(--f-head)', fontSize: 22, fontWeight: 500, lineHeight: 1 }}
+      >
+        {value}
       </div>
       {sub && <div className="t-dim mt-1.5 text-xs">{sub}</div>}
     </div>
@@ -133,13 +119,16 @@ function BundleCard({
   bundle,
   onInvalidate,
   busy,
+  nowMs,
 }: {
   bundle: PromptBundleRow;
   onInvalidate: (key: string) => void;
   busy: boolean;
+  nowMs: number;
 }) {
-  const { t } = useTranslation();
-  const ago = fmtAgo(bundle.lastUsedAt);
+  const { t, i18n } = useTranslation();
+  const age = bundleAge(bundle.lastUsedAt, nowMs);
+  const label = age.valid ? fmtRel(bundle.lastUsedAt, i18n.language) : '—';
   const tone = toneFor(bundle.bundleKey);
   const cwdLabel = cwdBasename(bundle.cwd);
   const displayName = cwdLabel || `bundle ${shortHash(bundle.bundleKey)}`;
@@ -152,7 +141,7 @@ function BundleCard({
       style={{ padding: 16 }}
       data-testid={`bundle-card-${bundle.bundleKey.slice(0, 8)}`}
     >
-      {ago.hot && (
+      {age.hot && (
         <div
           className="absolute top-3 right-3 flex items-center gap-1"
           style={{
@@ -170,7 +159,7 @@ function BundleCard({
       )}
 
       {/* Header — icon + name + short id */}
-      <div className="mb-2.5 flex items-center gap-2.5" style={{ paddingRight: ago.hot ? 56 : 0 }}>
+      <div className="mb-2.5 flex items-center gap-2.5" style={{ paddingRight: age.hot ? 56 : 0 }}>
         <div
           className="flex shrink-0 items-center justify-center"
           style={{
@@ -217,19 +206,24 @@ function BundleCard({
             {t('promptBundles.cols.lastUsed', 'last used')}
           </div>
           <div
+            className="flex items-center gap-1 tabular-nums"
             style={{
               fontSize: 12,
-              color: ago.stale ? 'var(--amber)' : 'var(--wisp-ink-2)',
+              color: age.stale ? 'var(--amber)' : 'var(--wisp-ink-2)',
             }}
           >
-            {ago.label}
+            {age.stale && <Clock className="h-3 w-3 shrink-0" aria-hidden />}
+            {label}
           </div>
         </div>
         <div className="text-right">
           <div className="t-faint" style={{ fontSize: 10.5 }}>
             {t('promptBundles.cols.hits', 'hits')}
           </div>
-          <div style={{ fontFamily: 'var(--f-display)', fontSize: 20, lineHeight: 1 }}>
+          <div
+            className="tabular-nums"
+            style={{ fontFamily: 'var(--f-mono)', fontSize: 20, lineHeight: 1 }}
+          >
             {bundle.hitCount}
           </div>
         </div>
@@ -260,6 +254,17 @@ export function PromptBundlesRoute() {
   const q = usePromptBundles();
   const del = useDeletePromptBundle();
   const [inflight, setInflight] = useState<Set<string>>(new Set());
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [bulkRunning, setBulkRunning] = useState(false);
+
+  // Keep the confirm dialog open (buttons disabled via `busy`) while a bulk
+  // invalidate is in flight, then auto-dismiss once every delete has settled.
+  useEffect(() => {
+    if (bulkRunning && inflight.size === 0) {
+      setBulkRunning(false);
+      setConfirmAll(false);
+    }
+  }, [bulkRunning, inflight.size]);
 
   const invalidate = (key: string): void => {
     setInflight((prev) => new Set(prev).add(key));
@@ -274,22 +279,20 @@ export function PromptBundlesRoute() {
   };
 
   const rows = q.data ?? [];
+  // Snapshot once per render so every card + KPI reads the same clock.
+  const nowMs = Date.now();
 
-  const kpis = useMemo(() => {
-    const totalHits = rows.reduce((s, r) => s + r.hitCount, 0);
-    let hot = 0;
-    let stale = 0;
-    for (const r of rows) {
-      const ago = fmtAgo(r.lastUsedAt);
-      if (ago.hot) hot++;
-      if (ago.stale) stale++;
-    }
-    const denom = totalHits + rows.length;
-    const hitRate = denom > 0 ? Math.round((totalHits / denom) * 100) : 0;
-    const tokensSaved = totalHits * TOKENS_PER_BUNDLE_HIT;
-    const dollarsSaved = (tokensSaved / 1_000_000) * COST_PER_M_TOKENS;
-    return { totalHits, hot, stale, hitRate, tokensSaved, dollarsSaved };
-  }, [rows]);
+  // Honest aggregates only — every value is derived from real bundle fields
+  // (hitCount / lastUsedAt). The former "tokens saved" + "cache hit rate"
+  // ribbon was fabricated (tuned constants), so it was removed.
+  const totalHits = rows.reduce((s, r) => s + r.hitCount, 0);
+  let hot = 0;
+  let stale = 0;
+  for (const r of rows) {
+    const age = bundleAge(r.lastUsedAt, nowMs);
+    if (age.hot) hot++;
+    if (age.stale) stale++;
+  }
 
   return (
     <div className="wisp-fade-up flex flex-col gap-5">
@@ -297,30 +300,21 @@ export function PromptBundlesRoute() {
       <header className="flex items-end justify-between gap-5">
         <div className="min-w-0">
           <div className="t-eyebrow mb-1">{t('promptBundles.eyebrow', 'Warm session cache')}</div>
-          <div className="flex items-baseline gap-3">
+          <div className="flex items-baseline gap-2.5">
             <h1
               className="m-0"
               style={{
                 fontFamily: 'var(--f-display)',
-                fontSize: 44,
+                fontSize: 28,
                 fontWeight: 400,
-                letterSpacing: '-0.02em',
-                lineHeight: 1.08,
+                letterSpacing: '-0.01em',
+                lineHeight: 1.2,
               }}
             >
               {t('promptBundles.title')}
             </h1>
-            <span
-              aria-hidden
-              style={{
-                fontFamily: 'var(--f-display)',
-                fontSize: 36,
-                color: 'var(--wisp-ink-3)',
-                fontStyle: 'italic',
-                lineHeight: 1,
-              }}
-            >
-              {rows.length}
+            <span className="tabular-nums text-sm text-[color:var(--wisp-ink-3)]">
+              {t('promptBundles.subtitle', { count: rows.length })}
             </span>
           </div>
           <div className="mt-1.5 max-w-2xl text-sm-tight text-[color:var(--wisp-ink-3)]">
@@ -331,51 +325,41 @@ export function PromptBundlesRoute() {
           <button
             type="button"
             className="wisp-btn ghost"
-            onClick={() => {
-              for (const r of rows) invalidate(r.bundleKey);
-            }}
+            onClick={() => setConfirmAll(true)}
             disabled={!rows.length || inflight.size > 0}
           >
             {t('promptBundles.actions.invalidateAll', 'Invalidate all')}
           </button>
-          <button type="button" className="wisp-btn primary" disabled>
-            <Plus className="h-3.5 w-3.5" />
-            {t('promptBundles.actions.pin', 'Pin bundle')}
-          </button>
         </div>
       </header>
 
-      {/* KPI ribbon — labels match the Wisp design 1:1. */}
+      {/* KPI ribbon — honest aggregates derived from real bundle fields. */}
       <div
         className="grid gap-3.5"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}
       >
         <MiniKpi
-          label={t('promptBundles.kpis.hitRate', 'Cache hit rate')}
-          value={`${kpis.hitRate}%`}
-          sub={t('promptBundles.kpis.hitRateSub', '{{n}} hits total', { n: kpis.totalHits })}
-          tone="mint"
-          testId="kpi-hit-rate"
+          label={t('promptBundles.kpis.totalHits', 'Total hits')}
+          value={totalHits}
+          sub={t('promptBundles.kpis.totalHitsSub', { count: rows.length })}
+          tone="ink"
+          Icon={Zap}
+          testId="kpi-total-hits"
         />
         <MiniKpi
-          label={t('promptBundles.kpis.tokensSaved', 'Tokens saved · 7d')}
-          value={formatCompact(kpis.tokensSaved)}
-          sub={`≈ $${kpis.dollarsSaved.toFixed(2)}`}
-          tone="coral"
-          testId="kpi-tokens-saved"
-        />
-        <MiniKpi
-          label={t('promptBundles.kpis.hotBundles', 'Hot bundles')}
-          value={kpis.hot}
+          label={t('promptBundles.kpis.hotBundles', 'Hot')}
+          value={hot}
           sub={t('promptBundles.kpis.hotSub', 'recently used')}
-          tone="violet"
+          tone="coral"
+          Icon={Flame}
           testId="kpi-hot"
         />
         <MiniKpi
           label={t('promptBundles.kpis.stale', 'Stale')}
-          value={kpis.stale}
+          value={stale}
           sub={t('promptBundles.kpis.staleSub', 'not used 7d+')}
           tone="amber"
+          Icon={Clock}
           testId="kpi-stale"
         />
       </div>
@@ -437,10 +421,30 @@ export function PromptBundlesRoute() {
               bundle={b}
               onInvalidate={invalidate}
               busy={inflight.has(b.bundleKey)}
+              nowMs={nowMs}
             />
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmAll}
+        onOpenChange={setConfirmAll}
+        title={t('promptBundles.confirmInvalidateAll.title', 'Invalidate all bundles?')}
+        description={t(
+          'promptBundles.confirmInvalidateAll.description',
+          'This drops all {{count}} cached bundles. The next session re-warms the cache from scratch.',
+          { count: rows.length },
+        )}
+        confirmLabel={t('promptBundles.confirmInvalidateAll.confirm', 'Invalidate all')}
+        cancelLabel={t('promptBundles.confirmInvalidateAll.cancel', 'Cancel')}
+        destructive
+        busy={bulkRunning}
+        onConfirm={() => {
+          setBulkRunning(true);
+          for (const r of rows) invalidate(r.bundleKey);
+        }}
+      />
     </div>
   );
 }
