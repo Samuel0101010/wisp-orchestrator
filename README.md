@@ -20,6 +20,14 @@
 </p>
 
 <p align="center">
+  <video src="https://github.com/Samuel0101010/wisp-orchestrator/releases/download/v2.1.0/wisp-promo.mp4" poster="docs/assets/promo-poster.png" controls width="100%">
+    <a href="https://github.com/Samuel0101010/wisp-orchestrator/releases/download/v2.1.0/wisp-promo.mp4">▶ Watch the WISP promo — a 2-minute tour</a>
+  </video>
+</p>
+
+<p align="center"><sub><i>A team of Claude agents builds, previews, and iterates on a real app — live. (<a href="https://github.com/Samuel0101010/wisp-orchestrator/releases/download/v2.1.0/wisp-promo.mp4">▶ play / download the 2-minute tour</a>)</i></sub></p>
+
+<p align="center">
   <img src="docs/assets/screenshots/mission-control.png" alt="WISP Mission Control — KPIs, live runs, agent thread, and project pulse" width="100%">
 </p>
 
