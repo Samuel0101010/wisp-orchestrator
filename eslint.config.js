@@ -15,6 +15,7 @@ export default [
       '.claude/worktrees/**',
       '**/*.cjs',
       'audit-artifacts/**',
+      'marketing/**',
     ],
   },
   js.configs.recommended,
