@@ -8,8 +8,14 @@ import path from 'node:path';
 const COMP = process.argv[2] ?? 'promo-landscape';
 const OUT = path.resolve('out', 'grid');
 
+// Pass an explicit comma-separated frame list as argv[3] (e.g. one per scene),
+// otherwise fall back to a regular sweep across the full ~98s timeline.
 const FRAMES = [];
-for (let f = 15; f < 1590; f += 45) FRAMES.push(f);
+if (process.argv[3]) {
+  for (const f of process.argv[3].split(',')) FRAMES.push(Number(f));
+} else {
+  for (let f = 15; f < 2940; f += 50) FRAMES.push(f);
+}
 
 async function main() {
   await rm(OUT, { recursive: true, force: true });

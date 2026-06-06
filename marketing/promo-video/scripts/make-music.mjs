@@ -1,7 +1,8 @@
-// Generates an original, license-free CINEMATIC-BUILD score for the promo (mono
-// WAV). Structure follows the edit: intimate piano-arp intro → strings swell +
-// bass through crew/plan → a riser into a beat DROP at the Live scene (~27s) →
-// full arrangement under live/montage → piano resolution on the CTA.
+// Generates an original, license-free ATMOSPHERIC bg score (STEREO WAV) designed
+// to sit under a voice-over: warm evolving pads + a sparse, dreamy piano motif +
+// a soft sub drone — run through a real Freeverb reverb in stereo. No beat (it
+// must not fight the narration). The reverb + stereo width are the quality jump
+// that the earlier dry/mono synth versions lacked.
 //
 // Synthesised, not a recording — swap it by dropping a file into public/audio/
 // and pointing MUSIC_SRC (src/scenes.config.ts) at it.
@@ -16,22 +17,29 @@ const OUT = resolve(__dirname, '..', 'public', 'audio', 'wisp-theme.wav');
 mkdirSync(dirname(OUT), { recursive: true });
 
 const SR = 44100;
-const DUR = 53.0;
+const DUR = Number(process.argv[2]) || 53.0; // seconds — pass the video length
 const N = Math.floor(SR * DUR);
 const TAU = Math.PI * 2;
 
-// 120 BPM. vi–IV–I–V in A minor, one chord per bar (2s) — emotional, building.
-const BAR = 2.0;
-const EIGHTH = 0.25;
+const CHORD_DUR = 4.0; // slow, evolving
 const CHORDS = [
   [220.0, 261.63, 329.63], // Am
   [174.61, 220.0, 261.63], // F
-  [196.0, 261.63, 329.63], // C
+  [196.0, 261.63, 329.63], // C (G-C-E)
   [196.0, 246.94, 293.66], // G
 ];
-const chordOfBar = (i) => CHORDS[(((i % 4) + 4) % 4)];
-const chordAt = (t) => chordOfBar(Math.floor(t / BAR));
-const ARP = [0, 1, 2, 3, 2, 3, 1, 2];
+const SUBS = [55.0, 43.65, 65.41, 49.0]; // A1 F1 C2 G1
+
+// Sparse, evolving piano line (note freqs), lots of space — the reverb fills it.
+// Tiled across the whole track so it works at any DUR without sounding looped:
+// a gentle note sequence over an irregular gap pattern.
+const P = { G4: 392.0, A4: 440.0, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25 };
+const PSEQ = ['A4', 'C5', 'E5', 'D5', 'C5', 'A4', 'G4', 'A4', 'C5', 'E5', 'D5', 'C5', 'A4', 'G4', 'E5', 'D5', 'C5', 'A4'];
+const PGAPS = [2, 2, 2.5, 2.5, 3, 2.5, 3, 3];
+const PIANO = [];
+for (let t = 2, k = 0; t < DUR - 2.5; t += PGAPS[k % PGAPS.length], k++) {
+  PIANO.push({ t0: t, f: P[PSEQ[k % PSEQ.length]] });
+}
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 function ramp(t, a, b, va, vb) {
@@ -39,46 +47,17 @@ function ramp(t, a, b, va, vb) {
   if (t >= b) return vb;
   return va + ((t - a) / (b - a)) * (vb - va);
 }
-// deterministic white noise (so the WAV regenerates identically)
-const noise = (n) => {
-  const x = Math.sin(n * 12.9898) * 43758.5453;
-  return (x - Math.floor(x)) * 2 - 1;
-};
 
-function piano(f, lt) {
-  const env = (1 - Math.exp(-lt * 400)) * Math.exp(-lt * 6);
-  const w = TAU * f * lt;
-  return env * (Math.sin(w) + 0.55 * Math.sin(2 * w) + 0.28 * Math.sin(3 * w) + 0.13 * Math.sin(4 * w));
-}
-function arpAt(t, octave) {
+function padVoice(ch, t) {
   let s = 0;
-  for (const so of [0, 1]) {
-    const step = Math.floor(t / EIGHTH) - so;
-    if (step < 0) continue;
-    const lt = t - step * EIGHTH;
-    const ch = chordOfBar(Math.floor((step * EIGHTH) / BAR));
-    const notes = [ch[0], ch[1], ch[2], ch[0] * 2];
-    s += piano(notes[ARP[((step % 8) + 8) % 8]] * octave, lt);
-  }
-  return s;
-}
-
-function strings(chord, t) {
-  let s = 0;
-  for (const f0 of chord) {
-    for (const f of [f0, f0 * 1.004]) {
-      let v = 0;
-      for (let h = 1; h <= 6; h++) v += Math.sin(TAU * f * h * t) / h;
-      s += v;
-    }
-  }
-  return s / (chord.length * 2 * 2.4);
+  for (const f of ch) for (const d of [0.994, 1.0, 1.006]) for (let h = 1; h <= 4; h++) s += Math.sin(TAU * f * d * h * t) / (h * 1.4);
+  return s / (ch.length * 3 * 2.2);
 }
 function pad(t) {
-  const pos = t / BAR;
+  const pos = t / CHORD_DUR;
   const i = Math.floor(pos);
   const frac = pos - i;
-  const xf = 0.15;
+  const xf = 0.12;
   let g = 1;
   let gn = 0;
   if (frac > 1 - xf) {
@@ -86,72 +65,88 @@ function pad(t) {
     g = Math.cos((k * Math.PI) / 2);
     gn = Math.sin((k * Math.PI) / 2);
   }
-  const trem = 1 + 0.05 * Math.sin(TAU * 0.13 * t);
-  return (g * strings(chordOfBar(i), t) + gn * strings(chordOfBar(i + 1), t)) * trem;
+  const trem = 1 + 0.06 * Math.sin(TAU * 0.1 * t);
+  return (g * padVoice(CHORDS[i % 4], t) + gn * padVoice(CHORDS[(i + 1) % 4], t)) * trem;
+}
+function piano(t) {
+  let s = 0;
+  for (const e of PIANO) {
+    if (t < e.t0) break;
+    const lt = t - e.t0;
+    if (lt > 2.2) continue;
+    const env = (1 - Math.exp(-lt * 200)) * Math.exp(-lt * 1.7);
+    s += env * (Math.sin(TAU * e.f * lt) + 0.4 * Math.sin(2 * TAU * e.f * lt) + 0.12 * Math.sin(3 * TAU * e.f * lt));
+  }
+  return s * 0.5;
+}
+function sub(t) {
+  const f = SUBS[Math.floor(t / CHORD_DUR) % 4];
+  return Math.sin(TAU * f * t) * 0.5;
 }
 
-function bass(t) {
-  const root = chordAt(t)[0] / 2;
-  const beat = 0.5;
-  const lb = t % beat;
-  const env = (1 - Math.exp(-lb * 200)) * Math.exp(-lb * 2.6);
-  return Math.sin(TAU * root * t) * env;
+// --- Freeverb (mono in → stereo out) ---
+const COMB = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617];
+const AP = [556, 441, 341, 225];
+const SPREAD = 23;
+const ROOM = 0.84;
+const DAMP = 0.2;
+function makeComb(size) {
+  const buf = new Float32Array(size);
+  let idx = 0;
+  let store = 0;
+  return (x) => {
+    const out = buf[idx];
+    store = out * (1 - DAMP) + store * DAMP;
+    buf[idx] = x + store * ROOM;
+    idx = idx + 1 === size ? 0 : idx + 1;
+    return out;
+  };
+}
+function makeAllpass(size) {
+  const buf = new Float32Array(size);
+  let idx = 0;
+  return (x) => {
+    const bo = buf[idx];
+    const out = -x + bo;
+    buf[idx] = x + bo * 0.5;
+    idx = idx + 1 === size ? 0 : idx + 1;
+    return out;
+  };
+}
+const combsL = COMB.map((s) => makeComb(s));
+const combsR = COMB.map((s) => makeComb(s + SPREAD));
+const apsL = AP.map((s) => makeAllpass(s));
+const apsR = AP.map((s) => makeAllpass(s + SPREAD));
+function reverb(x) {
+  const inp = x * 0.015;
+  let l = 0;
+  let r = 0;
+  for (const c of combsL) l += c(inp);
+  for (const c of combsR) r += c(inp);
+  for (const a of apsL) l = a(l);
+  for (const a of apsR) r = a(r);
+  return [l, r];
 }
 
-function kick(t) {
-  const lb = t % 0.5;
-  const ph = TAU * (48 * lb + (80 / 45) * (1 - Math.exp(-lb * 45)));
-  return Math.sin(ph) * Math.exp(-lb * 8);
-}
-function clap(t, n) {
-  const lb = (t + 0.5) % 1.0; // hits on beats 2 & 4
-  return lb > 0.12 ? 0 : noise(n) * Math.exp(-lb * 38) * 0.8;
-}
-function hat(t, n) {
-  const step = Math.floor(t / EIGHTH);
-  if (step % 2 === 0) return 0; // offbeats
-  const lb = t % EIGHTH;
-  return lb > 0.05 ? 0 : noise(n) * Math.exp(-lb * 130) * 0.4;
-}
-
-function riser(t, n) {
-  if (t < 22 || t >= 27.02) return 0;
-  const k = (t - 22) / 5;
-  const amp = k * k;
-  const tone = Math.sin(TAU * 220 * Math.pow(2, k * 2.2) * t) * 0.5;
-  return (tone + noise(n) * 0.5) * amp;
-}
-function impact(t) {
-  if (t < 27 || t > 28.6) return 0;
-  return Math.sin(TAU * 52 * t) * Math.exp(-(t - 27) * 3.4) * 1.2;
-}
-
-const padGain = (t) =>
-  t < 2 ? (t / 2) * 0.42 : t < 11 ? 0.42 : t < 27 ? ramp(t, 11, 27, 0.42, 0.95) : t < 47 ? 0.9 : ramp(t, 47, 53, 0.9, 0);
-const arpGain = (t) =>
-  t < 2 ? (t / 2) * 0.6 : t < 11 ? 0.6 : t < 27 ? ramp(t, 11, 27, 0.6, 0.9) : t < 47 ? 0.9 : ramp(t, 47, 53, 0.78, 0);
-const bassGain = (t) => (t < 11 ? 0 : t < 27 ? ramp(t, 11, 27, 0, 0.9) : t < 47 ? 0.95 : ramp(t, 47, 49, 0.95, 0));
-const drumGain = (t) => (t < 27 ? 0 : t < 29 ? ramp(t, 27, 29, 0, 1) : t < 46 ? 1 : ramp(t, 46, 47, 1, 0));
-
-const data = Buffer.alloc(N * 2);
+const DRY = 0.62;
+const WET = 0.95;
+const data = Buffer.alloc(N * 2 * 2); // stereo 16-bit
 let peak = 0;
 let sumSq = 0;
 for (let n = 0; n < N; n++) {
   const t = n / SR;
-  const dg = drumGain(t);
-  let x =
-    pad(t) * 0.7 * padGain(t) +
-    arpAt(t, 1) * 0.5 * arpGain(t) +
-    arpAt(t, 2) * 0.22 * dg +
-    bass(t) * 0.6 * bassGain(t) +
-    (kick(t) * 0.85 + clap(t, n) * 0.7 + hat(t, n) * 0.3) * dg +
-    riser(t, n) * 0.5 +
-    impact(t) * 0.7;
-  x *= clamp01(ramp(t, 0, 1.2, 0, 1)) * clamp01(ramp(t, 52.4, 53, 1, 0)); // top & tail
-  x = Math.tanh(x * 0.95) * 0.62;
-  peak = Math.max(peak, Math.abs(x));
-  sumSq += x * x;
-  data.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(x * 32767))), n * 2);
+  const swell = ramp(t, 0, 18, 0.6, 1) * (t < DUR - 7 ? 1 : ramp(t, DUR - 7, DUR, 1, 0.5));
+  const dryMono = (pad(t) * 0.85 + piano(t) * 0.7 + sub(t) * 0.5) * swell;
+  const [wl, wr] = reverb(dryMono);
+  const fade = clamp01(ramp(t, 0, 2, 0, 1)) * clamp01(ramp(t, DUR - 2, DUR, 1, 0));
+  let L = (dryMono * DRY + wl * WET) * fade;
+  let R = (dryMono * DRY + wr * WET) * fade;
+  L = Math.tanh(L * 1.1) * 0.6;
+  R = Math.tanh(R * 1.1) * 0.6;
+  peak = Math.max(peak, Math.abs(L), Math.abs(R));
+  sumSq += (L * L + R * R) / 2;
+  data.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(L * 32767))), n * 4);
+  data.writeInt16LE(Math.max(-32768, Math.min(32767, Math.round(R * 32767))), n * 4 + 2);
 }
 
 const header = Buffer.alloc(44);
@@ -161,15 +156,15 @@ header.write('WAVE', 8);
 header.write('fmt ', 12);
 header.writeUInt32LE(16, 16);
 header.writeUInt16LE(1, 20);
-header.writeUInt16LE(1, 22);
+header.writeUInt16LE(2, 22); // stereo
 header.writeUInt32LE(SR, 24);
-header.writeUInt32LE(SR * 2, 28);
-header.writeUInt16LE(2, 32);
+header.writeUInt32LE(SR * 4, 28); // byte rate
+header.writeUInt16LE(4, 32); // block align
 header.writeUInt16LE(16, 34);
 header.write('data', 36);
 header.writeUInt32LE(data.length, 40);
 
 writeFileSync(OUT, Buffer.concat([header, data]));
 console.log(
-  `wrote ${OUT}\n  ${DUR}s mono @ ${SR}Hz · ${((44 + data.length) / 1024 / 1024).toFixed(2)} MB · peak ${peak.toFixed(2)} · rms ${Math.sqrt(sumSq / N).toFixed(3)}`,
+  `wrote ${OUT}\n  ${DUR}s STEREO @ ${SR}Hz · ${((44 + data.length) / 1024 / 1024).toFixed(2)} MB · peak ${peak.toFixed(2)} · rms ${Math.sqrt(sumSq / N).toFixed(3)}`,
 );

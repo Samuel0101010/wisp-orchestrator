@@ -17,10 +17,21 @@ const OUT_DIR = resolve(__dirname, '..', 'public', 'screenshots');
 const BASE = process.env.WISP_DASHBOARD ?? 'http://localhost:4400';
 const theme = 'dark';
 
+// TipJar — the richest seeded project: locked plan with a real DAG + a
+// successful 148-turn run. Used for the project-scoped sub-routes so the
+// Plan Editor shows a real graph and the Run View shows a full pipeline.
+const PROJECT = '65bd5151-4b8a-42ad-ba74-88c295bb7fe2';
+const RUN = 'a28afcc4-4c54-4407-b2bc-161bf2f9ec94';
+
 const ROUTES = [
   ['mission-control', '/'],
+  ['focusboard', `/focus/${PROJECT}`],
   ['chat', '/chat'],
   ['agents', '/agents'],
+  ['project-detail', `/projects/${PROJECT}`],
+  ['team-builder', `/projects/${PROJECT}/teams`],
+  ['plan-editor', `/projects/${PROJECT}/plan`],
+  ['run-view', `/projects/${PROJECT}/run/${RUN}`],
   ['skills', '/skills'],
   ['workers', '/workers'],
   ['insights', '/insights'],
@@ -68,7 +79,9 @@ async function main() {
         })
         .catch(() => {});
       await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
-      await page.waitForTimeout(900);
+      // React Flow (Plan Editor) + the Run-View Kanban + charts need a beat to
+      // lay out and finish their entry animation before the shot.
+      await page.waitForTimeout(1600);
       await page.screenshot({ path: resolve(OUT_DIR, `${name}.png`), fullPage: false });
       process.stdout.write('ok\n');
     } catch (err) {

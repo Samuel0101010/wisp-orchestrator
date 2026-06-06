@@ -1,68 +1,109 @@
 import React from 'react';
-import { AbsoluteFill, Audio, staticFile } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, staticFile } from 'remotion';
 import { TransitionSeries, linearTiming, springTiming } from '@remotion/transitions';
 import { fade } from '@remotion/transitions/fade';
 import { slide } from '@remotion/transitions/slide';
 import { COLORS } from './theme';
 import { SANS } from './fonts';
 import { Backdrop, ProgressBar, Vignette } from './components/primitives';
-import { MUSIC_SRC, SCENE_FRAMES, TRANSITION } from './scenes.config';
+import { MUSIC_SRC, SCENES, TRANSITION, type Scene, type TransKind } from './scenes.config';
+import { VOICEOVER, musicVolumeAt } from './voiceover.config';
 import { Hook } from './scenes/Hook';
 import { Problem } from './scenes/Problem';
-import { Crew } from './scenes/Crew';
-import { PlanGraph } from './scenes/PlanGraph';
-import { LiveRun } from './scenes/LiveRun';
-import { Montage } from './scenes/Montage';
 import { InstallCTA } from './scenes/InstallCTA';
+import { ChapterCard } from './scenes/ChapterCard';
+import { FeatureTour } from './scenes/FeatureTour';
+import { BuildStory } from './scenes/BuildStory';
+import { DesignSwap } from './scenes/DesignSwap';
 
-const fadeT = () => linearTiming({ durationInFrames: TRANSITION });
-const slideT = () => springTiming({ config: { damping: 200 }, durationInFrames: TRANSITION });
+function renderScene(s: Scene): React.ReactNode {
+  switch (s.kind) {
+    case 'hook':
+      return <Hook dur={s.dur} />;
+    case 'problem':
+      return <Problem dur={s.dur} />;
+    case 'cta':
+      return <InstallCTA dur={s.dur} />;
+    case 'build':
+      return <BuildStory dur={s.dur} />;
+    case 'design':
+      return (
+        <DesignSwap
+          dur={s.dur}
+          srcA={s.srcA}
+          srcB={s.srcB}
+          labelA={s.labelA}
+          labelB={s.labelB}
+          eyebrow={s.eyebrow}
+          title={s.title}
+          browserTitle={s.browserTitle}
+          accent={s.accent}
+          portrait={s.portrait}
+        />
+      );
+    case 'chapter':
+      return <ChapterCard dur={s.dur} index={s.index} title={s.title} accent={s.accent} />;
+    case 'tour':
+      return (
+        <FeatureTour
+          dur={s.dur}
+          screenshot={s.screenshot}
+          browserTitle={s.browserTitle}
+          eyebrow={s.eyebrow}
+          title={s.title}
+          chips={s.chips}
+          accent={s.accent}
+          portrait={s.portrait}
+        />
+      );
+  }
+}
+
+const presentationFor = (t: NonNullable<TransKind>) =>
+  t.type === 'fade' ? fade() : slide({ direction: t.dir });
+const timingFor = (t: NonNullable<TransKind>) =>
+  t.type === 'fade'
+    ? linearTiming({ durationInFrames: TRANSITION })
+    : springTiming({ config: { damping: 200 }, durationInFrames: TRANSITION });
 
 export const Promo: React.FC = () => {
+  const children: React.ReactNode[] = [];
+  SCENES.forEach((s) => {
+    children.push(
+      <TransitionSeries.Sequence key={s.id} durationInFrames={s.dur}>
+        {renderScene(s)}
+      </TransitionSeries.Sequence>,
+    );
+    if (s.trans) {
+      children.push(
+        <TransitionSeries.Transition
+          key={`${s.id}-trans`}
+          presentation={presentationFor(s.trans)}
+          timing={timingFor(s.trans)}
+        />,
+      );
+    }
+  });
+
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bg, fontFamily: SANS }}>
       {/* One continuous, living ground behind every scene. */}
       <Backdrop />
 
-      <TransitionSeries>
-        <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.hook}>
-          <Hook dur={SCENE_FRAMES.hook} />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition presentation={fade()} timing={fadeT()} />
-
-        <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.problem}>
-          <Problem dur={SCENE_FRAMES.problem} />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition presentation={slide({ direction: 'from-right' })} timing={slideT()} />
-
-        <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.crew}>
-          <Crew dur={SCENE_FRAMES.crew} />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition presentation={fade()} timing={fadeT()} />
-
-        <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.plan}>
-          <PlanGraph dur={SCENE_FRAMES.plan} />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition presentation={slide({ direction: 'from-bottom' })} timing={slideT()} />
-
-        <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.live}>
-          <LiveRun dur={SCENE_FRAMES.live} />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition presentation={fade()} timing={fadeT()} />
-
-        <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.montage}>
-          <Montage dur={SCENE_FRAMES.montage} />
-        </TransitionSeries.Sequence>
-        <TransitionSeries.Transition presentation={slide({ direction: 'from-right' })} timing={slideT()} />
-
-        <TransitionSeries.Sequence durationInFrames={SCENE_FRAMES.cta}>
-          <InstallCTA dur={SCENE_FRAMES.cta} />
-        </TransitionSeries.Sequence>
-      </TransitionSeries>
+      <TransitionSeries>{children}</TransitionSeries>
 
       <Vignette />
       <ProgressBar />
-      {MUSIC_SRC ? <Audio src={staticFile(MUSIC_SRC)} /> : null}
+
+      {/* Background music — ducked under the voice-over. */}
+      {MUSIC_SRC ? <Audio src={staticFile(MUSIC_SRC)} volume={musicVolumeAt} /> : null}
+
+      {/* Voice-over: one clip per narrated scene, in front of the music. */}
+      {VOICEOVER.map((v) => (
+        <Sequence key={v.src} from={v.from} durationInFrames={v.dur}>
+          <Audio src={staticFile(v.src)} />
+        </Sequence>
+      ))}
     </AbsoluteFill>
   );
 };
