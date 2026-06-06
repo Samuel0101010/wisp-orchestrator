@@ -16,6 +16,14 @@ export const RemotionRoot: React.FC = () => {
         width={1920}
         height={1080}
       />
+      <Composition
+        id="promo-vertical"
+        component={Promo}
+        durationInFrames={TOTAL_FRAMES}
+        fps={FPS}
+        width={1080}
+        height={1920}
+      />
     </>
   );
 };
