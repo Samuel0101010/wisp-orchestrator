@@ -97,8 +97,9 @@ imports. The compliance test
 
 The values are stored as plain TEXT in SQLite. Don't put secrets in there if
 the data directory is shared with other users (it lives under
-`WISP_DATA_DIR`, which defaults to `os.tmpdir()/wisp` in development
-and is required to be set explicitly in production).
+`WISP_DATA_DIR`, which defaults to `~/.local/share/agent-harness`
+(`%LOCALAPPDATA%\agent-harness` on Windows) in development and is required to be
+set explicitly in production).
 
 ## Inspecting a run's memory
 

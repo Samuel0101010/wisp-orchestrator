@@ -36,8 +36,18 @@ const GIT_OVERRIDES = [
   'core.longpaths=true',
 ];
 
+// Pathspecs that stage everything except installed dependencies. A task that
+// runs `pnpm install` inside its worktree would otherwise have its entire
+// `node_modules` tree swept up by `git add -A` and committed into the result
+// branch the user inspects — a freshly scaffolded project has no .gitignore to
+// stop it. Excluding via pathspec touches no files; core.longpaths (above)
+// still lets the walk succeed on Windows when node_modules is present.
+// `:(exclude,glob)**/node_modules/**` is what actually reaches nested workspace
+// node_modules — a plain `:(exclude)**/node_modules` only matches the top level.
+const ADD_PATHSPEC = ['.', ':(exclude)node_modules', ':(exclude,glob)**/node_modules/**'];
+
 export async function commitWorktreeChanges(worktreePath: string, taskId: string): Promise<string> {
-  await execa('git', [...GIT_OVERRIDES, 'add', '-A'], { cwd: worktreePath });
+  await execa('git', [...GIT_OVERRIDES, 'add', '-A', '--', ...ADD_PATHSPEC], { cwd: worktreePath });
   await execa('git', [...GIT_OVERRIDES, 'commit', '--allow-empty', '-m', `wisp: ${taskId}`], {
     cwd: worktreePath,
   });

@@ -33,10 +33,12 @@ path to `marketplace remove` instead of the GitHub slug.)
 ## 3. Remove local data (optional)
 
 WISP stores all state under `WISP_DATA_DIR`. The **default** is
-`os.tmpdir()/wisp` (e.g. `/tmp/wisp` on Unix, `%TEMP%\wisp` on Windows). If you
-set `WISP_DATA_DIR` to a custom path, use that instead. Contents include:
+`%LOCALAPPDATA%\agent-harness` on Windows and `~/.local/share/agent-harness` on
+macOS/Linux. If you set `WISP_DATA_DIR` to a custom path, use that instead.
+Contents include:
 
-- `data.db` — SQLite database with project / run / agent history
+- `harness.db` — SQLite database with project / run / agent history (plus the
+  `harness.db-wal` / `harness.db-shm` sidecars)
 - `memory/<runId>.db` — per-run shared-memory MCP stores
 - `templates/` — user-saved team templates
 - `logs/` — server + agent logs
@@ -44,9 +46,9 @@ set `WISP_DATA_DIR` to a custom path, use that instead. Contents include:
 
 To wipe everything:
 
-- **Unix:** `rm -rf "$(node -e 'console.log(require("os").tmpdir())')/wisp"`
+- **macOS / Linux:** `rm -rf ~/.local/share/agent-harness`
   (or `rm -rf "$WISP_DATA_DIR"` if you set one)
-- **Windows (PowerShell):** `Remove-Item -Recurse -Force "$env:TEMP\wisp"`
+- **Windows (PowerShell):** `Remove-Item -Recurse -Force "$env:LOCALAPPDATA\agent-harness"`
   (or `Remove-Item -Recurse -Force $env:WISP_DATA_DIR` if you set one)
 
 ## 4. Remove cloned-source installation (only if you installed from source)
