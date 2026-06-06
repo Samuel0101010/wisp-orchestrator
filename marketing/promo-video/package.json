@@ -1,0 +1,30 @@
+{
+  "name": "wisp-promo-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Remotion promo video for wisp-orchestrator — standalone, outside the pnpm workspace.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render promo-landscape out/wisp-promo-landscape.mp4",
+    "render:vertical": "remotion render promo-vertical out/wisp-promo-vertical.mp4",
+    "render:all": "npm run render && npm run render:vertical",
+    "still": "remotion still",
+    "upgrade": "remotion upgrade"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.473",
+    "@remotion/compositor-win32-x64-msvc": "4.0.473",
+    "@remotion/google-fonts": "4.0.473",
+    "@remotion/transitions": "4.0.473",
+    "@rspack/binding-win32-x64-msvc": "^1.7.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "4.0.473"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}

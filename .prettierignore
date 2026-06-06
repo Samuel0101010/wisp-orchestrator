@@ -9,3 +9,5 @@ pnpm-lock.yaml
 # Playwright artifacts
 tests/e2e/test-results
 tests/e2e/playwright-report
+# Standalone Remotion promo-video project (own toolchain, outside the workspace)
+marketing
