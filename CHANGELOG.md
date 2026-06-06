@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.1.1 — fresh-install audit fixes
+
+A post-release audit of the brand-new-installer experience (install → boot → dashboard, re-verified end-to-end against an empty data dir). No blockers; this patch fixes the rough edges it surfaced. A new installer gets these automatically (the plugin tracks `main`).
+
+### Fixed
+
+- **Windows: `node_modules` is no longer committed into run output.** `commitWorktreeChanges` ran `git add -A`, so a task that ran `pnpm install` in its worktree swept its entire dependency tree into the result branch the user inspects (a freshly scaffolded project has no `.gitignore` to stop it). It now excludes `node_modules` at any depth via pathspec — no project files touched.
+
+### Docs
+
+- **Corrected the `WISP_DATA_DIR` default + DB filename.** The uninstall guide, README config table, and memory-mcp doc claimed `os.tmpdir()/wisp` and `data.db`; the real default is `%LOCALAPPDATA%\agent-harness` (Windows) / `~/.local/share/agent-harness` and the database is `harness.db`. Following the old uninstall steps deleted the wrong directory and left your data in place.
+- **Dropped references to a non-existent `wisp` CLI.** `troubleshooting.md` told users to run `wisp start` / `wisp doctor`; there is no such global binary for a plugin install. Replaced with the `/wisp-dashboard` launcher (which already auto-selects a free port in 4400–4500) and `pnpm doctor` from a source checkout.
+- **Documented the brief gate in getting-started.** Plan generation requires a finalized brief; the quickstart now says so (and notes the `X-Allow-Unbriefed: 1` override) instead of letting the first "Generate plan" click 412.
+
+### Verification
+
+- All 8 local gates green; the `node_modules` exclusion is covered by a new `auto-commit` test (top-level + nested workspace `node_modules`). Fresh-install boot re-verified: migrations on an empty DB, 13 seeded agents, and the dashboard renders with zero console errors.
+
 ## 2.1.0 — dashboard UX/accessibility overhaul + Goal-Planner hardening
 
 A surface-by-surface design, UX, and accessibility pass across the whole dashboard (shared layer + 13 surfaces, #88), a bounded Goal-Planner solver (#85), fresh-machine install hardening (#89), and refreshed screenshots (#90). A new installer gets all of this automatically (the plugin tracks `main`); this tag just catches the version chip up to it.

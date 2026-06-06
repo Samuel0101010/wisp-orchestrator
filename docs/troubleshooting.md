@@ -61,7 +61,7 @@ WISP shells out to the official `claude` binary for every agent task. If the CLI
    # Windows (PowerShell)
    Get-Command claude
    ```
-4. Re-run `wisp doctor` (or `pnpm doctor` from source) — it checks `claude`, `node`, `pnpm`, and the Playwright browser cache in one pass.
+4. Re-run `pnpm doctor` (from a source checkout) — it checks `claude`, `node`, `pnpm`, and the Playwright browser cache in one pass.
 
 ---
 
@@ -94,10 +94,12 @@ Stop-Process -Id <PID>
 lsof -ti:4400 | xargs kill -9
 ```
 
-Or pick a different port without touching the running process:
+Or pick a different port. The `/wisp-dashboard` launcher already auto-selects a
+free port in the 4400–4500 range, so this only bites a manual boot — set the
+port explicitly there:
 
 ```sh
-WISP_PORT=4401 wisp start
+WISP_PORT=4401 pnpm dev          # from a source checkout
 ```
 
 `WISP_HOST` and `WISP_PORT` are both honoured by `apps/dashboard-server/src/env.ts`.
@@ -262,14 +264,14 @@ Either provide the key:
 
 ```sh
 export ANTHROPIC_API_KEY=sk-ant-...
-wisp start
+# then relaunch: /wisp-dashboard  (or `pnpm dev` from a source checkout)
 ```
 
 Or fall back to subscription mode (the default):
 
 ```sh
 unset WISP_AUTH_MODE
-wisp start
+# then relaunch: /wisp-dashboard  (or `pnpm dev` from a source checkout)
 ```
 
 See [anthropic-compliance.md](anthropic-compliance.md) for the full auth-mode contract.
@@ -330,7 +332,7 @@ Either browser cache (most common), or you are still running the previous server
    # Windows
    Get-Process node | Where-Object { $_.CommandLine -match 'dashboard-server' }
    ```
-3. If the old PID is still around, kill it and re-launch via `wisp start` or the plugin command.
+3. If the old PID is still around, kill it and re-launch via `/wisp-dashboard` (or `pnpm dev` from source).
 
 ---
 
@@ -413,7 +415,7 @@ There are three layers, each useful for a different question.
 
 | Layer            | Path                                                       | What you find there                                |
 | ---------------- | ---------------------------------------------------------- | -------------------------------------------------- |
-| Server logs      | stdout of the `wisp start` process, or `${WISP_DATA_DIR}/logs/server.log` if you redirected | Boot, route errors, walker lifecycle, auth probe   |
+| Server logs      | stdout of the dashboard-server process (`/wisp-dashboard` launcher or `pnpm dev`), or `${WISP_DATA_DIR}/logs/server.log` | Boot, route errors, walker lifecycle, auth probe   |
 | Per-agent logs   | `<repoPath>/.wisp/logs/<runId>/<agent>.log`                | Full NDJSON event stream from each `claude -p`     |
 | Dashboard console| Browser DevTools → Console                                 | Client-side errors, WS connection issues           |
 
@@ -423,5 +425,5 @@ Set `WISP_LOG_LEVEL=debug` on the server for verbose route + WS tracing. Persist
 
 ## Still stuck?
 
-- For reproducible bugs, file an issue per the instructions in [CONTRIBUTING.md](../CONTRIBUTING.md). Include the relevant lines from the three log layers above and the output of `wisp doctor`.
+- For reproducible bugs, file an issue per the instructions in [CONTRIBUTING.md](../CONTRIBUTING.md). Include the relevant lines from the three log layers above and the output of `pnpm doctor`.
 - For security-sensitive reports (credential leakage, sandbox escape, unauthorized network egress), use the disclosure channel in [SECURITY.md](../SECURITY.md) — **do not** open a public issue.

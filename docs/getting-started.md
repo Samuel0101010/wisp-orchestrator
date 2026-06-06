@@ -120,6 +120,12 @@ package.json with type: module, vitest as dev dep, and a test script.
 Provide a README.md showing usage.
 ```
 
+> **Finish the brief first.** A new project opens on its **Brief** tab, where
+> the requirements-interviewer agent asks a few questions and marks the brief
+> _ready_. Plan generation is gated on a ready brief so the planner has enough
+> context — complete (or finalize) the brief before you generate. Power users
+> and scripts can bypass the gate with an `X-Allow-Unbriefed: 1` request header.
+
 Click **Generate plan**. The planner agent (opus) reads your goal + team
 spec and emits a DAG with roughly 3–5 task nodes (typical shape: setup →
 implementation → tests → docs, plus an auto-injected runtime-verifier on
