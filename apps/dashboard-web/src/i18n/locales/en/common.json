@@ -745,6 +745,8 @@
       "turns": "Turns",
       "duration": "Duration",
       "failed": "Failed",
+      "retrying": "Retrying",
+      "retryingAt": "Retrying — next attempt {{time}}",
       "forensics": "Forensics: {{path}}",
       "liveTail": "Live tail",
       "liveTailFor": "Live tail — {{title}}",

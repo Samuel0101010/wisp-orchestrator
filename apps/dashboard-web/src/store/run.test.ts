@@ -141,6 +141,19 @@ describe('useRunStore', () => {
     expect(t.status).toBe('failed');
   });
 
+  it('columnFor routes a failed task to the active lane while a max-turns retry is queued', () => {
+    useRunStore
+      .getState()
+      .hydrate({ run: makeRun(), tasks: [makeTask('a', { status: 'failed' })] });
+    const t = useRunStore.getState().tasks.a!;
+    // Without a scheduled retry it stays in the FAILED column…
+    expect(columnFor(t)).toBe('failed');
+    expect(columnFor(t, false)).toBe('failed');
+    // …but once the run has queued a max-turns retry it shows as "retrying" in
+    // the active lane rather than the alarming FEHLGESCHLAGEN column (#4/#5).
+    expect(columnFor(t, true)).toBe('running');
+  });
+
   it('run.paused stamps pausedReason and resumeAt onto run header', () => {
     useRunStore.getState().hydrate({ run: makeRun(), tasks: [] });
     const future = Date.now() + 60_000;

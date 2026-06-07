@@ -373,9 +373,14 @@ export function computeAggregates(args: {
 
 export type TaskColumn = 'pending' | 'running' | 'verifying' | 'done' | 'failed' | 'cancelled';
 
-export function columnFor(task: TaskCardModel): TaskColumn {
+export function columnFor(task: TaskCardModel, retryScheduled = false): TaskColumn {
   if (task.liveRunning) return 'running';
   if (task.status === 'done') return 'done';
+  // A failed task that the run has queued for a max-turns retry is NOT dead —
+  // it will be re-attempted shortly. Route it to the active lane (with an amber
+  // "wird wiederholt" treatment on the card) instead of the alarming
+  // FEHLGESCHLAGEN column. See findings #4 (stale-failed) / #5 (max-turns).
+  if (task.status === 'failed' && retryScheduled) return 'running';
   if (task.status === 'failed') return 'failed';
   // v1.7.13 — Tasks user-cancelled (from the run-cancel dialog) land here.
   // Distinct from 'failed' so the UI can tell crash failures apart from

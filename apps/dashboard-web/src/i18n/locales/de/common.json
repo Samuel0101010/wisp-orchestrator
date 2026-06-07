@@ -745,6 +745,8 @@
       "turns": "Turns",
       "duration": "Dauer",
       "failed": "Fehlgeschlagen",
+      "retrying": "Wird wiederholt",
+      "retryingAt": "Wird wiederholt — nächster Versuch {{time}}",
       "forensics": "Forensik: {{path}}",
       "liveTail": "Live-Stream",
       "liveTailFor": "Live-Stream — {{title}}",
