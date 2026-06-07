@@ -1140,6 +1140,11 @@
       "running": "Läuft",
       "error": "Fehler"
     },
+    "errors": {
+      "no_dev_cmd": "Für dieses Projekt gibt es noch keine Web-Vorschau. Starte das Team einmal, damit die App gebaut wird — oder hinterlege einen Dev-Befehl in den Projekt-Einstellungen.",
+      "worktree_setup_failed": "Die Vorschau konnte nicht vorbereitet werden (Installation der Abhängigkeiten fehlgeschlagen). Versuche es erneut; wenn es weiter fehlschlägt, prüfe den Repo-Pfad und ob pnpm installiert ist.",
+      "repo_not_initialized": "Der Projektordner ist noch kein Git-Repository. Öffne das Projekt, initialisiere das Repo und versuche es dann erneut."
+    },
     "toasts": {
       "startFailed": "Vorschau konnte nicht gestartet werden",
       "stopFailed": "Vorschau konnte nicht gestoppt werden",

@@ -24,8 +24,31 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatusPill, type StatusPillTone } from '@/components/ui/status-pill';
 import { toast } from '@/components/ui/use-toast';
+import { ApiError } from '@/api/client';
+import type { TFunction } from 'i18next';
 import { INSPECTOR_SCRIPT } from './preview-inspector';
 import { PendingChangesPanel } from './PendingChangesPanel';
+
+/**
+ * Turn a failed preview-start request into a plain-language message a
+ * non-developer can act on, instead of the opaque "Request failed: 400". The
+ * server's actionable `hint`/`detail` live in ApiError.body, which the old
+ * `err.message`-only path discarded.
+ */
+function friendlyStartError(err: unknown, t: TFunction): { title: string; detail?: string } {
+  if (err instanceof ApiError) {
+    const body = (err.body ?? {}) as { error?: string; hint?: string; detail?: string };
+    const code = body.error;
+    const known = new Set(['no_dev_cmd', 'worktree_setup_failed', 'repo_not_initialized']);
+    if (code && known.has(code)) {
+      // The i18n message is a self-contained, plain-language instruction — we
+      // deliberately drop the server's technical hint to avoid dev jargon.
+      return { title: t(`preview.errors.${code}`) };
+    }
+    return { title: body.hint ?? body.error ?? err.message, detail: body.detail };
+  }
+  return { title: (err as Error).message };
+}
 
 interface PreviewFrameProps {
   projectId: string;
@@ -81,6 +104,9 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const [editMode, setEditMode] = useState(false);
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState('');
+  // A failed start REQUEST (400/500) — distinct from a dev-server runtime
+  // error surfaced by the status poll. Rendered as a guided alert.
+  const [startError, setStartError] = useState<{ title: string; detail?: string } | null>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const state = resolveStatus(status.data);
@@ -196,6 +222,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   }, [runsQuery.data, state, t]);
 
   const handleStart = async (): Promise<void> => {
+    setStartError(null);
     try {
       const res = await start.mutateAsync();
       if (res.status === 'error') {
@@ -206,15 +233,20 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
         });
       }
     } catch (err) {
+      // Surface the server's actionable hint as a guided alert + toast, not the
+      // opaque "Request failed: 400".
+      const friendly = friendlyStartError(err, t);
+      setStartError(friendly);
       toast({
         title: t('preview.toasts.startFailed'),
-        description: (err as Error).message,
+        description: friendly.title,
         variant: 'destructive',
       });
     }
   };
 
   const handleStop = async (): Promise<void> => {
+    setStartError(null);
     try {
       await stop.mutateAsync();
     } catch (err) {
@@ -367,7 +399,23 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
                   {t('preview.empty')}
                 </p>
               )}
-              {state === 'error' && errorMessage ? (
+              {startError ? (
+                <div
+                  role="alert"
+                  data-testid="preview-error-alert"
+                  className="w-full max-w-2xl rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                >
+                  <div className="font-medium">{startError.title}</div>
+                  {startError.detail ? (
+                    <div
+                      data-testid="preview-error-message"
+                      className="mt-0.5 break-words opacity-90"
+                    >
+                      {startError.detail}
+                    </div>
+                  ) : null}
+                </div>
+              ) : state === 'error' && errorMessage ? (
                 <div
                   role="alert"
                   data-testid="preview-error-alert"

@@ -53,6 +53,12 @@ const BACKEND_FRAMEWORK_DEPS = [
   '@hapi/hapi',
 ] as const;
 
+/** Tauri turns a web app into a desktop binary; we preview its web UI. */
+const TAURI_DEPS = ['@tauri-apps/cli', '@tauri-apps/api'] as const;
+
+/** Expo / React Native — the only headless-previewable surface is the web build. */
+const MOBILE_FRAMEWORK_DEPS = ['expo', 'react-native'] as const;
+
 /** Default probe URL when a web framework is detected but no PORT is declared. */
 const DEFAULT_WEB_PROBE: Record<string, string> = {
   vite: 'http://127.0.0.1:5173/',
@@ -95,6 +101,25 @@ function pickDevCommand(pkg: Record<string, unknown>, preferred: 'dev' | 'start'
   return null;
 }
 
+/**
+ * Pick a WEB dev command for a Tauri project — one that starts the underlying
+ * web dev server (vite/next/…), NOT `tauri dev` (which opens a native window
+ * and binds no HTTP port, so the preview probe just times out). Prefers an
+ * explicit web-only script, then a non-tauri `dev` script, then the
+ * framework's local binary.
+ */
+function pickWebDevCommand(pkg: Record<string, unknown>, web: string): string | null {
+  const scripts = (pkg.scripts as Record<string, string>) ?? {};
+  for (const name of ['dev:web', 'web:dev', 'dev:vite', 'vite', 'web']) {
+    if (scripts[name]) return `pnpm ${name}`;
+  }
+  if (scripts.dev && !/tauri/i.test(scripts.dev)) return 'pnpm dev';
+  if (web === 'vite' || web === '@sveltejs/kit') return 'pnpm exec vite';
+  if (web === 'next') return 'pnpm exec next dev';
+  if (web === 'astro') return 'pnpm exec astro dev';
+  return pickDevCommand(pkg, 'dev');
+}
+
 export function detectProjectType(repoPath: string): ProjectDetection {
   const pkg = readPkg(repoPath);
   if (!pkg) {
@@ -110,6 +135,36 @@ export function detectProjectType(repoPath: string): ProjectDetection {
   const deps = allDeps(pkg);
 
   const web = firstMatch(deps, WEB_FRAMEWORK_DEPS);
+
+  // Expo / React Native: a real device/simulator can't run headless in the
+  // harness, so the previewable surface is the web build (`expo start --web`,
+  // Metro on 8081). This matches the mobile template's own QA flow.
+  const mobile = firstMatch(deps, MOBILE_FRAMEWORK_DEPS);
+  if (mobile && !web) {
+    const scripts = (pkg.scripts as Record<string, string>) ?? {};
+    const devCommand = scripts.web ? 'pnpm web' : 'pnpm exec expo start --web';
+    return {
+      type: 'web-app',
+      devCommand,
+      probeUrl: 'http://127.0.0.1:8081/',
+      reason: `Expo / React Native (${mobile}) — previewing the web build`,
+      framework: 'expo',
+    };
+  }
+
+  // Tauri desktop: a web app wrapped in a native shell. Preview the WEB UI the
+  // native window hosts — never `tauri dev` (native window, no HTTP port).
+  const tauri = firstMatch(deps, TAURI_DEPS);
+  if (tauri && web) {
+    return {
+      type: 'web-app',
+      devCommand: pickWebDevCommand(pkg, web),
+      probeUrl: DEFAULT_WEB_PROBE[web] ?? 'http://127.0.0.1:5173/',
+      reason: `Tauri desktop — previewing the ${web} web UI (not the native window)`,
+      framework: web,
+    };
+  }
+
   if (web) {
     return {
       type: 'web-app',

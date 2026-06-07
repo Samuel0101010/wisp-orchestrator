@@ -1140,6 +1140,11 @@
       "running": "Running",
       "error": "Error"
     },
+    "errors": {
+      "no_dev_cmd": "No web preview is available for this project yet. Run the team once so it builds the app — or set a dev command in the project settings.",
+      "worktree_setup_failed": "Could not prepare the preview (installing dependencies failed). Try again; if it keeps failing, check the repo path and that pnpm is installed.",
+      "repo_not_initialized": "This project's folder isn't a git repository yet. Open the project, initialize the repo, then try again."
+    },
     "toasts": {
       "startFailed": "Could not start preview",
       "stopFailed": "Could not stop preview",
