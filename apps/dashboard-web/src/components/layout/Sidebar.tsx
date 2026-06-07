@@ -97,6 +97,21 @@ export function Sidebar() {
     });
   }, [projects, favoriteProjectIds]);
 
+  // Client-side name filter for the project list. The input only renders when
+  // there are enough projects to be worth filtering (see threshold below).
+  const [projectFilter, setProjectFilter] = useState('');
+  const filteredProjects = useMemo(() => {
+    const q = projectFilter.trim().toLowerCase();
+    if (!q) return sortedProjects;
+    return sortedProjects.filter((p) => p.name.toLowerCase().includes(q));
+  }, [sortedProjects, projectFilter]);
+  const showProjectFilter = projects.length > 6;
+  // Avoid a hidden dead-filter: if the list shrinks below the threshold the
+  // input disappears, so clear any leftover query too.
+  useEffect(() => {
+    if (!showProjectFilter) setProjectFilter('');
+  }, [showProjectFilter]);
+
   const [open, setOpen] = useState(false);
   const [projectsOpen, setProjectsOpen] = useState(true);
   const [name, setName] = useState('');
@@ -411,6 +426,18 @@ export function Sidebar() {
           </Dialog>
         </div>
 
+        {projectsOpen && showProjectFilter && (
+          <input
+            type="search"
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            placeholder={t('navigation.filterProjects', 'Filter projects…')}
+            aria-label={t('navigation.filterProjects', 'Filter projects…')}
+            data-testid="sidebar-project-filter"
+            className="mb-1.5 w-full rounded-md border border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-glass)] px-2.5 py-1.5 text-xs text-[color:var(--wisp-ink)] outline-none placeholder:text-[color:var(--wisp-ink-4)] focus:ring-1 focus:ring-[color:var(--coral)]"
+          />
+        )}
+
         {projectsOpen && (
           <nav
             className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1"
@@ -426,7 +453,12 @@ export function Sidebar() {
                 {t('navigation.noProjectsYet')}
               </span>
             )}
-            {sortedProjects.map((p) => {
+            {!isLoading && projects.length > 0 && filteredProjects.length === 0 && (
+              <span className="px-2.5 py-2 text-xs text-[color:var(--wisp-ink-4)]">
+                {t('navigation.noProjectMatches', 'No projects match your filter.')}
+              </span>
+            )}
+            {filteredProjects.map((p) => {
               const active = params.projectId === p.id;
               const tone = projectTone(p.id);
               const status = active ? activePlan.data?.status : undefined;

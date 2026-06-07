@@ -466,6 +466,8 @@
     "projects": "Projects",
     "newProject": "New project",
     "noProjectsYet": "No projects yet",
+    "filterProjects": "Filter projects…",
+    "noProjectMatches": "No projects match your filter.",
     "recentRuns": "Recent runs",
     "today": "{{count}} today",
     "backToProject": "Back to project",
