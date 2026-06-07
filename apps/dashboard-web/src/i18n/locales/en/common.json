@@ -863,43 +863,53 @@
   "templates": {
     "web-app": {
       "name": "Web app (React + Vite)",
-      "description": "Builds a browser web app with React, Vite and Tailwind. Pipeline: Architect plans the work, a UI developer builds the screens, a test developer writes unit and browser tests, and QA runs install, type-check, test and build."
+      "description": "Builds a browser web app with React, Vite and Tailwind. Pipeline: Architect plans the work, a UI developer builds the screens, a test developer writes unit and browser tests, and QA runs install, type-check, test and build.",
+      "exampleGoal": "Build a single-page React + Vite + Tailwind tip calculator: enter a bill amount and tip percent, show per-person totals, with Vitest tests for the math and a Playwright smoke test asserting the page renders."
     },
     "fullstack-web": {
       "name": "Full-stack web app",
-      "description": "Builds one web feature end to end: a backend API plus the React UI that uses it. Pipeline: Architect → backend dev → frontend dev → tests → QA."
+      "description": "Builds one web feature end to end: a backend API plus the React UI that uses it. Pipeline: Architect → backend dev → frontend dev → tests → QA.",
+      "exampleGoal": "Build a notes feature: an Express API with GET/POST/DELETE /api/notes backed by an in-memory store, plus a React page that lists, adds, and deletes notes, with Vitest API tests and a Playwright e2e covering the add-then-delete round-trip."
     },
     "mobile-app": {
       "name": "Mobile app (React Native / Expo)",
-      "description": "Builds a cross-platform mobile app with React Native and Expo. Pipeline: Architect → mobile dev (screens + navigation) → test dev (component tests) → QA (typecheck / lint / test)."
+      "description": "Builds a cross-platform mobile app with React Native and Expo. Pipeline: Architect → mobile dev (screens + navigation) → test dev (component tests) → QA (typecheck / lint / test).",
+      "exampleGoal": "Build an Expo Router app with a tab navigator: a Home screen listing tasks from local state and a Settings screen with a dark-mode toggle, plus component tests for both."
     },
     "desktop-app": {
       "name": "Desktop app (Tauri)",
-      "description": "Builds a cross-platform desktop app with Tauri (Rust shell + web UI). Pipeline: Architect → UI dev → packaging engineer → tests → QA, ending in an installable build artifact."
+      "description": "Builds a cross-platform desktop app with Tauri (Rust shell + web UI). Pipeline: Architect → UI dev → packaging engineer → tests → QA, ending in an installable build artifact.",
+      "exampleGoal": "Build a cross-platform Tauri notes app: a React UI with a sidebar list and editor, persisting notes to the local filesystem via a Rust #[tauri::command], with a unique bundle identifier and Windows msi output."
     },
     "cli-tool": {
       "name": "CLI tool",
-      "description": "Builds a command-line tool in Node/TypeScript with argument parsing and tests. Pipeline: Architect plans the commands and flags, a core dev implements the CLI, a test dev writes Vitest tests, then QA runs typecheck, tests, and build."
+      "description": "Builds a command-line tool in Node/TypeScript with argument parsing and tests. Pipeline: Architect plans the commands and flags, a core dev implements the CLI, a test dev writes Vitest tests, then QA runs typecheck, tests, and build.",
+      "exampleGoal": "Build a `greet` CLI with a `--name` flag (default 'world') and a `--shout` boolean that uppercases the output, with Vitest tests for defaults, both flags, and an unknown-flag error."
     },
     "ts-library": {
       "name": "TypeScript library",
-      "description": "Architect → 2 devs → QA. Optimised for small TypeScript libraries with build / test / lint gates."
+      "description": "Architect → 2 devs → QA. Optimised for small TypeScript libraries with build / test / lint gates.",
+      "exampleGoal": "Add a hello(name) function returning 'Hello <name>!' to src/hello.ts plus a Vitest test covering happy path and empty-string edge case."
     },
     "python-backend": {
       "name": "Python backend",
-      "description": "Architect → API dev → test dev → QA. Targets small Python services with pytest gates."
+      "description": "Architect → API dev → test dev → QA. Targets small Python services with pytest gates.",
+      "exampleGoal": "Add a /health endpoint to src/app.py returning {status: 'ok'} with a pytest test using Flask's test client."
     },
     "docs-site": {
       "name": "Docs & guides",
-      "description": "Architect → tech writer → QA. Builds documentation only: READMEs, how-to guides, API references, and runbooks. No code, just clear writing checked for accuracy and working links."
+      "description": "Architect → tech writer → QA. Builds documentation only: READMEs, how-to guides, API references, and runbooks. No code, just clear writing checked for accuracy and working links.",
+      "exampleGoal": "Write a README.md for this repo covering what it does, install, quick start, configuration, and a troubleshooting section, with all commands verified against package.json."
     },
     "refactor-squad": {
       "name": "Refactor squad",
-      "description": "Architect (planner) → refactor-dev (opus, careful execution) → QA. Optimised for safe code transformations that must keep all existing tests green."
+      "description": "Architect (planner) → refactor-dev (opus, careful execution) → QA. Optimised for safe code transformations that must keep all existing tests green.",
+      "exampleGoal": "Extract the foo() function from src/big.ts into a new module src/foo.ts while keeping the public re-export so all existing tests pass."
     },
     "data-pipeline": {
       "name": "Data pipeline",
-      "description": "Architect → pipeline-dev → validator → QA. For ETL-style transforms with input/output schema validation."
+      "description": "Architect → pipeline-dev → validator → QA. For ETL-style transforms with input/output schema validation.",
+      "exampleGoal": "Read input/users.csv with columns name,email,age and produce output/users.json with the same fields, normalising email to lowercase and rejecting rows where age is not a positive integer."
     }
   },
   "commandPalette": {

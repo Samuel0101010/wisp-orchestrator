@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bolt, ChevronRight, FolderOpen, Plus } from 'lucide-react';
@@ -292,14 +292,6 @@ export function Home() {
   const [npGoal, setNpGoal] = useState('');
   const [npRepoPath, setNpRepoPath] = useState('');
   const [npTemplateId, setNpTemplateId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!npTemplateId) return;
-    const tpl = templates.find((x) => x.id === npTemplateId);
-    if (tpl && npGoal.trim() === '') {
-      setNpGoal(tpl.suggestedGoals[0] ?? '');
-    }
-  }, [npTemplateId, templates, npGoal]);
 
   const npReset = (): void => {
     setNpName('');
@@ -752,8 +744,11 @@ export function Home() {
                 rows={3}
                 placeholder={
                   npTemplateId
-                    ? (templates.find((tpl) => tpl.id === npTemplateId)?.suggestedGoals[0] ??
-                      t('newProject.fields.goalPlaceholder'))
+                    ? t(`templates.${npTemplateId}.exampleGoal`, {
+                        defaultValue:
+                          templates.find((tpl) => tpl.id === npTemplateId)?.suggestedGoals[0] ??
+                          t('newProject.fields.goalPlaceholder'),
+                      })
                     : t('newProject.fields.goalPlaceholder')
                 }
                 value={npGoal}

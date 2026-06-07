@@ -863,43 +863,53 @@
   "templates": {
     "web-app": {
       "name": "Web-App (React + Vite)",
-      "description": "Baut eine Browser-Web-App mit React, Vite und Tailwind. Pipeline: Der Architect plant die Arbeit, ein UI-Entwickler baut die Screens, ein Test-Entwickler schreibt Unit- und Browser-Tests, und QA führt Install, Type-Check, Test und Build aus."
+      "description": "Baut eine Browser-Web-App mit React, Vite und Tailwind. Pipeline: Der Architect plant die Arbeit, ein UI-Entwickler baut die Screens, ein Test-Entwickler schreibt Unit- und Browser-Tests, und QA führt Install, Type-Check, Test und Build aus.",
+      "exampleGoal": "Baue einen einseitigen Trinkgeld-Rechner mit React + Vite + Tailwind: Rechnungsbetrag und Trinkgeld-Prozentsatz eingeben, Beträge pro Person anzeigen — mit Vitest-Tests für die Berechnung und einem Playwright-Smoke-Test, der prüft, dass die Seite rendert."
     },
     "fullstack-web": {
       "name": "Full-Stack-Web-App",
-      "description": "Baut ein Web-Feature von Anfang bis Ende: eine Backend-API plus das React-UI, das sie nutzt. Pipeline: Architect → Backend-Dev → Frontend-Dev → Tests → QA."
+      "description": "Baut ein Web-Feature von Anfang bis Ende: eine Backend-API plus das React-UI, das sie nutzt. Pipeline: Architect → Backend-Dev → Frontend-Dev → Tests → QA.",
+      "exampleGoal": "Baue ein Notiz-Feature: eine Express-API mit GET/POST/DELETE /api/notes auf Basis eines In-Memory-Stores, dazu eine React-Seite zum Auflisten, Hinzufügen und Löschen von Notizen — mit Vitest-API-Tests und einem Playwright-e2e für den Hinzufügen-dann-Löschen-Ablauf."
     },
     "mobile-app": {
       "name": "Mobile-App (React Native / Expo)",
-      "description": "Baut eine plattformübergreifende Mobile-App mit React Native und Expo. Pipeline: Architect → Mobile-Dev (Screens + Navigation) → Test-Dev (Komponenten-Tests) → QA (Type-Check / Lint / Test)."
+      "description": "Baut eine plattformübergreifende Mobile-App mit React Native und Expo. Pipeline: Architect → Mobile-Dev (Screens + Navigation) → Test-Dev (Komponenten-Tests) → QA (Type-Check / Lint / Test).",
+      "exampleGoal": "Baue eine Expo-Router-App mit Tab-Navigation: einen Home-Screen, der Aufgaben aus dem lokalen State auflistet, und einen Settings-Screen mit Dark-Mode-Schalter — dazu Komponententests für beide."
     },
     "desktop-app": {
       "name": "Desktop-App (Tauri)",
-      "description": "Baut eine plattformübergreifende Desktop-App mit Tauri (Rust-Shell + Web-UI). Pipeline: Architect → UI-Dev → Packaging-Engineer → Tests → QA, mit einem installierbaren Build-Artefakt am Ende."
+      "description": "Baut eine plattformübergreifende Desktop-App mit Tauri (Rust-Shell + Web-UI). Pipeline: Architect → UI-Dev → Packaging-Engineer → Tests → QA, mit einem installierbaren Build-Artefakt am Ende.",
+      "exampleGoal": "Baue eine plattformübergreifende Tauri-Notiz-App: eine React-Oberfläche mit Seitenleisten-Liste und Editor, die Notizen über einen Rust-#[tauri::command] im lokalen Dateisystem speichert — mit eindeutigem Bundle-Identifier und Windows-msi-Ausgabe."
     },
     "cli-tool": {
       "name": "CLI-Tool",
-      "description": "Baut ein Kommandozeilen-Tool in Node/TypeScript mit Argument-Parsing und Tests. Pipeline: Der Architect plant die Befehle und Flags, ein Core-Dev implementiert die CLI, ein Test-Dev schreibt Vitest-Tests, dann führt QA Type-Check, Tests und Build aus."
+      "description": "Baut ein Kommandozeilen-Tool in Node/TypeScript mit Argument-Parsing und Tests. Pipeline: Der Architect plant die Befehle und Flags, ein Core-Dev implementiert die CLI, ein Test-Dev schreibt Vitest-Tests, dann führt QA Type-Check, Tests und Build aus.",
+      "exampleGoal": "Baue ein `greet`-CLI mit einem `--name`-Flag (Standard 'world') und einem `--shout`-Boolean, das die Ausgabe in Großbuchstaben umwandelt — mit Vitest-Tests für Standardwerte, beide Flags und einen Fehler bei unbekanntem Flag."
     },
     "ts-library": {
       "name": "TypeScript-Bibliothek",
-      "description": "Architect → 2 Devs → QA. Optimiert für kleine TypeScript-Bibliotheken mit Build- / Test- / Lint-Gates."
+      "description": "Architect → 2 Devs → QA. Optimiert für kleine TypeScript-Bibliotheken mit Build- / Test- / Lint-Gates.",
+      "exampleGoal": "Füge src/hello.ts eine Funktion hello(name) hinzu, die 'Hello <name>!' zurückgibt — dazu ein Vitest-Test für den Normalfall und den Sonderfall leerer String."
     },
     "python-backend": {
       "name": "Python-Backend",
-      "description": "Architect → API-Dev → Test-Dev → QA. Für kleine Python-Services mit pytest-Gates."
+      "description": "Architect → API-Dev → Test-Dev → QA. Für kleine Python-Services mit pytest-Gates.",
+      "exampleGoal": "Füge src/app.py einen /health-Endpoint hinzu, der {status: 'ok'} zurückgibt — mit einem pytest-Test über Flasks Test-Client."
     },
     "docs-site": {
       "name": "Doku & Guides",
-      "description": "Architect → Tech-Writer → QA. Baut ausschließlich Dokumentation: READMEs, How-to-Guides, API-Referenzen und Runbooks. Kein Code, nur klare Texte, auf Korrektheit und funktionierende Links geprüft."
+      "description": "Architect → Tech-Writer → QA. Baut ausschließlich Dokumentation: READMEs, How-to-Guides, API-Referenzen und Runbooks. Kein Code, nur klare Texte, auf Korrektheit und funktionierende Links geprüft.",
+      "exampleGoal": "Schreibe eine README.md für dieses Repo mit Zweck, Installation, Schnellstart, Konfiguration und einem Abschnitt zur Fehlerbehebung — alle Befehle gegen die package.json geprüft."
     },
     "refactor-squad": {
       "name": "Refactor-Squad",
-      "description": "Architect (Planer) → Refactor-Dev (Opus, sorgfältige Ausführung) → QA. Optimiert für sichere Code-Transformationen, die alle bestehenden Tests grün halten müssen."
+      "description": "Architect (Planer) → Refactor-Dev (Opus, sorgfältige Ausführung) → QA. Optimiert für sichere Code-Transformationen, die alle bestehenden Tests grün halten müssen.",
+      "exampleGoal": "Extrahiere die Funktion foo() aus src/big.ts in ein neues Modul src/foo.ts und behalte den öffentlichen Re-Export bei, sodass alle bestehenden Tests grün bleiben."
     },
     "data-pipeline": {
       "name": "Daten-Pipeline",
-      "description": "Architect → Pipeline-Dev → Validator → QA. Für ETL-artige Transformationen mit Schema-Validierung von Ein- und Ausgabe."
+      "description": "Architect → Pipeline-Dev → Validator → QA. Für ETL-artige Transformationen mit Schema-Validierung von Ein- und Ausgabe.",
+      "exampleGoal": "Lies input/users.csv mit den Spalten name,email,age und erzeuge output/users.json mit denselben Feldern — E-Mails in Kleinbuchstaben normalisieren und Zeilen ablehnen, in denen age keine positive Ganzzahl ist."
     }
   },
   "commandPalette": {
