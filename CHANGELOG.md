@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.2.3 — dashboard UX-hardening: full German, accessible, decluttered
+
+A full live audit of the dashboard (driven with `vercel-labs/agent-browser`) found no blockers but a batch of polish gaps — most visible for the German-default audience. This release completes the German localization, closes a set of accessibility holes, makes the multi-tab project state coherent, and de-clutters the project list.
+
+### Fixed
+
+- **The UI is now fully German in German.** All built-in project templates render German names + descriptions (they were hardcoded English), the navigation labels are consistent (Team-Chat, Ziel-Planer, Schnellstart), and `<html lang>` now follows the active language (it was stuck at `en`, so screen readers and browser-translate mishandled the German default).
+- **Accessibility holes closed.** Collapsed-sidebar icon links and the navigation landmark now have accessible names; the language switcher is announced as a real menu (`aria-haspopup`/`role=menu`); the repeated "Bearbeiten"/"Öffnen" buttons (project header, per-run, and the next-steps card) get distinct names; Focusboard and Chat gained page headings; the collapse/expand labels are a consistent pair.
+- **The tabs tell one story.** The Team-Chart no longer claims "no team" while the Team Builder shows a starter team — the Team Builder now flags the starter team as unsaved and the org-chart explains it. Mission Control's success-rate figures carry explicit timeframes, so a 7-day 100% no longer looks like it contradicts an all-time 67%.
+- **The project list is searchable and clean.** The sidebar gained a project filter (for many-project setups), and an integration test that wrote to the real database (it imported the DB without the test-isolation shim) is fixed — it was the source of the stray "iter"/"init" projects that cluttered the list.
+
+### Verification
+
+- All 8 local gates green; server (561) + web (186) + package unit tests; e2e (54) green; CI (verify + e2e) green on the PR. Every fix was live-verified in a real browser with agent-browser. Each of the four phases was implemented by a dev subagent, gated by an adversarial review subagent (which caught six real residual issues before merge), and verified by the lead.
+
 ## 2.2.2 — better-sqlite3 won't crash the dashboard on a Node mismatch
 
 A non-developer's dashboard crashed on startup because the native SQLite module (better-sqlite3) had a prebuilt binary for a different Node.js version than the one launching the server: the Claude Code CLI (bundled Node 24) installed it, but the server runs under the system Node. The native binary is tied to a specific Node ABI, so it threw `NODE_MODULE_VERSION` before the server could boot. This release makes that self-heal automatically.
