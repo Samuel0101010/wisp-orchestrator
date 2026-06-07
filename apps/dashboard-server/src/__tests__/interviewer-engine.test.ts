@@ -74,6 +74,41 @@ describe('runInterviewerTurn', () => {
     expect(result.tokensIn).toBe(100);
   });
 
+  it('injects the project goal into the interviewer prompt', async () => {
+    let captured = '';
+    await runInterviewerTurn({
+      systemPrompt: 'base-system',
+      goal: 'Build a kanban board in React + Vite + Tailwind',
+      current: EMPTY_BRIEF,
+      history: [],
+      userMessage: 'hi',
+      taskId: 'test-goal',
+      turnImpl: async (a) => {
+        captured = `${a.systemPrompt}\n${a.prompt}`;
+        return { text: 'ok', tokensIn: 1, tokensOut: 1, durationMs: 1, failed: null };
+      },
+    });
+    expect(captured).toContain('base-system');
+    expect(captured).toContain('Project goal (already stated by the user)');
+    expect(captured).toContain('Build a kanban board in React + Vite + Tailwind');
+  });
+
+  it('leaves the prompt unchanged when no goal is provided', async () => {
+    let captured = '';
+    await runInterviewerTurn({
+      systemPrompt: 'base-system',
+      current: EMPTY_BRIEF,
+      history: [],
+      userMessage: 'hi',
+      taskId: 'test-no-goal',
+      turnImpl: async (a) => {
+        captured = `${a.systemPrompt}\n${a.prompt}`;
+        return { text: 'ok', tokensIn: 1, tokensOut: 1, durationMs: 1, failed: null };
+      },
+    });
+    expect(captured).not.toContain('Project goal (already stated by the user)');
+  });
+
   it('flags shouldFinalize when completeness crosses threshold', async () => {
     const result = await runInterviewerTurn({
       systemPrompt: 'test-system',
@@ -170,6 +205,12 @@ describe('renderBriefAsPrdMarkdown', () => {
     expect(md).toContain('## Deadline');
     expect(md).toContain('## Completeness');
     expect(md).toContain('90%');
+  });
+
+  it('includes a Goal section when a goal is provided', () => {
+    const md = renderBriefAsPrdMarkdown(EMPTY_BRIEF, 'GoalApp', 'Ship a tip calculator');
+    expect(md).toContain('## Goal');
+    expect(md).toContain('Ship a tip calculator');
   });
 
   it('marks missing fields as "_not provided_"', () => {

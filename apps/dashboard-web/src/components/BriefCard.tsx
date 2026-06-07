@@ -4,6 +4,7 @@ import { Bot, Check, ChevronDown, ChevronUp, MessageSquare, Send, Sparkles } fro
 import {
   useFinalizeInterview,
   useInterview,
+  useProject,
   useSendInterviewMessage,
   type InterviewTranscriptMessage,
   type ProjectBriefRow,
@@ -29,6 +30,7 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
   const interview = useInterview(projectId);
   const sendMessage = useSendInterviewMessage(projectId);
   const finalize = useFinalizeInterview(projectId);
+  const project = useProject(projectId);
   const [draft, setDraft] = useState('');
   const [expandedAfterReady, setExpandedAfterReady] = useState(false);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
@@ -37,6 +39,7 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
   const transcript = interview.data?.transcript ?? [];
   const isReady = brief?.briefReady ?? false;
   const score = brief?.completenessScore ?? 0;
+  const goal = project.data?.goal ?? '';
   const expanded = forceExpanded || !isReady || expandedAfterReady;
 
   useEffect(() => {
@@ -162,6 +165,14 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
 
         {expanded ? (
           <>
+            {!isReady && goal ? (
+              <div
+                className="rounded-md border bg-muted/30 px-3 py-2 text-xs"
+                data-testid="brief-goal-context"
+              >
+                <span className="font-medium">{t('briefCard.goalLabel')}:</span> {goal}
+              </div>
+            ) : null}
             <Transcript transcript={transcript} ref={transcriptRef} />
             {!isReady ? (
               <div className="flex flex-col gap-2">
@@ -195,18 +206,29 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
                     size="sm"
                     variant="outline"
                     onClick={() => void handleFinalize()}
-                    disabled={finalize.isPending || score < 1}
+                    disabled={finalize.isPending}
                     data-testid="brief-finalize-button"
                     title={
-                      score < 50 ? t('briefCard.finalizeEarlyHint') : t('briefCard.finalizeHint')
+                      score < 1
+                        ? t('briefCard.useGoalAsBriefHint')
+                        : score < 50
+                          ? t('briefCard.finalizeEarlyHint')
+                          : t('briefCard.finalizeHint')
                     }
                   >
-                    {finalize.isPending ? t('briefCard.finalizing') : t('briefCard.finalize')}
+                    {finalize.isPending
+                      ? t('briefCard.finalizing')
+                      : score < 1
+                        ? t('briefCard.useGoalAsBrief')
+                        : t('briefCard.finalize')}
                   </Button>
                   <span className="text-2xs text-muted-foreground">
                     {t('briefCard.keyboardHint')}
                   </span>
                 </div>
+                <p className="text-2xs text-muted-foreground" data-testid="brief-optional-hint">
+                  {t('briefCard.optionalHint')}
+                </p>
               </div>
             ) : null}
           </>

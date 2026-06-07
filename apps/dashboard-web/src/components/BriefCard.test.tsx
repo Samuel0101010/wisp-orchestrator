@@ -166,17 +166,22 @@ describe('BriefCard', () => {
     expect(screen.getByTestId('brief-bubble-assistant')).toBeInTheDocument();
   });
 
-  it('finalize button is disabled at 0% and enabled once score > 0', async () => {
+  it('finalize button is always enabled; label switches from skip to finalise', async () => {
     renderCard();
     await waitFor(() => screen.getByTestId('brief-finalize-button'));
     const finalizeBtn = screen.getByTestId('brief-finalize-button') as HTMLButtonElement;
-    expect(finalizeBtn.disabled).toBe(true);
+    // At 0% the action is the "use goal as brief" skip — and it must be enabled
+    // so a non-technical user is never blocked from starting.
+    expect(finalizeBtn.disabled).toBe(false);
+    expect(finalizeBtn.textContent).toContain('Use goal as brief');
 
     fireEvent.change(screen.getByTestId('brief-message-input') as HTMLTextAreaElement, {
       target: { value: 'web' },
     });
     fireEvent.click(screen.getByTestId('brief-send-button'));
-    await waitFor(() => expect(finalizeBtn.disabled).toBe(false));
+    // Once there is content it becomes a normal finalise (still enabled).
+    await waitFor(() => expect(finalizeBtn.textContent).toContain('Finalise brief'));
+    expect(finalizeBtn.disabled).toBe(false);
   });
 
   it('clicking finalize flips to ready state + collapses chat', async () => {
