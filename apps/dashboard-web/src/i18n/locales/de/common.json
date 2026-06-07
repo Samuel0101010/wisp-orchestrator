@@ -550,6 +550,15 @@
     "selectProject": "Wähle ein Projekt, um sein Team zu konfigurieren.",
     "subtitle": "Konfiguriere die Agents für {{name}}.",
     "loading": "Lade das Team…",
+    "addAgent": {
+      "trigger": "Built-in-Agent hinzufügen",
+      "title": "Built-in-Agent hinzufügen",
+      "description": "Wähle einen der fertigen Agents (dieselben, mit denen du im Chat sprechen kannst) als Teamrolle aus. Modell, Tools und Prompt kannst du danach weiterhin anpassen.",
+      "loading": "Lade Agents…",
+      "error": "Agents konnten nicht geladen werden.",
+      "empty": "Keine Agents verfügbar.",
+      "added": "{{name}} zum Team hinzugefügt"
+    },
     "saveAsTemplateDialog": {
       "title": "Team als Vorlage speichern",
       "description": "Speichert diese Teamkonfiguration auf Festplatte unter deinem Daten-Verzeichnis. Du kannst sie später im Neues-Projekt-Dialog auswählen.",

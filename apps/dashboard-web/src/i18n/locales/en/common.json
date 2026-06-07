@@ -550,6 +550,15 @@
     "selectProject": "Select a project to configure its team.",
     "subtitle": "Configure the agents for {{name}}.",
     "loading": "Loading the team…",
+    "addAgent": {
+      "trigger": "Add a built-in agent",
+      "title": "Add a built-in agent",
+      "description": "Pick one of the ready-made agents (the same ones you can chat with) to add as a team role. You can still tweak its model, tools and prompt afterwards.",
+      "loading": "Loading agents…",
+      "error": "Could not load agents.",
+      "empty": "No agents available.",
+      "added": "Added {{name}} to the team"
+    },
     "saveAsTemplateDialog": {
       "title": "Save team as template",
       "description": "Stores this team configuration to disk under your data dir. You can pick it from the New Project dialog later.",
