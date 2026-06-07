@@ -644,9 +644,11 @@ export type NewRuntimeReport = typeof runtimeReports.$inferInsert;
 // One row per project (UNIQUE index on project_id). Populated by the
 // requirements-interviewer agent during the Brief phase. `completenessScore`
 // rises as the interviewer extracts more facts; `briefReady` flips to true
-// when the interviewer or the user explicitly finalises. The planner reads
-// this row + the docs/PRD.md file at `prdPath` and refuses to plan when
-// `briefReady` is false (override flag exists for power-users).
+// when the interviewer or the user explicitly finalises. Plan generation
+// (apps/dashboard-server/src/routes/plans.ts) reads this row's structured
+// fields AND the full rendered docs/PRD.md at `prdPath`, appending both to the
+// planner prompt; it refuses to plan when `briefReady` is false (override flag
+// exists for power-users).
 
 export const projectBriefs = sqliteTable('project_briefs', {
   id: text('id').primaryKey(),

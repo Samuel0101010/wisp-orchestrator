@@ -1,6 +1,7 @@
 import './setup.js';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -383,6 +384,66 @@ describe('plan generation route', () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toBeNull();
+  });
+
+  it('feeds the full PRD markdown into the planner prompt', async () => {
+    const team = defaultTeamPayload();
+    // Capture the prompt the planner runner receives.
+    let capturedPrompt = '';
+    const baseRunner = makeRunner([{ events: [], writePlan: () => buildValidPlan(team) }]).runner;
+    const runner = (opts: RunClaudeOpts): AsyncIterable<HarnessEvent> => {
+      capturedPrompt = opts.prompt;
+      return baseRunner(opts);
+    };
+    app = await buildAppWithRunner(runner);
+    await app.ready();
+
+    // Create the project with a real repoPath holding docs/PRD.md.
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wisp-prd-'));
+    fs.mkdirSync(path.join(repoDir, 'docs'), { recursive: true });
+    const PRD_MARKER = 'UNIQUE-PRD-SENTINEL the full requirements document body';
+    fs.writeFileSync(path.join(repoDir, 'docs', 'PRD.md'), `# PRD\n\n${PRD_MARKER}\n`, 'utf8');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/projects',
+      payload: { name: 'prd-proj', goal: 'goal', repoPath: repoDir },
+    });
+    const projectId = created.json().id as string;
+    await saveTeam(app, projectId, team);
+    // Point the brief row at the rendered PRD.
+    sqlite
+      .prepare(`UPDATE project_briefs SET prd_path = ? WHERE project_id = ?`)
+      .run('docs/PRD.md', projectId);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projectId}/plan`,
+      payload: {},
+    });
+    expect(res.statusCode).toBe(201);
+    expect(capturedPrompt).toContain('## Full brief (requirements document)');
+    expect(capturedPrompt).toContain(PRD_MARKER);
+
+    fs.rmSync(repoDir, { recursive: true, force: true });
+  });
+
+  it('re-stamps plan.goal to project.goal verbatim (planner paraphrase ignored)', async () => {
+    const team = defaultTeamPayload();
+    // buildValidPlan returns goal "Build a thing"; the project goal differs.
+    const projectGoal = 'EXACT user-authored goal that must reach every agent';
+    const { runner } = makeRunner([{ events: [], writePlan: () => buildValidPlan(team) }]);
+    app = await buildAppWithRunner(runner);
+    await app.ready();
+    const projectId = await createProject(app, projectGoal);
+    await saveTeam(app, projectId, team);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projectId}/plan`,
+      payload: {},
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().plan.goal).toBe(projectGoal);
   });
 });
 
