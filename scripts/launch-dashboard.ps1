@@ -52,6 +52,62 @@ if (-not (Test-Path -LiteralPath $dataDir)) {
 }
 $statePath = Join-Path $dataDir 'state.json'
 
+# Resolve a pnpm invocation once (cached in $script:pnpmExe / $script:pnpmArgsPrefix).
+# Prefer a directly installed pnpm; else corepack (Node-bundled); else a
+# version-pinned global pnpm via npm. Used by both the first-launch bootstrap
+# and the better-sqlite3 ABI self-heal. Returns $true on success.
+$script:pnpmExe = $null
+$script:pnpmArgsPrefix = @()
+function Resolve-Pnpm {
+    if ($null -ne $script:pnpmExe) { return $true }
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    $corepack = Get-Command corepack -ErrorAction SilentlyContinue
+    if ($null -ne $pnpm) {
+        $script:pnpmExe = 'pnpm'
+        $script:pnpmArgsPrefix = @()
+        return $true
+    } elseif ($null -ne $corepack) {
+        Write-Host "  pnpm not found; using corepack (Node-bundled) instead." -ForegroundColor Cyan
+        # Activate the pinned pnpm version so corepack doesn't prompt interactively
+        # on Node >=22 (the prompt hangs Claude Code's Bash tool which has no stdin).
+        & corepack prepare 'pnpm@10.33.2' --activate
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  corepack could not prepare pnpm@10.33.2 (bundled corepack may be too old to verify its signature)." -ForegroundColor Yellow
+            Write-Host "  Falling back to: npm install -g pnpm@10.33.2" -ForegroundColor Yellow
+            & npm install -g pnpm@10.33.2
+            $pnpmAvail = Get-Command pnpm -ErrorAction SilentlyContinue
+            if ($LASTEXITCODE -ne 0 -or $null -eq $pnpmAvail) {
+                Write-Host "Could not obtain pnpm@10.33.2 via corepack or npm. Install it manually (npm install -g pnpm@10.33.2) and re-run /wisp-dashboard." -ForegroundColor Red
+                return $false
+            }
+            $script:pnpmExe = 'pnpm'
+            $script:pnpmArgsPrefix = @()
+        } else {
+            $script:pnpmExe = 'corepack'
+            $script:pnpmArgsPrefix = @('pnpm')
+        }
+        return $true
+    } else {
+        Write-Host "Neither 'pnpm' nor 'corepack' is on PATH. Install Node 22 LTS (corepack ships with it) or run: npm install -g pnpm@10.33.2" -ForegroundColor Red
+        return $false
+    }
+}
+
+# Probe whether better-sqlite3's native binding loads under THIS Node (the one
+# that will launch the server). Returns $false on an ABI mismatch.
+function Test-SqliteAbi {
+    Push-Location (Join-Path $pluginRoot 'apps/dashboard-server')
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & node -e "require('better-sqlite3')" 2>$null | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    } finally {
+        $ErrorActionPreference = $prevEAP
+        Pop-Location
+    }
+}
+
 # Idempotency: if a previous launch's server is still alive AND its port is still
 # bound, reuse it instead of spawning a second server (which would orphan the
 # first and put two writers on the same SQLite DB).
@@ -116,40 +172,8 @@ if ($chosenPort -eq 0) {
 $serverEntry = Join-Path $pluginRoot 'apps/dashboard-server/dist/server.js'
 if (-not (Test-Path -LiteralPath $serverEntry)) {
     Write-Host "First launch: building WISP (~1-2 minutes)..." -ForegroundColor Cyan
-    # Resolve a pnpm invocation. Prefer a directly installed pnpm; otherwise
-    # fall back to corepack (shipped with Node >=16.13), which honours the
-    # packageManager pin in package.json and needs no global install.
-    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
-    $corepack = Get-Command corepack -ErrorAction SilentlyContinue
-    $pnpmExe = $null
-    $pnpmArgsPrefix = @()
-    if ($null -ne $pnpm) {
-        $pnpmExe = 'pnpm'
-    } elseif ($null -ne $corepack) {
-        Write-Host "  pnpm not found; using corepack (Node-bundled) instead." -ForegroundColor Cyan
-        # Activate the pinned pnpm version so corepack doesn't prompt interactively
-        # on Node >=22 (the prompt hangs Claude Code's Bash tool which has no stdin).
-        # corepack bundled with older Node (< 0.31) can't verify pnpm 10's signature
-        # ("Cannot find matching keyid"); on failure, fall back to a version-pinned
-        # global pnpm via npm (always present with Node, no signing-key dependency).
-        & corepack prepare 'pnpm@10.33.2' --activate
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  corepack could not prepare pnpm@10.33.2 (bundled corepack may be too old to verify its signature)." -ForegroundColor Yellow
-            Write-Host "  Falling back to: npm install -g pnpm@10.33.2" -ForegroundColor Yellow
-            & npm install -g pnpm@10.33.2
-            $pnpmAvail = Get-Command pnpm -ErrorAction SilentlyContinue
-            if ($LASTEXITCODE -ne 0 -or $null -eq $pnpmAvail) {
-                Write-Host "Could not obtain pnpm@10.33.2 via corepack or npm. Install it manually (npm install -g pnpm@10.33.2) and re-run /wisp-dashboard." -ForegroundColor Red
-                exit 1
-            }
-            $pnpmExe = 'pnpm'
-            $pnpmArgsPrefix = @()
-        } else {
-            $pnpmExe = 'corepack'
-            $pnpmArgsPrefix = @('pnpm')
-        }
-    } else {
-        Write-Host "Neither 'pnpm' nor 'corepack' is on PATH. Install Node 22 LTS (corepack ships with it) or run: npm install -g pnpm@10.33.2" -ForegroundColor Red
+    # Resolve pnpm (cached so the better-sqlite3 ABI self-heal below reuses it).
+    if (-not (Resolve-Pnpm)) {
         exit 1
     }
     Push-Location $pluginRoot
@@ -202,6 +226,38 @@ if (-not (Test-Path -LiteralPath $serverEntry)) {
         exit 1
     }
     Write-Host "  Built. Starting dashboard..." -ForegroundColor Green
+}
+
+# better-sqlite3 ABI self-heal. The native binding is tied to the Node ABI it
+# was installed under; if a different Node installed it (e.g. the Claude Code
+# CLI's bundled Node) than the one launching here, it crashes with
+# NODE_MODULE_VERSION before the server can boot. Probe under THIS Node; on a
+# mismatch reconcile the pinned version + rebuild against this Node, then re-probe.
+if (-not (Test-SqliteAbi)) {
+    Write-Host "better-sqlite3 was built for a different Node - rebuilding for $(& node --version)..." -ForegroundColor Cyan
+    $rebuildLog = Join-Path $dataDir 'rebuild.log'
+    if (Resolve-Pnpm) {
+        Push-Location $pluginRoot
+        try {
+            $prevEAP = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            & $pnpmExe @pnpmArgsPrefix install --frozen-lockfile 2>&1 | Tee-Object -FilePath $rebuildLog | Out-Null
+            & $pnpmExe @pnpmArgsPrefix rebuild better-sqlite3 2>&1 | Tee-Object -FilePath $rebuildLog -Append | Out-Null
+            $ErrorActionPreference = $prevEAP
+        } finally {
+            Pop-Location
+        }
+    }
+    if (-not (Test-SqliteAbi)) {
+        Write-Host ""
+        Write-Host "better-sqlite3 still won't load under $(& node --version)." -ForegroundColor Red
+        if (Test-Path -LiteralPath $rebuildLog) {
+            Write-Host "Rebuild log: $rebuildLog" -ForegroundColor Red
+        }
+        Write-Host "Fix: from $pluginRoot run 'pnpm rebuild better-sqlite3', or install Node 24 LTS (a prebuilt binary exists - no compiler needed) and re-run /wisp-dashboard." -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host "  better-sqlite3 rebuilt for $(& node --version)." -ForegroundColor Green
 }
 
 # Spawn node detached, capture PID.

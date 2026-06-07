@@ -17,7 +17,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cachePath = path.join(os.homedir(), '.cache', 'wisp', 'playwright-browsers');
 
 const checks = [];
@@ -60,6 +63,33 @@ try {
     'not on PATH',
     'Optional — corepack (bundled with Node) provides pnpm; or: npm i -g pnpm@10.33.2',
   );
+}
+
+// better-sqlite3 native module — the #1 reason a dashboard won't start. Load it
+// under THIS Node to catch an ABI mismatch (the .node binary was built for a
+// different Node version, e.g. installed by the Claude Code CLI's bundled Node
+// but run under the system Node) before the server crashes on it.
+try {
+  const requireFromServer = createRequire(
+    path.join(repoRoot, 'apps', 'dashboard-server', 'package.json'),
+  );
+  requireFromServer('better-sqlite3');
+  ok('better-sqlite3', `native module loads under Node v${process.versions.node}`);
+} catch (err) {
+  const m = err instanceof Error ? err.message : String(err);
+  if (/NODE_MODULE_VERSION|different Node|was compiled against|\.node\b/i.test(m)) {
+    warn(
+      'better-sqlite3',
+      `built for a different Node than v${process.versions.node} (ABI mismatch)`,
+      'Rebuild it: pnpm rebuild better-sqlite3 — or just re-run /wisp-dashboard (it auto-rebuilds)',
+    );
+  } else {
+    warn(
+      'better-sqlite3',
+      'not installed / not loadable',
+      'Run /wisp-dashboard once to install + build, or `pnpm install` from the repo root',
+    );
+  }
 }
 
 // claude CLI

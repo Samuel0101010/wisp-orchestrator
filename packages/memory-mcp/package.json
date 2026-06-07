@@ -1,6 +1,6 @@
 {
   "name": "@wisp/memory-mcp",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "private": true,
   "description": "WISP memory MCP — file-based per-project memory store consumed by orchestrator and dashboard.",
   "keywords": [
@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^12.0.0",
+    "better-sqlite3": "12.9.0",
     "zod": "^3.23.0",
     "zod-to-json-schema": "^3.23.0"
   },
