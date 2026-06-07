@@ -811,6 +811,18 @@
     "runProbe": "Run probe",
     "runningShort": "Running…"
   },
+  "nextSteps": {
+    "title": "Getting started",
+    "subtitle": "A few steps to your first run.",
+    "done": "Done",
+    "open": "Open",
+    "brief": "Finish the brief",
+    "briefDesc": "Answer a few questions, or use your goal as the brief.",
+    "team": "Configure the team",
+    "teamDesc": "Pick the agents that will build your project.",
+    "plan": "Generate the plan",
+    "planDesc": "Create the task plan, then lock & run."
+  },
   "templatePicker": {
     "loading": "Loading templates…",
     "loadFailed": "Could not load templates: {{message}}",

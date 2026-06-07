@@ -50,6 +50,7 @@ import { OrgChartView } from '@/components/OrgChartView';
 import { BuildAppCard } from '@/components/BuildAppCard';
 import { BuildTargetSelect } from '@/components/BuildTargetSelect';
 import { RunStartDialog } from '@/components/RunStartDialog';
+import { NextStepsCard } from '@/components/NextStepsCard';
 
 function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
@@ -247,6 +248,7 @@ function ProjectTabs({
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-6">
+      <NextStepsCard projectId={projectId} planStatus={planStatus} onGoToTab={setActiveTab} />
       <TabsList className="self-start">
         <TabsTrigger value="brief" data-testid="project-tabs-trigger-brief">
           {t('projectTabs.brief')}

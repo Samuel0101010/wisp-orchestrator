@@ -811,6 +811,18 @@
     "runProbe": "Probe starten",
     "runningShort": "Läuft…"
   },
+  "nextSteps": {
+    "title": "Erste Schritte",
+    "subtitle": "Wenige Schritte bis zum ersten Run.",
+    "done": "Erledigt",
+    "open": "Öffnen",
+    "brief": "Brief abschließen",
+    "briefDesc": "Beantworte ein paar Fragen oder nutze dein Ziel als Brief.",
+    "team": "Team einrichten",
+    "teamDesc": "Wähle die Agents, die dein Projekt bauen.",
+    "plan": "Plan generieren",
+    "planDesc": "Erstelle den Task-Plan, dann sperren & starten."
+  },
   "templatePicker": {
     "loading": "Vorlagen laden…",
     "loadFailed": "Vorlagen konnten nicht geladen werden: {{message}}",
