@@ -232,6 +232,48 @@ async function waitForStdin() {
       emit({ type: 'completion' });
       process.exit(0);
       break;
+    case 'assistant-usage':
+      // Two assistant frames that each carry message.usage (like the real CLI),
+      // then the authoritative result frame. Exercises the LIVE cumulative
+      // token streaming off assistant frames in subprocess.iterate().
+      emit({
+        type: 'assistant',
+        message: {
+          content: [{ type: 'text', text: 'step 1' }],
+          usage: {
+            input_tokens: 100,
+            cache_creation_input_tokens: 10,
+            cache_read_input_tokens: 0,
+            output_tokens: 20,
+          },
+        },
+      });
+      emit({
+        type: 'assistant',
+        message: {
+          content: [{ type: 'text', text: 'step 2' }],
+          usage: {
+            input_tokens: 200,
+            cache_creation_input_tokens: 0,
+            cache_read_input_tokens: 50,
+            output_tokens: 30,
+          },
+        },
+      });
+      emit({
+        type: 'result',
+        subtype: 'success',
+        num_turns: 2,
+        usage: {
+          input_tokens: 200,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 30,
+        },
+      });
+      emit({ type: 'completion' });
+      process.exit(0);
+      break;
     case 'session-id':
       // Real claude -p surfaces session_id in a leading frame; we also accept
       // it on any later frame. Mock both: leading frame carries it, and so

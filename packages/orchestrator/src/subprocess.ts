@@ -192,6 +192,33 @@ function tryParseJson(line: string): ParsedLine | null {
   }
 }
 
+/**
+ * Per-turn token usage from a streaming `assistant` frame, used to surface
+ * LIVE token counts WHILE a task runs — the authoritative `result` frame only
+ * arrives at the very end, so without this the dashboard shows 0 tokens until
+ * the agent finishes. Returns null for frames without `message.usage`
+ * (including the mock fixture, whose assistant frames carry no usage — so
+ * mock/e2e token assertions are unaffected). `tokensIn` mirrors the result
+ * frame's accounting (input + cache-creation, excluding cache reads).
+ */
+export function extractAssistantTurnUsage(
+  parsed: ParsedLine,
+): { tokensIn: number; tokensOut: number } | null {
+  if (parsed.type !== 'assistant') return null;
+  const message = parsed.message as Record<string, unknown> | undefined;
+  const usage = message?.usage as Record<string, number | undefined> | undefined;
+  if (!usage) return null;
+  const input = Number(usage.input_tokens ?? 0);
+  const cacheCreate = Number(usage.cache_creation_input_tokens ?? 0);
+  const output = Number(usage.output_tokens ?? 0);
+  const tokensIn =
+    (Number.isFinite(input) ? input : 0) + (Number.isFinite(cacheCreate) ? cacheCreate : 0);
+  return {
+    tokensIn: Math.max(0, Math.trunc(tokensIn)),
+    tokensOut: Math.max(0, Math.trunc(Number.isFinite(output) ? output : 0)),
+  };
+}
+
 function mapCliEvent(parsed: ParsedLine, taskId: string): HarnessEvent[] {
   const t = parsed.type;
   if (typeof t !== 'string') return [];
@@ -351,6 +378,15 @@ export class ClaudeSubprocess {
     let stderrTail = '';
     let rateLimitDetected: RateLimitHit | null = null;
     let observedTurns = 0;
+    // Running cumulative usage from streaming `assistant` frames, emitted as
+    // task.usage during the run so the dashboard's per-agent token/turn counters
+    // climb LIVE instead of jumping from 0 to the final value at completion. The
+    // terminal `result` frame still emits its authoritative task.usage; the
+    // consumer reconciles via Math.max, so these interim values can only nudge
+    // the displayed total upward, never double-count.
+    let liveTokensIn = 0;
+    let liveTokensOut = 0;
+    let liveTurns = 0;
 
     const scanForRateLimit = (text: string): void => {
       if (rateLimitDetected) return;
@@ -436,6 +472,24 @@ export class ClaudeSubprocess {
           if (rec.subtype === 'error' || rec.is_error === true) {
             scanForRateLimit(line);
           }
+        }
+        // Live token/turn streaming: accumulate per-turn usage off each
+        // assistant frame and emit a cumulative task.usage so the UI updates
+        // mid-run (the result frame's task.usage still lands at the end).
+        const turnUsage = extractAssistantTurnUsage(parsed);
+        if (turnUsage) {
+          liveTokensIn += turnUsage.tokensIn;
+          liveTokensOut += turnUsage.tokensOut;
+          liveTurns += 1;
+          push({
+            type: 'task.usage',
+            payload: {
+              taskId: opts.taskId,
+              tokensIn: liveTokensIn,
+              tokensOut: liveTokensOut,
+              turns: liveTurns,
+            },
+          });
         }
         for (const ev of mapCliEvent(parsed, opts.taskId)) push(ev);
       }

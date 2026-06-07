@@ -3,7 +3,12 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { HarnessEvent } from '@wisp/schemas';
-import { runClaude, ClaudeSubprocess, buildArgs } from '../subprocess.js';
+import {
+  runClaude,
+  ClaudeSubprocess,
+  buildArgs,
+  extractAssistantTurnUsage,
+} from '../subprocess.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MOCK_BIN = resolve(__dirname, '../../tests/fixtures/mock-claude.mjs');
@@ -77,6 +82,32 @@ describe('runClaude (mock)', () => {
       .filter((e) => e.type === 'task.text-delta' || e.type === 'task.tool-use')
       .map((e) => e.type);
     expect(order).toEqual(['task.text-delta', 'task.tool-use', 'task.text-delta']);
+  });
+
+  it('streams LIVE cumulative task.usage off each assistant frame (not just the result frame)', async () => {
+    const events = await collect(
+      runClaude({
+        cwd: tmpdir(),
+        prompt: 'go',
+        allowedTools: [],
+        maxTurns: 5,
+        taskId: 't-live',
+        __mockBin: MOCK_BIN,
+        __mockEnv: { MOCK_MODE: 'assistant-usage' },
+      }),
+    );
+    const usage = events
+      .filter((e) => e.type === 'task.usage')
+      .map((e) => (e.type === 'task.usage' ? e.payload : null))
+      .filter((p): p is NonNullable<typeof p> => p !== null);
+    // Two interim (assistant-frame) updates + the authoritative result frame.
+    expect(usage.length).toBe(3);
+    // Frame 1: 100 + 10 cache-create in, 20 out, 1 turn.
+    expect(usage[0]).toMatchObject({ tokensIn: 110, tokensOut: 20, turns: 1 });
+    // Frame 2: cumulative — +200 in (cache-read excluded), +30 out, 2 turns.
+    expect(usage[1]).toMatchObject({ tokensIn: 310, tokensOut: 50, turns: 2 });
+    // The result frame still lands its own task.usage at the end.
+    expect(usage[2]).toMatchObject({ tokensIn: 200, tokensOut: 30, turns: 2 });
   });
 
   it('emits text-delta, tool-use, usage, then task.completed on clean exit', async () => {
@@ -297,5 +328,28 @@ describe('ClaudeSubprocess class', () => {
     }
     // After exit, kill is a no-op.
     await sp.kill();
+  });
+});
+
+describe('extractAssistantTurnUsage', () => {
+  it('extracts input+cache_creation as tokensIn and output as tokensOut', () => {
+    const u = extractAssistantTurnUsage({
+      type: 'assistant',
+      message: {
+        usage: {
+          input_tokens: 100,
+          cache_creation_input_tokens: 10,
+          cache_read_input_tokens: 999, // cache reads are intentionally excluded
+          output_tokens: 20,
+        },
+      },
+    });
+    expect(u).toEqual({ tokensIn: 110, tokensOut: 20 });
+  });
+
+  it('returns null for non-assistant frames and assistant frames without usage', () => {
+    expect(extractAssistantTurnUsage({ type: 'result', usage: { input_tokens: 5 } })).toBeNull();
+    expect(extractAssistantTurnUsage({ type: 'assistant', message: { content: [] } })).toBeNull();
+    expect(extractAssistantTurnUsage({ type: 'text-delta', text: 'hi' })).toBeNull();
   });
 });
