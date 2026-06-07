@@ -38,6 +38,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { TemplatePicker } from '@/components/TemplatePicker';
+import { RepoPathHint } from '@/components/RepoPathHint';
 import {
   useCreateProject,
   useDailyRunCount,
@@ -395,6 +396,7 @@ export function Sidebar() {
                     value={repoPath}
                     onChange={(e) => setRepoPath(e.target.value)}
                   />
+                  <RepoPathHint path={repoPath} />
                 </div>
               </div>
               <DialogFooter>

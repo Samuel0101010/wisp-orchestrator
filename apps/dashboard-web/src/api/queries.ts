@@ -854,6 +854,34 @@ export function useInitProjectRepo() {
     mutationFn: (projectId) =>
       apiFetch<InitRepoResponse>(`/api/projects/${projectId}/init-repo`, {
         method: 'POST',
+        // The Initialize button IS the user's confirmation, so let the server
+        // create the folder too if it doesn't exist yet (not just `git init`).
+        body: JSON.stringify({ createDir: true }),
+      }),
+  });
+}
+
+export interface RepoStatus {
+  exists: boolean;
+  isGitRepo: boolean;
+}
+
+/**
+ * Read-only pre-flight check for a repo path entered in the New Project dialog:
+ * does it exist, and is it already a git repo? Lets the dialog tell the user up
+ * front whether WISP will create / initialise the folder.
+ */
+export function useRepoStatus(path: string) {
+  const trimmed = path.trim();
+  return useQuery<RepoStatus>({
+    queryKey: ['repo-status', trimmed],
+    enabled: trimmed.length > 0,
+    retry: false,
+    staleTime: 5000,
+    queryFn: () =>
+      apiFetch<RepoStatus>('/api/projects/repo-status', {
+        method: 'POST',
+        body: JSON.stringify({ path: trimmed }),
       }),
   });
 }

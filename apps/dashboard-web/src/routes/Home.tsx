@@ -30,6 +30,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { TemplatePicker } from '@/components/TemplatePicker';
+import { RepoPathHint } from '@/components/RepoPathHint';
 
 // Charts pull in recharts (~120 kB gzip). Defer them off the initial paint so
 // the rest of the dashboard renders first; the charts swap in within a tick.
@@ -752,6 +753,7 @@ export function Home() {
                 value={npRepoPath}
                 onChange={(e) => setNpRepoPath(e.target.value)}
               />
+              <RepoPathHint path={npRepoPath} />
             </div>
           </div>
           <DialogFooter>

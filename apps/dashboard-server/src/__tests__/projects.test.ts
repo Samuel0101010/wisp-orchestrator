@@ -167,12 +167,72 @@ describe('projects routes', () => {
       expect(res.json()).toMatchObject({ error: 'repo_path_missing' });
     });
 
+    it('creates the directory when createDir is passed', async () => {
+      const dir = path.join(os.tmpdir(), `harness-createdir-${Date.now()}`);
+      tmpDirs.push(dir);
+      const id = await createProjectWithRepo(dir);
+      const res = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${id}/init-repo`,
+        payload: { createDir: true },
+      });
+      expect(res.statusCode).toBe(201);
+      expect(fs.existsSync(path.join(dir, '.git'))).toBe(true);
+    });
+
     it('returns 404 on unknown project id', async () => {
       const res = await app.inject({
         method: 'POST',
         url: '/api/projects/00000000-0000-0000-0000-000000000000/init-repo',
       });
       expect(res.statusCode).toBe(404);
+    });
+  });
+
+  describe('POST /api/projects/repo-status', () => {
+    const tmpDirs: string[] = [];
+    afterEach(() => {
+      for (const d of tmpDirs.splice(0)) {
+        try {
+          fs.rmSync(d, { recursive: true, force: true });
+        } catch {
+          /* ignore — Windows occasionally holds locks on .git index briefly */
+        }
+      }
+    });
+
+    it('reports a git repo as exists + isGitRepo', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-status-'));
+      tmpDirs.push(dir);
+      const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+      execFileSync('git', ['init', '-b', 'main'], { cwd: dir, env, stdio: 'pipe' });
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/projects/repo-status',
+        payload: { path: dir },
+      });
+      expect(res.statusCode).toBe(200);
+      expect(res.json()).toMatchObject({ exists: true, isGitRepo: true });
+    });
+
+    it('reports an existing non-git folder', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-status-'));
+      tmpDirs.push(dir);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/projects/repo-status',
+        payload: { path: dir },
+      });
+      expect(res.json()).toMatchObject({ exists: true, isGitRepo: false });
+    });
+
+    it('reports a missing path', async () => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/projects/repo-status',
+        payload: { path: path.join(os.tmpdir(), `harness-nope-${Date.now()}`) },
+      });
+      expect(res.json()).toMatchObject({ exists: false, isGitRepo: false });
     });
   });
 });

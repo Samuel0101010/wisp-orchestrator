@@ -147,37 +147,7 @@ export function ProjectDetail() {
       <div className="grid gap-4 md:grid-cols-3">
         <GoalCard projectId={p.id} goal={p.goal} />
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <FolderGit2 className="h-4 w-4 text-muted-foreground" />
-              {t('projectDetail.summary.repoPath')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-start gap-2">
-              <p className="min-w-0 flex-1 break-all font-mono text-xs">{p.repoPath}</p>
-              <IconButton
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 shrink-0"
-                label={t('projectDetail.summary.copyRepoPath')}
-                icon={<Copy className="h-4 w-4" />}
-                data-testid="copy-repo-path"
-                onClick={() => {
-                  navigator.clipboard.writeText(p.repoPath).then(
-                    () => toast({ title: t('projectDetail.toasts.repoPathCopied') }),
-                    () =>
-                      toast({
-                        title: t('projectDetail.toasts.copyFailed'),
-                        variant: 'destructive',
-                      }),
-                  );
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <RepoPathCard projectId={p.id} repoPath={p.repoPath} />
 
         <Card>
           <CardHeader className="pb-2">
@@ -660,6 +630,131 @@ function GoalCard({ projectId, goal }: GoalCardProps) {
           </div>
         ) : (
           <p className="text-sm leading-relaxed">{goal}</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+interface RepoPathCardProps {
+  projectId: string;
+  repoPath: string;
+}
+
+function RepoPathCard({ projectId, repoPath }: RepoPathCardProps) {
+  const { t } = useTranslation();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(repoPath);
+  const updateProject = useUpdateProject();
+
+  const startEdit = (): void => {
+    setDraft(repoPath);
+    setEditing(true);
+  };
+  const cancelEdit = (): void => {
+    setDraft(repoPath);
+    setEditing(false);
+  };
+  const handleSave = async (): Promise<void> => {
+    const next = draft.trim();
+    if (!next || next === repoPath) {
+      setEditing(false);
+      return;
+    }
+    try {
+      await updateProject.mutateAsync({ id: projectId, repoPath: next });
+      toast({ title: t('projectDetail.toasts.repoPathUpdated') });
+      setEditing(false);
+    } catch (err) {
+      toast({
+        title: t('projectDetail.toasts.repoPathUpdateFailed'),
+        description: (err as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium">
+          <FolderGit2 className="h-4 w-4 text-muted-foreground" />
+          {t('projectDetail.summary.repoPath')}
+        </CardTitle>
+        {!editing && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={startEdit}
+            data-testid="repo-path-edit-button"
+            className="h-7 px-2 text-xs"
+          >
+            <Pencil className="mr-1 h-3 w-3" />
+            {t('projectDetail.goalEdit.editButton')}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        {editing ? (
+          <div className="flex flex-col gap-2">
+            <Input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={t('newProject.fields.repoPathPlaceholder')}
+              data-testid="repo-path-edit-input"
+              className="font-mono text-xs"
+              autoFocus
+            />
+            <p className="text-2xs text-muted-foreground">{t('projectDetail.repoEdit.hint')}</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void handleSave()}
+                disabled={
+                  updateProject.isPending || draft.trim() === '' || draft.trim() === repoPath
+                }
+                data-testid="repo-path-save-button"
+              >
+                <Check className="mr-1 h-3 w-3" />
+                {updateProject.isPending ? t('buttons.saving') : t('buttons.save')}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={cancelEdit}
+                disabled={updateProject.isPending}
+                data-testid="repo-path-cancel-button"
+              >
+                <X className="mr-1 h-3 w-3" />
+                {t('buttons.cancel')}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-2">
+            <p className="min-w-0 flex-1 break-all font-mono text-xs">{repoPath}</p>
+            <IconButton
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 shrink-0"
+              label={t('projectDetail.summary.copyRepoPath')}
+              icon={<Copy className="h-4 w-4" />}
+              data-testid="copy-repo-path"
+              onClick={() => {
+                navigator.clipboard.writeText(repoPath).then(
+                  () => toast({ title: t('projectDetail.toasts.repoPathCopied') }),
+                  () =>
+                    toast({
+                      title: t('projectDetail.toasts.copyFailed'),
+                      variant: 'destructive',
+                    }),
+                );
+              }}
+            />
+          </div>
         )}
       </CardContent>
     </Card>

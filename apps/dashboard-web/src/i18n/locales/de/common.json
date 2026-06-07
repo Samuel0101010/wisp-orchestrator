@@ -534,6 +534,12 @@
       "repoPath": "Repo-Pfad",
       "repoPathPlaceholder": "/absoluter/pfad/zum/repo"
     },
+    "repoStatus": {
+      "checking": "Pfad wird geprüft…",
+      "gitRepo": "Git-Repo erkannt.",
+      "notGitRepo": "Ordner existiert, ist aber kein Git-Repo — WISP initialisiert ihn für dich.",
+      "missing": "Ordner existiert noch nicht — WISP legt ihn an und initialisiert ihn."
+    },
     "toasts": {
       "created": "Projekt erstellt",
       "createFailed": "Erstellen fehlgeschlagen"
@@ -1000,7 +1006,12 @@
       "goalUpdated": "Ziel aktualisiert",
       "goalUpdateFailed": "Ziel konnte nicht aktualisiert werden",
       "repoPathCopied": "Repo-Pfad kopiert",
-      "copyFailed": "Kopieren fehlgeschlagen"
+      "copyFailed": "Kopieren fehlgeschlagen",
+      "repoPathUpdated": "Repo-Pfad aktualisiert",
+      "repoPathUpdateFailed": "Repo-Pfad konnte nicht aktualisiert werden"
+    },
+    "repoEdit": {
+      "hint": "Zeige hier auf ein lokales Git-Repo oder einen leeren Ordner, den WISP initialisieren kann. Eine Änderung migriert bestehende Worktrees/Result-Branches nicht."
     },
     "goalEdit": {
       "editButton": "Bearbeiten",

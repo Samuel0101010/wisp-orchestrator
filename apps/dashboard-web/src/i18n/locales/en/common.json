@@ -534,6 +534,12 @@
       "repoPath": "Repo path",
       "repoPathPlaceholder": "/absolute/path/to/repo"
     },
+    "repoStatus": {
+      "checking": "Checking path…",
+      "gitRepo": "Git repo detected.",
+      "notGitRepo": "Folder exists but isn't a git repo — WISP will initialise it for you.",
+      "missing": "Folder doesn't exist yet — WISP will create and initialise it for you."
+    },
     "toasts": {
       "created": "Project created",
       "createFailed": "Create failed"
@@ -1000,7 +1006,12 @@
       "goalUpdated": "Goal updated",
       "goalUpdateFailed": "Could not update goal",
       "repoPathCopied": "Repo path copied",
-      "copyFailed": "Copy failed"
+      "copyFailed": "Copy failed",
+      "repoPathUpdated": "Repo path updated",
+      "repoPathUpdateFailed": "Could not update repo path"
+    },
+    "repoEdit": {
+      "hint": "Point this at a local git repo, or an empty folder WISP can initialise. Changing it won't migrate existing worktrees or result branches."
     },
     "goalEdit": {
       "editButton": "Edit",
