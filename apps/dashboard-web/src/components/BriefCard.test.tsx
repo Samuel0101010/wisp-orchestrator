@@ -48,6 +48,7 @@ let transcript: Array<{
 
 let lastSentMessage = '';
 let lastFinalize = 0;
+let lastImportMarkdown: string | null = null;
 
 function freshBrief(): FakeBrief {
   return {
@@ -72,6 +73,7 @@ beforeEach(() => {
   transcript = [];
   lastSentMessage = '';
   lastFinalize = 0;
+  lastImportMarkdown = null;
   globalThis.fetch = vi.fn(async (input, init) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (
@@ -115,6 +117,15 @@ beforeEach(() => {
         }),
         { status: 200, headers: { 'content-type': 'application/json' } },
       );
+    }
+    if (url.endsWith('/interview/import') && init?.method === 'POST') {
+      const body = JSON.parse(init.body as string) as { markdown: string };
+      lastImportMarkdown = body.markdown;
+      brief = { ...brief, briefReady: true, completenessScore: 100, prdPath: 'docs/PRD.md' };
+      return new Response(JSON.stringify({ brief, prdPath: 'docs/PRD.md', prdWriteError: null }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
     }
     if (url.endsWith('/interview/finalize') && init?.method === 'POST') {
       lastFinalize++;
@@ -242,6 +253,30 @@ describe('BriefCard', () => {
     // The misleading full render (pending badge / required hint) must NOT appear.
     expect(screen.queryByTestId('brief-status-pending')).toBeNull();
     expect(screen.queryByTestId('brief-required-hint')).toBeNull();
+  });
+
+  it('import dialog opens, pasting text enables submit, submit calls the mutation', async () => {
+    renderCard();
+    await waitFor(() => screen.getByTestId('brief-import-trigger'));
+    fireEvent.click(screen.getByTestId('brief-import-trigger'));
+
+    await waitFor(() => screen.getByTestId('brief-import-dialog'));
+    const submit = screen.getByTestId('brief-import-submit') as HTMLButtonElement;
+    // Empty textarea → submit disabled.
+    expect(submit.disabled).toBe(true);
+
+    const textarea = screen.getByTestId('brief-import-textarea') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: '# My Spec\n\nHello.' } });
+    expect(submit.disabled).toBe(false);
+
+    fireEvent.click(submit);
+    await waitFor(() => {
+      expect(lastImportMarkdown).toBe('# My Spec\n\nHello.');
+    });
+    // On success the brief flips to ready (status-pending disappears).
+    await waitFor(() => {
+      expect(screen.queryByTestId('brief-status-pending')).toBeNull();
+    });
   });
 
   it('toggle-expand re-renders the transcript when ready', async () => {

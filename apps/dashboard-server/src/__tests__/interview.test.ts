@@ -260,6 +260,99 @@ describe('interview routes', () => {
     }
   });
 
+  it('POST /import writes the exact markdown to docs/PRD.md and finalises the brief', async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-prd-import-'));
+    try {
+      app = await buildApp();
+      await app.ready();
+      const projectId = await createProject(app, tmp);
+
+      const markdown = '# My Spec\n\n- one\n- two\n\nVerbatim **content**.\n';
+      const r = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/interview/import`,
+        payload: { markdown },
+      });
+      expect(r.statusCode).toBe(200);
+      expect(r.json().brief.briefReady).toBe(true);
+      expect(r.json().brief.completenessScore).toBe(100);
+      expect(r.json().prdPath).toBe('docs/PRD.md');
+      // Structured fields stay untouched on import.
+      expect(r.json().brief.platform).toBeNull();
+      expect(r.json().brief.targetAudience).toBeNull();
+      const prd = fs.readFileSync(path.join(tmp, 'docs/PRD.md'), 'utf8');
+      expect(prd).toBe(markdown);
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('POST /import rejects blank markdown with 400', async () => {
+    app = await buildApp();
+    await app.ready();
+    const projectId = await createProject(app);
+
+    const r = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projectId}/interview/import`,
+      payload: { markdown: '   \n  ' },
+    });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().error).toBe('empty_markdown');
+  });
+
+  it('POST /import rejects oversize markdown with 400', async () => {
+    app = await buildApp();
+    await app.ready();
+    const projectId = await createProject(app);
+
+    const r = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projectId}/interview/import`,
+      payload: { markdown: 'x'.repeat(100_001) },
+    });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().error).toBe('invalid_markdown');
+  });
+
+  it('POST /import allows re-import even on an already-finalised brief', async () => {
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-prd-reimport-'));
+    try {
+      app = await buildApp();
+      await app.ready();
+      const projectId = await createProject(app, tmp);
+      await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/interview/import`,
+        payload: { markdown: '# First\n' },
+      });
+      const r = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/interview/import`,
+        payload: { markdown: '# Second\n' },
+      });
+      expect(r.statusCode).toBe(200);
+      expect(r.json().brief.briefReady).toBe(true);
+      const prd = fs.readFileSync(path.join(tmp, 'docs/PRD.md'), 'utf8');
+      expect(prd).toBe('# Second\n');
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('POST /import returns 404 for a non-existent project', async () => {
+    app = await buildApp();
+    await app.ready();
+
+    const r = await app.inject({
+      method: 'POST',
+      url: `/api/projects/does-not-exist/interview/import`,
+      payload: { markdown: '# Spec\n' },
+    });
+    expect(r.statusCode).toBe(404);
+    expect(r.json().error).toBe('project not found');
+  });
+
   it('PATCH /interview allows direct field edits', async () => {
     app = await buildApp();
     await app.ready();

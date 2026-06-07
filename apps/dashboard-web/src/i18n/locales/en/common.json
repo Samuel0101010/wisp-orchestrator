@@ -1292,11 +1292,28 @@
       "designPrefs": "Design preferences",
       "constraints": "Constraints"
     },
+    "import": {
+      "trigger": "Import a plan",
+      "reTrigger": "Re-import a plan",
+      "title": "Import an existing plan as the brief",
+      "description": "Paste an existing markdown document or upload a file. It becomes docs/PRD.md and the brief is finalised right away — without Sarah's interview.",
+      "textareaLabel": "Markdown content",
+      "textareaPlaceholder": "# My project plan\n\nPaste your markdown here …",
+      "fileLabel": "Choose a markdown file (.md, .markdown, .txt)",
+      "previewLabel": "Preview",
+      "previewEmpty": "The preview appears once you paste some content.",
+      "submit": "Use as brief",
+      "submitting": "Applying…",
+      "cancel": "Cancel"
+    },
     "toasts": {
       "sendFailed": "Could not send message",
       "finalized": "Brief finalised",
       "finalizedWithWarning": "Brief finalised, but PRD could not be written",
-      "finalizeFailed": "Could not finalise brief"
+      "finalizeFailed": "Could not finalise brief",
+      "imported": "Plan imported as brief",
+      "importedWithWarning": "Brief imported, but PRD could not be written",
+      "importFailed": "Could not import plan"
     }
   },
   "leadNotes": {

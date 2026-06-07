@@ -1292,11 +1292,28 @@
       "designPrefs": "Design-Präferenzen",
       "constraints": "Einschränkungen"
     },
+    "import": {
+      "trigger": "Plan importieren",
+      "reTrigger": "Plan erneut importieren",
+      "title": "Bestehenden Plan als Brief importieren",
+      "description": "Füge ein bestehendes Markdown-Dokument ein oder lade eine Datei hoch. Es wird als docs/PRD.md übernommen und der Brief direkt finalisiert — ohne Sarahs Interview.",
+      "textareaLabel": "Markdown-Inhalt",
+      "textareaPlaceholder": "# Mein Projektplan\n\nFüge hier dein Markdown ein …",
+      "fileLabel": "Markdown-Datei wählen (.md, .markdown, .txt)",
+      "previewLabel": "Vorschau",
+      "previewEmpty": "Die Vorschau erscheint, sobald du Inhalt einfügst.",
+      "submit": "Als Brief übernehmen",
+      "submitting": "Wird übernommen…",
+      "cancel": "Abbrechen"
+    },
     "toasts": {
       "sendFailed": "Nachricht konnte nicht gesendet werden",
       "finalized": "Brief finalisiert",
       "finalizedWithWarning": "Brief finalisiert, aber PRD konnte nicht geschrieben werden",
-      "finalizeFailed": "Brief konnte nicht finalisiert werden"
+      "finalizeFailed": "Brief konnte nicht finalisiert werden",
+      "imported": "Plan als Brief übernommen",
+      "importedWithWarning": "Brief übernommen, aber PRD konnte nicht geschrieben werden",
+      "importFailed": "Plan konnte nicht importiert werden"
     }
   },
   "leadNotes": {
