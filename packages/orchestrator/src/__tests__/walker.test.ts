@@ -1139,6 +1139,27 @@ describe('composeTaskPrompt — retry-error truncation', () => {
     // it as the first gate.
     expect(out.indexOf('- preflight:')).toBeLessThan(out.indexOf('- build:'));
   });
+
+  it('emits the "## Project context" section when briefContext is provided', () => {
+    const plan = makePlan([node('t1', 'developer')]);
+    const brief = '## Project context\n\nDesign preferences: dark, minimal\nPlatform: web';
+    const out = composeTaskPrompt(plan, plan.nodes[0]!, null, undefined, brief);
+    expect(out).toContain('## Project context');
+    expect(out).toContain('Design preferences: dark, minimal');
+    // Placed after the goal and before the task.
+    expect(out.indexOf('# Goal')).toBeLessThan(out.indexOf('## Project context'));
+    expect(out.indexOf('## Project context')).toBeLessThan(out.indexOf('# Task:'));
+  });
+
+  it('omits the project-context section when briefContext is null/empty', () => {
+    const plan = makePlan([node('t1', 'developer')]);
+    expect(composeTaskPrompt(plan, plan.nodes[0]!, null, undefined, undefined)).not.toContain(
+      '## Project context',
+    );
+    expect(composeTaskPrompt(plan, plan.nodes[0]!, null, undefined, '   ')).not.toContain(
+      '## Project context',
+    );
+  });
 });
 
 describe('Walker — QA-driven replan (M5)', () => {

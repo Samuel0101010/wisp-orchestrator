@@ -9,6 +9,54 @@
  * source of truth.
  */
 
+/**
+ * Subset of the brief row needed to build the agent "## Project context"
+ * summary. Mirrors the six structured fields of ProjectBriefRow (api/queries.ts)
+ * that buildBriefSummaryForAgents consumes server-side.
+ */
+export interface PreviewBrief {
+  targetAudience: string | null;
+  successCriteria: string | null;
+  designPrefs: string | null;
+  platform: string | null;
+  constraints: string | null;
+  deadline: number | null;
+}
+
+// Mirror of brief-context.ts:MAX_AGENT_BRIEF_CHARS — keep in sync. The server
+// hard-caps the per-agent brief block to this many chars.
+const MAX_AGENT_BRIEF_CHARS = 1_500;
+const AGENT_BRIEF_TRUNCATION_MARKER = '\n\n… [truncated]';
+
+/**
+ * Browser-safe mirror of orchestrator brief-context.ts:buildBriefSummaryForAgents.
+ * Builds the SAME compact "## Project context" block (same six field labels and
+ * order, same hard cap) the server injects into every agent prompt, so the
+ * preview shows exactly what the agent receives. Returns null when the brief is
+ * absent or all six fields are empty. Keep field labels/order/cap in sync with
+ * the server function.
+ */
+export function buildBriefSummaryForAgentsPreview(
+  brief: PreviewBrief | null | undefined,
+): string | null {
+  if (!brief) return null;
+  const lines: string[] = [];
+  if (brief.targetAudience) lines.push(`Target audience: ${brief.targetAudience}`);
+  if (brief.successCriteria) lines.push(`Success criteria: ${brief.successCriteria}`);
+  if (brief.designPrefs) lines.push(`Design preferences: ${brief.designPrefs}`);
+  if (brief.platform) lines.push(`Platform: ${brief.platform}`);
+  if (brief.constraints) lines.push(`Constraints: ${brief.constraints}`);
+  if (brief.deadline)
+    lines.push(`Deadline: ${new Date(brief.deadline).toISOString().slice(0, 10)}`);
+  if (lines.length === 0) return null;
+  let block = `## Project context\n\n${lines.join('\n')}`;
+  if (block.length > MAX_AGENT_BRIEF_CHARS) {
+    const sliceLen = MAX_AGENT_BRIEF_CHARS - AGENT_BRIEF_TRUNCATION_MARKER.length;
+    block = `${block.slice(0, sliceLen)}${AGENT_BRIEF_TRUNCATION_MARKER}`;
+  }
+  return block;
+}
+
 export interface PreviewSuccessCriteria {
   preflight?: string;
   build?: string;
@@ -44,9 +92,17 @@ export function composeTaskPromptPreview(
   goal: string,
   node: PreviewTaskNode,
   retryError: string | null,
+  briefContext?: string,
 ): string {
   const parts: string[] = [];
   parts.push(`# Goal\n${goal}`);
+  // Mirror of walker.ts:composeTaskPrompt — the brief "## Project context"
+  // block goes right after the goal and before the task. briefContext already
+  // carries its own header (see buildBriefSummaryForAgentsPreview); emit it raw,
+  // guarded so empty/whitespace contributes nothing.
+  if (briefContext && briefContext.trim().length > 0) {
+    parts.push(briefContext);
+  }
   parts.push(`# Task: ${node.id} (${node.role})\n${node.prompt}`);
   const sc = node.successCriteria;
   const scLines: string[] = [];

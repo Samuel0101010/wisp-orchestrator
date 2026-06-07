@@ -476,7 +476,11 @@ export function TeamBuilder() {
       </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         <ApplyTemplateDialog onApply={applyTemplate} hasContent={dirty} />
-        <ComposedPromptPreviewDialog team={draftTeam} defaultGoal={projectQuery.data?.goal} />
+        <ComposedPromptPreviewDialog
+          team={draftTeam}
+          defaultGoal={projectQuery.data?.goal}
+          brief={interviewQuery.data?.brief}
+        />
         <TeamJsonDialog team={draftTeam} />
         <Dialog open={tplOpen} onOpenChange={setTplOpen}>
           <DialogTrigger asChild>

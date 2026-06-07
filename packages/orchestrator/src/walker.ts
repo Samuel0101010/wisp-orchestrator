@@ -221,6 +221,16 @@ export interface WalkerDeps {
    */
   handoffsSection?: string;
   /**
+   * Pre-rendered "## Project context" block summarising the project brief
+   * (the six structured fields, capped). Built by the runtime via
+   * `buildBriefSummaryForAgents` and injected into every node's prompt so the
+   * executing agents see the user's design prefs / constraints / success
+   * criteria — not just whatever the planner happened to bake into the node
+   * prompt. Undefined/empty when there is no brief (the prompt composer omits
+   * the section in that case).
+   */
+  briefContext?: string;
+  /**
    * Best-effort hand-off WRITE seam. Called once per task right after it
    * verifies + auto-commits and just before it transitions to `done`, so
    * downstream tasks see a `## Prior Handoffs` entry in their composed
@@ -1301,6 +1311,7 @@ export class Walker {
           node,
           t.attempt > 1 ? t.lastError : null,
           this.deps.handoffsSection,
+          this.deps.briefContext,
         ),
         systemPrompt: effective.systemPrompt,
         allowedTools: effective.allowedTools,
@@ -1862,9 +1873,16 @@ export function composeTaskPrompt(
   node: TaskNode,
   retryError: string | null,
   handoffsSection?: string,
+  briefContext?: string,
 ): string {
   const parts: string[] = [];
   parts.push(`# Goal\n${plan.goal}`);
+  // Project context (brief summary) right after the goal — primary requirements
+  // the user gave, ahead of the task so every agent sees them. Already carries
+  // its own "## Project context" header; omitted when empty.
+  if (briefContext && briefContext.trim().length > 0) {
+    parts.push(briefContext);
+  }
   parts.push(`# Task: ${node.id} (${node.role})\n${node.prompt}`);
   const sc = node.successCriteria;
   const scLines: string[] = [];

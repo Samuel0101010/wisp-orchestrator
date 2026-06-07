@@ -7,6 +7,17 @@ import type { ProjectBrief } from '@wisp/schemas';
 // long PRD would otherwise blow the prompt budget.
 const MAX_PRD_PROMPT_CHARS = 12_000;
 
+// Cap the per-agent brief summary. Unlike the planner PRD (one prompt), this
+// block is injected into EVERY node's prompt × every retry, so it must stay
+// tight — the six structured fields only, never the full PRD. This is a HARD
+// cap: the final returned block (including any truncation marker) is always
+// ≤ this many chars.
+export const MAX_AGENT_BRIEF_CHARS = 1_500;
+
+// Appended when the block overflows MAX_AGENT_BRIEF_CHARS. Its length is
+// reserved out of the slice budget so the final string never exceeds the cap.
+const AGENT_BRIEF_TRUNCATION_MARKER = '\n\n… [truncated]';
+
 /**
  * Read the rendered requirements document (docs/PRD.md) for a project so its
  * full detail reaches the planner LLM. Returns null — never throws — when the
@@ -65,4 +76,32 @@ export function buildBriefContextSections(
     sections.push(`## Full brief (requirements document)\n\n${prdContent}`);
   }
   return sections;
+}
+
+/**
+ * Build a COMPACT brief summary for the executing agents — the six structured
+ * fields only, capped to MAX_AGENT_BRIEF_CHARS. Unlike buildBriefContextSections
+ * (planner-facing, includes the full PRD), this is injected into every node's
+ * prompt, so it deliberately omits the PRD to stay token-cheap. Returns a
+ * "## Project context" block, or null when the brief is absent or all six
+ * fields are empty (so the walker emits no empty section).
+ */
+export function buildBriefSummaryForAgents(brief: ProjectBrief | null | undefined): string | null {
+  if (!brief) return null;
+  const lines: string[] = [];
+  if (brief.targetAudience) lines.push(`Target audience: ${brief.targetAudience}`);
+  if (brief.successCriteria) lines.push(`Success criteria: ${brief.successCriteria}`);
+  if (brief.designPrefs) lines.push(`Design preferences: ${brief.designPrefs}`);
+  if (brief.platform) lines.push(`Platform: ${brief.platform}`);
+  if (brief.constraints) lines.push(`Constraints: ${brief.constraints}`);
+  if (brief.deadline)
+    lines.push(`Deadline: ${new Date(brief.deadline).toISOString().slice(0, 10)}`);
+  if (lines.length === 0) return null;
+  let block = `## Project context\n\n${lines.join('\n')}`;
+  if (block.length > MAX_AGENT_BRIEF_CHARS) {
+    // Reserve room for the marker so the final block stays ≤ MAX_AGENT_BRIEF_CHARS.
+    const sliceLen = MAX_AGENT_BRIEF_CHARS - AGENT_BRIEF_TRUNCATION_MARKER.length;
+    block = `${block.slice(0, sliceLen)}${AGENT_BRIEF_TRUNCATION_MARKER}`;
+  }
+  return block;
 }
