@@ -322,6 +322,7 @@ export function ChatRoute() {
   if (agents.isLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center text-sm text-muted-foreground">
+        <h1 className="sr-only">{t('chat.pageHeading')}</h1>
         <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t('chat.loading')}
       </div>
     );
@@ -329,6 +330,7 @@ export function ChatRoute() {
   if (agents.error) {
     return (
       <div className="flex h-[80vh] flex-col items-center justify-center gap-3 text-center">
+        <h1 className="sr-only">{t('chat.pageHeading')}</h1>
         <Sparkles className="h-7 w-7 text-destructive" />
         <div className="text-base font-semibold">{t('chat.loadFailed')}</div>
         <p className="max-w-md text-sm text-muted-foreground">{t('errors.retryHint')}</p>
@@ -338,6 +340,7 @@ export function ChatRoute() {
   if (!manager) {
     return (
       <div className="flex h-[80vh] flex-col items-center justify-center gap-3 text-center">
+        <h1 className="sr-only">{t('chat.pageHeading')}</h1>
         <Sparkles className="h-7 w-7 text-info" />
         <div className="text-base font-semibold">{t('chat.notSeeded')}</div>
         <p className="max-w-md text-sm text-muted-foreground">{t('chat.notSeededBody')}</p>
@@ -355,6 +358,7 @@ export function ChatRoute() {
 
   return (
     <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-1 overflow-hidden md:grid-cols-[240px_1fr] lg:grid-cols-[260px_1fr_280px]">
+      <h1 className="sr-only">{t('chat.pageHeading')}</h1>
       {/* LEFT: Thread list */}
       <aside className="hidden h-full min-h-0 flex-col border-r bg-card/40 md:flex">
         <div className="flex items-center justify-between border-b px-4 py-3">

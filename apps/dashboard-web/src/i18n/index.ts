@@ -38,4 +38,14 @@ i18n
     defaultNS: 'common',
   });
 
+// Keep <html lang> in sync with the active language so the page declares the
+// right language for screen readers and search engines (the static index.html
+// hardcodes lang="en"). SSR-safe: only touch the DOM in the browser.
+function syncHtmlLang(): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.lang = i18n.resolvedLanguage ?? i18n.language;
+}
+syncHtmlLang();
+i18n.on('languageChanged', syncHtmlLang);
+
 export default i18n;

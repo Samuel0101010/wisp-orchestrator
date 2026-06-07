@@ -462,9 +462,12 @@
   },
   "navigation": {
     "appName": "WISP",
+    "primaryNav": "Primary navigation",
     "projects": "Projects",
     "newProject": "New project",
     "noProjectsYet": "No projects yet",
+    "filterProjects": "Filter projects…",
+    "noProjectMatches": "No projects match your filter.",
     "recentRuns": "Recent runs",
     "today": "{{count}} today",
     "backToProject": "Back to project",
@@ -550,6 +553,7 @@
     "selectProject": "Select a project to configure its team.",
     "subtitle": "Configure the agents for {{name}}.",
     "loading": "Loading the team…",
+    "unsavedHint": "Default starter team — not yet saved to this project.",
     "addAgent": {
       "trigger": "Add a built-in agent",
       "title": "Add a built-in agent",
@@ -827,6 +831,7 @@
     "subtitle": "A few steps to your first run.",
     "done": "Done",
     "open": "Open",
+    "openAria": "Open: {{step}}",
     "brief": "Finish the brief",
     "briefDesc": "Answer a few questions, or use your goal as the brief.",
     "team": "Configure the team",
@@ -854,6 +859,48 @@
     "useCases": "Best for",
     "bestFor": "Works well with",
     "notRecommendedFor": "Not recommended for"
+  },
+  "templates": {
+    "web-app": {
+      "name": "Web app (React + Vite)",
+      "description": "Builds a browser web app with React, Vite and Tailwind. Pipeline: Architect plans the work, a UI developer builds the screens, a test developer writes unit and browser tests, and QA runs install, type-check, test and build."
+    },
+    "fullstack-web": {
+      "name": "Full-stack web app",
+      "description": "Builds one web feature end to end: a backend API plus the React UI that uses it. Pipeline: Architect → backend dev → frontend dev → tests → QA."
+    },
+    "mobile-app": {
+      "name": "Mobile app (React Native / Expo)",
+      "description": "Builds a cross-platform mobile app with React Native and Expo. Pipeline: Architect → mobile dev (screens + navigation) → test dev (component tests) → QA (typecheck / lint / test)."
+    },
+    "desktop-app": {
+      "name": "Desktop app (Tauri)",
+      "description": "Builds a cross-platform desktop app with Tauri (Rust shell + web UI). Pipeline: Architect → UI dev → packaging engineer → tests → QA, ending in an installable build artifact."
+    },
+    "cli-tool": {
+      "name": "CLI tool",
+      "description": "Builds a command-line tool in Node/TypeScript with argument parsing and tests. Pipeline: Architect plans the commands and flags, a core dev implements the CLI, a test dev writes Vitest tests, then QA runs typecheck, tests, and build."
+    },
+    "ts-library": {
+      "name": "TypeScript library",
+      "description": "Architect → 2 devs → QA. Optimised for small TypeScript libraries with build / test / lint gates."
+    },
+    "python-backend": {
+      "name": "Python backend",
+      "description": "Architect → API dev → test dev → QA. Targets small Python services with pytest gates."
+    },
+    "docs-site": {
+      "name": "Docs & guides",
+      "description": "Architect → tech writer → QA. Builds documentation only: READMEs, how-to guides, API references, and runbooks. No code, just clear writing checked for accuracy and working links."
+    },
+    "refactor-squad": {
+      "name": "Refactor squad",
+      "description": "Architect (planner) → refactor-dev (opus, careful execution) → QA. Optimised for safe code transformations that must keep all existing tests green."
+    },
+    "data-pipeline": {
+      "name": "Data pipeline",
+      "description": "Architect → pipeline-dev → validator → QA. For ETL-style transforms with input/output schema validation."
+    }
   },
   "commandPalette": {
     "placeholder": "Search projects, runs, actions…",
@@ -892,6 +939,7 @@
       "tokenThroughputDesc": "last {{window}} · all projects",
       "outcomes": "Run outcomes",
       "outcomesDesc": "last 7 days",
+      "window": "last {{window}}",
       "tokensTooltipLabel": "tokens",
       "successRate": "success",
       "tokensIn": "in",
@@ -909,6 +957,7 @@
     },
     "byProject": {
       "title": "By project",
+      "subtitle": "OK = all-time success rate · all runs",
       "count_one": "{{count}} project",
       "count_other": "{{count}} projects",
       "empty": "No projects yet — create one from the sidebar.",
@@ -918,7 +967,9 @@
         "live": "Live",
         "tokens": "Tokens",
         "ok": "OK",
-        "sevenDay": "7d"
+        "okTitle": "All-time success rate (all runs)",
+        "sevenDay": "7d",
+        "sevenDayTitle": "Runs per day, last 7 days"
       }
     },
     "recentRuns": {
@@ -973,6 +1024,8 @@
   },
   "projectDetail": {
     "subtitle": "Project overview, team, plan, and run history.",
+    "editGoal": "Edit goal",
+    "editRepoPath": "Edit repo path",
     "summary": {
       "goal": "Goal",
       "repoPath": "Repo path",
@@ -1020,6 +1073,7 @@
         "actions": "Actions"
       },
       "openRun": "Open",
+      "openRunAria": "Open run {{id}}",
       "running": "running",
       "chainParent": "Parent: {{id}}",
       "chainHardening": "Hardening iteration",
@@ -1104,9 +1158,9 @@
       "handoff": "Handoff"
     },
     "empty": {
-      "title": "No team yet",
-      "description": "Configure roles for this project to see the org-chart.",
-      "action": "Open team editor"
+      "title": "No saved team yet",
+      "description": "The Team Builder may show a starter team, but it isn't saved to this project until you press Save. Save the team there to see the org-chart here.",
+      "action": "Open Team Builder"
     }
   },
   "agentOverride": {
@@ -1295,6 +1349,7 @@
     "dismissed": "Dismissed"
   },
   "chat": {
+    "pageHeading": "Team chat",
     "loading": "Loading team…",
     "notSeeded": "Team chat is not seeded yet.",
     "notSeededBody": "The built-in dev team (Marcus + 9 specialists) is installed automatically on first server boot. Restart the dashboard server, then return here.",

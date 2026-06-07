@@ -5,6 +5,10 @@
  * plan (kind='iteration', parentStateId) and the run row had parentRunId=null /
  * chainIteration=0, so the run history couldn't show the parent→child chain.
  */
+// MUST be first: redirects WISP_DATA_DIR to a temp dir BEFORE ../db/index.js
+// loads, so this test never writes its "iter"/"init" projects into the user's
+// real harness.db. (See ./setup.js for the import-order rationale.)
+import './setup.js';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';

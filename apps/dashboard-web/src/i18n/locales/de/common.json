@@ -203,7 +203,7 @@
     }
   },
   "goap": {
-    "title": "Goal-Planer",
+    "title": "Ziel-Planer",
     "subtitleLong": "Definiere Start- und Zielzustand, wähle verfügbare Aktionen — der Planer berechnet die kürzeste Sequenz. Eine eigenständige Spielwiese für GOAP — sie steuert deine Runs nicht.",
     "eyebrow": "Goal-Oriented Action Planning",
     "worldState": "Welt-Zustand",
@@ -462,25 +462,28 @@
   },
   "navigation": {
     "appName": "WISP",
+    "primaryNav": "Hauptnavigation",
     "projects": "Projekte",
     "newProject": "Neues Projekt",
     "noProjectsYet": "Noch keine Projekte",
+    "filterProjects": "Projekte filtern…",
+    "noProjectMatches": "Keine Projekte passen zum Filter.",
     "recentRuns": "Letzte Runs",
     "today": "{{count}} heute",
     "backToProject": "Zurück zum Projekt",
-    "teamChat": "Team Chat",
+    "teamChat": "Team-Chat",
     "focusboard": "Focusboard",
     "agents": "Agents",
     "skills": "Skills",
     "workers": "Workers",
     "insights": "Insights",
-    "goapPlanner": "Goal-Planer",
+    "goapPlanner": "Ziel-Planer",
     "promptBundles": "Prompt-Bundles",
     "todayRuns": "Runs · heute",
     "runsLabel": "Runs",
     "live": "live",
     "settings": "Einstellungen",
-    "expandSidebar": "Seitenleiste ausfahren",
+    "expandSidebar": "Seitenleiste ausklappen",
     "collapseSidebar": "Seitenleiste einklappen"
   },
   "projectMenu": {
@@ -550,6 +553,7 @@
     "selectProject": "Wähle ein Projekt, um sein Team zu konfigurieren.",
     "subtitle": "Konfiguriere die Agents für {{name}}.",
     "loading": "Lade das Team…",
+    "unsavedHint": "Standard-Startteam — noch nicht für dieses Projekt gespeichert.",
     "addAgent": {
       "trigger": "Built-in-Agent hinzufügen",
       "title": "Built-in-Agent hinzufügen",
@@ -827,6 +831,7 @@
     "subtitle": "Wenige Schritte bis zum ersten Run.",
     "done": "Erledigt",
     "open": "Öffnen",
+    "openAria": "{{step}} öffnen",
     "brief": "Brief abschließen",
     "briefDesc": "Beantworte ein paar Fragen oder nutze dein Ziel als Brief.",
     "team": "Team einrichten",
@@ -854,6 +859,48 @@
     "useCases": "Geeignet für",
     "bestFor": "Funktioniert gut mit",
     "notRecommendedFor": "Nicht empfohlen für"
+  },
+  "templates": {
+    "web-app": {
+      "name": "Web-App (React + Vite)",
+      "description": "Baut eine Browser-Web-App mit React, Vite und Tailwind. Pipeline: Der Architect plant die Arbeit, ein UI-Entwickler baut die Screens, ein Test-Entwickler schreibt Unit- und Browser-Tests, und QA führt Install, Type-Check, Test und Build aus."
+    },
+    "fullstack-web": {
+      "name": "Full-Stack-Web-App",
+      "description": "Baut ein Web-Feature von Anfang bis Ende: eine Backend-API plus das React-UI, das sie nutzt. Pipeline: Architect → Backend-Dev → Frontend-Dev → Tests → QA."
+    },
+    "mobile-app": {
+      "name": "Mobile-App (React Native / Expo)",
+      "description": "Baut eine plattformübergreifende Mobile-App mit React Native und Expo. Pipeline: Architect → Mobile-Dev (Screens + Navigation) → Test-Dev (Komponenten-Tests) → QA (Type-Check / Lint / Test)."
+    },
+    "desktop-app": {
+      "name": "Desktop-App (Tauri)",
+      "description": "Baut eine plattformübergreifende Desktop-App mit Tauri (Rust-Shell + Web-UI). Pipeline: Architect → UI-Dev → Packaging-Engineer → Tests → QA, mit einem installierbaren Build-Artefakt am Ende."
+    },
+    "cli-tool": {
+      "name": "CLI-Tool",
+      "description": "Baut ein Kommandozeilen-Tool in Node/TypeScript mit Argument-Parsing und Tests. Pipeline: Der Architect plant die Befehle und Flags, ein Core-Dev implementiert die CLI, ein Test-Dev schreibt Vitest-Tests, dann führt QA Type-Check, Tests und Build aus."
+    },
+    "ts-library": {
+      "name": "TypeScript-Bibliothek",
+      "description": "Architect → 2 Devs → QA. Optimiert für kleine TypeScript-Bibliotheken mit Build- / Test- / Lint-Gates."
+    },
+    "python-backend": {
+      "name": "Python-Backend",
+      "description": "Architect → API-Dev → Test-Dev → QA. Für kleine Python-Services mit pytest-Gates."
+    },
+    "docs-site": {
+      "name": "Doku & Guides",
+      "description": "Architect → Tech-Writer → QA. Baut ausschließlich Dokumentation: READMEs, How-to-Guides, API-Referenzen und Runbooks. Kein Code, nur klare Texte, auf Korrektheit und funktionierende Links geprüft."
+    },
+    "refactor-squad": {
+      "name": "Refactor-Squad",
+      "description": "Architect (Planer) → Refactor-Dev (Opus, sorgfältige Ausführung) → QA. Optimiert für sichere Code-Transformationen, die alle bestehenden Tests grün halten müssen."
+    },
+    "data-pipeline": {
+      "name": "Daten-Pipeline",
+      "description": "Architect → Pipeline-Dev → Validator → QA. Für ETL-artige Transformationen mit Schema-Validierung von Ein- und Ausgabe."
+    }
   },
   "commandPalette": {
     "placeholder": "Projekte, Runs, Aktionen suchen…",
@@ -892,6 +939,7 @@
       "tokenThroughputDesc": "letzte {{window}} · alle Projekte",
       "outcomes": "Run-Ergebnisse",
       "outcomesDesc": "letzte 7 Tage",
+      "window": "letzte {{window}}",
       "tokensTooltipLabel": "Tokens",
       "successRate": "Erfolg",
       "tokensIn": "ein",
@@ -909,6 +957,7 @@
     },
     "byProject": {
       "title": "Nach Projekt",
+      "subtitle": "OK = Erfolgsquote gesamt · alle Runs",
       "count_one": "{{count}} Projekt",
       "count_other": "{{count}} Projekte",
       "empty": "Noch keine Projekte — erstelle eines in der Seitenleiste.",
@@ -918,7 +967,9 @@
         "live": "Live",
         "tokens": "Tokens",
         "ok": "OK",
-        "sevenDay": "7T"
+        "okTitle": "Erfolgsquote gesamt (alle Runs)",
+        "sevenDay": "7T",
+        "sevenDayTitle": "Runs pro Tag, letzte 7 Tage"
       }
     },
     "recentRuns": {
@@ -961,7 +1012,7 @@
     },
     "actions": {
       "newProject": "Neues Projekt",
-      "quickRun": "Schnell starten"
+      "quickRun": "Schnellstart"
     },
     "eyebrow": "Mission Control",
     "periodGroup": "Zeitraum",
@@ -973,6 +1024,8 @@
   },
   "projectDetail": {
     "subtitle": "Projekt-Übersicht, Team, Plan und Run-Historie.",
+    "editGoal": "Ziel bearbeiten",
+    "editRepoPath": "Repo-Pfad bearbeiten",
     "summary": {
       "goal": "Ziel",
       "repoPath": "Repo-Pfad",
@@ -1020,6 +1073,7 @@
         "actions": "Aktionen"
       },
       "openRun": "Öffnen",
+      "openRunAria": "Run {{id}} öffnen",
       "running": "läuft",
       "chainParent": "Parent: {{id}}",
       "chainHardening": "Härtungs-Iteration",
@@ -1104,9 +1158,9 @@
       "handoff": "Übergabe"
     },
     "empty": {
-      "title": "Noch kein Team",
-      "description": "Lege Rollen für dieses Projekt an, um das Org-Chart zu sehen.",
-      "action": "Team-Editor öffnen"
+      "title": "Noch kein Team gespeichert",
+      "description": "Der Team Builder zeigt eventuell ein Start-Team, aber es ist erst dann für dieses Projekt gespeichert, wenn du auf Speichern klickst. Speichere das Team dort, um das Org-Chart hier zu sehen.",
+      "action": "Team Builder öffnen"
     }
   },
   "agentOverride": {
@@ -1295,6 +1349,7 @@
     "dismissed": "Verworfen"
   },
   "chat": {
+    "pageHeading": "Team-Chat",
     "loading": "Lade Team…",
     "notSeeded": "Team-Chat ist noch nicht eingerichtet.",
     "notSeededBody": "Das Built-in-Dev-Team (Marcus + 9 Spezialisten) wird beim ersten Server-Start automatisch angelegt. Starte den Dashboard-Server neu und komm dann zurück.",

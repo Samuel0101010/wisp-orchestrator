@@ -537,6 +537,14 @@ export function TeamBuilder() {
           {generatePlan.isPending ? t('buttons.generating') : t('buttons.generatePlan')}
         </Button>
       </div>
+      {!teamExists && (
+        <p
+          className="flex items-center justify-end text-xs text-muted-foreground"
+          data-testid="team-unsaved-hint"
+        >
+          {t('teamBuilder.unsavedHint')}
+        </p>
+      )}
       {generateTitle && (
         <p
           className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground"

@@ -126,6 +126,7 @@ export function Focusboard(): ReactElement {
   if (!projects.data || projects.data.length === 0) {
     return (
       <div className="-m-6 flex h-[calc(100vh-4rem)] items-center justify-center p-12">
+        <h1 className="sr-only">{t('focus.title')}</h1>
         <div className="max-w-md text-center">
           <div className="text-3xs uppercase tracking-wider text-muted-foreground">
             {t('focus.title')}
@@ -140,6 +141,7 @@ export function Focusboard(): ReactElement {
   if (!projectId || !project.data) {
     return (
       <div className="-m-6 flex h-[calc(100vh-4rem)] items-center justify-center p-12">
+        <h1 className="sr-only">{t('focus.title')}</h1>
         <div className="text-sm text-muted-foreground">
           {project.isError ? t('focus.projectNotFound') : t('focus.pickProject')}
         </div>
@@ -149,6 +151,7 @@ export function Focusboard(): ReactElement {
 
   return (
     <div className="-m-6 flex h-[calc(100vh-4rem)] flex-col">
+      <h1 className="sr-only">{t('focus.title')}</h1>
       {/* Header bar */}
       <header className="flex shrink-0 items-center gap-3 border-b bg-card/40 px-4 py-2.5">
         <span className="text-3xs uppercase tracking-wider text-muted-foreground">
