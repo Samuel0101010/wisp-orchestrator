@@ -551,6 +551,7 @@
     "selectProject": "Wähle ein Projekt, um sein Team zu konfigurieren.",
     "subtitle": "Konfiguriere die Agents für {{name}}.",
     "loading": "Lade das Team…",
+    "unsavedHint": "Standard-Startteam — noch nicht für dieses Projekt gespeichert.",
     "addAgent": {
       "trigger": "Built-in-Agent hinzufügen",
       "title": "Built-in-Agent hinzufügen",
@@ -936,6 +937,7 @@
       "tokenThroughputDesc": "letzte {{window}} · alle Projekte",
       "outcomes": "Run-Ergebnisse",
       "outcomesDesc": "letzte 7 Tage",
+      "window": "letzte {{window}}",
       "tokensTooltipLabel": "Tokens",
       "successRate": "Erfolg",
       "tokensIn": "ein",
@@ -953,6 +955,7 @@
     },
     "byProject": {
       "title": "Nach Projekt",
+      "subtitle": "OK = Erfolgsquote gesamt · alle Runs",
       "count_one": "{{count}} Projekt",
       "count_other": "{{count}} Projekte",
       "empty": "Noch keine Projekte — erstelle eines in der Seitenleiste.",
@@ -962,7 +965,9 @@
         "live": "Live",
         "tokens": "Tokens",
         "ok": "OK",
-        "sevenDay": "7T"
+        "okTitle": "Erfolgsquote gesamt (alle Runs)",
+        "sevenDay": "7T",
+        "sevenDayTitle": "Runs pro Tag, letzte 7 Tage"
       }
     },
     "recentRuns": {
@@ -1151,9 +1156,9 @@
       "handoff": "Übergabe"
     },
     "empty": {
-      "title": "Noch kein Team",
-      "description": "Lege Rollen für dieses Projekt an, um das Org-Chart zu sehen.",
-      "action": "Team-Editor öffnen"
+      "title": "Noch kein Team gespeichert",
+      "description": "Der Team Builder zeigt eventuell ein Start-Team, aber es ist erst dann für dieses Projekt gespeichert, wenn du auf Speichern klickst. Speichere das Team dort, um das Org-Chart hier zu sehen.",
+      "action": "Team Builder öffnen"
     }
   },
   "agentOverride": {

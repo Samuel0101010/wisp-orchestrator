@@ -554,7 +554,8 @@ export function Home() {
               <div style={{ fontFamily: 'var(--f-head)', fontSize: 16, fontWeight: 500 }}>
                 {totalRuns}{' '}
                 <span style={{ color: 'var(--wisp-ink-3)' }}>
-                  · {successPercent}% {t('home.charts.successRate', 'success')}
+                  · {successPercent}% {t('home.charts.successRate', 'success')} ·{' '}
+                  {t('home.charts.window', 'last {{window}}', { window: windowLabel })}
                 </span>
               </div>
             </header>
@@ -568,13 +569,18 @@ export function Home() {
 
         {/* Per-project rollup — design table with sparklines + dots */}
         <section className="flex flex-col gap-3">
-          <header className="flex items-center justify-between">
-            <h2
-              className="m-0"
-              style={{ fontFamily: 'var(--f-head)', fontSize: 18, fontWeight: 500 }}
-            >
-              {t('home.byProject.title')}
-            </h2>
+          <header className="flex items-end justify-between">
+            <div className="flex flex-col gap-0.5">
+              <h2
+                className="m-0"
+                style={{ fontFamily: 'var(--f-head)', fontSize: 18, fontWeight: 500 }}
+              >
+                {t('home.byProject.title')}
+              </h2>
+              <span className="t-faint text-xs">
+                {t('home.byProject.subtitle', 'OK = all-time success rate · all runs')}
+              </span>
+            </div>
             <span className="t-faint text-xs tabular-nums">
               {t('home.byProject.count', { count: perProject.length })}
             </span>
@@ -587,20 +593,27 @@ export function Home() {
             <div className="wisp-card overflow-hidden p-0">
               <div className="grid grid-cols-[1.6fr_72px_64px_84px_64px_72px_36px] items-center gap-3 border-b border-[color:var(--wisp-hairline)] px-4 py-2.5">
                 {[
-                  t('home.byProject.cols.project'),
-                  t('home.byProject.cols.runs'),
-                  t('home.byProject.cols.live'),
-                  t('home.byProject.cols.tokens'),
-                  t('home.byProject.cols.ok'),
-                  t('home.byProject.cols.sevenDay'),
-                  '',
+                  { label: t('home.byProject.cols.project') },
+                  { label: t('home.byProject.cols.runs') },
+                  { label: t('home.byProject.cols.live') },
+                  { label: t('home.byProject.cols.tokens') },
+                  {
+                    label: t('home.byProject.cols.ok'),
+                    title: t('home.byProject.cols.okTitle', 'All-time success rate (all runs)'),
+                  },
+                  {
+                    label: t('home.byProject.cols.sevenDay'),
+                    title: t('home.byProject.cols.sevenDayTitle', 'Runs per day, last 7 days'),
+                  },
+                  { label: '' },
                 ].map((h, i) => (
                   <span
                     key={i}
                     className="t-eyebrow"
                     style={{ textAlign: i === 0 ? 'left' : 'right' }}
+                    title={h.title}
                   >
-                    {h}
+                    {h.label}
                   </span>
                 ))}
               </div>

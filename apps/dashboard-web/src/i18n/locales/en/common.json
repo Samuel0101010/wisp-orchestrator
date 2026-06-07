@@ -551,6 +551,7 @@
     "selectProject": "Select a project to configure its team.",
     "subtitle": "Configure the agents for {{name}}.",
     "loading": "Loading the team…",
+    "unsavedHint": "Default starter team — not yet saved to this project.",
     "addAgent": {
       "trigger": "Add a built-in agent",
       "title": "Add a built-in agent",
@@ -936,6 +937,7 @@
       "tokenThroughputDesc": "last {{window}} · all projects",
       "outcomes": "Run outcomes",
       "outcomesDesc": "last 7 days",
+      "window": "last {{window}}",
       "tokensTooltipLabel": "tokens",
       "successRate": "success",
       "tokensIn": "in",
@@ -953,6 +955,7 @@
     },
     "byProject": {
       "title": "By project",
+      "subtitle": "OK = all-time success rate · all runs",
       "count_one": "{{count}} project",
       "count_other": "{{count}} projects",
       "empty": "No projects yet — create one from the sidebar.",
@@ -962,7 +965,9 @@
         "live": "Live",
         "tokens": "Tokens",
         "ok": "OK",
-        "sevenDay": "7d"
+        "okTitle": "All-time success rate (all runs)",
+        "sevenDay": "7d",
+        "sevenDayTitle": "Runs per day, last 7 days"
       }
     },
     "recentRuns": {
@@ -1151,9 +1156,9 @@
       "handoff": "Handoff"
     },
     "empty": {
-      "title": "No team yet",
-      "description": "Configure roles for this project to see the org-chart.",
-      "action": "Open team editor"
+      "title": "No saved team yet",
+      "description": "The Team Builder may show a starter team, but it isn't saved to this project until you press Save. Save the team there to see the org-chart here.",
+      "action": "Open Team Builder"
     }
   },
   "agentOverride": {
