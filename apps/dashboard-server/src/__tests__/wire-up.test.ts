@@ -2,7 +2,7 @@ import './setup.js';
 import { describe, expect, it } from 'vitest';
 import { injectWireUp } from '../orchestrator/inject-wire-up.js';
 import { WIRE_UP_ROLE } from '../orchestrator/wire-up.js';
-import { planSchema, validateDag } from '@wisp/schemas';
+import { planSchema, validateDag, MAX_TEAM_ROLES } from '@wisp/schemas';
 import type { AgentSpec, Plan } from '@wisp/schemas';
 
 function makeRole(role: string): AgentSpec {
@@ -170,8 +170,10 @@ describe('injectWireUp', () => {
     expect(r.reason).toBe('plan-empty');
   });
 
-  it('refuses to inject when the team is already at the 8-role cap', () => {
-    const roles: AgentSpec[] = Array.from({ length: 8 }).map((_, i) => makeRole(`role-${i}`));
+  it('refuses to inject when the team is already at the role cap', () => {
+    const roles: AgentSpec[] = Array.from({ length: MAX_TEAM_ROLES }).map((_, i) =>
+      makeRole(`role-${i}`),
+    );
     // need at least one core-dev role inside the cap to ensure we'd
     // otherwise have injected — otherwise the no-core-dev-nodes branch
     // fires first.

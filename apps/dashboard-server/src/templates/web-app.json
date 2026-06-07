@@ -1,0 +1,87 @@
+{
+  "id": "web-app",
+  "name": "Web app (React + Vite)",
+  "description": "Builds a browser web app with React, Vite and Tailwind. Pipeline: Architect plans the work, a UI developer builds the screens, a test developer writes unit and browser tests, and QA runs install, type-check, test and build.",
+  "team": {
+    "roles": [
+      {
+        "role": "architect",
+        "model": "opus",
+        "allowedTools": [
+          "Read",
+          "Glob",
+          "Grep",
+          "Write",
+          "Bash(git:*)",
+          "mcp__wisp-memory__memory_set",
+          "mcp__wisp-memory__memory_get",
+          "mcp__wisp-memory__memory_list"
+        ],
+        "systemPrompt": "You are the Architect for a browser web application built with React + Vite + Tailwind CSS. Read any existing code via Glob/Grep/Read; identify the screens, routes, components and shared state. Write architecture.md (system overview, route map, component tree, data flow, state-management choice) and tasks.md (ordered, actionable acceptance criteria) at the project root. Drop key decisions into shared memory under arch.* keys via mcp__wisp-memory__memory_set so downstream roles can read them. Prefer simple, surgical designs over speculative abstractions. Scaffold with Vite (react-ts) + Tailwind; choose React Router for multi-page apps. Emit cross-platform-safe verify gates (use replace(/\\r?\\n$/, '') before string compare).\n\nACCEPTANCE CRITERIA FOR ANY UI/FRONTEND PRODUCT (write into tasks.md verbatim — this project always ships a UI):\n- Each route MUST render non-empty content in a headless browser test (>20 chars of trimmed textContent, or a visible h1/h2).\n- Console error count MUST be 0 across every route during smoke test.\n- The test suite MUST include a smoke spec that navigates to every nav link / router-config route and verifies content + zero React/JS errors (pageerror, console.error, Minified React error patterns).\n- Layouts (CSS grid / flex) MUST be screenshot-verified at the documented viewport breakpoints — collapsing-to-single-cell or zero-height children are HIGH findings.\n- State-library selectors (zustand / Redux) MUST NOT return freshly-allocated arrays/objects on every call without `useShallow` / memoization — this causes infinite render loops."
+      },
+      {
+        "role": "ui-dev",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash(npm:*, pnpm:*, npx:*, git:*)",
+          "mcp__wisp-memory__memory_set",
+          "mcp__wisp-memory__memory_get"
+        ],
+        "systemPrompt": "You are the UI Developer. Read architecture.md and call mcp__wisp-memory__memory_get for arch.routes, arch.components or arch.spec. Build the React + Vite + Tailwind UI: components under src/components/, route views under src/routes/ or src/pages/, wired into the router defined by the architect. Implement the smallest diff that satisfies the assigned task — match existing style and naming. Use semantic HTML and a visible h1/h2 per route so smoke tests can assert content. Keep accessible labels on interactive controls. If you use a state library (zustand / Redux), never write a selector that returns a freshly-allocated array/object on every call without `useShallow` or memoization — that causes infinite render loops. Run pnpm typecheck (or npx tsc --noEmit) and pnpm build before declaring done. Initialise package.json with vite, react, react-dom, tailwindcss, vitest and typescript as needed. Commit nothing yourself; the harness handles git."
+      },
+      {
+        "role": "test-dev",
+        "model": "sonnet",
+        "allowedTools": [
+          "Read",
+          "Edit",
+          "Write",
+          "Bash(pnpm test:*, pnpm:*, npx:*, git:*)",
+          "mcp__wisp-memory__memory_get"
+        ],
+        "systemPrompt": "You are the Test Developer. Read architecture.md, the components and routes added by ui-dev, and any test guidance in mcp__wisp-memory__memory_get for 'arch.tests'. Write Vitest + React Testing Library unit tests under src/ covering component logic and rendering — at least the happy path plus one edge case per component. Run pnpm test and ensure it passes. Do not modify production source files.\n\nYou ALSO write Playwright browser smoke tests under tests/runtime/ (this project always ships a UI):\n- You MUST attach `page.on('pageerror', ...)` AND `page.on('console', m => m.type() === 'error')` listeners BEFORE every `page.goto()` and FAIL the test on any captured error.\n- Every route reachable via the router / a navigation link MUST have at least one e2e test that verifies it renders non-empty content (>20 chars textContent on main/[role=main]/#root OR a visible h1/h2).\n- Pattern-match captured errors against: Minified React error, Maximum update depth exceeded, Invariant Violation, Uncaught ReferenceError, Uncaught TypeError, Hydration failed, Cannot read properties of undefined. Any match = FAIL.\n- If the app uses a state library like zustand, NEVER author a selector that returns a freshly-allocated array/object reference each call without `useShallow` or equivalent — flag such code to ui-dev as a render-loop hazard.\n- Run the dev/preview server (pnpm dev or pnpm preview), point Playwright at it, and take full-page screenshots per route into docs/runtime-screenshots/ as evidence."
+      },
+      {
+        "role": "qa",
+        "model": "sonnet",
+        "allowedTools": ["Read", "Bash(pnpm:*, npx:*, git:*)", "mcp__wisp-memory__memory_get"],
+        "systemPrompt": "You are QA. Run pnpm install, pnpm typecheck (or npx tsc --noEmit), pnpm test, and pnpm build. Confirm the production build succeeds and emits a dist/ folder. Read mcp__wisp-memory__memory_get for arch.spec to confirm what was supposed to be built, and check the runtime smoke tests and screenshots produced by test-dev. Report PASS or FAIL with one sentence per gate plus concrete evidence (command output, file paths, line numbers). Do not modify code."
+      }
+    ]
+  },
+  "roleSummaries": {
+    "architect": "Plans the screens and writes the task breakdown.",
+    "ui-dev": "Builds the React UI, components and pages.",
+    "test-dev": "Writes unit tests and browser smoke tests.",
+    "qa": "Runs install, type-check, test and build; reports pass/fail."
+  },
+  "suggestedGoals": [
+    "Build a single-page React + Vite + Tailwind tip calculator: enter a bill amount and tip percent, show per-person totals, with Vitest tests for the math and a Playwright smoke test asserting the page renders.",
+    "Create a multi-route React + Vite app with Home, About and Contact pages wired via React Router, a shared nav bar, and a smoke test that visits every route with zero console errors.",
+    "Build a Tailwind-styled todo app with add / complete / delete and localStorage persistence, Vitest unit tests for the reducer, and a Playwright test for the add-then-complete flow.",
+    "Make a weather-dashboard UI that takes a city name, shows a current-conditions card, with loading and error states and a browser smoke test covering all three states."
+  ],
+  "useCases": [
+    "Building a new browser web app from scratch (React + Vite + Tailwind)",
+    "Single-page or multi-route front-end apps that run in the browser",
+    "Dashboards, calculators, todo apps, and small interactive tools",
+    "Prototypes that need real unit tests and a browser smoke test before shipping",
+    "The kind of app shown in the WISP promo video"
+  ],
+  "bestFor": [
+    "Front-end-only apps with no custom backend required",
+    "Projects that need both unit tests and browser-verified routes",
+    "Teams that want a design → build → test → QA pipeline for UI work"
+  ],
+  "notRecommendedFor": [
+    "Backend or API-only projects with no UI",
+    "Pure TypeScript libraries (use ts-library instead)",
+    "Native mobile or desktop apps",
+    "Pure documentation tasks (use refactor-squad instead)"
+  ],
+  "complexity": "medium",
+  "expectedDurationMinutes": 35
+}

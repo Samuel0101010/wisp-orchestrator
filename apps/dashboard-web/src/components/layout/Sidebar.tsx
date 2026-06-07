@@ -38,6 +38,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { TemplatePicker } from '@/components/TemplatePicker';
+import { RepoPathHint } from '@/components/RepoPathHint';
 import {
   useCreateProject,
   useDailyRunCount,
@@ -143,7 +144,9 @@ export function Sidebar() {
       toast({ title: t('newProject.toasts.created'), description: project.name });
       setOpen(false);
       reset();
-      navigate(`/projects/${project.id}/teams`);
+      // Land on the project overview (Brief tab) — the guided first step — rather
+      // than dropping the user into the advanced Team Builder.
+      navigate(`/projects/${project.id}`);
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -395,6 +398,7 @@ export function Sidebar() {
                     value={repoPath}
                     onChange={(e) => setRepoPath(e.target.value)}
                   />
+                  <RepoPathHint path={repoPath} />
                 </div>
               </div>
               <DialogFooter>

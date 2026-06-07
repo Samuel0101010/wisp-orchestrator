@@ -30,6 +30,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui/use-toast';
 import { TemplatePicker } from '@/components/TemplatePicker';
+import { RepoPathHint } from '@/components/RepoPathHint';
 
 // Charts pull in recharts (~120 kB gzip). Defer them off the initial paint so
 // the rest of the dashboard renders first; the charts swap in within a tick.
@@ -332,7 +333,9 @@ export function Home() {
       toast({ title: t('newProject.toasts.created'), description: project.name });
       setNpOpen(false);
       npReset();
-      navigate(`/projects/${project.id}/teams`);
+      // Land on the project overview (Brief tab) — the guided first step — rather
+      // than dropping the user into the advanced Team Builder.
+      navigate(`/projects/${project.id}`);
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -752,6 +755,7 @@ export function Home() {
                 value={npRepoPath}
                 onChange={(e) => setNpRepoPath(e.target.value)}
               />
+              <RepoPathHint path={npRepoPath} />
             </div>
           </div>
           <DialogFooter>

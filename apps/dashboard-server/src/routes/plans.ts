@@ -381,6 +381,23 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         // Runs BEFORE runtime-verifier injection so the verifier ends up
         // depending on wire-up.
         let finalPlan = outcome.plan;
+
+        // Guarantee the run uses the team the user actually picked. The planner
+        // is *instructed* to mirror the stored team, but a model could paraphrase
+        // a role's model / prompt / allowedTools. Re-stamp each role from the
+        // authoritative stored `team` (matched by role name) so the dispatched
+        // agents are exactly what the template / Team Builder defined. Role names
+        // are preserved, so node.role references stay valid; the system-role
+        // injectors below then append wire-up / runtime-verifier / lead on top.
+        finalPlan = {
+          ...finalPlan,
+          team: {
+            roles: finalPlan.team.roles.map(
+              (r) => team.roles.find((sr) => sr.role === r.role) ?? r,
+            ),
+          },
+        };
+
         {
           const wireUpInjection = injectWireUp({ plan: finalPlan });
           finalPlan = wireUpInjection.plan;

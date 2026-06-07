@@ -65,11 +65,13 @@ test.describe('Phase F1 smoke', () => {
 
     await page.getByRole('button', { name: tt(lang, 'buttons.create') }).click();
 
-    // Step 3: navigate to /projects/<id>/teams. Defaults appear.
-    await expect(page).toHaveURL(/\/projects\/[^/]+\/teams$/, { timeout: 15_000 });
+    // Step 3: after create the UI lands on the project overview (Brief tab);
+    // continue into the Team Builder (a separate route) to configure the team.
+    await expect(page).toHaveURL(/\/projects\/[^/]+$/, { timeout: 15_000 });
     const url = page.url();
-    const projectId = url.match(/\/projects\/([^/]+)\/teams$/)?.[1];
+    const projectId = url.match(/\/projects\/([^/]+)$/)?.[1];
     if (!projectId) throw new Error(`could not extract projectId from URL: ${url}`);
+    await page.goto(`${url}/teams`);
 
     // "Team Builder" appears in both breadcrumbs and page heading; pin to the H1.
     await expect(

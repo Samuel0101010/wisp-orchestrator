@@ -331,12 +331,14 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
   // Idempotent: `git init -b main` + initial commit so the orchestrator's
   // `git worktree add` can succeed. Returns 200/`alreadyInitialized: true`
   // when the repo is already initialized; 201/`alreadyInitialized: false`
-  // when this call did the work. Refuses if the directory itself is missing
-  // — we don't create arbitrary directories on the user's filesystem.
+  // when this call did the work. If the directory itself is missing it refuses
+  // with `repo_path_missing` — UNLESS the caller passes `{ createDir: true }`
+  // (an explicit user confirmation), in which case it mkdir -p's the path first.
   app.post(
     '/api/projects/:id/init-repo',
     wrap(async (req, reply) => {
       const params = z.object({ id: z.string() }).parse(req.params);
+      const body = z.object({ createDir: z.boolean().optional() }).parse(req.body ?? {});
       const project = await db.select().from(projects).where(eq(projects.id, params.id)).get();
       if (!project) {
         reply.code(404);
@@ -344,12 +346,24 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
       }
       const repoPath = project.repoPath;
       if (!fs.existsSync(repoPath)) {
-        reply.code(400);
-        return {
-          error: 'repo_path_missing',
-          repoPath,
-          hint: 'Create the directory first or update the project repoPath.',
-        };
+        if (!body.createDir) {
+          reply.code(400);
+          return {
+            error: 'repo_path_missing',
+            repoPath,
+            hint: 'Retry with createDir to let WISP create the folder, or update the project repoPath.',
+          };
+        }
+        try {
+          fs.mkdirSync(repoPath, { recursive: true });
+        } catch (err) {
+          reply.code(500);
+          return {
+            error: 'mkdir_failed',
+            repoPath,
+            message: err instanceof Error ? err.message : String(err),
+          };
+        }
       }
       if (fs.existsSync(path.join(repoPath, '.git'))) {
         return { ok: true, alreadyInitialized: true, repoPath };
@@ -393,6 +407,20 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
           message: err instanceof Error ? err.message : String(err),
         };
       }
+    }),
+  );
+
+  // Read-only pre-flight for the New Project dialog: does this path already
+  // exist, and is it already a git repo? Lets the dialog tell the user up front
+  // whether WISP will need to create / initialize the folder, instead of
+  // failing only at run start. Local-only server; reveals only existence + .git.
+  app.post(
+    '/api/projects/repo-status',
+    wrap(async (req) => {
+      const { path: repoPath } = z.object({ path: z.string().min(1) }).parse(req.body ?? {});
+      const exists = fs.existsSync(repoPath);
+      const isGitRepo = exists && fs.existsSync(path.join(repoPath, '.git'));
+      return { exists, isGitRepo };
     }),
   );
 

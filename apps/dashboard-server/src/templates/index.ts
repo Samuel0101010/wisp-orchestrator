@@ -14,6 +14,12 @@ const tsLibraryRaw = readJson('ts-library.json');
 const pythonBackendRaw = readJson('python-backend.json');
 const refactorSquadRaw = readJson('refactor-squad.json');
 const dataPipelineRaw = readJson('data-pipeline.json');
+const webAppRaw = readJson('web-app.json');
+const fullstackWebRaw = readJson('fullstack-web.json');
+const mobileAppRaw = readJson('mobile-app.json');
+const desktopAppRaw = readJson('desktop-app.json');
+const docsSiteRaw = readJson('docs-site.json');
+const cliToolRaw = readJson('cli-tool.json');
 
 export const templateSchema = z.object({
   id: z
@@ -26,6 +32,10 @@ export const templateSchema = z.object({
   name: z.string().min(2).max(80),
   description: z.string().min(20).max(400),
   team: teamSchema,
+  // Per-role one-line plain-language summaries shown on the template card, so a
+  // user can see what each role does before picking. Optional for backward
+  // compatibility with user-saved templates that pre-date this field.
+  roleSummaries: z.record(z.string().min(3).max(160)).optional(),
   suggestedGoals: z.array(z.string().min(10).max(400)).min(1).max(8),
   // Rich descriptive metadata, optional for backward compatibility with
   // user-saved templates that pre-date these fields.
@@ -38,7 +48,20 @@ export const templateSchema = z.object({
 
 export type TeamTemplate = z.infer<typeof templateSchema>;
 
-const RAW_BUILT_INS = [tsLibraryRaw, pythonBackendRaw, refactorSquadRaw, dataPipelineRaw] as const;
+// Order = display order in the template picker. Newcomer-friendly first
+// (web/full-stack/mobile/desktop), then the focused/code-pipeline templates.
+const RAW_BUILT_INS = [
+  webAppRaw,
+  fullstackWebRaw,
+  mobileAppRaw,
+  desktopAppRaw,
+  cliToolRaw,
+  tsLibraryRaw,
+  pythonBackendRaw,
+  docsSiteRaw,
+  refactorSquadRaw,
+  dataPipelineRaw,
+] as const;
 
 /**
  * Validate every built-in at module load. If a template drifts away from the

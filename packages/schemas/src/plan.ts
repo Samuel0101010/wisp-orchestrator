@@ -55,9 +55,19 @@ export const edgeSchema = z.object({
 });
 export type Edge = z.infer<typeof edgeSchema>;
 
+/**
+ * Hard ceiling on the number of roles in a team. This is the absolute maximum
+ * the schema accepts and includes any auto-injected system roles (wire-up,
+ * runtime-verifier, lead). The user-pickable cap in the Team Builder is lower
+ * (it reserves headroom for those injected roles) — see `MAX_ROLES` there.
+ * Single source of truth: the orchestrator injection guards import this too,
+ * so the cap can never drift across the codebase.
+ */
+export const MAX_TEAM_ROLES = 16;
+
 export const teamSchema = z
   .object({
-    roles: z.array(agentSpecSchema).min(1).max(8),
+    roles: z.array(agentSpecSchema).min(1).max(MAX_TEAM_ROLES),
   })
   .superRefine((t, ctx) => {
     const seen = new Set<string>();

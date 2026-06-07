@@ -83,7 +83,7 @@ pnpm exec playwright show-report
   - Sets `WISP_MOCK_CLI=1`, `WISP_SERVE_WEB=1`, points `WISP_DATA_DIR` at the tmp dir.
   - Waits on `/api/health` to return 200.
 - `smoke.spec.ts`: drives the UI through the full happy path and asserts:
-  - The UI lands on `/projects/<id>/teams` after project creation.
+  - The UI lands on `/projects/<id>` (Brief tab) after project creation; the spec then opens the `/projects/<id>/teams` Team Builder route.
   - The plan editor renders with 3 nodes (architect/developer/qa).
   - The run page shows all three task cards in the `Done` kanban column.
   - The run badge reads `completed` / `done` / `success`.

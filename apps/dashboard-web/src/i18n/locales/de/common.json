@@ -534,6 +534,12 @@
       "repoPath": "Repo-Pfad",
       "repoPathPlaceholder": "/absoluter/pfad/zum/repo"
     },
+    "repoStatus": {
+      "checking": "Pfad wird geprüft…",
+      "gitRepo": "Git-Repo erkannt.",
+      "notGitRepo": "Ordner existiert, ist aber kein Git-Repo — WISP initialisiert ihn für dich.",
+      "missing": "Ordner existiert noch nicht — WISP legt ihn an und initialisiert ihn."
+    },
     "toasts": {
       "created": "Projekt erstellt",
       "createFailed": "Erstellen fehlgeschlagen"
@@ -567,6 +573,8 @@
       "saved": "Team gespeichert",
       "saveFailed": "Speichern fehlgeschlagen",
       "planGenFailed": "Plan-Generierung fehlgeschlagen",
+      "briefNotReady": "Zuerst den Brief abschließen",
+      "briefNotReadyHint": "Die Plan-Generierung braucht einen finalisierten Brief. Der Brief-Tab wird geöffnet — beantworte ein paar Fragen oder nutze dein Ziel als Brief, dann generiere.",
       "templateSaved": "Vorlage gespeichert",
       "templateSaveFailed": "Vorlage speichern fehlgeschlagen",
       "templateApplied": "Vorlage angewendet",
@@ -803,6 +811,18 @@
     "runProbe": "Probe starten",
     "runningShort": "Läuft…"
   },
+  "nextSteps": {
+    "title": "Erste Schritte",
+    "subtitle": "Wenige Schritte bis zum ersten Run.",
+    "done": "Erledigt",
+    "open": "Öffnen",
+    "brief": "Brief abschließen",
+    "briefDesc": "Beantworte ein paar Fragen oder nutze dein Ziel als Brief.",
+    "team": "Team einrichten",
+    "teamDesc": "Wähle die Agents, die dein Projekt bauen.",
+    "plan": "Plan generieren",
+    "planDesc": "Erstelle den Task-Plan, dann sperren & starten."
+  },
   "templatePicker": {
     "loading": "Vorlagen laden…",
     "loadFailed": "Vorlagen konnten nicht geladen werden: {{message}}",
@@ -819,6 +839,7 @@
     "duration": "~{{minutes}} Min",
     "expand": "Mehr anzeigen",
     "collapse": "Weniger anzeigen",
+    "roles": "Rollen",
     "useCases": "Geeignet für",
     "bestFor": "Funktioniert gut mit",
     "notRecommendedFor": "Nicht empfohlen für"
@@ -999,7 +1020,12 @@
       "goalUpdated": "Ziel aktualisiert",
       "goalUpdateFailed": "Ziel konnte nicht aktualisiert werden",
       "repoPathCopied": "Repo-Pfad kopiert",
-      "copyFailed": "Kopieren fehlgeschlagen"
+      "copyFailed": "Kopieren fehlgeschlagen",
+      "repoPathUpdated": "Repo-Pfad aktualisiert",
+      "repoPathUpdateFailed": "Repo-Pfad konnte nicht aktualisiert werden"
+    },
+    "repoEdit": {
+      "hint": "Zeige hier auf ein lokales Git-Repo oder einen leeren Ordner, den WISP initialisieren kann. Eine Änderung migriert bestehende Worktrees/Result-Branches nicht."
     },
     "goalEdit": {
       "editButton": "Bearbeiten",
@@ -1158,6 +1184,10 @@
     "finalizing": "Finalisiere…",
     "finalizeHint": "Brief abschließen und docs/PRD.md schreiben.",
     "finalizeEarlyHint": "Frühes Finalisieren ist möglich, aber der Planer hat weniger Kontext.",
+    "goalLabel": "Dein Ziel",
+    "useGoalAsBrief": "Ziel als Brief verwenden",
+    "useGoalAsBriefHint": "Interview überspringen und dein Ziel als Brief verwenden — du kannst es später verfeinern.",
+    "optionalHint": "Das Interview ist optional — beantworte ein paar Fragen für einen besseren Plan, oder nutze dein Ziel direkt als Brief.",
     "collapse": "Chat ausblenden",
     "expand": "Chat anzeigen",
     "inputPlaceholder": "Antwort an Sarah eingeben…",

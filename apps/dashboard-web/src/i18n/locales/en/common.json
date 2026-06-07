@@ -534,6 +534,12 @@
       "repoPath": "Repo path",
       "repoPathPlaceholder": "/absolute/path/to/repo"
     },
+    "repoStatus": {
+      "checking": "Checking path…",
+      "gitRepo": "Git repo detected.",
+      "notGitRepo": "Folder exists but isn't a git repo — WISP will initialise it for you.",
+      "missing": "Folder doesn't exist yet — WISP will create and initialise it for you."
+    },
     "toasts": {
       "created": "Project created",
       "createFailed": "Create failed"
@@ -567,6 +573,8 @@
       "saved": "Team saved",
       "saveFailed": "Save failed",
       "planGenFailed": "Plan generation failed",
+      "briefNotReady": "Finish the brief first",
+      "briefNotReadyHint": "Plan generation needs a finalised brief. Opening the Brief tab — answer a few questions or use your goal as the brief, then generate.",
       "templateSaved": "Template saved",
       "templateSaveFailed": "Template save failed",
       "templateApplied": "Template applied",
@@ -803,6 +811,18 @@
     "runProbe": "Run probe",
     "runningShort": "Running…"
   },
+  "nextSteps": {
+    "title": "Getting started",
+    "subtitle": "A few steps to your first run.",
+    "done": "Done",
+    "open": "Open",
+    "brief": "Finish the brief",
+    "briefDesc": "Answer a few questions, or use your goal as the brief.",
+    "team": "Configure the team",
+    "teamDesc": "Pick the agents that will build your project.",
+    "plan": "Generate the plan",
+    "planDesc": "Create the task plan, then lock & run."
+  },
   "templatePicker": {
     "loading": "Loading templates…",
     "loadFailed": "Could not load templates: {{message}}",
@@ -819,6 +839,7 @@
     "duration": "~{{minutes}} min",
     "expand": "Show more",
     "collapse": "Show less",
+    "roles": "Roles",
     "useCases": "Best for",
     "bestFor": "Works well with",
     "notRecommendedFor": "Not recommended for"
@@ -999,7 +1020,12 @@
       "goalUpdated": "Goal updated",
       "goalUpdateFailed": "Could not update goal",
       "repoPathCopied": "Repo path copied",
-      "copyFailed": "Copy failed"
+      "copyFailed": "Copy failed",
+      "repoPathUpdated": "Repo path updated",
+      "repoPathUpdateFailed": "Could not update repo path"
+    },
+    "repoEdit": {
+      "hint": "Point this at a local git repo, or an empty folder WISP can initialise. Changing it won't migrate existing worktrees or result branches."
     },
     "goalEdit": {
       "editButton": "Edit",
@@ -1158,6 +1184,10 @@
     "finalizing": "Finalising…",
     "finalizeHint": "Lock the brief and write docs/PRD.md.",
     "finalizeEarlyHint": "You can finalise early but the planner will have less context.",
+    "goalLabel": "Your goal",
+    "useGoalAsBrief": "Use goal as brief",
+    "useGoalAsBriefHint": "Skip the interview and use your goal as the brief — you can still refine it later.",
+    "optionalHint": "The interview is optional — answer a few questions for a sharper plan, or use your goal as the brief to start right away.",
     "collapse": "Hide chat",
     "expand": "Show chat",
     "inputPlaceholder": "Type your answer to Sarah…",

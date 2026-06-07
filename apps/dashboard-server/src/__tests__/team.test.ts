@@ -2,7 +2,7 @@ import './setup.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
-import { teams } from '@wisp/schemas';
+import { teams, MAX_TEAM_ROLES } from '@wisp/schemas';
 import { buildApp } from '../app.js';
 import { runMigrations } from '../db/migrate.js';
 import { db, sqlite } from '../db/index.js';
@@ -104,8 +104,8 @@ describe('team routes', () => {
     ]);
   });
 
-  it('PUT an 8-role team is accepted (max boundary)', async () => {
-    const roles = Array.from({ length: 8 }, (_, i) => makeRole(`role-${i + 1}`));
+  it('PUT a max-size team is accepted (max boundary)', async () => {
+    const roles = Array.from({ length: MAX_TEAM_ROLES }, (_, i) => makeRole(`role-${i + 1}`));
     const res = await app.inject({
       method: 'PUT',
       url: `/api/projects/${projectId}/team`,
@@ -114,8 +114,8 @@ describe('team routes', () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it('PUT a 9-role team returns 400 (over max)', async () => {
-    const roles = Array.from({ length: 9 }, (_, i) => makeRole(`role-${i + 1}`));
+  it('PUT an over-max team returns 400 (over max)', async () => {
+    const roles = Array.from({ length: MAX_TEAM_ROLES + 1 }, (_, i) => makeRole(`role-${i + 1}`));
     const res = await app.inject({
       method: 'PUT',
       url: `/api/projects/${projectId}/team`,

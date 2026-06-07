@@ -328,6 +328,7 @@ export function createInterviewRouter(deps: InterviewRouterDeps = {}): FastifyPl
 
         const turnArgs: Parameters<typeof runInterviewerTurn>[0] = {
           systemPrompt: agent.systemPrompt,
+          goal: project.goal,
           current: rowToBriefState(brief),
           history,
           userMessage: body.message,
@@ -378,7 +379,11 @@ export function createInterviewRouter(deps: InterviewRouterDeps = {}): FastifyPl
         }
         const brief = ensureBriefRow(projectId);
         const state = rowToBriefState(brief);
-        const md = renderBriefAsPrdMarkdown({ ...state, briefReady: true }, project.name);
+        const md = renderBriefAsPrdMarkdown(
+          { ...state, briefReady: true },
+          project.name,
+          project.goal,
+        );
 
         let prdPath: string | null = null;
         let prdWriteError: string | null = null;
