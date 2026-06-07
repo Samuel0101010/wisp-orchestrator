@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.1.2 — onboarding overhaul (templates, brief, repo path, guided flow)
+
+A direct response to first-time-installer friction (a non-technical user setting up their first project). Makes the create → first-run path clear and unblockable. A new installer gets all of this automatically (the plugin tracks `main`).
+
+### Added
+
+- **Six new, plainly-described team templates** — web app (React + Vite), full-stack, mobile (React Native / Expo), desktop (Tauri), docs, and CLI — on top of the existing four, covering everything from a browser app to a native desktop build. Each card now lists its roles with a one-line summary, so you can see what you're getting before picking.
+- **Guided "next steps" checklist** on the project page: finish the brief → configure the team → generate the plan, each step a button that jumps to the right place. It disappears once setup is complete.
+- **Editable repo path** — fix a wrong path inline on the project page instead of recreating the whole project. The New Project dialog shows a live check (git repo / not a repo / doesn't exist yet) and `init-repo` can now create a missing folder in one click.
+
+### Changed
+
+- **Easy team sizing.** The role cap is a single source of truth (`MAX_TEAM_ROLES`) instead of an `8` duplicated in three places; the Team Builder allows up to 12 picked roles (was 8), with headroom reserved for the auto-injected system roles.
+- **The interview now reads your goal.** The requirements interviewer receives the project goal you wrote — it no longer starts cold and re-asks what the goal already answers — and the goal is captured in the generated PRD.
+- **The brief is optional.** A clearly-labelled "Use goal as brief" action lets you skip the interview and start planning right away — no one gets blocked.
+- **You land on the brief after creating a project** (not the advanced Team Builder), and the brief-gate refusal now says "finish the brief first" and takes you there instead of echoing an API path.
+- **The run uses exactly the team you picked.** Plan generation re-stamps each role's model / prompt / tools from your stored team, so a paraphrasing planner can't silently swap it.
+
+### Verification
+
+- All 8 local gates green across five phased commits; new tests cover the team-size cap, goal injection + the PRD goal section, repo-status + folder creation, and the team re-stamp.
+
 ## 2.1.1 — fresh-install audit fixes
 
 A post-release audit of the brand-new-installer experience (install → boot → dashboard, re-verified end-to-end against an empty data dir). No blockers; this patch fixes the rough edges it surfaced. A new installer gets these automatically (the plugin tracks `main`).
