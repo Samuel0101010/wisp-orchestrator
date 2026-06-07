@@ -52,7 +52,11 @@ import { replanOnQAFailure } from './replan.js';
 import { applyAgentOverride, loadAgentOverridesForProject } from './agent-overrides.js';
 import { loadHandoffsForProject, renderHandoffsSection } from './handoff-loader.js';
 import { storeTrajectory } from '../reasoningbank/store.js';
-import { autoMergeResultIntoMain } from './auto-merge.js';
+import {
+  autoMergeResultIntoMain,
+  checkWorkingTreeSyncable,
+  syncWorkingTreeToMain,
+} from './auto-merge.js';
 import { actionableFindings, scanRefForFindings } from './findings.js';
 import {
   buildHardeningPlan,
@@ -1068,6 +1072,10 @@ export class RunRuntime {
     // address the failing gate before code lands on main.
     if (ctx.autoMergeOnSuccess && gate.verdict !== 'blocked') {
       try {
+        // Capture working-tree safety BEFORE the merge advances main — afterwards
+        // the not-yet-applied merge delta makes the tree look dirty.
+        const syncable = await checkWorkingTreeSyncable({ repoPath: ctx.repoPath });
+
         const merge = await autoMergeResultIntoMain({ repoPath: ctx.repoPath, resultBranch });
         const msg = merge.ok
           ? `[harness] auto-merge ${resultBranch} → main: ${merge.mode}`
@@ -1077,6 +1085,26 @@ export class RunRuntime {
           payload: { taskId: 'system', text: msg + '\n' },
         });
         console.log(msg);
+
+        // Bring the user's project folder up to the freshly-merged main so the
+        // finished app actually APPEARS — but only when the tree was clean + on
+        // main (else just tell them how to get it). Skipped for no-op merges.
+        if (merge.ok && merge.mode !== 'noop') {
+          let note: string;
+          if (syncable.syncable) {
+            const sync = await syncWorkingTreeToMain({ repoPath: ctx.repoPath });
+            note = sync.synced
+              ? `[harness] your project folder now shows the finished app (working tree updated to main)`
+              : `[harness] code merged to main, but the working tree could not be updated (${sync.reason}); run \`git reset --hard main\` in ${ctx.repoPath} to see it`;
+          } else {
+            note = `[harness] code merged to main; your working tree was left untouched (${syncable.reason}); run \`git checkout main && git reset --hard main\` in ${ctx.repoPath} to see the finished app`;
+          }
+          this.persistEvent(runId, {
+            type: 'task.text-delta',
+            payload: { taskId: 'system', text: note + '\n' },
+          });
+          console.log(note);
+        }
       } catch (e) {
         console.error('[runtime] auto-merge errored', e);
       }
