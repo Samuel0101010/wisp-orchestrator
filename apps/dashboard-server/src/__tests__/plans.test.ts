@@ -175,6 +175,43 @@ describe('plan generation route', () => {
     }
   });
 
+  it('re-stamps the picked team config onto the plan (planner paraphrase ignored)', async () => {
+    const stored = defaultTeamPayload();
+    const paraphrased = {
+      roles: [
+        {
+          role: 'architect',
+          model: 'opus',
+          allowedTools: ['Read'],
+          systemPrompt: `arch ${FILLER}`,
+        },
+        {
+          role: 'developer',
+          model: 'opus',
+          allowedTools: ['Read'],
+          systemPrompt: `PARAPHRASED ${FILLER}`,
+        },
+        { role: 'qa', model: 'sonnet', allowedTools: ['Read'], systemPrompt: `qa ${FILLER}` },
+      ],
+    };
+    const { runner } = makeRunner([{ events: [], writePlan: () => buildValidPlan(paraphrased) }]);
+    app = await buildAppWithRunner(runner);
+    await app.ready();
+    const projectId = await createProject(app);
+    await saveTeam(app, projectId, stored);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projectId}/plan`,
+      payload: {},
+    });
+    expect(res.statusCode).toBe(201);
+    const dev = res.json().plan.team.roles.find((r: { role: string }) => r.role === 'developer');
+    // The stored team's authoritative config wins over the planner's paraphrase.
+    expect(dev.model).toBe('sonnet');
+    expect((dev.systemPrompt as string).startsWith('dev ')).toBe(true);
+  });
+
   it('happy path: returns 201 with the persisted plan', async () => {
     const team = defaultTeamPayload();
     const { runner, callCount } = makeRunner([

@@ -573,6 +573,8 @@
       "saved": "Team saved",
       "saveFailed": "Save failed",
       "planGenFailed": "Plan generation failed",
+      "briefNotReady": "Finish the brief first",
+      "briefNotReadyHint": "Plan generation needs a finalised brief. Opening the Brief tab — answer a few questions or use your goal as the brief, then generate.",
       "templateSaved": "Template saved",
       "templateSaveFailed": "Template save failed",
       "templateApplied": "Template applied",

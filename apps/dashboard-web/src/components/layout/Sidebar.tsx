@@ -144,7 +144,9 @@ export function Sidebar() {
       toast({ title: t('newProject.toasts.created'), description: project.name });
       setOpen(false);
       reset();
-      navigate(`/projects/${project.id}/teams`);
+      // Land on the project overview (Brief tab) — the guided first step — rather
+      // than dropping the user into the advanced Team Builder.
+      navigate(`/projects/${project.id}`);
     } catch (err) {
       const msg =
         err instanceof ApiError

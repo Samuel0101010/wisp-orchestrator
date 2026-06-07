@@ -240,6 +240,21 @@ export function TeamBuilder() {
       await generatePlan.mutateAsync();
       navigate(`/projects/${projectId}/plan`);
     } catch (err) {
+      const code =
+        err instanceof ApiError && typeof err.body === 'object' && err.body && 'error' in err.body
+          ? String((err.body as { error: unknown }).error)
+          : '';
+      // The brief gate is the most common reason plan-gen is refused. Point the
+      // user at the Brief tab (with an actionable message) instead of echoing the
+      // raw API error that names an endpoint.
+      if (code === 'brief_not_ready') {
+        toast({
+          title: t('teamBuilder.toasts.briefNotReady'),
+          description: t('teamBuilder.toasts.briefNotReadyHint'),
+        });
+        navigate(`/projects/${projectId}`);
+        return;
+      }
       const msg =
         err instanceof ApiError
           ? typeof err.body === 'object' && err.body && 'message' in err.body

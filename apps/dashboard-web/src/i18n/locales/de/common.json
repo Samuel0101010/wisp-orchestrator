@@ -573,6 +573,8 @@
       "saved": "Team gespeichert",
       "saveFailed": "Speichern fehlgeschlagen",
       "planGenFailed": "Plan-Generierung fehlgeschlagen",
+      "briefNotReady": "Zuerst den Brief abschließen",
+      "briefNotReadyHint": "Die Plan-Generierung braucht einen finalisierten Brief. Der Brief-Tab wird geöffnet — beantworte ein paar Fragen oder nutze dein Ziel als Brief, dann generiere.",
       "templateSaved": "Vorlage gespeichert",
       "templateSaveFailed": "Vorlage speichern fehlgeschlagen",
       "templateApplied": "Vorlage angewendet",
