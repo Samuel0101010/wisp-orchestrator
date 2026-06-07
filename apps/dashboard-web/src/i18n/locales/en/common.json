@@ -538,7 +538,7 @@
       "checking": "Checking path…",
       "gitRepo": "Git repo detected.",
       "notGitRepo": "Folder exists but isn't a git repo — WISP will initialise it for you.",
-      "missing": "Folder doesn't exist yet — WISP will create and initialise it for you."
+      "missing": "Folder doesn't exist yet — WISP will create and initialise it automatically when you continue."
     },
     "toasts": {
       "created": "Project created",

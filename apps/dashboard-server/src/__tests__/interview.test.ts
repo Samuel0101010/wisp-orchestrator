@@ -224,6 +224,8 @@ describe('interview routes', () => {
       });
       expect(r.statusCode).toBe(200);
       expect(r.json().brief.briefReady).toBe(true);
+      // Finalizing always marks the brief 100% complete (F4).
+      expect(r.json().brief.completenessScore).toBe(100);
       expect(r.json().prdPath).toBe('docs/PRD.md');
       const prd = fs.readFileSync(path.join(tmp, 'docs/PRD.md'), 'utf8');
       expect(prd).toContain('# brief-proj — Product Requirements');
@@ -233,19 +235,29 @@ describe('interview routes', () => {
     }
   });
 
-  it('POST /finalize tolerates missing repo dir — flips briefReady but reports prdWriteError', async () => {
+  it('POST /finalize auto-creates a missing repo dir + writes docs/PRD.md', async () => {
     app = await buildApp();
     await app.ready();
-    const projectId = await createProject(app, '/tmp/definitely-not-here-' + Date.now());
-
-    const r = await app.inject({
-      method: 'POST',
-      url: `/api/projects/${projectId}/interview/finalize`,
-    });
-    expect(r.statusCode).toBe(200);
-    expect(r.json().brief.briefReady).toBe(true);
-    expect(r.json().prdPath).toBeNull();
-    expect(r.json().prdWriteError).toMatch(/repo_path_missing/);
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-prd-init-'));
+    const repoPath = path.join(base, 'fresh-project'); // does not exist yet
+    const projectId = await createProject(app, repoPath);
+    try {
+      const r = await app.inject({
+        method: 'POST',
+        url: `/api/projects/${projectId}/interview/finalize`,
+      });
+      expect(r.statusCode).toBe(200);
+      expect(r.json().brief.briefReady).toBe(true);
+      expect(r.json().brief.completenessScore).toBe(100);
+      // The repo is now created + git-inited at finalize, so the PRD lands
+      // instead of being dropped with a repo_path_missing warning.
+      expect(r.json().prdPath).toBe('docs/PRD.md');
+      expect(r.json().prdWriteError).toBeNull();
+      expect(fs.existsSync(path.join(repoPath, '.git'))).toBe(true);
+      expect(fs.existsSync(path.join(repoPath, 'docs', 'PRD.md'))).toBe(true);
+    } finally {
+      fs.rmSync(base, { recursive: true, force: true });
+    }
   });
 
   it('PATCH /interview allows direct field edits', async () => {

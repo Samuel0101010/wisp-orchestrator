@@ -538,7 +538,7 @@
       "checking": "Pfad wird geprüft…",
       "gitRepo": "Git-Repo erkannt.",
       "notGitRepo": "Ordner existiert, ist aber kein Git-Repo — WISP initialisiert ihn für dich.",
-      "missing": "Ordner existiert noch nicht — WISP legt ihn an und initialisiert ihn."
+      "missing": "Ordner existiert noch nicht — WISP legt ihn beim ersten Schritt automatisch an und initialisiert ihn."
     },
     "toasts": {
       "created": "Projekt erstellt",

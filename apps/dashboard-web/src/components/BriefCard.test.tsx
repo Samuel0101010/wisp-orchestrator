@@ -152,6 +152,16 @@ describe('BriefCard', () => {
     expect(screen.getByTestId('brief-score').textContent).toBe('0%');
   });
 
+  it('shows 100% for a finalized brief even when the score was never raised (F4)', async () => {
+    // Goal-as-brief finalization (and pre-fix rows) leave completenessScore=0
+    // while briefReady=true — the bar must not show a contradictory "0%".
+    brief = { ...freshBrief(), briefReady: true, completenessScore: 0 };
+    renderCard();
+    await waitFor(() => {
+      expect(screen.getByTestId('brief-score').textContent).toBe('100%');
+    });
+  });
+
   it('sending a message advances the brief and renders the new bubbles', async () => {
     renderCard();
     await waitFor(() => screen.getByTestId('brief-message-input'));

@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -11,6 +10,7 @@ import { wrap } from './wrap.js';
 import { actionableFindings, scanRefForFindings } from '../orchestrator/findings.js';
 import { buildHardeningPlan, insertHardeningPlan } from '../orchestrator/self-healing.js';
 import { getLatestProjectState } from '../orchestrator/project-state-loader.js';
+import { ensureProjectRepoInitialized } from '../orchestrator/repo-init.js';
 import { ensureBriefRow } from './interview.js';
 
 const createProjectSchema = z.object({
@@ -347,69 +347,29 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         reply.code(404);
         return { error: 'project not found' };
       }
-      const repoPath = project.repoPath;
-      if (!fs.existsSync(repoPath)) {
-        if (!body.createDir) {
+      const result = ensureProjectRepoInitialized({
+        repoPath: project.repoPath,
+        name: project.name,
+        goal: project.goal,
+        createDir: body.createDir,
+      });
+      if (!result.ok) {
+        if (result.error === 'repo_path_missing') {
           reply.code(400);
           return {
             error: 'repo_path_missing',
-            repoPath,
+            repoPath: result.repoPath,
             hint: 'Retry with createDir to let WISP create the folder, or update the project repoPath.',
           };
         }
-        try {
-          fs.mkdirSync(repoPath, { recursive: true });
-        } catch (err) {
-          reply.code(500);
-          return {
-            error: 'mkdir_failed',
-            repoPath,
-            message: err instanceof Error ? err.message : String(err),
-          };
-        }
-      }
-      if (fs.existsSync(path.join(repoPath, '.git'))) {
-        return { ok: true, alreadyInitialized: true, repoPath };
-      }
-
-      const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
-      const git = (...args: string[]): string =>
-        execFileSync('git', args, { cwd: repoPath, env, stdio: 'pipe' }).toString();
-      try {
-        git('init', '-b', 'main');
-        // Set local user.email/name only if not already configured globally —
-        // git commit refuses without them. Use a neutral identity so commits
-        // are obviously harness-authored rather than impersonating the user.
-        try {
-          execFileSync('git', ['config', '--get', 'user.email'], {
-            cwd: repoPath,
-            env,
-            stdio: 'pipe',
-          });
-        } catch {
-          git('config', 'user.email', 'harness@local');
-          git('config', 'user.name', 'WISP');
-        }
-        // Disable signing for the bootstrap commit so it works regardless of
-        // user's global signing config.
-        git('config', 'commit.gpgsign', 'false');
-        const readme = path.join(repoPath, 'README.md');
-        if (!fs.existsSync(readme)) {
-          fs.writeFileSync(readme, `# ${project.name}\n\n${project.goal}\n`, 'utf8');
-        }
-        git('add', '-A');
-        git('commit', '-m', 'initial commit');
-        const head = git('rev-parse', 'HEAD').trim();
-        reply.code(201);
-        return { ok: true, alreadyInitialized: false, repoPath, head };
-      } catch (err) {
         reply.code(500);
-        return {
-          error: 'git_init_failed',
-          repoPath,
-          message: err instanceof Error ? err.message : String(err),
-        };
+        return { error: result.error, repoPath: result.repoPath, message: result.message };
       }
+      if (result.alreadyInitialized) {
+        return { ok: true, alreadyInitialized: true, repoPath: result.repoPath };
+      }
+      reply.code(201);
+      return { ok: true, alreadyInitialized: false, repoPath: result.repoPath, head: result.head };
     }),
   );
 

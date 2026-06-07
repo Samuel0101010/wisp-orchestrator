@@ -38,7 +38,10 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
   const brief = interview.data?.brief ?? null;
   const transcript = interview.data?.transcript ?? [];
   const isReady = brief?.briefReady ?? false;
-  const score = brief?.completenessScore ?? 0;
+  // A finalized brief is 100% complete by definition. Guard here (not just on the
+  // server) so briefs finalized before this fix — or via goal-as-brief, which
+  // never raised the score — never show the contradictory "Finalisiert" + "0%".
+  const score = isReady ? 100 : (brief?.completenessScore ?? 0);
   const goal = project.data?.goal ?? '';
   const expanded = forceExpanded || !isReady || expandedAfterReady;
 
