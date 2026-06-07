@@ -200,11 +200,13 @@ test.describe('Wave 3 — Manager-agent project happy-path', () => {
 
     await page.getByRole('button', { name: tt(lang, 'buttons.create') }).click();
 
-    // Land on team-builder page.
-    await expect(page).toHaveURL(/\/projects\/[^/]+\/teams$/, { timeout: 15_000 });
+    // After create the UI lands on the project overview (Brief tab); continue
+    // into the Team Builder (a separate route).
+    await expect(page).toHaveURL(/\/projects\/[^/]+$/, { timeout: 15_000 });
     const url = page.url();
-    const projectId = url.match(/\/projects\/([^/]+)\/teams$/)?.[1];
+    const projectId = url.match(/\/projects\/([^/]+)$/)?.[1];
     if (!projectId) throw new Error(`could not extract projectId from URL: ${url}`);
+    await page.goto(`${url}/teams`);
 
     // Default team (architect/developer/qa) is pre-populated.
     await expect(
