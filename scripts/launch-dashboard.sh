@@ -51,6 +51,36 @@ open_url() {
   fi
 }
 
+# Resolve a pnpm invocation once (cached in $pnpm_cmd). Prefer a directly
+# installed pnpm; else corepack (Node-bundled); else a version-pinned global
+# pnpm via npm. Used by both the first-launch bootstrap and the better-sqlite3
+# ABI self-heal. Returns non-zero if none can be obtained.
+pnpm_cmd=""
+ensure_pnpm() {
+  [ -n "$pnpm_cmd" ] && return 0
+  if command -v pnpm >/dev/null 2>&1; then
+    pnpm_cmd="pnpm"
+  elif command -v corepack >/dev/null 2>&1; then
+    echo "  pnpm not found; using corepack (Node-bundled) instead."
+    if corepack prepare 'pnpm@10.33.2' --activate; then
+      pnpm_cmd="corepack pnpm"
+    else
+      echo "  corepack could not prepare pnpm@10.33.2 (bundled corepack may be too old to verify its signature)." >&2
+      echo "  Falling back to: npm install -g pnpm@10.33.2" >&2
+      if npm install -g pnpm@10.33.2 >&2 && command -v pnpm >/dev/null 2>&1; then
+        pnpm_cmd="pnpm"
+      else
+        echo "Could not obtain pnpm@10.33.2 via corepack or npm. Install it manually ('npm install -g pnpm@10.33.2') and re-run /wisp-dashboard." >&2
+        return 1
+      fi
+    fi
+  else
+    echo "Neither 'pnpm' nor 'corepack' is on PATH. Install Node 22 LTS (corepack ships with it) or run: npm install -g pnpm@10.33.2" >&2
+    return 1
+  fi
+  return 0
+}
+
 # ---------------------------------------------------------------------------
 # Idempotency: if a previous launch's server is still alive AND its port is
 # still bound, reuse it instead of spawning a second server (which would orphan
@@ -121,34 +151,8 @@ fi
 server_entry="${plugin_root}/apps/dashboard-server/dist/server.js"
 if [ ! -f "$server_entry" ]; then
   echo "First launch: building WISP (~1-2 minutes)..."
-  # Resolve a pnpm invocation. Prefer a directly installed pnpm; otherwise
-  # fall back to corepack (shipped with Node >=16.13), which honours the
-  # packageManager pin in package.json and needs no global install.
-  pnpm_cmd=""
-  if command -v pnpm >/dev/null 2>&1; then
-    pnpm_cmd="pnpm"
-  elif command -v corepack >/dev/null 2>&1; then
-    echo "  pnpm not found; using corepack (Node-bundled) instead."
-    # Activate the pinned pnpm version so corepack doesn't prompt interactively
-    # on Node >=22 (the prompt hangs Claude Code's Bash tool which has no stdin).
-    # corepack bundled with older Node (< 0.31) can't verify pnpm 10's signature
-    # ("Cannot find matching keyid"); on failure, fall back to a version-pinned
-    # global pnpm via npm (always present with Node, no signing-key dependency).
-    if corepack prepare 'pnpm@10.33.2' --activate; then
-      pnpm_cmd="corepack pnpm"
-    else
-      echo "  corepack could not prepare pnpm@10.33.2 (bundled corepack may be too old to verify its signature)." >&2
-      echo "  Falling back to: npm install -g pnpm@10.33.2" >&2
-      if npm install -g pnpm@10.33.2 >&2 && command -v pnpm >/dev/null 2>&1; then
-        pnpm_cmd="pnpm"
-      else
-        echo "Could not obtain pnpm@10.33.2 via corepack or npm. Install it manually ('npm install -g pnpm@10.33.2') and re-run /wisp-dashboard." >&2
-        exit 1
-      fi
-    fi
-  else
-    echo "Neither 'pnpm' nor 'corepack' is on PATH. Install Node 22 LTS (corepack" >&2
-    echo "ships with it) or run: npm install -g pnpm@10.33.2" >&2
+  # Resolve pnpm (cached so the better-sqlite3 ABI self-heal below reuses it).
+  if ! ensure_pnpm; then
     exit 1
   fi
   cd "$plugin_root"
@@ -192,6 +196,34 @@ if [ ! -f "$server_entry" ]; then
     exit 1
   fi
   echo "  Built. Starting dashboard..."
+fi
+
+# ---------------------------------------------------------------------------
+# better-sqlite3 ABI self-heal. The native module's prebuilt binary is tied to
+# the Node ABI it was installed under. If it was installed by a different Node
+# (e.g. the Claude Code CLI's bundled Node) than the one launching the server
+# here, loading it crashes with NODE_MODULE_VERSION before the server can boot.
+# Probe it under THIS node; on mismatch, reconcile the pinned version + rebuild
+# the binding against this Node, then re-probe.
+# ---------------------------------------------------------------------------
+probe_sqlite() {
+  (cd "${plugin_root}/apps/dashboard-server" && node -e "require('better-sqlite3')") >/dev/null 2>&1
+}
+if ! probe_sqlite; then
+  echo "better-sqlite3 was built for a different Node — rebuilding for $(node --version)..."
+  rebuild_log="${data_dir}/rebuild.log"
+  if ensure_pnpm; then
+    (cd "$plugin_root" && $pnpm_cmd install --frozen-lockfile && $pnpm_cmd rebuild better-sqlite3) \
+      >"$rebuild_log" 2>&1 || true
+  fi
+  if ! probe_sqlite; then
+    echo "" >&2
+    echo "better-sqlite3 still won't load under $(node --version)." >&2
+    if [ -f "$rebuild_log" ]; then echo "Rebuild log: ${rebuild_log}" >&2; fi
+    echo "Fix: from ${plugin_root} run 'pnpm rebuild better-sqlite3', or install Node 24 LTS (a prebuilt binary exists — no compiler needed) and re-run /wisp-dashboard." >&2
+    exit 1
+  fi
+  echo "  better-sqlite3 rebuilt for $(node --version)."
 fi
 
 # Spawn node detached.

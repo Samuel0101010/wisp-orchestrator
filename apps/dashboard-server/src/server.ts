@@ -1,3 +1,6 @@
+// MUST be first: load + validate the better-sqlite3 native binding behind a
+// guard before any other import transitively triggers it (see preflight.ts).
+import './db/preflight.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

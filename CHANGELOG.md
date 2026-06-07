@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.2.2 — better-sqlite3 won't crash the dashboard on a Node mismatch
+
+A non-developer's dashboard crashed on startup because the native SQLite module (better-sqlite3) had a prebuilt binary for a different Node.js version than the one launching the server: the Claude Code CLI (bundled Node 24) installed it, but the server runs under the system Node. The native binary is tied to a specific Node ABI, so it threw `NODE_MODULE_VERSION` before the server could boot. This release makes that self-heal automatically.
+
+### Fixed
+
+- **The launcher now self-heals the SQLite native module.** Before spawning the server, `/wisp-dashboard` probes whether better-sqlite3 loads under the launching Node; on a mismatch it reconciles the pinned version and rebuilds the binding against that Node (a prebuilt binary is fetched — no compiler needed for Node 20–25), then re-probes. Both the PowerShell and POSIX launchers do this.
+- **A direct `node dist/server.js` now fails clearly instead of cryptically.** A native-module preflight (loaded first, before anything that imports better-sqlite3) turns an ABI mismatch into a plain-language message with the exact rebuild command, instead of a raw `NODE_MODULE_VERSION` stack trace.
+- **The better-sqlite3 version is pinned exactly (12.9.0) in both consumers**, not just via a pnpm override, so an `npm`-based install (which ignores pnpm overrides) can no longer pull a newer build that drops the Node-20 prebuilt binary. 12.9.0 ships prebuilt binaries for Node 20 through 25.
+- **`pnpm doctor` now checks the SQLite native module** and prints the rebuild hint if it can't load under the current Node.
+
+### Verification
+
+- All 8 local gates green; server (561) + web (186) + package unit tests; e2e (54) green; both launcher scripts syntax/parse-checked; a real `node dist/server.js` boot smoke test (preflight + DB load + `/api/health`). A 4-agent adversarial review caught that the original in-DB guard was dead code under ESM (transitive imports load the binary first) — fixed by moving the guard to a first-import preflight.
+
 ## 2.2.1 — run-flow audit follow-ups
 
 Four rough edges found during a full live dogfood of the v2.2.0 run experience (create → team with a built-in *and* a custom agent → run → preview → iterate → second run). The run itself completed clean; these are the remaining papercuts.
