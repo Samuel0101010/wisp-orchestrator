@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.2.1 — run-flow audit follow-ups
+
+Four rough edges found during a full live dogfood of the v2.2.0 run experience (create → team with a built-in *and* a custom agent → run → preview → iterate → second run). The run itself completed clean; these are the remaining papercuts.
+
+### Fixed
+
+- **The project brief no longer drops its PRD.** Finalising a brief used to write `docs/PRD.md` into a repo folder that only got created at run-start, failing with `repo_path_missing`. The repo is now created + git-initialised at brief-finalise (shared `ensureProjectRepoInitialized`, also used by the run-start init route), so the PRD lands and the new-project "WISP will create it" hint is accurate.
+- **The preview survives an iteration.** A running preview dev-server died (`process-died`) when a finished run synced your working tree (`git reset --hard main`) out from under it. It is now stopped cleanly before the sync, with a "restart the preview to see the changes" note.
+- **An iteration run is linked to its parent.** A user-started iteration now records `parentRunId` (a back-pointer to the run its project-state was derived from). `chainIteration` is deliberately left to the self-healing chain (its cap counter), so a user iteration never starves self-healing or gets mislabelled as a hardening iteration.
+- **A finalised brief shows 100%.** Finalising via "Use goal as brief" left the completeness bar at a contradictory 0%; it now reads 100% (server + a frontend guard that also fixes pre-existing briefs).
+
+### Verification
+
+- All 8 local gates green; server + web unit tests; e2e (54 specs) green; new regression tests for each fix. A 5-agent adversarial review gated the diff and caught a self-introduced `chainIteration` overload before merge.
+
 ## 2.2.0 — run experience: continue, recover, see your app
 
 A direct response to a non-developer's first real run: the run failed near the end, "starting again" looked like it would rebuild everything, the preview wouldn't start, agents showed "failed" while they were actually recovering, and live token/time counters only appeared after each agent finished. This release makes a run continue, recover, and finish — and makes the finished app actually appear. A new installer gets all of this automatically (the plugin tracks `main`).
