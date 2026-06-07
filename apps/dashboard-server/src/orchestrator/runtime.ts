@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
   checkpoints,
   events as eventsTable,
@@ -37,7 +37,6 @@ import {
   mergeBranchesInWorktree,
   removeWorktree,
   runVerification,
-  type InitialWalkerState,
   type RunState,
   type SubprocessRunner,
   type TaskState,
@@ -62,6 +61,8 @@ import {
   shouldChainHardeningRun,
 } from './self-healing.js';
 import { evaluateReleaseGate } from './release-gate.js';
+import { tryCheckoutRun, releaseCheckout } from '../checkout/atomic-checkout.js';
+import { buildResumeWalkerState, escalatedMaxTurns } from './resume-state.js';
 import {
   countProjectDodCriteria,
   loadRuntimeReportFromRef,
@@ -609,14 +610,22 @@ export class RunRuntime {
     // briefly after the run reached 'completed'/'failed' (1-second grace timer
     // before walkers.delete fires). Resuming a finished run would re-emit
     // ghost events and the walker behavior is undefined.
-    if (run.status !== 'paused' && run.status !== 'running') {
+    // Accept paused/running (the normal resume) AND failed: a genuinely failed
+    // run can be CONTINUED — done tasks are skipped and failed tasks are
+    // re-attempted (see buildResumeWalkerState). The max-turns retry worker
+    // pre-claims failed→paused itself, so by the time it calls us the row is
+    // already 'paused'; a manual resume of a still-failed run is claimed below.
+    if (run.status !== 'paused' && run.status !== 'running' && run.status !== 'failed') {
       return {
         ok: false,
         status: 409,
-        error: 'run not paused',
+        error: 'run not resumable',
         details: { currentStatus: run.status },
       };
     }
+    // Capture the failure reason BEFORE the claim block clears it — it drives
+    // the turn-budget escalation for a manually-resumed max-turns failure.
+    const priorErrorReason = run.errorReason;
 
     // Auth gate — mirrors startRun. Without this check, autopilot ticks and
     // manual resume calls keep spawning task subprocesses against a stale-
@@ -634,7 +643,39 @@ export class RunRuntime {
       }
     }
 
-    // Hot-path: walker still in memory and run actively paused.
+    // A manually-resumed FAILED run must be claimed atomically failed→paused so
+    // we don't race the max-turns retry worker (which claims the same way). We
+    // also force the cold rebuild path: any in-memory walker for a failed run
+    // has already finalized, so resuming it is undefined behaviour.
+    if (run.status === 'failed') {
+      if (this.walkers.has(runId)) {
+        // Old walker still in its ~1s post-finalize grace window. Let it settle
+        // rather than racing its cleanup, which would delete the new walker.
+        return { ok: false, status: 409, error: 'run still finalizing', hint: 'retry in a moment' };
+      }
+      const claim = tryCheckoutRun(runId, 'failed', 'paused');
+      if (!claim.ok) {
+        return {
+          ok: false,
+          status: 409,
+          error: 'run already resuming',
+          details: { reason: claim.reason },
+        };
+      }
+      releaseCheckout(runId, claim.token);
+      // Clear the failure markers + max-turns retry scheduling so the run reads
+      // clean while it re-runs and the cron worker won't double-fire.
+      await this.db
+        .update(runs)
+        .set({ errorReason: null, nextRetryAt: null, outcome: null, endedAt: null })
+        .where(eq(runs.id, runId))
+        .run();
+      run.status = 'paused';
+    }
+
+    // Hot-path: walker still in memory and run actively paused. (A just-claimed
+    // failed run never has a resident — guarded above — so it falls through to
+    // the cold rebuild below.)
     const resident = this.walkers.get(runId);
     if (resident) {
       await resident.walker.resume();
@@ -694,34 +735,48 @@ export class RunRuntime {
       this.resumingRuns.delete(runId);
       throw err;
     }
-    const initialState: InitialWalkerState = {
-      completedTaskIds: [],
-      failedTaskIds: [],
-      resumableTasks: [],
-    };
-    for (const t of taskRows) {
-      if (t.status === 'done') {
-        initialState.completedTaskIds.push(t.id);
-      } else if (t.status === 'failed') {
-        initialState.failedTaskIds.push(t.id);
-      } else if (t.sessionId) {
-        // pending/ready/running with a known sessionId → re-launch with --resume.
-        initialState.resumableTasks.push({ taskId: t.id, sessionId: t.sessionId });
-      } else if (t.worktreeBranch) {
-        // Task had a worktree (started running) but never received a sessionId
-        // before the pause. We restart from scratch — previous work in the
-        // worktree is preserved on disk but the conversation context is lost.
-        console.log(
-          JSON.stringify({
-            event: 'resume-no-session',
-            runId,
-            taskId: t.id,
-            taskStatus: t.status,
-            worktreeBranch: t.worktreeBranch,
-          }),
-        );
+    const { initialState, retriedTaskIds, restartedNoSessionTaskIds } =
+      buildResumeWalkerState(taskRows);
+    const rowById = new Map(taskRows.map((t) => [t.id, t]));
+    for (const taskId of restartedNoSessionTaskIds) {
+      // Had a worktree (started running) but never surfaced a sessionId before
+      // the interruption. We restart it from scratch — previous work in the
+      // worktree is preserved on disk but the conversation context is lost.
+      const row = rowById.get(taskId);
+      console.log(
+        JSON.stringify({
+          event: 'resume-no-session',
+          runId,
+          taskId,
+          taskStatus: row?.status,
+          worktreeBranch: row?.worktreeBranch,
+        }),
+      );
+    }
+    // Reset the rows we are re-attempting back to 'pending' so the kanban card
+    // clears immediately (no stale FEHLGESCHLAGEN) and the DB matches what the
+    // walker will dispatch. worktreeBranch + sessionId are intentionally kept so
+    // prior work and the agent's conversation survive the retry.
+    if (retriedTaskIds.length > 0) {
+      await this.db
+        .update(tasks)
+        .set({ status: 'pending' })
+        .where(and(eq(tasks.planId, planRow.id), inArray(tasks.id, retriedTaskIds)))
+        .run();
+    }
+    // Escalate the turn budget for re-attempted tasks so an under-budgeted task
+    // (the "max-turn exhausted" case) can converge instead of re-hitting the
+    // same wall. retryCount was bumped by the worker before this call; a manual
+    // resume of a max-turns failure escalates from attempt 1.
+    const retryAttempt =
+      priorErrorReason === 'max_turns' ? Math.max(run.retryCount ?? 0, 1) : (run.retryCount ?? 0);
+    if (retryAttempt > 0 && retriedTaskIds.length > 0) {
+      const retried = new Set(retriedTaskIds);
+      for (const node of plan.nodes) {
+        if (retried.has(node.id) && typeof node.maxTurns === 'number') {
+          node.maxTurns = escalatedMaxTurns(node.maxTurns, retryAttempt);
+        }
       }
-      // Else: plain pending — fresh dispatch.
     }
 
     let walker: Walker;

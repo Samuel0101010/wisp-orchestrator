@@ -1474,6 +1474,7 @@
     "autopilotDisable": "Disable autopilot",
     "pauseRun": "Pause the run",
     "resumeRun": "Resume the run",
+    "continueFailedRun": "Continue this run — finished steps are kept, only the failed step is re-attempted",
     "cancelRun": "Cancel and clean up the run",
     "replayCheckpoint": "Re-open the last checkpoint snapshot",
     "lockAndRun": "Lock the plan and start a run",

@@ -470,10 +470,31 @@ function RunHeaderActions({
 
   return (
     <div className="flex items-center gap-2">
+      {/* A failed run can be CONTINUED: done steps are skipped and the failed
+          step is re-attempted (with its conversation + partial work). This is
+          the path the user wants after a run dies near the end — far better
+          than "new run", which rebuilds from scratch. */}
+      {status === 'failed' && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => void handleResume()}
+              disabled={resume.isPending}
+              data-testid="run-continue-button"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              {t('runView.controls.resume')}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('tooltips.continueFailedRun')}</TooltipContent>
+        </Tooltip>
+      )}
       {isTerminal && (
         <Button
           size="sm"
-          variant="default"
+          variant={status === 'failed' ? 'outline' : 'default'}
           onClick={() => void handleRunAgain()}
           disabled={startRun.isPending}
           data-testid="run-again-button"
