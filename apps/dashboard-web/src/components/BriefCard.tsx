@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Check, ChevronDown, ChevronUp, MessageSquare, Send, Sparkles } from 'lucide-react';
+import { Bot, Check, ChevronDown, ChevronUp, Send, Sparkles } from 'lucide-react';
 import {
   useFinalizeInterview,
   useInterview,
@@ -105,6 +105,22 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
     );
   }
 
+  if (interview.isError) {
+    return (
+      <Card data-testid="brief-card-error">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+            {t('briefCard.title')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground">{t('briefCard.loadError')}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card data-testid="brief-card">
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-2">
@@ -164,6 +180,15 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
           </span>
         </div>
 
+        {!isReady ? (
+          <p
+            className="rounded-md border bg-muted/30 px-3 py-2 text-xs leading-snug text-muted-foreground"
+            data-testid="brief-explainer"
+          >
+            {t('briefCard.explainer')}
+          </p>
+        ) : null}
+
         {brief ? <BriefSummary brief={brief} /> : null}
 
         {expanded ? (
@@ -176,7 +201,11 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
                 <span className="font-medium">{t('briefCard.goalLabel')}:</span> {goal}
               </div>
             ) : null}
-            <Transcript transcript={transcript} ref={transcriptRef} />
+            <Transcript
+              transcript={transcript}
+              ref={transcriptRef}
+              onPickExample={(q) => setDraft(q)}
+            />
             {!isReady ? (
               <div className="flex flex-col gap-2">
                 <Textarea
@@ -229,8 +258,8 @@ export function BriefCard({ projectId, forceExpanded = false }: BriefCardProps) 
                     {t('briefCard.keyboardHint')}
                   </span>
                 </div>
-                <p className="text-2xs text-muted-foreground" data-testid="brief-optional-hint">
-                  {t('briefCard.optionalHint')}
+                <p className="text-2xs text-muted-foreground" data-testid="brief-required-hint">
+                  {t('briefCard.requiredHint')}
                 </p>
               </div>
             ) : null}
@@ -286,22 +315,48 @@ function BriefSummary({ brief }: { brief: ProjectBriefRow }) {
 
 interface TranscriptProps {
   transcript: InterviewTranscriptMessage[];
+  /** Fill the message box with an example question (does not auto-send). */
+  onPickExample?: (question: string) => void;
 }
 
 const Transcript = forwardRef<HTMLDivElement, TranscriptProps>(function Transcript(
-  { transcript },
+  { transcript, onPickExample },
   ref,
 ) {
   const { t } = useTranslation();
   if (transcript.length === 0) {
+    const examples = [
+      t('briefCard.welcome.examples.audience'),
+      t('briefCard.welcome.examples.features'),
+      t('briefCard.welcome.examples.design'),
+    ];
     return (
       <div
         ref={ref}
-        className="flex max-h-64 min-h-[6rem] flex-col items-center justify-center rounded-md border border-dashed bg-muted/30 px-3 py-4 text-center"
+        className="flex max-h-64 flex-col gap-3 overflow-y-auto rounded-md border bg-muted/20 px-3 py-3"
         data-testid="brief-transcript-empty"
       >
-        <MessageSquare className="h-5 w-5 text-muted-foreground" />
-        <p className="mt-1 text-xs text-muted-foreground">{t('briefCard.transcriptEmpty')}</p>
+        <div className="max-w-[90%] rounded-md border bg-background px-3 py-2 text-xs">
+          <p className="mb-1 flex items-center gap-1 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+            <Bot className="h-3 w-3" />
+            {t('briefCard.assistantName')}
+          </p>
+          <p className="leading-snug">{t('briefCard.welcome.greeting')}</p>
+          <p className="mt-2 leading-snug text-muted-foreground">{t('briefCard.welcome.prompt')}</p>
+        </div>
+        <div className="flex flex-wrap gap-2" data-testid="brief-welcome-examples">
+          {examples.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => onPickExample?.(q)}
+              className="rounded-full border bg-background px-3 py-1 text-2xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              data-testid="brief-example-chip"
+            >
+              {q}
+            </button>
+          ))}
+        </div>
       </div>
     );
   }

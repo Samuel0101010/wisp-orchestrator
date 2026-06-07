@@ -37,6 +37,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/components/ui/use-toast';
 import {
   useGeneratePlan,
+  useInterview,
   useProject,
   useSaveAsTemplate,
   useSaveTeam,
@@ -184,6 +185,7 @@ export function TeamBuilder() {
   const navigate = useNavigate();
   const projectQuery = useProject(projectId);
   const teamQuery = useTeam(projectId);
+  const interviewQuery = useInterview(projectId);
   const saveTeam = useSaveTeam(projectId);
   const generatePlan = useGeneratePlan(projectId);
   const saveAsTemplate = useSaveAsTemplate();
@@ -378,6 +380,14 @@ export function TeamBuilder() {
     toast({ title: t('teamBuilder.addAgent.added', { name: agent.name }) });
   };
 
+  // The server enforces the brief gate (412 brief_not_ready). Surface it
+  // proactively here so the disabled Generate Plan button explains itself
+  // instead of only failing reactively after a click. While the interview
+  // state is still loading we don't block — the 412 catch remains the
+  // defensive fallback.
+  const briefReady = interviewQuery.data?.brief?.briefReady ?? false;
+  const briefBlocks = interviewQuery.isSuccess && !briefReady;
+
   const generateTitle =
     !teamExists && !valid
       ? t('teamBuilder.generateTitle.noTeamUnsaved')
@@ -385,9 +395,11 @@ export function TeamBuilder() {
         ? t('teamBuilder.generateTitle.saveFirst')
         : dirty
           ? t('teamBuilder.generateTitle.unsaved')
-          : '';
+          : briefBlocks
+            ? t('teamBuilder.generateTitle.briefNotReady')
+            : '';
 
-  const canGenerate = teamExists && !dirty && valid;
+  const canGenerate = teamExists && !dirty && valid && !briefBlocks;
 
   const draftTeam = draftToTeam(draft);
 

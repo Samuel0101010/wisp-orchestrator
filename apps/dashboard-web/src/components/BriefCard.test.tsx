@@ -152,6 +152,19 @@ describe('BriefCard', () => {
     expect(screen.getByTestId('brief-score').textContent).toBe('0%');
   });
 
+  it('welcoming empty state shows example chips that prefill the input', async () => {
+    renderCard();
+    await waitFor(() => screen.getByTestId('brief-transcript-empty'));
+    const chips = screen.getAllByTestId('brief-example-chip');
+    expect(chips.length).toBe(3);
+    const input = screen.getByTestId('brief-message-input') as HTMLTextAreaElement;
+    expect(input.value).toBe('');
+    fireEvent.click(chips[0]!);
+    // Chip click prefills the box but does NOT send (transcript stays empty).
+    expect(input.value).toBe(chips[0]!.textContent);
+    expect(lastSentMessage).toBe('');
+  });
+
   it('shows 100% for a finalized brief even when the score was never raised (F4)', async () => {
     // Goal-as-brief finalization (and pre-fix rows) leave completenessScore=0
     // while briefReady=true — the bar must not show a contradictory "0%".
@@ -212,6 +225,23 @@ describe('BriefCard', () => {
     });
     // After collapsing, the input is no longer rendered (briefReady + collapsed).
     expect(screen.queryByTestId('brief-message-input')).toBeNull();
+  });
+
+  it('renders a calm error card when the interview query fails', async () => {
+    globalThis.fetch = vi.fn(async (input) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/interview')) {
+        return new Response(JSON.stringify({ error: 'boom' }), { status: 500 });
+      }
+      return new Response('{}', { status: 404 });
+    }) as typeof fetch;
+    renderCard();
+    await waitFor(() => {
+      expect(screen.getByTestId('brief-card-error')).toBeInTheDocument();
+    });
+    // The misleading full render (pending badge / required hint) must NOT appear.
+    expect(screen.queryByTestId('brief-status-pending')).toBeNull();
+    expect(screen.queryByTestId('brief-required-hint')).toBeNull();
   });
 
   it('toggle-expand re-renders the transcript when ready', async () => {
