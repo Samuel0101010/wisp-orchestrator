@@ -243,7 +243,7 @@ export function Sidebar() {
     return (
       <aside className="wisp-aurora-scope relative z-[2] flex h-full w-16 shrink-0 flex-col items-center gap-2 border-r border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-sidebar-bg)] px-2.5 py-4 backdrop-blur-[30px]">
         <WispLogo small />
-        <div className="mt-4 flex w-full flex-col gap-1">
+        <nav className="mt-4 flex w-full flex-col gap-1" aria-label={t('navigation.primaryNav')}>
           {navItems.map((item) => {
             const active = item.matchPath(location.pathname, hasProject);
             return (
@@ -253,6 +253,7 @@ export function Sidebar() {
                     to={item.to}
                     data-testid={item.testId}
                     aria-current={active ? 'page' : undefined}
+                    aria-label={item.label}
                     className={cn(
                       'wisp-nav-item justify-center px-0',
                       active && 'on',
@@ -273,7 +274,7 @@ export function Sidebar() {
               </Tooltip>
             );
           })}
-        </div>
+        </nav>
         <button
           type="button"
           className="wisp-btn icon ghost mt-auto"
@@ -305,7 +306,7 @@ export function Sidebar() {
         </button>
       </div>
 
-      <nav className="flex shrink-0 flex-col gap-1" aria-label="primary">
+      <nav className="flex shrink-0 flex-col gap-1" aria-label={t('navigation.primaryNav')}>
         {navItems.map((item) => {
           const active = item.matchPath(location.pathname, hasProject);
           return (

@@ -100,6 +100,7 @@ export function NextStepsCard({ projectId, planStatus, onGoToTab }: NextStepsCar
                 variant="outline"
                 className="h-7 shrink-0 px-2 text-xs"
                 onClick={s.go}
+                aria-label={t('nextSteps.openAria', { step: s.label })}
                 data-testid={`next-step-${s.key}-go`}
               >
                 {t('nextSteps.open')}

@@ -462,6 +462,7 @@
   },
   "navigation": {
     "appName": "WISP",
+    "primaryNav": "Hauptnavigation",
     "projects": "Projekte",
     "newProject": "Neues Projekt",
     "noProjectsYet": "Noch keine Projekte",
@@ -480,7 +481,7 @@
     "runsLabel": "Runs",
     "live": "live",
     "settings": "Einstellungen",
-    "expandSidebar": "Seitenleiste ausfahren",
+    "expandSidebar": "Seitenleiste ausklappen",
     "collapseSidebar": "Seitenleiste einklappen"
   },
   "projectMenu": {
@@ -827,6 +828,7 @@
     "subtitle": "Wenige Schritte bis zum ersten Run.",
     "done": "Erledigt",
     "open": "Öffnen",
+    "openAria": "{{step}} öffnen",
     "brief": "Brief abschließen",
     "briefDesc": "Beantworte ein paar Fragen oder nutze dein Ziel als Brief.",
     "team": "Team einrichten",
@@ -1015,6 +1017,8 @@
   },
   "projectDetail": {
     "subtitle": "Projekt-Übersicht, Team, Plan und Run-Historie.",
+    "editGoal": "Ziel bearbeiten",
+    "editRepoPath": "Repo-Pfad bearbeiten",
     "summary": {
       "goal": "Ziel",
       "repoPath": "Repo-Pfad",
@@ -1062,6 +1066,7 @@
         "actions": "Aktionen"
       },
       "openRun": "Öffnen",
+      "openRunAria": "Run {{id}} öffnen",
       "running": "läuft",
       "chainParent": "Parent: {{id}}",
       "chainHardening": "Härtungs-Iteration",
@@ -1337,6 +1342,7 @@
     "dismissed": "Verworfen"
   },
   "chat": {
+    "pageHeading": "Team-Chat",
     "loading": "Lade Team…",
     "notSeeded": "Team-Chat ist noch nicht eingerichtet.",
     "notSeededBody": "Das Built-in-Dev-Team (Marcus + 9 Spezialisten) wird beim ersten Server-Start automatisch angelegt. Starte den Dashboard-Server neu und komm dann zurück.",

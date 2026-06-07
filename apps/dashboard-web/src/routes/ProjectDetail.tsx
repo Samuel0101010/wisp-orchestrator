@@ -541,7 +541,10 @@ function RunsCard({
                       <td className="px-2 py-2 text-right font-mono">{formatTokens(tokens)}</td>
                       <td className="px-2 py-2 text-right">
                         <Button asChild size="sm" variant="ghost">
-                          <Link to={`/projects/${projectId}/run/${r.id}`}>
+                          <Link
+                            to={`/projects/${projectId}/run/${r.id}`}
+                            aria-label={t('projectDetail.runs.openRunAria', { id: r.id.slice(0, 8) })}
+                          >
                             {t('projectDetail.runs.openRun')}
                             <ArrowRight className="ml-1 h-3 w-3" />
                             <ExternalLink className="hidden" aria-hidden="true" />
@@ -614,6 +617,7 @@ function GoalCard({ projectId, goal }: GoalCardProps) {
             variant="ghost"
             onClick={startEdit}
             data-testid="goal-edit-button"
+            aria-label={t('projectDetail.editGoal')}
             className="h-7 px-2 text-xs"
           >
             <Pencil className="mr-1 h-3 w-3" />
@@ -717,6 +721,7 @@ function RepoPathCard({ projectId, repoPath }: RepoPathCardProps) {
             variant="ghost"
             onClick={startEdit}
             data-testid="repo-path-edit-button"
+            aria-label={t('projectDetail.editRepoPath')}
             className="h-7 px-2 text-xs"
           >
             <Pencil className="mr-1 h-3 w-3" />

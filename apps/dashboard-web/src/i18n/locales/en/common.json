@@ -462,6 +462,7 @@
   },
   "navigation": {
     "appName": "WISP",
+    "primaryNav": "Primary navigation",
     "projects": "Projects",
     "newProject": "New project",
     "noProjectsYet": "No projects yet",
@@ -827,6 +828,7 @@
     "subtitle": "A few steps to your first run.",
     "done": "Done",
     "open": "Open",
+    "openAria": "Open: {{step}}",
     "brief": "Finish the brief",
     "briefDesc": "Answer a few questions, or use your goal as the brief.",
     "team": "Configure the team",
@@ -1015,6 +1017,8 @@
   },
   "projectDetail": {
     "subtitle": "Project overview, team, plan, and run history.",
+    "editGoal": "Edit goal",
+    "editRepoPath": "Edit repo path",
     "summary": {
       "goal": "Goal",
       "repoPath": "Repo path",
@@ -1062,6 +1066,7 @@
         "actions": "Actions"
       },
       "openRun": "Open",
+      "openRunAria": "Open run {{id}}",
       "running": "running",
       "chainParent": "Parent: {{id}}",
       "chainHardening": "Hardening iteration",
@@ -1337,6 +1342,7 @@
     "dismissed": "Dismissed"
   },
   "chat": {
+    "pageHeading": "Team chat",
     "loading": "Loading team…",
     "notSeeded": "Team chat is not seeded yet.",
     "notSeededBody": "The built-in dev team (Marcus + 9 specialists) is installed automatically on first server boot. Restart the dashboard server, then return here.",
