@@ -1033,7 +1033,8 @@
       "repoPathCopied": "Repo-Pfad kopiert",
       "copyFailed": "Kopieren fehlgeschlagen",
       "repoPathUpdated": "Repo-Pfad aktualisiert",
-      "repoPathUpdateFailed": "Repo-Pfad konnte nicht aktualisiert werden"
+      "repoPathUpdateFailed": "Repo-Pfad konnte nicht aktualisiert werden",
+      "repoInitialized": "Git-Repo des Projekts initialisiert — Run wird gestartet"
     },
     "repoEdit": {
       "hint": "Zeige hier auf ein lokales Git-Repo oder einen leeren Ordner, den WISP initialisieren kann. Eine Änderung migriert bestehende Worktrees/Result-Branches nicht."

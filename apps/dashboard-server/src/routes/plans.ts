@@ -101,6 +101,35 @@ function safeTeamFromRow(rolesJson: unknown): Team | null {
   return null;
 }
 
+// Self-contained fallback team so a project created without a template (whose
+// owner skipped the Team Builder) never dead-ends plan generation with
+// team_missing. Persisted on first use so it's visible + editable afterwards.
+const DEFAULT_PLAN_TEAM: Team = {
+  roles: [
+    {
+      role: 'architect',
+      model: 'opus',
+      allowedTools: ['Read', 'Grep', 'Glob'],
+      systemPrompt:
+        'You are the architect. Break the goal into a small, buildable plan and define the interfaces the other roles implement against.',
+    },
+    {
+      role: 'developer',
+      model: 'sonnet',
+      allowedTools: ['Read', 'Grep', 'Glob', 'Edit', 'Write', 'Bash'],
+      systemPrompt:
+        'You are the developer. Implement the smallest correct slice that satisfies the plan, with clean, idiomatic, well-tested code.',
+    },
+    {
+      role: 'qa',
+      model: 'sonnet',
+      allowedTools: ['Read', 'Grep', 'Glob', 'Bash'],
+      systemPrompt:
+        'You are QA. Verify the build, run the tests, and confirm the goal is actually met before the run is allowed to finish.',
+    },
+  ],
+};
+
 export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsync {
   const runner: Runner = deps.runner ?? defaultRunner();
 
@@ -227,17 +256,25 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         }
 
         const teamRow = await db.select().from(teams).where(eq(teams.projectId, projectId)).get();
+        let team: Team;
         if (!teamRow) {
-          reply.code(400);
-          return { error: 'team_missing', message: 'no team configured for this project' };
-        }
-        const team = safeTeamFromRow(teamRow.rolesJson);
-        if (!team) {
-          reply.code(400);
-          return {
-            error: 'team_invalid',
-            message: 'stored team is malformed; please save the team again',
-          };
+          // Safety net (was a hard 400 team_missing): a project with no saved
+          // team must not dead-end here. Seed + persist a sensible default so
+          // completion is the path of least resistance; the user can still
+          // customise it in the Team Builder afterwards.
+          team = DEFAULT_PLAN_TEAM;
+          await db.insert(teams).values({ id: randomUUID(), projectId, rolesJson: team }).run();
+          console.log(JSON.stringify({ event: 'plan-gen-seeded-default-team', projectId }));
+        } else {
+          const parsed = safeTeamFromRow(teamRow.rolesJson);
+          if (!parsed) {
+            reply.code(400);
+            return {
+              error: 'team_invalid',
+              message: 'stored team is malformed; please save the team again',
+            };
+          }
+          team = parsed;
         }
 
         // v1.9 — gate plan-generation on briefReady unless the caller explicitly

@@ -229,7 +229,7 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
   // Body: { parentRunId: string }
   //
   // The parent run MUST be on the same project AND have outcome=success.
-  // Its result branch (`harness/<parentRunId>/result`) is scanned for HIGH/
+  // Its result branch (`wisp/<parentRunId>/result`) is scanned for HIGH/
   // CRITICAL/MEDIUM findings; if any remain, a hardening plan is inserted
   // and a fresh run is started with chain_iteration = parent.chain_iteration + 1.
   app.post(
@@ -261,7 +261,10 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
         };
       }
 
-      const resultBranch = `harness/${parentRun.id}/result`;
+      // Must match the walker's finalizeResultBranch naming (`wisp/<runId>/result`).
+      // Was stale `harness/<id>/result`, so the scan always found zero findings
+      // and manual hardening silently never spawned a follow-up run.
+      const resultBranch = `wisp/${parentRun.id}/result`;
       let actionable;
       try {
         const all = await scanRefForFindings({ repoPath: project.repoPath, ref: resultBranch });

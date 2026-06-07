@@ -1033,7 +1033,8 @@
       "repoPathCopied": "Repo path copied",
       "copyFailed": "Copy failed",
       "repoPathUpdated": "Repo path updated",
-      "repoPathUpdateFailed": "Could not update repo path"
+      "repoPathUpdateFailed": "Could not update repo path",
+      "repoInitialized": "Initialized the project's git repo — starting the run"
     },
     "repoEdit": {
       "hint": "Point this at a local git repo, or an empty folder WISP can initialise. Changing it won't migrate existing worktrees or result branches."
