@@ -320,7 +320,7 @@ describe('plan generation route', () => {
     expect(res.json().error).toBe('project_missing');
   });
 
-  it('returns 400 when team is missing', async () => {
+  it('seeds a default team instead of dead-ending with team_missing', async () => {
     const { runner } = makeRunner([]);
     app = await buildAppWithRunner(runner);
     await app.ready();
@@ -330,8 +330,16 @@ describe('plan generation route', () => {
       url: `/api/projects/${projectId}/plan`,
       payload: {},
     });
-    expect(res.statusCode).toBe(400);
-    expect(res.json().error).toBe('team_missing');
+    // No longer a hard 400 team_missing — the default team is seeded and the
+    // request proceeds to the next gate (the brief).
+    expect(res.json().error).not.toBe('team_missing');
+    // The default team was seeded + persisted, so it is now readable.
+    const teamRes = await app.inject({
+      method: 'GET',
+      url: `/api/projects/${projectId}/team`,
+    });
+    expect(teamRes.statusCode).toBe(200);
+    expect(teamRes.json().roles.length).toBeGreaterThanOrEqual(1);
   });
 
   it('returns 503 on rate-limit mid-stream with resetAt propagated', async () => {

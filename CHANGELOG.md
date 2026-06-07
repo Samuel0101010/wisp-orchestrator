@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.2.0 — run experience: continue, recover, see your app
+
+A direct response to a non-developer's first real run: the run failed near the end, "starting again" looked like it would rebuild everything, the preview wouldn't start, agents showed "failed" while they were actually recovering, and live token/time counters only appeared after each agent finished. This release makes a run continue, recover, and finish — and makes the finished app actually appear. A new installer gets all of this automatically (the plugin tracks `main`).
+
+### Added
+
+- **Continue a failed run instead of rebuilding it.** A failed run now offers **Fortsetzen / Resume** as the primary action: finished steps are kept and only the failed step is re-attempted (continuing the agent's conversation when possible). The max-turns auto-retry now actually re-runs the exhausted step (it previously resumed a run that did nothing) and raises the step's turn budget each attempt so an under-budgeted task can converge.
+- **Pick a built-in agent for a project team.** The Team Builder has a new "Add a built-in agent" picker — the same agents you chat with (frontend, backend, QA, designer, …) can now be dropped onto a project team, copying their model, tools and persona. (The chat-only orchestration roles are excluded.)
+- **Live token & turn counts during a run.** Per-agent token/turn counters now climb live instead of jumping from 0 to the final value when the agent finishes.
+
+### Changed
+
+- **"Wird wiederholt" instead of a stale "FEHLGESCHLAGEN".** A step that hit max-turns and is queued for an automatic retry now shows an amber *retrying* card in the active lane (with the next-attempt time) rather than an alarming red *failed*.
+- **Preview works for more project types, and fails clearly when it can't.** Desktop (Tauri) projects preview their underlying web UI instead of timing out on `tauri dev`; mobile (Expo/React Native) projects preview their web build. When a preview genuinely can't start, the error is now a plain-language, actionable message instead of "Request failed: 400".
+- **Completion is the path of least resistance.** Rate-limit auto-resume defaults on; a project with no saved team gets a sensible default team at plan-time instead of a hard error; "New run" auto-initialises a not-yet-git repo and retries; and when a run succeeds, the finished code is merged to `main` and your project folder is brought up to date (only when it's clean — local edits are never clobbered), with a clear note when it can't.
+- **A missing verifier report no longer strands a finished app.** If the run succeeded with no real failures but the verifier didn't emit its report, the gate ships the app with a "please verify manually" flag instead of holding it back on a branch you never see.
+
+### Fixed
+
+- harden-run scanned the wrong branch prefix (`harness/` vs `wisp/`) so manual hardening never found anything.
+- An adversarial review of this branch caught and fixed three of its own bugs before release: live token over-counting (now a max-snapshot that never exceeds the authoritative total), the Tauri dev-command fallback that could still pick `tauri dev` for Nuxt/Remix/Angular/CRA, and the ship-but-flag verdict being persisted as a red "error" instead of a benign amber state.
+
+### Verification
+
+- All 8 local gates green across 9 phased commits; e2e (54 specs) green; new unit/integration tests for every fix; the create → team (via the new picker) → run-controls flow live-verified in the browser. A 10-agent adversarial review (with per-finding skeptic verification) gated the release.
+
 ## 2.1.2 — onboarding overhaul (templates, brief, repo path, guided flow)
 
 A direct response to first-time-installer friction (a non-technical user setting up their first project). Makes the create → first-run path clear and unblockable. A new installer gets all of this automatically (the plugin tracks `main`).

@@ -100,4 +100,67 @@ describe('detectProjectType', () => {
     });
     expect(detectProjectType(r).devCommand).toBe('pnpm dev');
   });
+
+  it('classifies an Expo app as a web-previewable surface via `pnpm web`', () => {
+    const r = repo({
+      dependencies: { expo: '^51', 'react-native': '0.74' },
+      scripts: { start: 'expo start', web: 'expo start --web' },
+    });
+    const result = detectProjectType(r);
+    expect(result.type).toBe('web-app');
+    expect(result.framework).toBe('expo');
+    expect(result.devCommand).toBe('pnpm web');
+    expect(result.probeUrl).toBe('http://127.0.0.1:8081/');
+  });
+
+  it('falls back to `pnpm exec expo start --web` when there is no web script', () => {
+    const r = repo({ dependencies: { expo: '^51' }, scripts: { start: 'expo start' } });
+    expect(detectProjectType(r).devCommand).toBe('pnpm exec expo start --web');
+  });
+
+  it('previews a Tauri desktop app via its web dev server, never `tauri dev`', () => {
+    // `dev` launches the native window — must NOT be picked for the preview.
+    const r = repo({
+      devDependencies: { vite: '^7', '@tauri-apps/cli': '^2' },
+      dependencies: { '@tauri-apps/api': '^2' },
+      scripts: { dev: 'tauri dev', 'dev:web': 'vite' },
+    });
+    const result = detectProjectType(r);
+    expect(result.type).toBe('web-app');
+    // framework stays 'vite' so the preview router still applies --base.
+    expect(result.framework).toBe('vite');
+    expect(result.devCommand).toBe('pnpm dev:web');
+    expect(result.reason).toMatch(/Tauri/i);
+  });
+
+  it('runs vite directly for a Tauri app whose only `dev` script is `tauri dev`', () => {
+    const r = repo({
+      devDependencies: { vite: '^7', '@tauri-apps/cli': '^2' },
+      scripts: { dev: 'tauri dev' },
+    });
+    expect(detectProjectType(r).devCommand).toBe('pnpm exec vite');
+  });
+
+  it('uses the plain `dev` script for a Tauri app when it does not launch tauri', () => {
+    const r = repo({
+      devDependencies: { vite: '^7', '@tauri-apps/cli': '^2' },
+      scripts: { dev: 'vite' },
+    });
+    expect(detectProjectType(r).devCommand).toBe('pnpm dev');
+  });
+
+  it('never returns `tauri dev` for a Tauri + non-vite framework — runs the framework binary', () => {
+    // Tauri + Nuxt whose only script is `tauri dev`. The old fallback returned
+    // `pnpm dev` (= tauri dev → native window → preview timeout); now it runs
+    // the web framework's own dev server.
+    const r = repo({
+      dependencies: { nuxt: '^3' },
+      devDependencies: { '@tauri-apps/cli': '^2' },
+      scripts: { dev: 'tauri dev' },
+    });
+    const result = detectProjectType(r);
+    expect(result.framework).toBe('nuxt');
+    expect(result.devCommand).toBe('pnpm exec nuxt dev');
+    expect(result.devCommand).not.toMatch(/tauri/);
+  });
 });

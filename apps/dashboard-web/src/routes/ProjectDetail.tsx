@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import {
   useGeneratedPlan,
+  useInitProjectRepo,
   useInterview,
   useProject,
   useProjectRuns,
@@ -90,17 +91,43 @@ export function ProjectDetail() {
   const plan = useGeneratedPlan(projectId);
   const runs = useProjectRuns(projectId);
   const startRun = useStartRun();
+  const initRepo = useInitProjectRepo();
 
   const isLockedPlan = plan.data?.status === 'locked';
   const planId = plan.data?.id;
 
   const handleNewRun = async (): Promise<void> => {
     if (!planId) return;
-    try {
+    const startThePlan = async (): Promise<void> => {
       const result = await startRun.mutateAsync({ planId });
       toast({ title: t('projectDetail.toasts.runStarted'), description: result.runId.slice(0, 8) });
       navigate(`/projects/${projectId}/run/${result.runId}`);
+    };
+    try {
+      await startThePlan();
     } catch (err) {
+      // If the only blocker is an uninitialised repo, set it up and retry once.
+      // A non-developer should not have to know to run `git init` — clicking
+      // "New run" is enough consent to initialise the project folder.
+      const code =
+        err instanceof ApiError && typeof err.body === 'object' && err.body && 'error' in err.body
+          ? String((err.body as { error: unknown }).error)
+          : null;
+      if (code === 'repo_not_initialized' && projectId) {
+        try {
+          await initRepo.mutateAsync(projectId);
+          toast({ title: t('projectDetail.toasts.repoInitialized') });
+          await startThePlan();
+          return;
+        } catch (initErr) {
+          toast({
+            title: t('projectDetail.toasts.runStartFailed'),
+            description: (initErr as Error).message,
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
       const msg =
         err instanceof ApiError
           ? typeof err.body === 'object' && err.body && 'message' in err.body

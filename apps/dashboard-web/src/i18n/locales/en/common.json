@@ -550,6 +550,15 @@
     "selectProject": "Select a project to configure its team.",
     "subtitle": "Configure the agents for {{name}}.",
     "loading": "Loading the team…",
+    "addAgent": {
+      "trigger": "Add a built-in agent",
+      "title": "Add a built-in agent",
+      "description": "Pick one of the ready-made agents (the same ones you can chat with) to add as a team role. You can still tweak its model, tools and prompt afterwards.",
+      "loading": "Loading agents…",
+      "error": "Could not load agents.",
+      "empty": "No agents available.",
+      "added": "Added {{name}} to the team"
+    },
     "saveAsTemplateDialog": {
       "title": "Save team as template",
       "description": "Stores this team configuration to disk under your data dir. You can pick it from the New Project dialog later.",
@@ -745,6 +754,8 @@
       "turns": "Turns",
       "duration": "Duration",
       "failed": "Failed",
+      "retrying": "Retrying",
+      "retryingAt": "Retrying — next attempt {{time}}",
       "forensics": "Forensics: {{path}}",
       "liveTail": "Live tail",
       "liveTailFor": "Live tail — {{title}}",
@@ -1022,7 +1033,8 @@
       "repoPathCopied": "Repo path copied",
       "copyFailed": "Copy failed",
       "repoPathUpdated": "Repo path updated",
-      "repoPathUpdateFailed": "Could not update repo path"
+      "repoPathUpdateFailed": "Could not update repo path",
+      "repoInitialized": "Initialized the project's git repo — starting the run"
     },
     "repoEdit": {
       "hint": "Point this at a local git repo, or an empty folder WISP can initialise. Changing it won't migrate existing worktrees or result branches."
@@ -1137,6 +1149,11 @@
       "starting": "Starting",
       "running": "Running",
       "error": "Error"
+    },
+    "errors": {
+      "no_dev_cmd": "No web preview is available for this project yet. Run the team once so it builds the app — or set a dev command in the project settings.",
+      "worktree_setup_failed": "Could not prepare the preview (installing dependencies failed). Try again; if it keeps failing, check the repo path and that pnpm is installed.",
+      "repo_not_initialized": "This project's folder isn't a git repository yet. Open the project, initialize the repo, then try again."
     },
     "toasts": {
       "startFailed": "Could not start preview",
@@ -1474,6 +1491,7 @@
     "autopilotDisable": "Disable autopilot",
     "pauseRun": "Pause the run",
     "resumeRun": "Resume the run",
+    "continueFailedRun": "Continue this run — finished steps are kept, only the failed step is re-attempted",
     "cancelRun": "Cancel and clean up the run",
     "replayCheckpoint": "Re-open the last checkpoint snapshot",
     "lockAndRun": "Lock the plan and start a run",

@@ -110,10 +110,9 @@ export function evaluateReleaseGate(input: ReleaseGateInput): ReleaseGateResult 
   }
 
   if (!input.runtime) {
-    // No verifier evidence on disk. This is normally a FAIL signal, but if
-    // the caller supplied a fallback live probe (e.g. for legacy plans that
-    // pre-date the verifier node) we honour it so we don't punish runs that
-    // simply lacked the artifact-emitting step.
+    // No verifier evidence on disk (legacy plan, or the verifier crashed
+    // before writing docs/runtime-report.json). The run otherwise succeeded.
+    // A fallback live probe (for legacy plans) still gates on actual boot.
     if (input.probeBootFn) {
       const probe = input.probeBootFn();
       summary.bootOk = probe.ok;
@@ -123,17 +122,22 @@ export function evaluateReleaseGate(input: ReleaseGateInput): ReleaseGateResult 
         );
         return { verdict: 'blocked', reasons, summary };
       }
-      // Probe says boot is fine, but without a runtime-report.json we have
-      // no e2e/smoke/dod evidence. Treat as blocked with a clear reason so
-      // the dashboard surfaces "ran but missing evidence" instead of a
-      // spurious "Boot: FAIL".
-      reasons.push(
-        'runtime-verifier did not produce docs/runtime-report.json (live re-probe confirmed boot, but no e2e/smoke/dod evidence)',
-      );
+    }
+    // Known HIGH/CRITICAL/MEDIUM findings still block — don't ship code with
+    // unresolved issues just because the verifier report happens to be missing.
+    if (input.actionableFindingsCount > 0) {
+      reasons.push('verifier evidence is missing AND actionable findings are still open');
       return { verdict: 'blocked', reasons, summary };
     }
-    reasons.push('runtime-verifier did not produce docs/runtime-report.json');
-    return { verdict: 'blocked', reasons, summary };
+    // The run succeeded, boot is OK (or unprobed) and nothing actionable is
+    // open — but we lack e2e/smoke/dod evidence. Rather than STRANDING finished
+    // code on a branch (the user never sees their app), ship it with a visible
+    // manual-review flag so a human can spot-check it. Auto-merge proceeds for
+    // any non-blocked verdict.
+    reasons.push(
+      'runtime-verifier did not produce docs/runtime-report.json — shipping with a manual-review flag (please verify the app manually)',
+    );
+    return { verdict: 'manual-review', reasons, summary };
   }
 
   // Populate summary from the runtime report. When the verifier has spoken,

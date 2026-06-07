@@ -17,7 +17,7 @@ import {
   rectSortingStrategy,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
-import type { AgentSpec, Team } from '@wisp/schemas';
+import type { Agent, AgentSpec, Team } from '@wisp/schemas';
 import { MAX_TEAM_ROLES } from '@wisp/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,6 +52,7 @@ import {
 } from '@/components/TeamRoleCard';
 import { SortableTeamRoleCard } from '@/components/SortableTeamRoleCard';
 import { TeamRoleAddButton } from '@/components/TeamRoleAddButton';
+import { AddBuiltInAgentDialog } from '@/components/AddBuiltInAgentDialog';
 import { ApplyTemplateDialog } from '@/components/ApplyTemplateDialog';
 import { TeamJsonDialog } from '@/components/TeamJsonDialog';
 import { ComposedPromptPreviewDialog } from '@/components/ComposedPromptPreviewDialog';
@@ -127,6 +128,37 @@ function generateRowId(): string {
     return crypto.randomUUID();
   }
   return `row-${Math.random().toString(36).slice(2, 11)}-${Date.now().toString(36)}`;
+}
+
+/** kebab-case a free-text agent name into a valid role slug. */
+function slugifyRole(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'agent'
+  );
+}
+
+/**
+ * Build a team-role draft from a registry/built-in agent — copying model,
+ * tools and persona by value, keeping the agentId soft-link, and
+ * de-duplicating the role name against the existing roles. Mirrors what the
+ * chat create_project directive does server-side. Exported for unit tests.
+ */
+export function buildRoleFromAgent(agent: Agent, existingRoles: string[]): DraftAgent {
+  const base = agent.seedKey?.trim() || slugifyRole(agent.name);
+  const existing = new Set(existingRoles.map((r) => r.trim()));
+  let role = base;
+  let n = 2;
+  while (existing.has(role)) role = `${base}-${n++}`;
+  return {
+    role,
+    model: agent.model,
+    allowedTools: agent.allowedTools.length > 0 ? [...agent.allowedTools] : ['Read'],
+    systemPrompt: agent.systemPrompt.slice(0, SYSTEM_PROMPT_MAX),
+    agentId: agent.id,
+  };
 }
 
 function teamsEqual(a: DraftAgent[], b: Team): boolean {
@@ -332,6 +364,20 @@ export function TeamBuilder() {
     });
   };
 
+  // Append a built-in / saved agent as a new team role — copying its model,
+  // tools and persona by value and keeping the agentId soft-link (same shape
+  // the chat create_project directive produces). Role name is de-duplicated.
+  const addBuiltInAgent = (agent: Agent): void => {
+    if (draft.length >= MAX_ROLES) return;
+    const next = buildRoleFromAgent(
+      agent,
+      draft.map((d) => d.role),
+    );
+    setDraft((arr) => [...arr, next]);
+    setIds((arr) => [...arr, generateRowId()]);
+    toast({ title: t('teamBuilder.addAgent.added', { name: agent.name }) });
+  };
+
   const generateTitle =
     !teamExists && !valid
       ? t('teamBuilder.generateTitle.noTeamUnsaved')
@@ -413,6 +459,9 @@ export function TeamBuilder() {
         count={draft.length}
         max={MAX_ROLES}
       />
+      <div className="flex justify-center">
+        <AddBuiltInAgentDialog onPick={addBuiltInAgent} disabled={draft.length >= MAX_ROLES} />
+      </div>
       <div className="flex flex-wrap items-center justify-end gap-2">
         <ApplyTemplateDialog onApply={applyTemplate} hasContent={dirty} />
         <ComposedPromptPreviewDialog team={draftTeam} defaultGoal={projectQuery.data?.goal} />

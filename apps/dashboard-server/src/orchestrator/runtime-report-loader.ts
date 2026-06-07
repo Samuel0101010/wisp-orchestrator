@@ -104,13 +104,16 @@ export async function persistRuntimeReport(args: {
   const id = randomUUID();
   // The runtime-report.json verdict is the source of truth when present,
   // but the dashboard needs a single field that captures "what the harness
-  // ultimately decided". Use the gate verdict when the verifier didn't
-  // emit a report so the row is always meaningful.
+  // ultimately decided". With no report, only a BLOCKED gate is a real error;
+  // a `ready` or `manual-review` gate shipped the code (auto-merge proceeds), so
+  // map it to the benign `skipped` (amber) — NOT `error` (red), which would
+  // mislabel a successfully-merged app as a verifier failure. ('manual-review'
+  // is not in the persisted enum; `skipped` is its closest non-destructive fit.)
   const verdict: RuntimeReportVerdict = args.report
     ? args.report.verdict
-    : args.gate.verdict === 'ready'
-      ? 'skipped'
-      : 'error';
+    : args.gate.verdict === 'blocked'
+      ? 'error'
+      : 'skipped';
   await args.db
     .insert(runtimeReportsTable)
     .values({

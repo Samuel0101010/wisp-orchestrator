@@ -41,7 +41,7 @@ describe('evaluateReleaseGate', () => {
     expect(r.reasons.join(' ')).toMatch(/runtime-verify disabled/);
   });
 
-  it('blocks (verify enabled but agent emitted no JSON report)', () => {
+  it('ships with manual-review when verify enabled but the agent emitted no JSON report', () => {
     const r = evaluateReleaseGate({
       runSucceeded: true,
       runtime: null,
@@ -50,8 +50,22 @@ describe('evaluateReleaseGate', () => {
       dodManual: 0,
       runtimeVerifyEnabled: true,
     });
-    expect(r.verdict).toBe('blocked');
+    // Was a hard block (code stranded on a branch); now ships + flags so the
+    // user actually sees their app and is told to verify it.
+    expect(r.verdict).toBe('manual-review');
     expect(r.reasons.join(' ')).toMatch(/runtime-verifier did not produce/);
+  });
+
+  it('still blocks when the report is missing AND actionable findings remain', () => {
+    const r = evaluateReleaseGate({
+      runSucceeded: true,
+      runtime: null,
+      actionableFindingsCount: 3,
+      dodTotal: 0,
+      dodManual: 0,
+      runtimeVerifyEnabled: true,
+    });
+    expect(r.verdict).toBe('blocked');
   });
 
   it('blocks on boot failure even if verdict says pass (defensive)', () => {
@@ -193,7 +207,7 @@ describe('evaluateReleaseGate', () => {
       expect(r.summary.bootOk).toBe(false);
     });
 
-    it('case C: falls back to existing block when no verifier evidence and no probe provided', () => {
+    it('case C: ships manual-review (not block) when no verifier evidence and no probe provided', () => {
       const r = evaluateReleaseGate({
         runSucceeded: true,
         runtime: null,
@@ -202,12 +216,12 @@ describe('evaluateReleaseGate', () => {
         dodManual: 0,
         runtimeVerifyEnabled: true,
       });
-      expect(r.verdict).toBe('blocked');
+      expect(r.verdict).toBe('manual-review');
       expect(r.reasons.join(' ')).toMatch(/runtime-verifier did not produce/);
       expect(r.summary.bootOk).toBe(false);
     });
 
-    it('case C-bis: legacy plan with a fallback probe — probe IS called when verifier evidence is absent', () => {
+    it('case C-bis: legacy plan with a fallback probe — probe IS called; ships manual-review when boot OK', () => {
       let probeCalls = 0;
       const probeBootFn = () => {
         probeCalls += 1;
@@ -223,12 +237,26 @@ describe('evaluateReleaseGate', () => {
         probeBootFn,
       });
       expect(probeCalls).toBe(1);
-      // Probe confirmed boot, but with no e2e/smoke/dod evidence the gate
-      // still blocks — and crucially the dashboard now sees bootOk=true so
-      // it stops mis-rendering "Boot: FAIL" for these legacy runs.
+      // Probe confirmed boot → dashboard sees bootOk=true (no spurious
+      // "Boot: FAIL"); with no e2e/smoke/dod evidence we ship + flag rather
+      // than strand the finished code on a branch.
       expect(r.summary.bootOk).toBe(true);
+      expect(r.verdict).toBe('manual-review');
+      expect(r.reasons.join(' ')).toMatch(/runtime-verifier did not produce/);
+    });
+
+    it('case C-ter: a fallback probe that FAILS still blocks (the app genuinely did not boot)', () => {
+      const r = evaluateReleaseGate({
+        runSucceeded: true,
+        runtime: null,
+        actionableFindingsCount: 0,
+        dodTotal: 0,
+        dodManual: 0,
+        runtimeVerifyEnabled: true,
+        probeBootFn: () => ({ ok: false, reason: 'ECONNREFUSED' }),
+      });
       expect(r.verdict).toBe('blocked');
-      expect(r.reasons.join(' ')).toMatch(/live re-probe confirmed boot/);
+      expect(r.reasons.join(' ')).toMatch(/did not boot/);
     });
   });
 });

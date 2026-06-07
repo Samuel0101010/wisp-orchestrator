@@ -74,6 +74,64 @@ export interface AutoMergeArgs {
   mainBranch?: string;
 }
 
+export type WorkingTreeSyncCheck = { syncable: true } | { syncable: false; reason: string };
+export type SyncWorkingTreeResult = { synced: true } | { synced: false; reason: string };
+
+/**
+ * Pre-merge check: is it safe to fast-forward the user's working tree to main
+ * AFTER the auto-merge advances it? Safe iff the tree is on `mainBranch` with
+ * no uncommitted changes. MUST be called BEFORE auto-merge advances main —
+ * afterwards the (not-yet-applied) merge delta makes the tree look "dirty"
+ * relative to the new HEAD, which a naive `git status` can't tell apart from
+ * genuine local edits.
+ */
+export async function checkWorkingTreeSyncable(args: {
+  repoPath: string;
+  mainBranch?: string;
+}): Promise<WorkingTreeSyncCheck> {
+  const repoPath = args.repoPath;
+  const mainBranch = args.mainBranch ?? 'main';
+
+  let branch: string;
+  try {
+    branch = (
+      await execa('git', ['symbolic-ref', '--quiet', '--short', 'HEAD'], { cwd: repoPath })
+    ).stdout.trim();
+  } catch {
+    return { syncable: false, reason: 'detached HEAD' };
+  }
+  if (branch !== mainBranch) {
+    return { syncable: false, reason: `working tree is on '${branch}', not '${mainBranch}'` };
+  }
+
+  const status = await execa('git', ['status', '--porcelain'], { cwd: repoPath, reject: false });
+  if (status.stdout.trim().length > 0) {
+    return { syncable: false, reason: 'working tree has uncommitted changes' };
+  }
+  return { syncable: true };
+}
+
+/**
+ * Bring the user's checked-out working tree up to the (just-advanced) main
+ * branch so the finished app actually APPEARS in their project folder — the
+ * auto-merge advances `refs/heads/main` via update-ref WITHOUT touching the
+ * worktree. Only call this after checkWorkingTreeSyncable() returned syncable
+ * (pre-merge) so the hard reset can never clobber genuine local edits.
+ */
+export async function syncWorkingTreeToMain(args: {
+  repoPath: string;
+  mainBranch?: string;
+}): Promise<SyncWorkingTreeResult> {
+  const repoPath = args.repoPath;
+  const mainBranch = args.mainBranch ?? 'main';
+  try {
+    await execa('git', ['reset', '--hard', '--quiet', mainBranch], { cwd: repoPath });
+    return { synced: true };
+  } catch (err) {
+    return { synced: false, reason: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export async function autoMergeResultIntoMain(args: AutoMergeArgs): Promise<AutoMergeOutcome> {
   const repoPath = args.repoPath;
   const mainBranch = args.mainBranch ?? 'main';

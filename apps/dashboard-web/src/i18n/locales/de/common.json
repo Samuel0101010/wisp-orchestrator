@@ -550,6 +550,15 @@
     "selectProject": "Wähle ein Projekt, um sein Team zu konfigurieren.",
     "subtitle": "Konfiguriere die Agents für {{name}}.",
     "loading": "Lade das Team…",
+    "addAgent": {
+      "trigger": "Built-in-Agent hinzufügen",
+      "title": "Built-in-Agent hinzufügen",
+      "description": "Wähle einen der fertigen Agents (dieselben, mit denen du im Chat sprechen kannst) als Teamrolle aus. Modell, Tools und Prompt kannst du danach weiterhin anpassen.",
+      "loading": "Lade Agents…",
+      "error": "Agents konnten nicht geladen werden.",
+      "empty": "Keine Agents verfügbar.",
+      "added": "{{name}} zum Team hinzugefügt"
+    },
     "saveAsTemplateDialog": {
       "title": "Team als Vorlage speichern",
       "description": "Speichert diese Teamkonfiguration auf Festplatte unter deinem Daten-Verzeichnis. Du kannst sie später im Neues-Projekt-Dialog auswählen.",
@@ -745,6 +754,8 @@
       "turns": "Turns",
       "duration": "Dauer",
       "failed": "Fehlgeschlagen",
+      "retrying": "Wird wiederholt",
+      "retryingAt": "Wird wiederholt — nächster Versuch {{time}}",
       "forensics": "Forensik: {{path}}",
       "liveTail": "Live-Stream",
       "liveTailFor": "Live-Stream — {{title}}",
@@ -1022,7 +1033,8 @@
       "repoPathCopied": "Repo-Pfad kopiert",
       "copyFailed": "Kopieren fehlgeschlagen",
       "repoPathUpdated": "Repo-Pfad aktualisiert",
-      "repoPathUpdateFailed": "Repo-Pfad konnte nicht aktualisiert werden"
+      "repoPathUpdateFailed": "Repo-Pfad konnte nicht aktualisiert werden",
+      "repoInitialized": "Git-Repo des Projekts initialisiert — Run wird gestartet"
     },
     "repoEdit": {
       "hint": "Zeige hier auf ein lokales Git-Repo oder einen leeren Ordner, den WISP initialisieren kann. Eine Änderung migriert bestehende Worktrees/Result-Branches nicht."
@@ -1137,6 +1149,11 @@
       "starting": "Startet",
       "running": "Läuft",
       "error": "Fehler"
+    },
+    "errors": {
+      "no_dev_cmd": "Für dieses Projekt gibt es noch keine Web-Vorschau. Starte das Team einmal, damit die App gebaut wird — oder hinterlege einen Dev-Befehl in den Projekt-Einstellungen.",
+      "worktree_setup_failed": "Die Vorschau konnte nicht vorbereitet werden (Installation der Abhängigkeiten fehlgeschlagen). Versuche es erneut; wenn es weiter fehlschlägt, prüfe den Repo-Pfad und ob pnpm installiert ist.",
+      "repo_not_initialized": "Der Projektordner ist noch kein Git-Repository. Öffne das Projekt, initialisiere das Repo und versuche es dann erneut."
     },
     "toasts": {
       "startFailed": "Vorschau konnte nicht gestartet werden",
@@ -1474,6 +1491,7 @@
     "autopilotDisable": "Autopilot deaktivieren",
     "pauseRun": "Run pausieren",
     "resumeRun": "Run fortsetzen",
+    "continueFailedRun": "Diesen Run fortsetzen — fertige Schritte bleiben erhalten, nur der fehlgeschlagene Schritt wird erneut versucht",
     "cancelRun": "Run abbrechen und aufräumen",
     "replayCheckpoint": "Letzten Checkpoint-Snapshot erneut öffnen",
     "lockAndRun": "Plan sperren und Run starten",

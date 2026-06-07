@@ -1,9 +1,14 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { execa } from 'execa';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { autoMergeResultIntoMain } from '../orchestrator/auto-merge.js';
+import {
+  autoMergeResultIntoMain,
+  checkWorkingTreeSyncable,
+  syncWorkingTreeToMain,
+} from '../orchestrator/auto-merge.js';
 
 let repoPath: string;
 
@@ -111,5 +116,47 @@ describe('autoMergeResultIntoMain', () => {
     const res = await autoMergeResultIntoMain({ repoPath, resultBranch: 'no-such-branch' });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.reason).toMatch(/not found/);
+  });
+});
+
+describe('working-tree sync after auto-merge', () => {
+  it('a clean tree is syncable pre-merge and gets the finished files applied', async () => {
+    await commit('a.txt', 'hello', 'initial');
+    await execa('git', ['branch', 'result'], { cwd: repoPath });
+    await execa('git', ['checkout', 'result'], { cwd: repoPath });
+    await commit('b.txt', 'world', 'on-result');
+    await execa('git', ['checkout', 'main'], { cwd: repoPath });
+
+    // 1) Pre-merge check (the order runtime uses): clean + on main → syncable.
+    const check = await checkWorkingTreeSyncable({ repoPath });
+    expect(check.syncable).toBe(true);
+
+    // 2) FF main via update-ref — leaves the working tree stale (b.txt absent).
+    await autoMergeResultIntoMain({ repoPath, resultBranch: 'result' });
+    expect(existsSync(join(repoPath, 'b.txt'))).toBe(false);
+
+    // 3) Apply the sync → the finished file appears.
+    const res = await syncWorkingTreeToMain({ repoPath });
+    expect(res.synced).toBe(true);
+    expect(existsSync(join(repoPath, 'b.txt'))).toBe(true);
+    expect(await readFile(join(repoPath, 'b.txt'), 'utf8')).toBe('world');
+  });
+
+  it('a tree with uncommitted changes is NOT syncable (local edits preserved)', async () => {
+    await commit('a.txt', 'hello', 'initial');
+    await writeFile(join(repoPath, 'a.txt'), 'locally edited');
+    const check = await checkWorkingTreeSyncable({ repoPath });
+    expect(check.syncable).toBe(false);
+    if (!check.syncable) expect(check.reason).toMatch(/uncommitted/);
+    // Never clobbered.
+    expect(await readFile(join(repoPath, 'a.txt'), 'utf8')).toBe('locally edited');
+  });
+
+  it('a tree on a non-main branch is NOT syncable', async () => {
+    await commit('a.txt', 'hello', 'initial');
+    await execa('git', ['checkout', '-b', 'feature'], { cwd: repoPath });
+    const check = await checkWorkingTreeSyncable({ repoPath });
+    expect(check.syncable).toBe(false);
+    if (!check.syncable) expect(check.reason).toMatch(/not 'main'/);
   });
 });

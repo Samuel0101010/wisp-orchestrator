@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   XCircle,
   Ban,
+  RefreshCw,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { HarnessEvent, RunPausedReason } from '@wisp/schemas';
@@ -223,22 +224,34 @@ interface TaskCardProps {
   budgetTurns: number;
   nowMs: number;
   onOpenTail: () => void;
+  /** Failed-but-queued-for-retry: render an amber "wird wiederholt" treatment. */
+  retrying?: boolean;
+  retryNextAtMs?: number | null;
 }
 
-function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
+function TaskCard({
+  task,
+  budgetTurns,
+  nowMs,
+  onOpenTail,
+  retrying,
+  retryNextAtMs,
+}: TaskCardProps) {
   const { t } = useTranslation();
   const liveDuration = task.liveRunning && task.startedAtMs ? nowMs - task.startedAtMs : 0;
   const duration = Math.max(task.durationMs, liveDuration);
   const live = task.status === 'running';
+  const retryTime = retrying && retryNextAtMs ? new Date(retryNextAtMs).toLocaleTimeString() : null;
   return (
     <div
       className={clsx(
         'group relative flex flex-col gap-2 overflow-hidden rounded-md border bg-card p-3',
         task.status === 'running' && 'ring-1 ring-info/40',
-        task.status === 'failed' && 'ring-1 ring-destructive/40',
+        retrying && 'ring-1 ring-warning/40',
+        task.status === 'failed' && !retrying && 'ring-1 ring-destructive/40',
       )}
       data-testid={`task-card-${task.id}`}
-      data-status={task.status}
+      data-status={retrying ? 'retrying' : task.status}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -256,14 +269,24 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
             clipped to garbage like "FEHLGESC". The column header already
             carries the status name; here we render the status as a compact
             Lucide glyph so it's distinguished by SHAPE, not colour alone. */}
-        <StatusDotBadge
-          status={task.status}
-          pulse={live}
-          iconOnly
-          glyph
-          aria-label={statusLabel(task.status, t)}
-          className="shrink-0"
-        />
+        {retrying ? (
+          <span
+            className="inline-flex shrink-0 items-center text-warning"
+            aria-label={t('runView.task.retrying')}
+            title={t('runView.task.retrying')}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </span>
+        ) : (
+          <StatusDotBadge
+            status={task.status}
+            pulse={live}
+            iconOnly
+            glyph
+            aria-label={statusLabel(task.status, t)}
+            className="shrink-0"
+          />
+        )}
       </div>
       <div className="flex flex-col">
         <span className="text-sm font-medium">{task.title}</span>
@@ -293,16 +316,28 @@ function TaskCard({ task, budgetTurns, nowMs, onOpenTail }: TaskCardProps) {
           </dd>
         </div>
       </dl>
-      {task.error && (
-        <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
-          <div className="font-semibold">{t('runView.task.failed')}</div>
-          <div className="line-clamp-3">{task.error}</div>
-          {task.worktreePath && (
-            <div className="mt-1 text-2xs text-destructive/80">
-              {t('runView.task.forensics', { path: task.worktreePath })}
-            </div>
-          )}
+      {retrying ? (
+        <div className="rounded-sm border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
+          <div className="flex items-center gap-1.5 font-semibold">
+            <RefreshCw className="h-3 w-3" />
+            {retryTime
+              ? t('runView.task.retryingAt', { time: retryTime })
+              : t('runView.task.retrying')}
+          </div>
+          {task.error && <div className="mt-1 line-clamp-2 text-warning/80">{task.error}</div>}
         </div>
+      ) : (
+        task.error && (
+          <div className="rounded-sm border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
+            <div className="font-semibold">{t('runView.task.failed')}</div>
+            <div className="line-clamp-3">{task.error}</div>
+            {task.worktreePath && (
+              <div className="mt-1 text-2xs text-destructive/80">
+                {t('runView.task.forensics', { path: task.worktreePath })}
+              </div>
+            )}
+          </div>
+        )
       )}
       <div className="flex items-center justify-between">
         <Button
@@ -470,10 +505,31 @@ function RunHeaderActions({
 
   return (
     <div className="flex items-center gap-2">
+      {/* A failed run can be CONTINUED: done steps are skipped and the failed
+          step is re-attempted (with its conversation + partial work). This is
+          the path the user wants after a run dies near the end — far better
+          than "new run", which rebuilds from scratch. */}
+      {status === 'failed' && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => void handleResume()}
+              disabled={resume.isPending}
+              data-testid="run-continue-button"
+            >
+              <Play className="mr-2 h-4 w-4" />
+              {t('runView.controls.resume')}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('tooltips.continueFailedRun')}</TooltipContent>
+        </Tooltip>
+      )}
       {isTerminal && (
         <Button
           size="sm"
-          variant="default"
+          variant={status === 'failed' ? 'outline' : 'default'}
           onClick={() => void handleRunAgain()}
           disabled={startRun.isPending}
           data-testid="run-again-button"
@@ -649,6 +705,10 @@ interface KanbanProps {
   budgetTurns: number;
   nowMs: number;
   onOpenTail: (taskId: string) => void;
+  /** The run has a max-turns retry queued — failed tasks render as "retrying". */
+  retryScheduled: boolean;
+  /** When the next automatic retry fires (ms epoch), shown on retrying cards. */
+  retryNextAtMs: number | null;
 }
 
 const COLUMN_EMPTY_ICON: Record<TaskColumn, ReactNode> = {
@@ -660,7 +720,14 @@ const COLUMN_EMPTY_ICON: Record<TaskColumn, ReactNode> = {
   cancelled: <Ban />,
 };
 
-function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
+function Kanban({
+  tasks,
+  budgetTurns,
+  nowMs,
+  onOpenTail,
+  retryScheduled,
+  retryNextAtMs,
+}: KanbanProps) {
   const { t } = useTranslation();
   const columns = useMemo(() => {
     const buckets: Record<TaskColumn, TaskCardModel[]> = {
@@ -671,9 +738,9 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
       failed: [],
       cancelled: [],
     };
-    for (const task of tasks) buckets[columnFor(task)].push(task);
+    for (const task of tasks) buckets[columnFor(task, retryScheduled)].push(task);
     return buckets;
-  }, [tasks]);
+  }, [tasks, retryScheduled]);
 
   return (
     <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden md:grid-cols-3 lg:grid-cols-5">
@@ -699,6 +766,8 @@ function Kanban({ tasks, budgetTurns, nowMs, onOpenTail }: KanbanProps) {
                 budgetTurns={budgetTurns}
                 nowMs={nowMs}
                 onOpenTail={() => onOpenTail(task.id)}
+                retrying={retryScheduled && task.status === 'failed'}
+                retryNextAtMs={retryNextAtMs}
               />
             ))}
             {columns[col].length === 0 && (
@@ -966,6 +1035,14 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
         budgetTurns={run.budgetTurns}
         nowMs={nowMs}
         onOpenTail={(id) => setTailTaskId(id)}
+        retryScheduled={
+          snapshot.run.errorReason === 'max_turns' &&
+          snapshot.run.nextRetryAt != null &&
+          (snapshot.run.retryCount ?? 0) < 4
+        }
+        retryNextAtMs={
+          snapshot.run.nextRetryAt ? new Date(snapshot.run.nextRetryAt).getTime() : null
+        }
       />
 
       <LiveTailSheet task={tailTask} onClose={() => setTailTaskId(null)} />

@@ -165,6 +165,30 @@ describe('persistRuntimeReport', () => {
     expect(rows[0]?.verdict).toBe('skipped');
   });
 
+  it('maps a manual-review gate (verify enabled, no report) to skipped — NOT a red error', async () => {
+    // The Phase-6 ship-but-flag path: run succeeded, runtime-verify enabled, but
+    // the verifier emitted no JSON. The gate degrades to manual-review (and
+    // auto-merges). This must persist as a benign 'skipped' (amber), never the
+    // 'error' (red) that would mislabel a successfully-merged app as a failure.
+    const gate = evaluateReleaseGate({
+      runSucceeded: true,
+      runtime: null,
+      actionableFindingsCount: 0,
+      dodTotal: 0,
+      dodManual: 0,
+      runtimeVerifyEnabled: true,
+    });
+    expect(gate.verdict).toBe('manual-review');
+    await persistRuntimeReport({ db, runId, report: null, gate, markdownReport: null });
+    const rows = db
+      .select()
+      .from(runtimeReportsTable)
+      .where(eq(runtimeReportsTable.runId, runId))
+      .all();
+    expect(rows[0]?.verdict).toBe('skipped');
+    expect(rows[0]?.verdict).not.toBe('error');
+  });
+
   it('preserves the runtime report verdict when one was produced', async () => {
     const report: RuntimeReportJson = {
       verdict: 'fail',

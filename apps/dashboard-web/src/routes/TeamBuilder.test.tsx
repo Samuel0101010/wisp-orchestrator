@@ -3,8 +3,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { TeamBuilder, specToDraft, draftToSpec, MAX_ROLES } from './TeamBuilder';
-import type { AgentSpec } from '@wisp/schemas';
+import {
+  TeamBuilder,
+  specToDraft,
+  draftToSpec,
+  buildRoleFromAgent,
+  MAX_ROLES,
+} from './TeamBuilder';
+import type { Agent, AgentSpec } from '@wisp/schemas';
 
 const originalFetch = globalThis.fetch;
 
@@ -324,5 +330,42 @@ describe('TeamBuilder', () => {
     const round = draftToSpec(specToDraft(spec));
     expect(round.agentId).toBeUndefined();
     expect('agentId' in round).toBe(false);
+  });
+
+  // The built-in-agent picker (finding #6): a registry agent becomes a team
+  // role, copying model/tools/prompt by value and keeping the agentId link.
+  it('buildRoleFromAgent copies the agent and keeps the agentId soft-link', () => {
+    const agent: Agent = {
+      id: 'agent-maya-1',
+      name: 'Maya',
+      model: 'opus',
+      systemPrompt: 'You are Maya, product designer.'.padEnd(60, ' '),
+      allowedTools: ['Read', 'Grep'],
+      seedKey: 'designer',
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const role = buildRoleFromAgent(agent, []);
+    expect(role.role).toBe('designer');
+    expect(role.model).toBe('opus');
+    expect(role.allowedTools).toEqual(['Read', 'Grep']);
+    expect(role.agentId).toBe('agent-maya-1');
+  });
+
+  it('buildRoleFromAgent de-duplicates the role name and slugifies a name without a seedKey', () => {
+    const agent: Agent = {
+      id: 'agent-x',
+      name: 'Custom Helper!',
+      model: 'sonnet',
+      systemPrompt: 'z'.repeat(60),
+      allowedTools: [],
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const role = buildRoleFromAgent(agent, ['custom-helper', 'custom-helper-2']);
+    // slugified from the name (no seedKey) and bumped past the existing two.
+    expect(role.role).toBe('custom-helper-3');
+    // empty tool list falls back to a safe default.
+    expect(role.allowedTools).toEqual(['Read']);
   });
 });

@@ -10,6 +10,14 @@ const booleanLike = z.union([z.string(), z.boolean(), z.undefined()]).transform(
   return ['1', 'true', 'yes', 'on'].includes(v.toLowerCase());
 });
 
+// Same parsing, but DEFAULTS TO TRUE when unset — for safety flags where the
+// non-developer-friendly behaviour is "on" and the env var is an opt-OUT.
+const booleanLikeDefaultTrue = z.union([z.string(), z.boolean(), z.undefined()]).transform((v) => {
+  if (typeof v === 'boolean') return v;
+  if (v === undefined) return true;
+  return !['0', 'false', 'no', 'off'].includes(v.toLowerCase());
+});
+
 const isProd = process.env.NODE_ENV === 'production';
 // Basename MUST match the launchers (scripts/launch-dashboard.{ps1,sh} both use
 // 'agent-harness'). The launcher always passes WISP_DATA_DIR explicitly, but a
@@ -40,7 +48,10 @@ const envSchema = z.object({
     .optional()
     .transform((v) => (v === undefined ? 5000 : Number.parseInt(v, 10)))
     .pipe(z.number().int().min(0).max(600_000)),
-  WISP_AUTO_RESUME_RATE_LIMIT: booleanLike,
+  // Default ON: an interrupted (rate-limited) run should continue itself rather
+  // than dead-end until a human notices. Set WISP_AUTO_RESUME_RATE_LIMIT=0 to
+  // opt out.
+  WISP_AUTO_RESUME_RATE_LIMIT: booleanLikeDefaultTrue,
   WISP_AUTH_MODE: z.enum(['subscription', 'api']).default('subscription'),
 });
 
