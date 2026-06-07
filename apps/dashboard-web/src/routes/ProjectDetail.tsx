@@ -543,7 +543,9 @@ function RunsCard({
                         <Button asChild size="sm" variant="ghost">
                           <Link
                             to={`/projects/${projectId}/run/${r.id}`}
-                            aria-label={t('projectDetail.runs.openRunAria', { id: r.id.slice(0, 8) })}
+                            aria-label={t('projectDetail.runs.openRunAria', {
+                              id: r.id.slice(0, 8),
+                            })}
                           >
                             {t('projectDetail.runs.openRun')}
                             <ArrowRight className="ml-1 h-3 w-3" />
