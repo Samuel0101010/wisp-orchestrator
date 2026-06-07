@@ -87,7 +87,9 @@ function TemplateCard({ template, selected, onSelect }: CardProps) {
         className={'w-full p-3 text-left transition-colors ' + (selected ? '' : 'hover:bg-accent')}
       >
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium">{template.name}</span>
+          <span className="text-sm font-medium">
+            {t(`templates.${template.id}.name`, { defaultValue: template.name })}
+          </span>
           <Badge variant="secondary" className="text-2xs">
             {t('templatePicker.rolesCount', { count: template.team.roles.length })}
           </Badge>
@@ -108,7 +110,9 @@ function TemplateCard({ template, selected, onSelect }: CardProps) {
             </Badge>
           )}
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">{template.description}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t(`templates.${template.id}.description`, { defaultValue: template.description })}
+        </p>
         <div className="mt-2 flex flex-wrap gap-1">
           {template.team.roles.map((r) => (
             <Badge

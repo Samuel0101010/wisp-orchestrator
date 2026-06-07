@@ -855,6 +855,48 @@
     "bestFor": "Works well with",
     "notRecommendedFor": "Not recommended for"
   },
+  "templates": {
+    "web-app": {
+      "name": "Web app (React + Vite)",
+      "description": "Builds a browser web app with React, Vite and Tailwind. Pipeline: Architect plans the work, a UI developer builds the screens, a test developer writes unit and browser tests, and QA runs install, type-check, test and build."
+    },
+    "fullstack-web": {
+      "name": "Full-stack web app",
+      "description": "Builds one web feature end to end: a backend API plus the React UI that uses it. Pipeline: Architect → backend dev → frontend dev → tests → QA."
+    },
+    "mobile-app": {
+      "name": "Mobile app (React Native / Expo)",
+      "description": "Builds a cross-platform mobile app with React Native and Expo. Pipeline: Architect → mobile dev (screens + navigation) → test dev (component tests) → QA (typecheck / lint / test)."
+    },
+    "desktop-app": {
+      "name": "Desktop app (Tauri)",
+      "description": "Builds a cross-platform desktop app with Tauri (Rust shell + web UI). Pipeline: Architect → UI dev → packaging engineer → tests → QA, ending in an installable build artifact."
+    },
+    "cli-tool": {
+      "name": "CLI tool",
+      "description": "Builds a command-line tool in Node/TypeScript with argument parsing and tests. Pipeline: Architect plans the commands and flags, a core dev implements the CLI, a test dev writes Vitest tests, then QA runs typecheck, tests, and build."
+    },
+    "ts-library": {
+      "name": "TypeScript library",
+      "description": "Architect → 2 devs → QA. Optimised for small TypeScript libraries with build / test / lint gates."
+    },
+    "python-backend": {
+      "name": "Python backend",
+      "description": "Architect → API dev → test dev → QA. Targets small Python services with pytest gates."
+    },
+    "docs-site": {
+      "name": "Docs & guides",
+      "description": "Architect → tech writer → QA. Builds documentation only: READMEs, how-to guides, API references, and runbooks. No code, just clear writing checked for accuracy and working links."
+    },
+    "refactor-squad": {
+      "name": "Refactor squad",
+      "description": "Architect (planner) → refactor-dev (opus, careful execution) → QA. Optimised for safe code transformations that must keep all existing tests green."
+    },
+    "data-pipeline": {
+      "name": "Data pipeline",
+      "description": "Architect → pipeline-dev → validator → QA. For ETL-style transforms with input/output schema validation."
+    }
+  },
   "commandPalette": {
     "placeholder": "Search projects, runs, actions…",
     "empty": "No matches.",

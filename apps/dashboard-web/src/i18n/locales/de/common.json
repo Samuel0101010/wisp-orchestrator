@@ -203,7 +203,7 @@
     }
   },
   "goap": {
-    "title": "Goal-Planer",
+    "title": "Ziel-Planer",
     "subtitleLong": "Definiere Start- und Zielzustand, wähle verfügbare Aktionen — der Planer berechnet die kürzeste Sequenz. Eine eigenständige Spielwiese für GOAP — sie steuert deine Runs nicht.",
     "eyebrow": "Goal-Oriented Action Planning",
     "worldState": "Welt-Zustand",
@@ -468,13 +468,13 @@
     "recentRuns": "Letzte Runs",
     "today": "{{count}} heute",
     "backToProject": "Zurück zum Projekt",
-    "teamChat": "Team Chat",
+    "teamChat": "Team-Chat",
     "focusboard": "Focusboard",
     "agents": "Agents",
     "skills": "Skills",
     "workers": "Workers",
     "insights": "Insights",
-    "goapPlanner": "Goal-Planer",
+    "goapPlanner": "Ziel-Planer",
     "promptBundles": "Prompt-Bundles",
     "todayRuns": "Runs · heute",
     "runsLabel": "Runs",
@@ -855,6 +855,48 @@
     "bestFor": "Funktioniert gut mit",
     "notRecommendedFor": "Nicht empfohlen für"
   },
+  "templates": {
+    "web-app": {
+      "name": "Web-App (React + Vite)",
+      "description": "Baut eine Browser-Web-App mit React, Vite und Tailwind. Pipeline: Der Architect plant die Arbeit, ein UI-Entwickler baut die Screens, ein Test-Entwickler schreibt Unit- und Browser-Tests, und QA führt Install, Type-Check, Test und Build aus."
+    },
+    "fullstack-web": {
+      "name": "Full-Stack-Web-App",
+      "description": "Baut ein Web-Feature von Anfang bis Ende: eine Backend-API plus das React-UI, das sie nutzt. Pipeline: Architect → Backend-Dev → Frontend-Dev → Tests → QA."
+    },
+    "mobile-app": {
+      "name": "Mobile-App (React Native / Expo)",
+      "description": "Baut eine plattformübergreifende Mobile-App mit React Native und Expo. Pipeline: Architect → Mobile-Dev (Screens + Navigation) → Test-Dev (Komponenten-Tests) → QA (Type-Check / Lint / Test)."
+    },
+    "desktop-app": {
+      "name": "Desktop-App (Tauri)",
+      "description": "Baut eine plattformübergreifende Desktop-App mit Tauri (Rust-Shell + Web-UI). Pipeline: Architect → UI-Dev → Packaging-Engineer → Tests → QA, mit einem installierbaren Build-Artefakt am Ende."
+    },
+    "cli-tool": {
+      "name": "CLI-Tool",
+      "description": "Baut ein Kommandozeilen-Tool in Node/TypeScript mit Argument-Parsing und Tests. Pipeline: Der Architect plant die Befehle und Flags, ein Core-Dev implementiert die CLI, ein Test-Dev schreibt Vitest-Tests, dann führt QA Type-Check, Tests und Build aus."
+    },
+    "ts-library": {
+      "name": "TypeScript-Bibliothek",
+      "description": "Architect → 2 Devs → QA. Optimiert für kleine TypeScript-Bibliotheken mit Build- / Test- / Lint-Gates."
+    },
+    "python-backend": {
+      "name": "Python-Backend",
+      "description": "Architect → API-Dev → Test-Dev → QA. Für kleine Python-Services mit pytest-Gates."
+    },
+    "docs-site": {
+      "name": "Doku & Guides",
+      "description": "Architect → Tech-Writer → QA. Baut ausschließlich Dokumentation: READMEs, How-to-Guides, API-Referenzen und Runbooks. Kein Code, nur klare Texte, auf Korrektheit und funktionierende Links geprüft."
+    },
+    "refactor-squad": {
+      "name": "Refactor-Squad",
+      "description": "Architect (Planer) → Refactor-Dev (Opus, sorgfältige Ausführung) → QA. Optimiert für sichere Code-Transformationen, die alle bestehenden Tests grün halten müssen."
+    },
+    "data-pipeline": {
+      "name": "Daten-Pipeline",
+      "description": "Architect → Pipeline-Dev → Validator → QA. Für ETL-artige Transformationen mit Schema-Validierung von Ein- und Ausgabe."
+    }
+  },
   "commandPalette": {
     "placeholder": "Projekte, Runs, Aktionen suchen…",
     "empty": "Keine Treffer.",
@@ -961,7 +1003,7 @@
     },
     "actions": {
       "newProject": "Neues Projekt",
-      "quickRun": "Schnell starten"
+      "quickRun": "Schnellstart"
     },
     "eyebrow": "Mission Control",
     "periodGroup": "Zeitraum",
