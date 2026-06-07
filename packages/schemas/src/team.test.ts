@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseTeam, safeParseTeam } from './team.js';
+import { MAX_TEAM_ROLES } from './plan.js';
 
 const validRole = (overrides: Partial<{ role: string; model: string; systemPrompt: string }>) => ({
   role: overrides.role ?? 'architect',
@@ -37,8 +38,10 @@ describe('parseTeam (variable roles)', () => {
     expect(safeParseTeam({ roles: [] }).success).toBe(false);
   });
 
-  it('rejects more than 8 roles', () => {
-    const roles = Array.from({ length: 9 }, (_, i) => validRole({ role: `r${i}` }));
+  it('rejects more than the role cap', () => {
+    const roles = Array.from({ length: MAX_TEAM_ROLES + 1 }, (_, i) =>
+      validRole({ role: `r${i}` }),
+    );
     expect(safeParseTeam({ roles }).success).toBe(false);
   });
 

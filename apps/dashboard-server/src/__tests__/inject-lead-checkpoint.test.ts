@@ -1,7 +1,7 @@
 import './setup.js';
 import { describe, expect, it } from 'vitest';
 import { injectLeadCheckpoint, LEAD_ROLE } from '../orchestrator/inject-lead-checkpoint.js';
-import { planSchema, validateDag } from '@wisp/schemas';
+import { planSchema, validateDag, MAX_TEAM_ROLES } from '@wisp/schemas';
 import type { AgentSpec, Plan } from '@wisp/schemas';
 
 function basePlan(over: Partial<Plan> = {}): Plan {
@@ -64,8 +64,8 @@ describe('injectLeadCheckpoint', () => {
     expect(second.plan.nodes.filter((n) => n.role === 'lead')).toHaveLength(1);
   });
 
-  it('refuses when the team is at the 8-role cap', () => {
-    const roles: AgentSpec[] = Array.from({ length: 8 }).map((_, i) => ({
+  it('refuses when the team is at the role cap', () => {
+    const roles: AgentSpec[] = Array.from({ length: MAX_TEAM_ROLES }).map((_, i) => ({
       role: `dev-${i + 1}`,
       model: 'sonnet',
       allowedTools: ['Read'],

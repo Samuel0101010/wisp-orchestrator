@@ -15,7 +15,7 @@
  * `project.leadEnabled === true`. Reversible by flipping the flag back.
  */
 import type { AgentSpec, Plan, TaskNode } from '@wisp/schemas';
-import { planSchema } from '@wisp/schemas';
+import { planSchema, MAX_TEAM_ROLES } from '@wisp/schemas';
 
 export const LEAD_ROLE: AgentSpec = {
   role: 'lead',
@@ -32,7 +32,7 @@ export const LEAD_ROLE: AgentSpec = {
 
 const LEAD_NODE_ID = 'n-lead-checkpoint';
 const DEFAULT_LEAD_MAX_TURNS = 20;
-const TEAM_ROLE_CAP = 8;
+const TEAM_ROLE_CAP = MAX_TEAM_ROLES;
 
 export interface InjectLeadCheckpointArgs {
   plan: Plan;

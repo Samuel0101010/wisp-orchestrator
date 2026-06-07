@@ -17,12 +17,12 @@
  * from the PlanEditor UI, or a replan that copied the parent's team), this
  * function returns the input unchanged. Idempotent.
  *
- * The team-role cap is 8 (see planSchema). When injecting would exceed it
+ * The team-role cap is MAX_TEAM_ROLES (see planSchema). When injecting would exceed it
  * we return the plan unchanged and log; the gate then degrades to the
  * legacy path (no verifier in plan → no DoD enforcement for that plan).
  */
 import type { DodCriterion, Plan } from '@wisp/schemas';
-import { planSchema } from '@wisp/schemas';
+import { planSchema, MAX_TEAM_ROLES } from '@wisp/schemas';
 import { planHasRuntimeVerifier } from './runtime-report-loader.js';
 import { RUNTIME_VERIFIER_ROLE, buildRuntimeVerifyNode } from './runtime-verifier.js';
 
@@ -58,7 +58,7 @@ export function injectRuntimeVerifier(args: InjectRuntimeVerifierArgs): Injectio
   if (args.plan.nodes.length === 0) {
     return { plan: args.plan, reason: 'plan-empty' };
   }
-  if (args.plan.team.roles.length >= 8) {
+  if (args.plan.team.roles.length >= MAX_TEAM_ROLES) {
     return { plan: args.plan, reason: 'team-cap-reached' };
   }
   const terminals = findTerminalNodeIds(args.plan);

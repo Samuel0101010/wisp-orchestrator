@@ -819,6 +819,7 @@
     "duration": "~{{minutes}} min",
     "expand": "Show more",
     "collapse": "Show less",
+    "roles": "Roles",
     "useCases": "Best for",
     "bestFor": "Works well with",
     "notRecommendedFor": "Not recommended for"

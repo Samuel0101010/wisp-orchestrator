@@ -819,6 +819,7 @@
     "duration": "~{{minutes}} Min",
     "expand": "Mehr anzeigen",
     "collapse": "Weniger anzeigen",
+    "roles": "Rollen",
     "useCases": "Geeignet für",
     "bestFor": "Funktioniert gut mit",
     "notRecommendedFor": "Nicht empfohlen für"

@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { TeamBuilder, specToDraft, draftToSpec } from './TeamBuilder';
+import { TeamBuilder, specToDraft, draftToSpec, MAX_ROLES } from './TeamBuilder';
 import type { AgentSpec } from '@wisp/schemas';
 
 const originalFetch = globalThis.fetch;
@@ -169,7 +169,7 @@ describe('TeamBuilder', () => {
     expect(byRole('qa').role).toBe('qa');
   });
 
-  it('add role appends a new card up to 8', async () => {
+  it('add role appends a new card up to the cap', async () => {
     fetchHandler = (url) => {
       if (url.endsWith('/team')) return new Response('{}', { status: 404 });
       return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
@@ -179,10 +179,10 @@ describe('TeamBuilder', () => {
     renderAt('/projects/p1/teams');
     await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
     const addBtn = screen.getByTestId('add-role');
-    // Default team has 3; click 5 times to reach 8.
-    for (let i = 0; i < 5; i++) fireEvent.click(addBtn);
+    // Default team has 3; click until the user-pickable cap is reached.
+    for (let i = 0; i < MAX_ROLES - 3; i++) fireEvent.click(addBtn);
     expect(addBtn).toBeDisabled();
-    expect(addBtn.textContent).toContain('(8/8)');
+    expect(addBtn.textContent).toContain(`(${MAX_ROLES}/${MAX_ROLES})`);
   });
 
   it('remove button removes the card and is disabled when only one role remains', async () => {

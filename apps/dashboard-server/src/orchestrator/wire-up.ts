@@ -27,7 +27,7 @@
  */
 
 import type { AgentSpec, Plan, TaskNode } from '@wisp/schemas';
-import { planSchema } from '@wisp/schemas';
+import { planSchema, MAX_TEAM_ROLES } from '@wisp/schemas';
 
 const WIRE_UP_TOOLS = [
   'Read',
@@ -92,7 +92,7 @@ ACCEPTANCE:
 
 const WIRE_UP_NODE_ID = 'n-wire-up';
 const DEFAULT_WIRE_UP_MAX_TURNS = 40;
-const TEAM_ROLE_CAP = 8;
+const TEAM_ROLE_CAP = MAX_TEAM_ROLES;
 
 /**
  * Heuristic role-name set we consider "core development" — terminal nodes

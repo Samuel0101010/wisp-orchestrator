@@ -18,6 +18,7 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 import type { AgentSpec, Team } from '@wisp/schemas';
+import { MAX_TEAM_ROLES } from '@wisp/schemas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -58,7 +59,10 @@ import { TestPromptDialog } from '@/components/TestPromptDialog';
 import { CostEstimatePanel } from '@/components/CostEstimatePanel';
 import { BackToProject } from '@/components/BackToProject';
 
-const MAX_ROLES = 8;
+// User-pickable role cap. Lower than the schema ceiling (MAX_TEAM_ROLES) so
+// there is headroom for the auto-injected system roles (wire-up,
+// runtime-verifier, lead) without ever breaching the schema.
+export const MAX_ROLES = MAX_TEAM_ROLES - 4;
 
 // Exported for unit tests — the agentId soft-link must survive this round-trip.
 export function specToDraft(spec: AgentSpec): DraftAgent {

@@ -1145,6 +1145,9 @@ export interface TeamTemplate {
   notRecommendedFor?: string[];
   complexity?: 'simple' | 'medium' | 'complex';
   expectedDurationMinutes?: number;
+  // One-line plain-language summary per role (keyed by role name), shown on the
+  // template card so a user sees what each role does before picking.
+  roleSummaries?: Record<string, string>;
 }
 
 export function useTemplates() {

@@ -70,7 +70,8 @@ function TemplateCard({ template, selected, onSelect }: CardProps) {
   const hasRichInfo =
     Boolean(template.useCases?.length) ||
     Boolean(template.bestFor?.length) ||
-    Boolean(template.notRecommendedFor?.length);
+    Boolean(template.notRecommendedFor?.length) ||
+    Boolean(template.roleSummaries && Object.keys(template.roleSummaries).length);
 
   return (
     <div
@@ -108,6 +109,18 @@ function TemplateCard({ template, selected, onSelect }: CardProps) {
           )}
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{template.description}</p>
+        <div className="mt-2 flex flex-wrap gap-1">
+          {template.team.roles.map((r) => (
+            <Badge
+              key={r.role}
+              variant="outline"
+              className="text-2xs"
+              title={template.roleSummaries?.[r.role]}
+            >
+              {r.role}
+            </Badge>
+          ))}
+        </div>
       </button>
       {hasRichInfo && (
         <button
@@ -132,6 +145,21 @@ function TemplateCard({ template, selected, onSelect }: CardProps) {
       )}
       {hasRichInfo && expanded && (
         <div className="space-y-2 border-t p-3 text-xs">
+          {template.roleSummaries && Object.keys(template.roleSummaries).length > 0 && (
+            <div>
+              <div className="mb-1 text-2xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t('templatePicker.roles')}
+              </div>
+              <ul className="space-y-0.5">
+                {template.team.roles.map((r) => (
+                  <li key={r.role}>
+                    <span className="font-medium">{r.role}</span>
+                    {template.roleSummaries?.[r.role] ? ` — ${template.roleSummaries[r.role]}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {template.useCases && template.useCases.length > 0 && (
             <Section title={t('templatePicker.useCases')} items={template.useCases} />
           )}

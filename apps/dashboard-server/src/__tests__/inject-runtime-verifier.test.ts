@@ -2,7 +2,7 @@ import './setup.js';
 import { describe, expect, it } from 'vitest';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
 import { RUNTIME_VERIFIER_ROLE } from '../orchestrator/runtime-verifier.js';
-import { planSchema, validateDag } from '@wisp/schemas';
+import { planSchema, validateDag, MAX_TEAM_ROLES } from '@wisp/schemas';
 import type { AgentSpec, DodCriterion, Plan } from '@wisp/schemas';
 
 function basePlan(over: Partial<Plan> = {}): Plan {
@@ -110,8 +110,8 @@ describe('injectRuntimeVerifier', () => {
     expect(validateDag(r.plan).ok).toBe(true);
   });
 
-  it('refuses to inject when the team is already at the 8-role cap', () => {
-    const roles: AgentSpec[] = Array.from({ length: 8 }).map((_, i) => ({
+  it('refuses to inject when the team is already at the role cap', () => {
+    const roles: AgentSpec[] = Array.from({ length: MAX_TEAM_ROLES }).map((_, i) => ({
       role: `dev-${i + 1}`,
       model: 'sonnet',
       allowedTools: ['Read'],

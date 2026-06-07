@@ -156,6 +156,7 @@ export {
   parsePlan,
   safeParsePlan,
   validateDag,
+  MAX_TEAM_ROLES,
 } from './plan.js';
 export type {
   AgentSpec,

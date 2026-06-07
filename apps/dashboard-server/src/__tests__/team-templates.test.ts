@@ -39,7 +39,7 @@ describe('GET /api/team-templates', () => {
     await app.close();
   });
 
-  it('returns the four built-in templates sorted by id', async () => {
+  it('returns the built-in templates sorted by id', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/team-templates' });
     expect(res.statusCode).toBe(200);
     const body = res.json() as { templates: Array<{ id: string }> };

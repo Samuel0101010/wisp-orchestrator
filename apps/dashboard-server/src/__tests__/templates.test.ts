@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { builtInTemplates, templateSchema } from '../templates/index.js';
 
 describe('built-in templates', () => {
-  it('loads exactly four templates', () => {
-    expect(builtInTemplates).toHaveLength(4);
+  it('loads all ten built-in templates', () => {
+    expect(builtInTemplates).toHaveLength(10);
   });
 
   it('has unique kebab-case ids', () => {
@@ -22,12 +22,32 @@ describe('built-in templates', () => {
     }
   });
 
-  it.each(['ts-library', 'python-backend', 'refactor-squad', 'data-pipeline'])(
-    'includes built-in: %s',
-    (id) => {
-      expect(builtInTemplates.some((t) => t.id === id)).toBe(true);
-    },
-  );
+  it.each([
+    'web-app',
+    'fullstack-web',
+    'mobile-app',
+    'desktop-app',
+    'cli-tool',
+    'docs-site',
+    'ts-library',
+    'python-backend',
+    'refactor-squad',
+    'data-pipeline',
+  ])('includes built-in: %s', (id) => {
+    expect(builtInTemplates.some((t) => t.id === id)).toBe(true);
+  });
+
+  it('roleSummaries, when present, cover every role in the team', () => {
+    for (const t of builtInTemplates) {
+      if (!t.roleSummaries) continue;
+      for (const role of t.team.roles) {
+        expect(
+          t.roleSummaries[role.role],
+          `${t.id} is missing a roleSummary for role '${role.role}'`,
+        ).toBeTruthy();
+      }
+    }
+  });
 
   it('every template team uses the M3 mcp__ tool naming where memory tools are referenced', () => {
     for (const t of builtInTemplates) {
