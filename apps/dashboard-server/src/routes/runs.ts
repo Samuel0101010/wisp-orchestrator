@@ -9,6 +9,7 @@ import {
   events as eventsTable,
   plans,
   projects,
+  projectStates,
   runs,
   runStatusValues,
   tasks,
@@ -36,6 +37,9 @@ const startRunSchema = z.object({
   // ids here so the queue stays in sync. Silently ignores ids that
   // belong to another project or aren't in 'pending' status.
   changeRequestIds: z.array(z.string().min(1)).optional(),
+  // Optional explicit parent back-pointer. Normally the server resolves this
+  // for iteration plans (see POST /api/runs), but an explicit value wins.
+  parentRunId: z.string().min(1).optional(),
 });
 
 let defaultRuntime: RunRuntime | null = null;
@@ -258,7 +262,11 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
         // machine cancel-cascades every remaining task. The client gets a
         // structured error code so the UI can offer an Initialize button.
         const planRow = await db
-          .select({ projectId: plans.projectId })
+          .select({
+            projectId: plans.projectId,
+            kind: plans.kind,
+            parentStateId: plans.parentStateId,
+          })
           .from(plans)
           .where(eq(plans.id, body.planId))
           .get();
@@ -283,7 +291,40 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
           }
         }
 
-        const result = await runtime.startRun(body);
+        // Iteration runs build on a prior run — the one the project-state
+        // snapshot the iteration planner read was derived from. Thread that
+        // run's id onto the new run as a parent back-pointer so the run history
+        // can point child→parent. We deliberately do NOT touch chainIteration:
+        // that column is owned exclusively by the self-healing chain as its cap
+        // counter and MUST stay 0 for user-launched runs (see runs schema),
+        // else a user iteration would inherit the prior chain's depth and
+        // either exhaust the self-healing budget (chainIteration >= cap) or get
+        // mislabeled as a "Hardening iteration" in the UI. An explicit
+        // body.parentRunId still wins.
+        const startArgs = { ...body };
+        if (
+          startArgs.parentRunId == null &&
+          planRow?.kind === 'iteration' &&
+          planRow.parentStateId
+        ) {
+          const parentState = await db
+            .select({ runId: projectStates.runId })
+            .from(projectStates)
+            .where(eq(projectStates.id, planRow.parentStateId))
+            .get();
+          if (parentState?.runId) {
+            const priorRun = await db
+              .select({ id: runs.id })
+              .from(runs)
+              .where(eq(runs.id, parentState.runId))
+              .get();
+            if (priorRun) {
+              startArgs.parentRunId = priorRun.id;
+            }
+          }
+        }
+
+        const result = await runtime.startRun(startArgs);
         if (!result.ok) {
           reply.code(result.status);
           return { error: result.error, ...(result.details ? { details: result.details } : {}) };

@@ -1092,9 +1092,24 @@ export class RunRuntime {
         if (merge.ok && merge.mode !== 'noop') {
           let note: string;
           if (syncable.syncable) {
+            // A running preview dev-server uses the project working tree as its
+            // cwd; the upcoming `git reset --hard main` yanks files out from
+            // under it and the process dies ("process-died"). Stop it cleanly
+            // first so the user gets a clear "restart to see the changes" hint
+            // instead of a crash. Deferred import avoids any startup cycle.
+            let previewWasRunning = false;
+            try {
+              const { previewProcesses } = await import('./preview-server.js');
+              if (previewProcesses.getPreviewStatus(ctx.projectId).running) {
+                previewProcesses.stopPreview(ctx.projectId);
+                previewWasRunning = true;
+              }
+            } catch (e) {
+              console.error('[runtime] preview stop before working-tree sync failed', e);
+            }
             const sync = await syncWorkingTreeToMain({ repoPath: ctx.repoPath });
             note = sync.synced
-              ? `[harness] your project folder now shows the finished app (working tree updated to main)`
+              ? `[harness] your project folder now shows the finished app (working tree updated to main)${previewWasRunning ? ' — restart the preview to view the changes' : ''}`
               : `[harness] code merged to main, but the working tree could not be updated (${sync.reason}); run \`git reset --hard main\` in ${ctx.repoPath} to see it`;
           } else {
             note = `[harness] code merged to main; your working tree was left untouched (${syncable.reason}); run \`git checkout main && git reset --hard main\` in ${ctx.repoPath} to see the finished app`;

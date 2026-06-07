@@ -17,6 +17,7 @@
  * agent gets the full context for free.
  */
 
+import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,6 +27,7 @@ import { z } from 'zod';
 import { agentMessages, agentThreads, agents, projects, type BriefPatch } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { wrap } from './wrap.js';
+import { ensureProjectRepoInitialized } from '../orchestrator/repo-init.js';
 import type { SubprocessRunner } from '@wisp/orchestrator';
 import type { HistoryMessage, RunAgentTurnResult } from './chat-engine.js';
 import {
@@ -388,24 +390,59 @@ export function createInterviewRouter(deps: InterviewRouterDeps = {}): FastifyPl
         let prdPath: string | null = null;
         let prdWriteError: string | null = null;
         try {
-          if (fs.existsSync(project.repoPath)) {
+          // Make sure the repo folder exists + is git-inited BEFORE writing the
+          // PRD. Previously this only wrote when the folder happened to exist,
+          // so finalizing a brief on a not-yet-created repoPath silently dropped
+          // the PRD with a `repo_path_missing` warning (the folder was only ever
+          // created at run-start). Now we create it here — matching the
+          // new-project hint that promises WISP creates + initializes it.
+          const repo = fs.existsSync(path.join(project.repoPath, '.git'))
+            ? ({ ok: true } as const)
+            : ensureProjectRepoInitialized({
+                repoPath: project.repoPath,
+                name: project.name,
+                goal: project.goal,
+                createDir: true,
+              });
+          if (!repo.ok) {
+            prdWriteError = `${repo.error}: ${project.repoPath}`;
+          } else {
             const docsDir = path.join(project.repoPath, 'docs');
             fs.mkdirSync(docsDir, { recursive: true });
             const target = path.join(docsDir, 'PRD.md');
             fs.writeFileSync(target, md, 'utf8');
             prdPath = 'docs/PRD.md';
-          } else {
-            prdWriteError = `repo_path_missing: ${project.repoPath}`;
+            // Commit the PRD so it survives a later working-tree sync (a run's
+            // `git reset --hard main`) and is visible to the architect in its
+            // worktree. Best-effort: an empty/duplicate commit just no-ops.
+            try {
+              const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+              execFileSync('git', ['add', 'docs/PRD.md'], {
+                cwd: project.repoPath,
+                env,
+                stdio: 'pipe',
+              });
+              execFileSync(
+                'git',
+                ['-c', 'commit.gpgsign=false', 'commit', '-m', 'brief: add PRD'],
+                { cwd: project.repoPath, env, stdio: 'pipe' },
+              );
+            } catch {
+              // Non-fatal: the PRD is written to the working tree regardless.
+            }
           }
         } catch (err) {
           prdWriteError = err instanceof Error ? err.message : String(err);
         }
 
         const now = Date.now();
+        // A finalized brief is 100% complete by definition — set the score so the
+        // UI's "Brief-Vollständigkeit" bar shows 100% instead of a contradictory
+        // 0% when finalized via "Ziel als Brief verwenden" (goal-as-brief skip).
         sqlite
           .prepare(
             `UPDATE project_briefs
-                SET brief_ready = 1, prd_path = ?, updated_at = ?
+                SET brief_ready = 1, completeness_score = 100, prd_path = ?, updated_at = ?
               WHERE project_id = ?`,
           )
           .run(prdPath, now, projectId);
