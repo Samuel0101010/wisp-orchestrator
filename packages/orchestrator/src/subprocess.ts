@@ -378,12 +378,17 @@ export class ClaudeSubprocess {
     let stderrTail = '';
     let rateLimitDetected: RateLimitHit | null = null;
     let observedTurns = 0;
-    // Running cumulative usage from streaming `assistant` frames, emitted as
-    // task.usage during the run so the dashboard's per-agent token/turn counters
-    // climb LIVE instead of jumping from 0 to the final value at completion. The
-    // terminal `result` frame still emits its authoritative task.usage; the
-    // consumer reconciles via Math.max, so these interim values can only nudge
-    // the displayed total upward, never double-count.
+    // Live usage from streaming `assistant` frames, emitted as task.usage during
+    // the run so the dashboard's per-agent token counters climb LIVE instead of
+    // jumping from 0 to the final value at completion. We track the per-frame
+    // SNAPSHOT via Math.max (NOT a running sum): each assistant frame's
+    // input_tokens already includes the full re-sent context, so summing across
+    // turns would multiply-count the input and — since the consumer reconciles
+    // via Math.max against the authoritative terminal `result` frame — would
+    // lock in an inflated total that the result frame could never bring back
+    // down (and could trip the token budget early). Tracking the max snapshot
+    // keeps the live value climbing toward, and never exceeding, the result
+    // frame's authoritative number. `liveTurns` is a simple turn counter.
     let liveTokensIn = 0;
     let liveTokensOut = 0;
     let liveTurns = 0;
@@ -473,13 +478,14 @@ export class ClaudeSubprocess {
             scanForRateLimit(line);
           }
         }
-        // Live token/turn streaming: accumulate per-turn usage off each
-        // assistant frame and emit a cumulative task.usage so the UI updates
-        // mid-run (the result frame's task.usage still lands at the end).
+        // Live token/turn streaming: track the per-frame MAX snapshot (not a
+        // sum — see the liveTokens* declaration) and emit task.usage so the UI
+        // updates mid-run. The result frame's authoritative task.usage still
+        // lands at the end and the consumer's Math.max keeps it consistent.
         const turnUsage = extractAssistantTurnUsage(parsed);
         if (turnUsage) {
-          liveTokensIn += turnUsage.tokensIn;
-          liveTokensOut += turnUsage.tokensOut;
+          liveTokensIn = Math.max(liveTokensIn, turnUsage.tokensIn);
+          liveTokensOut = Math.max(liveTokensOut, turnUsage.tokensOut);
           liveTurns += 1;
           push({
             type: 'task.usage',

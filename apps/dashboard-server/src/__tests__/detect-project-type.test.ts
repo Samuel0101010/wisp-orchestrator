@@ -148,4 +148,19 @@ describe('detectProjectType', () => {
     });
     expect(detectProjectType(r).devCommand).toBe('pnpm dev');
   });
+
+  it('never returns `tauri dev` for a Tauri + non-vite framework — runs the framework binary', () => {
+    // Tauri + Nuxt whose only script is `tauri dev`. The old fallback returned
+    // `pnpm dev` (= tauri dev → native window → preview timeout); now it runs
+    // the web framework's own dev server.
+    const r = repo({
+      dependencies: { nuxt: '^3' },
+      devDependencies: { '@tauri-apps/cli': '^2' },
+      scripts: { dev: 'tauri dev' },
+    });
+    const result = detectProjectType(r);
+    expect(result.framework).toBe('nuxt');
+    expect(result.devCommand).toBe('pnpm exec nuxt dev');
+    expect(result.devCommand).not.toMatch(/tauri/);
+  });
 });

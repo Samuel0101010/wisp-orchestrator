@@ -84,7 +84,7 @@ describe('runClaude (mock)', () => {
     expect(order).toEqual(['task.text-delta', 'task.tool-use', 'task.text-delta']);
   });
 
-  it('streams LIVE cumulative task.usage off each assistant frame (not just the result frame)', async () => {
+  it('streams LIVE task.usage off each assistant frame without ever exceeding the result frame', async () => {
     const events = await collect(
       runClaude({
         cwd: tmpdir(),
@@ -102,12 +102,21 @@ describe('runClaude (mock)', () => {
       .filter((p): p is NonNullable<typeof p> => p !== null);
     // Two interim (assistant-frame) updates + the authoritative result frame.
     expect(usage.length).toBe(3);
-    // Frame 1: 100 + 10 cache-create in, 20 out, 1 turn.
+    // Frame 1 snapshot: 100 + 10 cache-create in, 20 out, 1 turn.
     expect(usage[0]).toMatchObject({ tokensIn: 110, tokensOut: 20, turns: 1 });
-    // Frame 2: cumulative — +200 in (cache-read excluded), +30 out, 2 turns.
-    expect(usage[1]).toMatchObject({ tokensIn: 310, tokensOut: 50, turns: 2 });
-    // The result frame still lands its own task.usage at the end.
+    // Frame 2 snapshot via Math.max (NOT a sum): max(110,200)=200 in,
+    // max(20,30)=30 out, 2 turns. The live value tracks the growing context and
+    // converges to the result frame — it must never exceed it.
+    expect(usage[1]).toMatchObject({ tokensIn: 200, tokensOut: 30, turns: 2 });
+    // The authoritative result frame: identical, so Math.max in the consumer
+    // never locks in an inflated live total.
     expect(usage[2]).toMatchObject({ tokensIn: 200, tokensOut: 30, turns: 2 });
+    // Regression guard: no live update may exceed the result-frame total.
+    const result = usage[2]!;
+    for (const u of usage) {
+      expect(u.tokensIn).toBeLessThanOrEqual(result.tokensIn);
+      expect(u.tokensOut).toBeLessThanOrEqual(result.tokensOut);
+    }
   });
 
   it('emits text-delta, tool-use, usage, then task.completed on clean exit', async () => {

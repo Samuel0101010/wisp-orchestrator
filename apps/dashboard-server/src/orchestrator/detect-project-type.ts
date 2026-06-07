@@ -114,10 +114,18 @@ function pickWebDevCommand(pkg: Record<string, unknown>, web: string): string | 
     if (scripts[name]) return `pnpm ${name}`;
   }
   if (scripts.dev && !/tauri/i.test(scripts.dev)) return 'pnpm dev';
+  // Run the web framework's dev server directly via its local binary. Covers
+  // every WEB_FRAMEWORK_DEPS entry so a Tauri project never falls through to a
+  // `pnpm dev` that resolves to `tauri dev` (native window, no HTTP port → the
+  // preview probe just times out).
   if (web === 'vite' || web === '@sveltejs/kit') return 'pnpm exec vite';
   if (web === 'next') return 'pnpm exec next dev';
   if (web === 'astro') return 'pnpm exec astro dev';
-  return pickDevCommand(pkg, 'dev');
+  if (web === 'nuxt') return 'pnpm exec nuxt dev';
+  if (web === 'remix' || web === '@remix-run/dev') return 'pnpm exec remix vite:dev';
+  if (web === '@angular/core') return 'pnpm exec ng serve';
+  if (web === 'react-scripts') return 'pnpm exec react-scripts start';
+  return null;
 }
 
 export function detectProjectType(repoPath: string): ProjectDetection {
