@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.2.4 — the project brief now works end to end
+
+The project brief is what turns a rough goal into a real plan, so it has to be obvious for a first-time user and it has to actually reach the parts of the system that plan and build. A full code trace found gaps on both fronts; this release closes them.
+
+### Added
+
+- **Import an existing plan as the brief.** Paste markdown or upload a `.md` file, see a live preview, and submit — it's written verbatim to `docs/PRD.md` and the brief is finalised. No need to retype a spec into the chat.
+
+### Changed
+
+- **The brief is now clearly the required first step — but still one click away.** It was required before plan generation (the server refused otherwise) yet the UI called it "optional" in three places. The wording now matches reality, there's a plain-language explainer ("what is the brief, and why"), the empty chat opens with a Sarah greeting and example-question chips, and the Generate-Plan button is disabled with a clear hint until the brief is ready.
+- **The full brief now reaches the planner.** Plan generation passed only six structured fields and never read the rendered `docs/PRD.md`; now the full PRD is fed to the planner, and the plan's goal is pinned to your project goal verbatim (no planner paraphrase drift). The same applies on the automatic QA-replan path.
+- **The brief now reaches the executing agents.** Every dispatched agent prompt gains a compact "Project context" section (capped), so design preferences and constraints are honoured by the implementers, not just the planner.
+
+### Fixed
+
+- **New-project goal field no longer fights you.** Both new-project dialogs (Mission Control + sidebar) auto-filled the goal with the template's example and refilled it whenever you cleared it; the example is now a placeholder so the field starts empty.
+
+### Verification
+
+- All 8 local gates green; server (573) + web (197) + package unit tests; e2e (54) green; CI (verify + e2e) green on the PR. Each phase was implemented by a dev subagent, gated by an adversarial review subagent (which caught real residual issues before each commit), and verified by the lead live in a browser (incl. dark + light screenshots).
+
 ## 2.2.3 — dashboard UX-hardening: full German, accessible, decluttered
 
 A full live audit of the dashboard (driven with `vercel-labs/agent-browser`) found no blockers but a batch of polish gaps — most visible for the German-default audience. This release completes the German localization, closes a set of accessibility holes, makes the multi-tab project state coherent, and de-clutters the project list.
