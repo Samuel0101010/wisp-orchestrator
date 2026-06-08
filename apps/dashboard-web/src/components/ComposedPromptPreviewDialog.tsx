@@ -14,11 +14,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { Team } from '@wisp/schemas';
-import { composeTaskPromptPreview } from '@/data/composedPrompt';
+import {
+  buildBriefSummaryForAgentsPreview,
+  composeTaskPromptPreview,
+  type PreviewBrief,
+} from '@/data/composedPrompt';
 
 interface Props {
   team: Team;
   defaultGoal?: string;
+  /**
+   * The project brief, when loaded. Passed so the preview emits the same
+   * "## Project context" block the agent actually receives at runtime (the
+   * server injects it via buildBriefSummaryForAgents). Null/undefined when the
+   * project has no brief yet — the preview then omits the section, matching the
+   * server.
+   */
+  brief?: PreviewBrief | null;
 }
 
 /**
@@ -27,7 +39,7 @@ interface Props {
  * composeTaskPrompt logic mirrors the orchestrator's; see
  * apps/dashboard-web/src/data/composedPrompt.ts.
  */
-export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
+export function ComposedPromptPreviewDialog({ team, defaultGoal, brief }: Props) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [roleId, setRoleId] = useState<string>(team.roles[0]?.role ?? '');
@@ -41,6 +53,11 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
 
   const role = team.roles.find((r) => r.role === roleId) ?? team.roles[0];
 
+  const briefContext = useMemo(
+    () => buildBriefSummaryForAgentsPreview(brief) ?? undefined,
+    [brief],
+  );
+
   const composed = useMemo(() => {
     if (!role) return '';
     return composeTaskPromptPreview(
@@ -52,8 +69,9 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal }: Props) {
         successCriteria: { preflight, build, test },
       },
       null,
+      briefContext,
     );
-  }, [role, goal, taskPrompt, preflight, build, test]);
+  }, [role, goal, taskPrompt, preflight, build, test, briefContext]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

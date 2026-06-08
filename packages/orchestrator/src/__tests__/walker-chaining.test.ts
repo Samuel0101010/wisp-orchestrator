@@ -4,17 +4,23 @@ import type { Plan } from '@wisp/schemas';
 
 function makeFakeDeps() {
   const calls: Array<{ branchName: string; baseBranch?: string }> = [];
+  // Captures the composed prompt passed to each subprocess launch so tests can
+  // assert what the agent actually receives (e.g. the injected brief context).
+  const prompts: string[] = [];
   return {
     calls,
+    prompts,
     deps: {
       pool: {
-        run: () =>
-          (async function* () {
+        run: (opts: { prompt: string }) => {
+          prompts.push(opts.prompt);
+          return (async function* () {
             yield {
               type: 'task.completed' as const,
               payload: { taskId: 'x', outcome: 'pass' as const, exitCode: 0 },
             };
-          })(),
+          })();
+        },
         terminateAll: vi.fn(),
       } as never,
       worktree: {
@@ -38,6 +44,9 @@ function makeFakeDeps() {
       mergeBranches: vi.fn(async () => ({ ok: true as const })),
       interTaskPacingMs: 0,
       autoResumeRateLimit: false,
+      // Pre-rendered "## Project context" brief block; tests override this to
+      // assert it threads through to the composed agent prompt.
+      briefContext: undefined as string | undefined,
     },
   };
 }
@@ -180,6 +189,29 @@ describe('walker chaining', () => {
       'wisp/r4/l1',
       'wisp/r4/l2',
     ]);
+  });
+});
+
+describe('walker — brief context threading', () => {
+  it('passes deps.briefContext through to the composed agent prompt at dispatch', async () => {
+    const { deps, prompts } = makeFakeDeps();
+    // The runtime builds this block via buildBriefSummaryForAgents and sets it
+    // on WalkerDeps; here we assert it actually reaches composeTaskPrompt at the
+    // dispatch call site (guards against a future refactor dropping the arg).
+    deps.briefContext = '## Project context\n\nPlatform: web\nTarget audience: indie devs';
+    const walker = new Walker(deps as never);
+    await walker.start({
+      runId: 'rbrief',
+      plan: linearPlan,
+      repoPath: '/tmp/repo',
+      budget: { budgetMinutes: 10, budgetTurns: 100, maxParallel: 1 },
+    });
+    // Every dispatched task prompt must carry the brief section + a field value.
+    expect(prompts.length).toBeGreaterThan(0);
+    for (const p of prompts) {
+      expect(p).toContain('## Project context');
+      expect(p).toContain('Platform: web');
+    }
   });
 });
 

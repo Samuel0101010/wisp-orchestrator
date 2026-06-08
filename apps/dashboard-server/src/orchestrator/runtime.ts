@@ -18,6 +18,7 @@ import {
   events as eventsTable,
   parsePlan,
   plans,
+  projectBriefs,
   projects,
   runs,
   tasks,
@@ -49,6 +50,7 @@ import { getLastAuthProbe } from '../auth-status.js';
 import { writeMemoryMcpConfig } from './mcp-config.js';
 import { checkAutopilotBudget } from '../autopilot/budget.js';
 import { replanOnQAFailure } from './replan.js';
+import { buildBriefSummaryForAgents } from './brief-context.js';
 import { applyAgentOverride, loadAgentOverridesForProject } from './agent-overrides.js';
 import { loadHandoffsForProject, renderHandoffsSection } from './handoff-loader.js';
 import { storeTrajectory } from '../reasoningbank/store.js';
@@ -249,6 +251,26 @@ export class RunRuntime {
         console.error('[runtime] loadHandoffsForProject failed:', err);
       }
     }
+    // Compact brief summary (six structured fields, capped) injected into every
+    // node's prompt so the executing agents see the user's design prefs /
+    // constraints / success criteria — not just whatever the planner baked into
+    // node prompts. Best-effort: no brief row / no projectId → undefined, and
+    // the prompt composer omits the "## Project context" section. Loaded here so
+    // both startRun and the cold-resume rebuild path pick it up, mirroring how
+    // handoffsSection is loaded.
+    let briefContext: string | undefined;
+    if (projectId) {
+      try {
+        const briefRow = await this.db
+          .select()
+          .from(projectBriefs)
+          .where(eq(projectBriefs.projectId, projectId))
+          .get();
+        briefContext = buildBriefSummaryForAgents(briefRow) ?? undefined;
+      } catch (err) {
+        console.error('[runtime] load projectBrief failed:', err);
+      }
+    }
     return {
       pool,
       worktree: { add: addWorktree, remove: removeWorktree },
@@ -339,6 +361,7 @@ export class RunRuntime {
         return merged as unknown as T;
       },
       handoffsSection,
+      briefContext,
       // WRITE side of the hand-off contract (the READ side is `handoffsSection`
       // above). The walker calls this on task completion; we persist a
       // `handoff/<role>/<taskId>` row into the per-project memory DB so the

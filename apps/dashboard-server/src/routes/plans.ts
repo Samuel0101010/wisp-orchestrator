@@ -32,6 +32,7 @@ import {
   type ChangeRequestStatus,
   type PlanKind,
 } from '@wisp/schemas';
+import { buildBriefContextSections } from '../orchestrator/brief-context.js';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
 import { injectLeadCheckpoint } from '../orchestrator/inject-lead-checkpoint.js';
 import { injectWireUp } from '../orchestrator/inject-wire-up.js';
@@ -326,21 +327,7 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
             : [];
 
         const sections: string[] = [];
-        if (brief) {
-          const briefLines: string[] = [];
-          if (brief.targetAudience) briefLines.push(`Target audience: ${brief.targetAudience}`);
-          if (brief.successCriteria) briefLines.push(`Success criteria: ${brief.successCriteria}`);
-          if (brief.designPrefs) briefLines.push(`Design preferences: ${brief.designPrefs}`);
-          if (brief.platform) briefLines.push(`Platform: ${brief.platform}`);
-          if (brief.constraints) briefLines.push(`Constraints: ${brief.constraints}`);
-          if (brief.deadline)
-            briefLines.push(`Deadline: ${new Date(brief.deadline).toISOString().slice(0, 10)}`);
-          if (briefLines.length > 0) {
-            sections.push(
-              `## Project brief (from requirements interview)\n\n` + briefLines.join('\n'),
-            );
-          }
-        }
+        sections.push(...buildBriefContextSections(project.repoPath, brief));
         if (similar.length > 0) {
           sections.push(
             `## Context from past similar runs\n\n` +
@@ -426,8 +413,13 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         // agents are exactly what the template / Team Builder defined. Role names
         // are preserved, so node.role references stay valid; the system-role
         // injectors below then append wire-up / runtime-verifier / lead on top.
+        // Re-stamp the goal too: plan.goal is the planner LLM's paraphrase, but
+        // walker.composeTaskPrompt feeds plan.goal to every executing agent. Set
+        // it to project.goal verbatim so what the user wrote — not a drifted
+        // paraphrase — is what the crew builds against.
         finalPlan = {
           ...finalPlan,
+          goal: project.goal,
           team: {
             roles: finalPlan.team.roles.map(
               (r) => team.roles.find((sr) => sr.role === r.role) ?? r,

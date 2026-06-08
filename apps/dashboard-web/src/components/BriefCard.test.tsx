@@ -48,6 +48,7 @@ let transcript: Array<{
 
 let lastSentMessage = '';
 let lastFinalize = 0;
+let lastImportMarkdown: string | null = null;
 
 function freshBrief(): FakeBrief {
   return {
@@ -72,6 +73,7 @@ beforeEach(() => {
   transcript = [];
   lastSentMessage = '';
   lastFinalize = 0;
+  lastImportMarkdown = null;
   globalThis.fetch = vi.fn(async (input, init) => {
     const url = typeof input === 'string' ? input : input.toString();
     if (
@@ -116,6 +118,15 @@ beforeEach(() => {
         { status: 200, headers: { 'content-type': 'application/json' } },
       );
     }
+    if (url.endsWith('/interview/import') && init?.method === 'POST') {
+      const body = JSON.parse(init.body as string) as { markdown: string };
+      lastImportMarkdown = body.markdown;
+      brief = { ...brief, briefReady: true, completenessScore: 100, prdPath: 'docs/PRD.md' };
+      return new Response(JSON.stringify({ brief, prdPath: 'docs/PRD.md', prdWriteError: null }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
     if (url.endsWith('/interview/finalize') && init?.method === 'POST') {
       lastFinalize++;
       brief = { ...brief, briefReady: true, prdPath: 'docs/PRD.md' };
@@ -150,6 +161,19 @@ describe('BriefCard', () => {
     });
     expect(screen.getByTestId('brief-transcript-empty')).toBeInTheDocument();
     expect(screen.getByTestId('brief-score').textContent).toBe('0%');
+  });
+
+  it('welcoming empty state shows example chips that prefill the input', async () => {
+    renderCard();
+    await waitFor(() => screen.getByTestId('brief-transcript-empty'));
+    const chips = screen.getAllByTestId('brief-example-chip');
+    expect(chips.length).toBe(3);
+    const input = screen.getByTestId('brief-message-input') as HTMLTextAreaElement;
+    expect(input.value).toBe('');
+    fireEvent.click(chips[0]!);
+    // Chip click prefills the box but does NOT send (transcript stays empty).
+    expect(input.value).toBe(chips[0]!.textContent);
+    expect(lastSentMessage).toBe('');
   });
 
   it('shows 100% for a finalized brief even when the score was never raised (F4)', async () => {
@@ -212,6 +236,47 @@ describe('BriefCard', () => {
     });
     // After collapsing, the input is no longer rendered (briefReady + collapsed).
     expect(screen.queryByTestId('brief-message-input')).toBeNull();
+  });
+
+  it('renders a calm error card when the interview query fails', async () => {
+    globalThis.fetch = vi.fn(async (input) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (url.endsWith('/interview')) {
+        return new Response(JSON.stringify({ error: 'boom' }), { status: 500 });
+      }
+      return new Response('{}', { status: 404 });
+    }) as typeof fetch;
+    renderCard();
+    await waitFor(() => {
+      expect(screen.getByTestId('brief-card-error')).toBeInTheDocument();
+    });
+    // The misleading full render (pending badge / required hint) must NOT appear.
+    expect(screen.queryByTestId('brief-status-pending')).toBeNull();
+    expect(screen.queryByTestId('brief-required-hint')).toBeNull();
+  });
+
+  it('import dialog opens, pasting text enables submit, submit calls the mutation', async () => {
+    renderCard();
+    await waitFor(() => screen.getByTestId('brief-import-trigger'));
+    fireEvent.click(screen.getByTestId('brief-import-trigger'));
+
+    await waitFor(() => screen.getByTestId('brief-import-dialog'));
+    const submit = screen.getByTestId('brief-import-submit') as HTMLButtonElement;
+    // Empty textarea → submit disabled.
+    expect(submit.disabled).toBe(true);
+
+    const textarea = screen.getByTestId('brief-import-textarea') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: '# My Spec\n\nHello.' } });
+    expect(submit.disabled).toBe(false);
+
+    fireEvent.click(submit);
+    await waitFor(() => {
+      expect(lastImportMarkdown).toBe('# My Spec\n\nHello.');
+    });
+    // On success the brief flips to ready (status-pending disappears).
+    await waitFor(() => {
+      expect(screen.queryByTestId('brief-status-pending')).toBeNull();
+    });
   });
 
   it('toggle-expand re-renders the transcript when ready', async () => {

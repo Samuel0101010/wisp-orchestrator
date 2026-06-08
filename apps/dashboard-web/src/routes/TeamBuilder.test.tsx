@@ -272,6 +272,53 @@ describe('TeamBuilder', () => {
     expect(generate.getAttribute('title') ?? '').toMatch(/save the team first/i);
   });
 
+  // The brief gate: even with a SAVED, valid team, Generate Plan stays blocked
+  // until the interview brief is finalised. A saved team returns roles from /team
+  // (teamExists && !dirty), and /interview drives the briefBlocks flag.
+  const savedTeamRoles = (() => {
+    const FILLER = 'x'.repeat(80);
+    return [
+      { role: 'architect', model: 'opus', allowedTools: ['Read'], systemPrompt: `arch ${FILLER}` },
+      { role: 'developer', model: 'sonnet', allowedTools: ['Edit'], systemPrompt: `dev ${FILLER}` },
+      { role: 'qa', model: 'sonnet', allowedTools: ['Read'], systemPrompt: `qa ${FILLER}` },
+    ];
+  })();
+
+  const savedTeamWithBrief =
+    (briefReady: boolean) =>
+    (url: string): Response => {
+      if (url.endsWith('/interview')) {
+        return new Response(JSON.stringify({ brief: { briefReady }, transcript: [] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (url.endsWith('/team')) {
+        return new Response(JSON.stringify({ roles: savedTeamRoles }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ id: 'p1', name: 'P1', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
+    };
+
+  it('disables Generate Plan when the team is saved but the brief is NOT ready', async () => {
+    fetchHandler = savedTeamWithBrief(false);
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    const generate = screen.getByTestId('generate-plan');
+    // Team is saved (not dirty) and valid, so the only thing blocking is the brief gate.
+    await waitFor(() => expect(generate).toBeDisabled());
+    expect(generate.getAttribute('title') ?? '').toMatch(/brief/i);
+  });
+
+  it('enables Generate Plan when the team is saved AND the brief is ready', async () => {
+    fetchHandler = savedTeamWithBrief(true);
+    renderAt('/projects/p1/teams');
+    await waitFor(() => expect(screen.getByTestId('badge-architect')).toBeInTheDocument());
+    const generate = screen.getByTestId('generate-plan');
+    await waitFor(() => expect(generate).toBeEnabled());
+  });
+
   it('saves a 4-role team with custom role names', async () => {
     let putBody: unknown = null;
     fetchHandler = (url, init) => {

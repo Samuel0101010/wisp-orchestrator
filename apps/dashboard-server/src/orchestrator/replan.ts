@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import {
   plans as plansTable,
+  projectBriefs,
   projects,
   teams,
   teamSchema,
@@ -16,6 +17,7 @@ import {
   isRateLimitOutcome,
   type Runner,
 } from './planner-runner.js';
+import { buildBriefContextSections } from './brief-context.js';
 
 export interface ReplanArgs {
   parentPlanId: string;
@@ -87,11 +89,35 @@ export async function replanOnQAFailure(args: ReplanArgs): Promise<ReplanResult 
     `Please regenerate a corrected plan addressing this QA failure:\n\n` +
     truncateError(args.qaError);
 
+  // Carry the brief/PRD context into the replan too — an automated QA-failure
+  // replan must not lose the original requirements. Best-effort: no brief row →
+  // no extra context (buildBriefContextSections returns []).
+  const briefRow = await db
+    .select()
+    .from(projectBriefs)
+    .where(eq(projectBriefs.projectId, parentRow.projectId))
+    .get();
+  const briefSections = buildBriefContextSections(projectRow.repoPath, briefRow);
+  const additionalContext = briefSections.length > 0 ? briefSections.join('\n\n') : undefined;
+
   const runner = args.runner ?? defaultRunner();
-  const outcome = await generatePlan(runner, team, extendedGoal, parentRow.projectId);
+  const outcome = await generatePlan(
+    runner,
+    team,
+    extendedGoal,
+    parentRow.projectId,
+    additionalContext,
+  );
 
   if (isRateLimitOutcome(outcome)) return null;
   if (!isPlannerSuccess(outcome)) return null;
+
+  // Re-stamp the goal to the project's authoritative goal verbatim. plan.goal is
+  // the planner LLM's paraphrase of the extended (QA-context-laden) goal; the
+  // walker feeds plan.goal to every executing agent, so the crew must build
+  // against what the user wrote — not a drifted replan paraphrase. Mirrors the
+  // same re-stamp in the POST plan route.
+  const plan = { ...outcome.plan, goal: projectRow.goal };
 
   // Persist with parent_plan_id linkage.
   const newPlanId = randomUUID();
@@ -100,11 +126,11 @@ export async function replanOnQAFailure(args: ReplanArgs): Promise<ReplanResult 
     .values({
       id: newPlanId,
       projectId: parentRow.projectId,
-      dagJson: outcome.plan as unknown,
+      dagJson: plan as unknown,
       status: 'locked', // child plans go straight to locked since the run is already underway
       parentPlanId: args.parentPlanId,
     })
     .run();
 
-  return { newPlanId, newPlan: outcome.plan };
+  return { newPlanId, newPlan: plan };
 }

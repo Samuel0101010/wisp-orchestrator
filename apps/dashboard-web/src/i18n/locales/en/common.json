@@ -577,6 +577,7 @@
       "noTeamUnsaved": "Configure roles and save the team first",
       "saveFirst": "Save the team first to generate a plan",
       "unsaved": "Unsaved changes: save first to generate a plan",
+      "briefNotReady": "Finish the brief first",
       "noTeam": "Save the team first",
       "noProject": "Select a project first",
       "noGoal": "Set a goal on the project first",
@@ -833,7 +834,7 @@
     "open": "Open",
     "openAria": "Open: {{step}}",
     "brief": "Finish the brief",
-    "briefDesc": "Answer a few questions, or use your goal as the brief.",
+    "briefDesc": "First step — needed before planning. Answer Sarah's questions or take your goal as the brief.",
     "team": "Configure the team",
     "teamDesc": "Pick the agents that will build your project.",
     "plan": "Generate the plan",
@@ -863,43 +864,53 @@
   "templates": {
     "web-app": {
       "name": "Web app (React + Vite)",
-      "description": "Builds a browser web app with React, Vite and Tailwind. Pipeline: Architect plans the work, a UI developer builds the screens, a test developer writes unit and browser tests, and QA runs install, type-check, test and build."
+      "description": "Builds a browser web app with React, Vite and Tailwind. Pipeline: Architect plans the work, a UI developer builds the screens, a test developer writes unit and browser tests, and QA runs install, type-check, test and build.",
+      "exampleGoal": "Build a single-page React + Vite + Tailwind tip calculator: enter a bill amount and tip percent, show per-person totals, with Vitest tests for the math and a Playwright smoke test asserting the page renders."
     },
     "fullstack-web": {
       "name": "Full-stack web app",
-      "description": "Builds one web feature end to end: a backend API plus the React UI that uses it. Pipeline: Architect → backend dev → frontend dev → tests → QA."
+      "description": "Builds one web feature end to end: a backend API plus the React UI that uses it. Pipeline: Architect → backend dev → frontend dev → tests → QA.",
+      "exampleGoal": "Build a notes feature: an Express API with GET/POST/DELETE /api/notes backed by an in-memory store, plus a React page that lists, adds, and deletes notes, with Vitest API tests and a Playwright e2e covering the add-then-delete round-trip."
     },
     "mobile-app": {
       "name": "Mobile app (React Native / Expo)",
-      "description": "Builds a cross-platform mobile app with React Native and Expo. Pipeline: Architect → mobile dev (screens + navigation) → test dev (component tests) → QA (typecheck / lint / test)."
+      "description": "Builds a cross-platform mobile app with React Native and Expo. Pipeline: Architect → mobile dev (screens + navigation) → test dev (component tests) → QA (typecheck / lint / test).",
+      "exampleGoal": "Build an Expo Router app with a tab navigator: a Home screen listing tasks from local state and a Settings screen with a dark-mode toggle, plus component tests for both."
     },
     "desktop-app": {
       "name": "Desktop app (Tauri)",
-      "description": "Builds a cross-platform desktop app with Tauri (Rust shell + web UI). Pipeline: Architect → UI dev → packaging engineer → tests → QA, ending in an installable build artifact."
+      "description": "Builds a cross-platform desktop app with Tauri (Rust shell + web UI). Pipeline: Architect → UI dev → packaging engineer → tests → QA, ending in an installable build artifact.",
+      "exampleGoal": "Build a cross-platform Tauri notes app: a React UI with a sidebar list and editor, persisting notes to the local filesystem via a Rust #[tauri::command], with a unique bundle identifier and Windows msi output."
     },
     "cli-tool": {
       "name": "CLI tool",
-      "description": "Builds a command-line tool in Node/TypeScript with argument parsing and tests. Pipeline: Architect plans the commands and flags, a core dev implements the CLI, a test dev writes Vitest tests, then QA runs typecheck, tests, and build."
+      "description": "Builds a command-line tool in Node/TypeScript with argument parsing and tests. Pipeline: Architect plans the commands and flags, a core dev implements the CLI, a test dev writes Vitest tests, then QA runs typecheck, tests, and build.",
+      "exampleGoal": "Build a `greet` CLI with a `--name` flag (default 'world') and a `--shout` boolean that uppercases the output, with Vitest tests for defaults, both flags, and an unknown-flag error."
     },
     "ts-library": {
       "name": "TypeScript library",
-      "description": "Architect → 2 devs → QA. Optimised for small TypeScript libraries with build / test / lint gates."
+      "description": "Architect → 2 devs → QA. Optimised for small TypeScript libraries with build / test / lint gates.",
+      "exampleGoal": "Add a hello(name) function returning 'Hello <name>!' to src/hello.ts plus a Vitest test covering happy path and empty-string edge case."
     },
     "python-backend": {
       "name": "Python backend",
-      "description": "Architect → API dev → test dev → QA. Targets small Python services with pytest gates."
+      "description": "Architect → API dev → test dev → QA. Targets small Python services with pytest gates.",
+      "exampleGoal": "Add a /health endpoint to src/app.py returning {status: 'ok'} with a pytest test using Flask's test client."
     },
     "docs-site": {
       "name": "Docs & guides",
-      "description": "Architect → tech writer → QA. Builds documentation only: READMEs, how-to guides, API references, and runbooks. No code, just clear writing checked for accuracy and working links."
+      "description": "Architect → tech writer → QA. Builds documentation only: READMEs, how-to guides, API references, and runbooks. No code, just clear writing checked for accuracy and working links.",
+      "exampleGoal": "Write a README.md for this repo covering what it does, install, quick start, configuration, and a troubleshooting section, with all commands verified against package.json."
     },
     "refactor-squad": {
       "name": "Refactor squad",
-      "description": "Architect (planner) → refactor-dev (opus, careful execution) → QA. Optimised for safe code transformations that must keep all existing tests green."
+      "description": "Architect (planner) → refactor-dev (opus, careful execution) → QA. Optimised for safe code transformations that must keep all existing tests green.",
+      "exampleGoal": "Extract the foo() function from src/big.ts into a new module src/foo.ts while keeping the public re-export so all existing tests pass."
     },
     "data-pipeline": {
       "name": "Data pipeline",
-      "description": "Architect → pipeline-dev → validator → QA. For ETL-style transforms with input/output schema validation."
+      "description": "Architect → pipeline-dev → validator → QA. For ETL-style transforms with input/output schema validation.",
+      "exampleGoal": "Read input/users.csv with columns name,email,age and produce output/users.json with the same fields, normalising email to lowercase and rejecting rows where age is not a positive integer."
     }
   },
   "commandPalette": {
@@ -1247,8 +1258,8 @@
     "completeness": "Brief completeness",
     "statusReady": "Finalised",
     "statusPending": "In progress",
-    "descriptionReady": "The interview is finished. The planner reads from this brief.",
-    "descriptionPending": "Sarah is gathering the requirements. Answer her questions until the brief is finalised.",
+    "descriptionReady": "The brief is set. The agents plan the work from it.",
+    "descriptionPending": "First step: describe what should be built. Answer Sarah's questions — or take your goal as the brief in one click.",
     "send": "Send",
     "sending": "Sending…",
     "finalize": "Finalise brief",
@@ -1257,13 +1268,23 @@
     "finalizeEarlyHint": "You can finalise early but the planner will have less context.",
     "goalLabel": "Your goal",
     "useGoalAsBrief": "Use goal as brief",
-    "useGoalAsBriefHint": "Skip the interview and use your goal as the brief — you can still refine it later.",
-    "optionalHint": "The interview is optional — answer a few questions for a sharper plan, or use your goal as the brief to start right away.",
+    "useGoalAsBriefHint": "Quickest path: take your goal as the brief — you can still refine it later.",
+    "requiredHint": "The brief is the first step and is needed before a plan can be generated. Either answer Sarah's questions — or take your goal as the brief in one click.",
+    "explainer": "What is the brief? Here you describe, in your own words, what should be built. The agents read it to plan the work and get started. The clearer the brief, the better the result.",
     "collapse": "Hide chat",
     "expand": "Show chat",
+    "loadError": "The brief couldn't be loaded. Please try again in a moment.",
     "inputPlaceholder": "Type your answer to Sarah…",
     "keyboardHint": "⌘/Ctrl+Enter to send",
-    "transcriptEmpty": "No messages yet — start the conversation when you're ready.",
+    "welcome": {
+      "greeting": "Hi, I'm Sarah. I'll help you turn your idea into a short brief the agents can build from.",
+      "prompt": "Just start typing — or answer one of these questions:",
+      "examples": {
+        "audience": "Who is the app for?",
+        "features": "What should it do?",
+        "design": "Any design preferences?"
+      }
+    },
     "fields": {
       "platform": "Platform",
       "targetAudience": "Target audience",
@@ -1271,11 +1292,28 @@
       "designPrefs": "Design preferences",
       "constraints": "Constraints"
     },
+    "import": {
+      "trigger": "Import a plan",
+      "reTrigger": "Re-import a plan",
+      "title": "Import an existing plan as the brief",
+      "description": "Paste an existing markdown document or upload a file. It becomes docs/PRD.md and the brief is finalised right away — without Sarah's interview.",
+      "textareaLabel": "Markdown content",
+      "textareaPlaceholder": "# My project plan\n\nPaste your markdown here …",
+      "fileLabel": "Choose a markdown file (.md, .markdown, .txt)",
+      "previewLabel": "Preview",
+      "previewEmpty": "The preview appears once you paste some content.",
+      "submit": "Use as brief",
+      "submitting": "Applying…",
+      "cancel": "Cancel"
+    },
     "toasts": {
       "sendFailed": "Could not send message",
       "finalized": "Brief finalised",
       "finalizedWithWarning": "Brief finalised, but PRD could not be written",
-      "finalizeFailed": "Could not finalise brief"
+      "finalizeFailed": "Could not finalise brief",
+      "imported": "Plan imported as brief",
+      "importedWithWarning": "Brief imported, but PRD could not be written",
+      "importFailed": "Could not import plan"
     }
   },
   "leadNotes": {

@@ -102,6 +102,14 @@ test.describe('Phase F1 smoke', () => {
     const finalizeRes = await page.request.post(`/api/projects/${projectId}/interview/finalize`);
     expect(finalizeRes.ok(), `finalize brief: ${finalizeRes.status()}`).toBeTruthy();
 
+    // The Generate Plan button is now disabled until the cached interview state
+    // reflects the finalised brief. The API finalize above doesn't touch React
+    // Query's cache, so reload to refetch and enable the button.
+    await page.reload();
+    await expect(page.getByRole('button', { name: tt(lang, 'buttons.generatePlan') })).toBeEnabled({
+      timeout: 10_000,
+    });
+
     await page.getByRole('button', { name: tt(lang, 'buttons.generatePlan') }).click();
 
     // Step 5: navigate to /projects/<id>/plan, plan rendered with 3 nodes.

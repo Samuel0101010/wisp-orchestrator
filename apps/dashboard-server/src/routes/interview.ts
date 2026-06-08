@@ -455,6 +455,95 @@ export function createInterviewRouter(deps: InterviewRouterDeps = {}): FastifyPl
       }),
     );
 
+    // POST /api/projects/:projectId/interview/import — import an existing
+    // plan/spec as the brief. The markdown becomes docs/PRD.md verbatim and the
+    // brief is finalised WITHOUT going through Sarah's interview — the six
+    // structured fields stay untouched (Phase B feeds the full PRD to the
+    // planner, so an imported spec reaches it regardless).
+    app.post(
+      '/api/projects/:projectId/interview/import',
+      wrap(async (req, reply) => {
+        const { projectId } = z.object({ projectId: z.string().min(1) }).parse(req.params);
+        const body = z.object({ markdown: z.string().max(100_000) }).safeParse(req.body ?? {});
+        if (!body.success) {
+          // Zod rejects when markdown is absent or exceeds the 100k cap.
+          reply.code(400);
+          return { error: 'invalid_markdown' };
+        }
+        const markdown = body.data.markdown;
+        if (markdown.trim() === '') {
+          reply.code(400);
+          return { error: 'empty_markdown' };
+        }
+        const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+        if (!project) {
+          reply.code(404);
+          return { error: 'project not found' };
+        }
+        // Re-import is allowed even on a finalised brief — it's an explicit user
+        // action to overwrite the PRD.
+        ensureBriefRow(projectId);
+
+        let prdPath: string | null = null;
+        let prdWriteError: string | null = null;
+        try {
+          const repo = fs.existsSync(path.join(project.repoPath, '.git'))
+            ? ({ ok: true } as const)
+            : ensureProjectRepoInitialized({
+                repoPath: project.repoPath,
+                name: project.name,
+                goal: project.goal,
+                createDir: true,
+              });
+          if (!repo.ok) {
+            prdWriteError = `${repo.error}: ${project.repoPath}`;
+          } else {
+            const docsDir = path.join(project.repoPath, 'docs');
+            fs.mkdirSync(docsDir, { recursive: true });
+            const target = path.join(docsDir, 'PRD.md');
+            fs.writeFileSync(target, markdown, 'utf8');
+            prdPath = 'docs/PRD.md';
+            // Best-effort commit so the imported PRD survives a run's working-tree
+            // sync and is visible to the architect — mirrors /finalize.
+            try {
+              const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+              execFileSync('git', ['add', 'docs/PRD.md'], {
+                cwd: project.repoPath,
+                env,
+                stdio: 'pipe',
+              });
+              execFileSync(
+                'git',
+                ['-c', 'commit.gpgsign=false', 'commit', '-m', 'brief: import PRD'],
+                { cwd: project.repoPath, env, stdio: 'pipe' },
+              );
+            } catch {
+              // Non-fatal: the PRD is written to the working tree regardless.
+            }
+          }
+        } catch (err) {
+          prdWriteError = err instanceof Error ? err.message : String(err);
+        }
+
+        const now = Date.now();
+        // Mark the brief ready + 100% complete; leave the six structured fields
+        // untouched (an imported spec is the PRD, not a field-by-field brief).
+        sqlite
+          .prepare(
+            `UPDATE project_briefs
+                SET brief_ready = 1, completeness_score = 100, prd_path = ?, updated_at = ?
+              WHERE project_id = ?`,
+          )
+          .run(prdPath, now, projectId);
+
+        return {
+          brief: getBriefRow(projectId),
+          prdPath,
+          prdWriteError,
+        };
+      }),
+    );
+
     // PATCH /api/projects/:projectId/interview — manual edits
     app.patch(
       '/api/projects/:projectId/interview',

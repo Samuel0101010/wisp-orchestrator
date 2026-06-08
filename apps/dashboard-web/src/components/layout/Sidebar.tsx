@@ -119,14 +119,6 @@ export function Sidebar() {
   const [repoPath, setRepoPath] = useState('');
   const [templateId, setTemplateId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!templateId) return;
-    const template = templates.find((tpl) => tpl.id === templateId);
-    if (template && goal.trim() === '') {
-      setGoal(template.suggestedGoals[0] ?? '');
-    }
-  }, [templateId, templates, goal]);
-
   const reset = (): void => {
     setName('');
     setGoal('');
@@ -398,8 +390,11 @@ export function Sidebar() {
                     rows={3}
                     placeholder={
                       templateId
-                        ? (templates.find((tpl) => tpl.id === templateId)?.suggestedGoals[0] ??
-                          t('newProject.fields.goalPlaceholder'))
+                        ? t(`templates.${templateId}.exampleGoal`, {
+                            defaultValue:
+                              templates.find((tpl) => tpl.id === templateId)?.suggestedGoals[0] ??
+                              t('newProject.fields.goalPlaceholder'),
+                          })
                         : t('newProject.fields.goalPlaceholder')
                     }
                     value={goal}

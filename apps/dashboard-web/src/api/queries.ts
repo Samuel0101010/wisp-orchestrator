@@ -430,6 +430,32 @@ export function useFinalizeInterview(projectId: string | undefined) {
   });
 }
 
+export interface ImportBriefResponse {
+  brief: ProjectBriefRow;
+  prdPath: string | null;
+  prdWriteError: string | null;
+}
+
+/**
+ * Import an existing plan/spec (markdown) as the brief: the markdown becomes
+ * docs/PRD.md verbatim and the brief is finalised, bypassing Sarah's interview.
+ */
+export function useImportBrief(projectId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation<ImportBriefResponse, Error, string>({
+    mutationFn: async (markdown) => {
+      if (!projectId) throw new Error('No project id');
+      return await apiFetch<ImportBriefResponse>(`/api/projects/${projectId}/interview/import`, {
+        method: 'POST',
+        body: JSON.stringify({ markdown }),
+      });
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['interview', projectId] });
+    },
+  });
+}
+
 export interface PatchBriefInput {
   targetAudience?: string | null;
   successCriteria?: string | null;
