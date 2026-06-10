@@ -171,6 +171,14 @@ export const tasks = sqliteTable(
     status: text('status', { enum: taskStatusValues }).notNull(),
     worktreeBranch: text('worktree_branch'),
     sessionId: text('session_id'),
+    // Executor identity snapshot, written at dispatch time (migration 0020).
+    // All nullable: rows from runs before v2.3 simply have no identity.
+    // executor_model_stored carries the team's stored model when a
+    // per-project override swapped the model; NULL when no swap happened.
+    executorName: text('executor_name'),
+    executorModel: text('executor_model'),
+    executorModelStored: text('executor_model_stored'),
+    executorAvatarUrl: text('executor_avatar_url'),
     tokensIn: integer('tokens_in').notNull().default(0),
     tokensOut: integer('tokens_out').notNull().default(0),
     turnsUsed: integer('turns_used').notNull().default(0),

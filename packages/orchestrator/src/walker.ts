@@ -59,6 +59,13 @@ export interface TaskState {
   status?: TaskStatusValue;
   worktreeBranch?: string | null;
   sessionId?: string | null;
+  /** Executor identity snapshot, set on the dispatch-time 'running' patch.
+   *  `executorModelStored` carries the team's stored model when a per-project
+   *  override swapped it; null when the effective model matches the team. */
+  executorName?: string | null;
+  executorModel?: string | null;
+  executorModelStored?: string | null;
+  executorAvatarUrl?: string | null;
   tokensIn?: number;
   tokensOut?: number;
   turnsUsed?: number;
@@ -138,6 +145,21 @@ export interface WalkerDeps {
    * explicitly calls resume() — matching ToS-conservative posture.
    */
   autoResumeRateLimit: boolean;
+  /**
+   * Predicate deciding whether a role counts as QA for the replan hook.
+   * Defaults to {@link defaultIsQARole} ('qa' as a -/_ separated token, so
+   * 'qa-engineer' matches but 'quality-analyst' does not). Injectable so the
+   * runtime can widen/narrow the match without a walker release.
+   */
+  isQARole?: (role: string) => boolean;
+  /**
+   * Resolves a role to the persistent agent identity behind it (agents
+   * registry row linked via the team's agentId). Used to stamp the executor
+   * onto the dispatch-time 'running' task patch + task.started event. Roles
+   * without a linked agent return null; absence of the hook means no
+   * identity is available (executorName/avatarUrl stay null).
+   */
+  resolveExecutor?: (role: string) => { name: string; avatarUrl: string | null } | null;
   /**
    * Optional QA-replan hook. Called when a `qa`-role task fails terminally.
    * Returns a fresh Plan to swap in (under the same runId), or null to fall
@@ -293,6 +315,15 @@ export interface WalkerStatus {
  */
 export const TRANSIENT_RE =
   /(\b5(29|03)\b|Overloaded|Service Unavailable|temporarily unavailable|rate.?limit|ETIMEDOUT|ECONNRESET)/i;
+
+/**
+ * Default QA-role predicate for the replan hook: 'qa' must appear as a
+ * -/_ separated token ('qa', 'qa-engineer', 'senior_qa' match;
+ * 'quality-analyst' does not). Override via {@link WalkerDeps.isQARole}.
+ */
+export function defaultIsQARole(role: string): boolean {
+  return role.split(/[-_]/).includes('qa');
+}
 
 /**
  * Max attempts a task subprocess can take when every prior attempt died with a
@@ -1093,6 +1124,27 @@ export class Walker {
       return;
     }
 
+    // Apply any per-role override from the project — model swap, extra system
+    // prompt, extra allowed-tools. When no merger is wired or no override
+    // exists for this role, `applyAgentOverride` is a no-op identity.
+    // Computed here (before dispatch persistence) so the 'running' task patch
+    // and task.started event can carry the EFFECTIVE executor identity.
+    const baseAgent = {
+      model: agent.model,
+      systemPrompt: agent.systemPrompt,
+      allowedTools: agent.allowedTools,
+    };
+    const effective = this.deps.applyAgentOverride
+      ? this.deps.applyAgentOverride(node.role, baseAgent)
+      : baseAgent;
+    const executorIdentity = this.deps.resolveExecutor?.(node.role) ?? null;
+    const executor = {
+      name: executorIdentity?.name ?? null,
+      model: effective.model,
+      modelStored: effective.model !== agent.model ? agent.model : null,
+      avatarUrl: executorIdentity?.avatarUrl ?? null,
+    };
+
     let worktreePath: string | null = t.worktreePath;
     let createdWorktreeNow = false;
     try {
@@ -1165,8 +1217,12 @@ export class Walker {
     await this.deps.onTaskState(node.id, {
       status: 'running',
       worktreeBranch: branchName,
+      executorName: executor.name,
+      executorModel: executor.model,
+      executorModelStored: executor.modelStored,
+      executorAvatarUrl: executor.avatarUrl,
     });
-    this.deps.emit({ type: 'task.started', payload: { taskId: node.id } });
+    this.deps.emit({ type: 'task.started', payload: { taskId: node.id, executor } });
 
     let lastTaskFailedError: string | null = null;
     let cleanExit = false;
@@ -1290,18 +1346,6 @@ export class Walker {
       cpuAtWindowStart = probe?.cpuSeconds ?? null;
       inactivityCancel = this.deps.setTimeout(onWatchdogFire, INACTIVITY_TIMEOUT_MS);
     };
-
-    // Apply any per-role override from the project — model swap, extra system
-    // prompt, extra allowed-tools. When no merger is wired or no override
-    // exists for this role, `applyAgentOverride` is a no-op identity.
-    const baseAgent = {
-      model: agent.model,
-      systemPrompt: agent.systemPrompt,
-      allowedTools: agent.allowedTools,
-    };
-    const effective = this.deps.applyAgentOverride
-      ? this.deps.applyAgentOverride(node.role, baseAgent)
-      : baseAgent;
 
     try {
       const iter = this.deps.pool.run({
@@ -1593,7 +1637,12 @@ export class Walker {
     });
 
     // QA-driven replan (M5/5.3): only on qa-role terminal fails, capped at MAX_REPLANS_PER_RUN.
-    if (node.role === 'qa' && this.deps.replanOnQAFailure && this.runId && this.plan) {
+    if (
+      (this.deps.isQARole ?? defaultIsQARole)(node.role) &&
+      this.deps.replanOnQAFailure &&
+      this.runId &&
+      this.plan
+    ) {
       const planForReplan = this.plan;
       if (this.replanCount >= Walker.MAX_REPLANS_PER_RUN) {
         this.deps.emit({

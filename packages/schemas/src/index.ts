@@ -156,6 +156,8 @@ export {
   parsePlan,
   safeParsePlan,
   validateDag,
+  validatePlanRoles,
+  deriveTaskTitle,
   MAX_TEAM_ROLES,
 } from './plan.js';
 export type {
@@ -167,6 +169,7 @@ export type {
   SuccessCriteria,
   Role,
   DagValidationResult,
+  RoleValidationResult,
 } from './plan.js';
 
 // Events (Zod)

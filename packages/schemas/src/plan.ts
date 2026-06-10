@@ -23,6 +23,10 @@ export const agentSpecSchema = z.object({
    * a soft link.
    */
   agentId: z.string().min(1).optional(),
+  /** Provenance: 'planner' for planner-emitted roles, 'system' for
+   *  harness-injected ones (wire-up, runtime-verifier, lead). Optional so
+   *  pre-existing plans keep parsing. */
+  origin: z.enum(['planner', 'system']).optional(),
 });
 export type AgentSpec = z.infer<typeof agentSpecSchema>;
 
@@ -42,6 +46,12 @@ export const taskNodeSchema = z.object({
     .min(2)
     .max(40)
     .regex(/^[a-z][a-z0-9-]*$/),
+  /** Human-readable task title for the UI. Optional so pre-existing plans
+   *  keep parsing — `deriveTaskTitle` provides the display fallback. Must be
+   *  declared here because PATCH/lock routes round-trip dagJson through
+   *  planSchema, which strips unknown keys. */
+  title: z.string().min(1).max(120).optional(),
+  origin: z.enum(['planner', 'system']).optional(),
   prompt: z.string(),
   deps: z.array(z.string()),
   successCriteria: successCriteriaSchema,
@@ -172,4 +182,45 @@ export function validateDag(plan: Plan): DagValidationResult {
     return { ok: false, errors };
   }
   return { ok: true };
+}
+
+export type RoleValidationResult =
+  | { ok: true }
+  | { ok: false; invalidTeamRoles: string[]; invalidNodeRoles: string[] };
+
+/**
+ * Every plan.team.roles[].role and plan.nodes[].role must exist in
+ * storedTeam.roles[].role. Guards against the planner inventing roles that
+ * have no stored agent identity behind them.
+ */
+export function validatePlanRoles(plan: Plan, storedTeam: Team): RoleValidationResult {
+  const known = new Set(storedTeam.roles.map((r) => r.role));
+  const invalidTeamRoles = plan.team.roles.map((r) => r.role).filter((role) => !known.has(role));
+  const invalidNodeRoles = plan.nodes.map((n) => n.role).filter((role) => !known.has(role));
+  if (invalidTeamRoles.length === 0 && invalidNodeRoles.length === 0) {
+    return { ok: true };
+  }
+  return { ok: false, invalidTeamRoles, invalidNodeRoles };
+}
+
+const DERIVED_TITLE_MAX = 60;
+
+/**
+ * Display title for a task node: explicit `title` wins; otherwise the first
+ * non-empty line of the prompt (truncated to 60 chars with a trailing '…');
+ * otherwise the node id.
+ */
+export function deriveTaskTitle(node: Pick<TaskNode, 'id' | 'prompt' | 'title'>): string {
+  const explicit = node.title?.trim();
+  if (explicit) return explicit;
+  const firstLine = node.prompt
+    .split('\n')
+    .map((l) => l.trim())
+    .find((l) => l.length > 0);
+  if (firstLine) {
+    return firstLine.length > DERIVED_TITLE_MAX
+      ? `${firstLine.slice(0, DERIVED_TITLE_MAX)}…`
+      : firstLine;
+  }
+  return node.id;
 }
