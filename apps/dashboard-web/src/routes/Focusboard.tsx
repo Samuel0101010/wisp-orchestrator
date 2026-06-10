@@ -153,7 +153,7 @@ export function Focusboard(): ReactElement {
     <div className="-m-6 flex h-[calc(100vh-4rem)] flex-col">
       <h1 className="sr-only">{t('focus.title')}</h1>
       {/* Header bar */}
-      <header className="flex shrink-0 items-center gap-3 border-b bg-card/40 px-4 py-2.5">
+      <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b bg-card/40 px-4 py-2.5">
         <span className="text-3xs uppercase tracking-wider text-muted-foreground">
           {t('focus.title')}
         </span>
@@ -162,7 +162,7 @@ export function Focusboard(): ReactElement {
           id="focus-project-select"
           name="focus-project-select"
           aria-label={t('focus.pickProject')}
-          className="rounded-md border bg-card px-2 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="min-w-0 max-w-56 truncate rounded-md border bg-card px-2 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={projectId}
           onChange={(e) => navigate(`/focus/${e.target.value}`)}
         >
@@ -216,10 +216,11 @@ export function Focusboard(): ReactElement {
         </div>
       </header>
 
-      {/* Body */}
-      <div className="flex min-h-0 flex-1">
+      {/* Body — stacks vertically below md so the fixed-width panes never
+          crush the preview on narrow windows. */}
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         {/* Live run column */}
-        <section className="flex w-[360px] shrink-0 flex-col gap-3 border-r p-4 xl:w-[440px]">
+        <section className="flex max-h-[45%] shrink-0 flex-col gap-3 border-b p-4 md:max-h-none md:w-[300px] md:border-b-0 md:border-r lg:w-[360px] 2xl:w-[440px]">
           <div className="grid grid-cols-2 gap-2">
             <Kpi label={t('focus.kpi.tokensIn')} value={fmtCompact(tokensIn)} />
             <Kpi label={t('focus.kpi.tokensOut')} value={fmtCompact(tokensOut)} />
@@ -274,14 +275,16 @@ export function Focusboard(): ReactElement {
           </div>
         </section>
 
-        {/* Preview pane */}
-        <section className="flex min-w-0 flex-1 flex-col">
+        {/* Preview pane — overflow-y-auto also clamps horizontal overflow, so
+            PreviewFrame content can never bleed under the neighbouring panes. */}
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
           <PreviewFrame projectId={projectId} />
         </section>
 
-        {/* Chat rail — hidden below lg so the three fixed-width panes don't
-            overflow narrow laptops; the full Team Chat stays at /chat. */}
-        <aside className="hidden w-[300px] shrink-0 flex-col border-l lg:flex">
+        {/* Chat rail — hidden below xl: the app sidebar (~250px) eats viewport
+            width, so at lg the three panes would crush the preview to ~100px;
+            the full Team Chat stays at /chat. */}
+        <aside className="hidden w-[300px] shrink-0 flex-col border-l xl:flex">
           <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
             <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
             <span className="text-3xs uppercase tracking-wider text-muted-foreground">

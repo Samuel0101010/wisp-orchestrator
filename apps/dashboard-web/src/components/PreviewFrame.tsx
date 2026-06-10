@@ -332,7 +332,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
       <Card data-testid="preview-frame">
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0 pb-3">
           <div className="flex flex-col gap-1">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+            <CardTitle className="flex flex-wrap items-center gap-2 text-sm font-medium">
               <Eye className="h-4 w-4 text-muted-foreground" />
               {t('preview.title')}
               <StatusPill tone={tone} live={state === 'starting'}>
@@ -412,7 +412,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
                   title={t('preview.title')}
                   sandbox="allow-scripts allow-forms allow-same-origin"
                   style={{ width: VIEWPORT_WIDTH[viewport], height: '600px' }}
-                  className="rounded border border-border bg-background"
+                  className="max-w-full rounded border border-border bg-background"
                   onLoad={handleIframeLoad}
                 />
               ) : (

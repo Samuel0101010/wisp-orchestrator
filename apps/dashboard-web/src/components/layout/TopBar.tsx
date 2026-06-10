@@ -69,14 +69,14 @@ export function TopBar() {
     <button
       type="button"
       onClick={dispatchCmdK}
-      className="group flex max-w-[520px] flex-1 items-center gap-2 rounded-[10px] border border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-glass)] px-3.5 py-1.5 font-[var(--f-head)] text-sm-tight text-[color:var(--wisp-ink-3)] transition-colors hover:border-[color:var(--wisp-hairline-bright)] hover:bg-[color:var(--wisp-glass-hover)]"
+      className="group flex min-w-0 max-w-[520px] flex-1 items-center gap-2 rounded-[10px] border border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-glass)] px-3.5 py-1.5 font-[var(--f-head)] text-sm-tight text-[color:var(--wisp-ink-3)] transition-colors hover:border-[color:var(--wisp-hairline-bright)] hover:bg-[color:var(--wisp-glass-hover)]"
       data-testid="topbar-cmdk-trigger"
     >
-      <Search className="h-3.5 w-3.5 text-[color:var(--wisp-ink-3)]" />
-      <span className="flex-1 text-left">
+      <Search className="h-3.5 w-3.5 shrink-0 text-[color:var(--wisp-ink-3)]" />
+      <span className="flex-1 truncate text-left">
         {t('topBar.searchPlaceholder', 'Search projects, agents, runs…')}
       </span>
-      <span className="wisp-kbd">⌘K</span>
+      <span className="wisp-kbd hidden shrink-0 sm:inline-flex">⌘K</span>
     </button>
   );
 
@@ -115,11 +115,11 @@ export function TopBar() {
     const totalToday = dailyCounts.data?.totalLast24h ?? 0;
     return (
       <header
-        className="wisp-aurora-scope relative z-[2] flex h-14 items-center gap-5 border-b border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-topbar-bg)] px-5 backdrop-blur-[20px]"
+        className="wisp-aurora-scope relative z-[2] flex h-14 items-center gap-3 border-b border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-topbar-bg)] px-3 backdrop-blur-[20px] md:gap-5 md:px-5"
         data-testid="topbar"
       >
-        <Breadcrumbs />
-        <div className="flex items-center gap-2 text-xs text-[color:var(--wisp-ink-3)]">
+        <Breadcrumbs className="min-w-0 overflow-hidden whitespace-nowrap" />
+        <div className="hidden shrink-0 items-center gap-2 whitespace-nowrap text-xs text-[color:var(--wisp-ink-3)] md:flex">
           <Activity className="h-3.5 w-3.5" />
           <AnimatedCounter
             value={totalToday}
@@ -136,7 +136,7 @@ export function TopBar() {
 
   return (
     <header
-      className="wisp-aurora-scope relative z-[2] flex h-14 items-center gap-5 border-b border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-topbar-bg)] px-5 backdrop-blur-[20px]"
+      className="wisp-aurora-scope relative z-[2] flex h-14 items-center gap-3 border-b border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-topbar-bg)] px-3 backdrop-blur-[20px] md:gap-5 md:px-5"
       data-testid="topbar-run-active"
     >
       <Breadcrumbs />
