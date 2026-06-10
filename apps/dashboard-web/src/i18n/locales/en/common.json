@@ -703,6 +703,9 @@
       "body": "Agents work in isolated git worktrees. Initialize a fresh git repo and an initial commit, then we'll retry Lock & Run automatically. Directory:",
       "initialize": "Initialize repo",
       "initializing": "Initializing…"
+    },
+    "errors": {
+      "planInvalidRoles": "The planner used roles that are not in your team: {{roles}}. Please regenerate the plan or adjust your team."
     }
   },
   "runView": {
@@ -766,7 +769,9 @@
       "liveTailFor": "Live tail — {{title}}",
       "tailHint": "Last {{count}} text deltas (cap 200 per task).",
       "pinScroll": "Pin scroll to top",
-      "noOutput": "No output yet."
+      "noOutput": "No output yet.",
+      "executedBy": "Executed by {{name}} ({{model}})",
+      "executedByOverride": "Executed by {{name}} ({{model}} instead of {{storedModel}})"
     },
     "controls": {
       "pause": "Pause",
@@ -799,6 +804,15 @@
       "rateLimitHit": "Rate limit hit"
     },
     "connecting": "Connecting…"
+  },
+  "systemNode": {
+    "badge": "System",
+    "tooltip": {
+      "wire-up": "Auto-inserted: reconciles the parallel work branches so the project builds.",
+      "runtime-verifier": "Auto-inserted: boots the app and verifies it actually runs.",
+      "lead": "Auto-inserted: the team lead reviews the result at the end of the plan.",
+      "default": "Added by the system — not part of the team you picked."
+    }
   },
   "firstRunModal": {
     "title": "WISP uses your Claude subscription",

@@ -35,6 +35,7 @@ import { PlanCanvas } from '@/components/plan/PlanCanvas';
 import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 import { BackToProject } from '@/components/BackToProject';
 import { statusLabel } from '@/lib/status-labels';
+import type { TFunction } from 'i18next';
 
 const ROLES: Role[] = ['architect', 'developer', 'qa'];
 
@@ -352,7 +353,7 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
     } catch (err) {
       toast({
         title: t('planEditor.toasts.regenFailed'),
-        description: errorMessage(err),
+        description: generatePlanErrorMessage(err, t),
         variant: 'destructive',
       });
     }
@@ -590,6 +591,23 @@ function errorMessage(err: unknown): string {
   return (err as Error).message;
 }
 
+/**
+ * Generate-plan errors: POST plan responds 422 `plan_invalid_roles` when the
+ * planner emitted roles outside the team. Name the offending roles instead of
+ * surfacing the raw error token; everything else falls back to errorMessage().
+ */
+function generatePlanErrorMessage(err: unknown, t: TFunction): string {
+  if (err instanceof ApiError && err.status === 422 && typeof err.body === 'object' && err.body) {
+    const body = err.body as { error?: unknown; invalidRoles?: unknown };
+    if (body.error === 'plan_invalid_roles' && Array.isArray(body.invalidRoles)) {
+      return t('planEditor.errors.planInvalidRoles', {
+        roles: (body.invalidRoles as string[]).join(', '),
+      });
+    }
+  }
+  return errorMessage(err);
+}
+
 export function PlanEditor() {
   const { t } = useTranslation();
   const { projectId } = useParams<{ projectId?: string }>();
@@ -648,7 +666,7 @@ export function PlanEditor() {
       } catch (err) {
         toast({
           title: t('planEditor.toasts.regenFailed'),
-          description: errorMessage(err),
+          description: generatePlanErrorMessage(err, t),
           variant: 'destructive',
         });
       }

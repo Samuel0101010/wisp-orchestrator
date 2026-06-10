@@ -28,6 +28,13 @@ export interface TaskCardModel {
   deltas: string[];
   error?: string;
   worktreePath?: string;
+  /** Executor identity snapshot (migration 0020). All null for tasks from
+   *  runs before v2.3. `executorModelStored` is non-null only when a
+   *  per-project agent-override swapped the model at dispatch time. */
+  executorName: string | null;
+  executorModel: string | null;
+  executorModelStored: string | null;
+  executorAvatarUrl: string | null;
 }
 
 export interface RunHeader {
@@ -99,6 +106,10 @@ function taskFromRow(row: Task): TaskCardModel {
     startedAtMs: null,
     endedAtMs: null,
     deltas: [],
+    executorName: row.executorName ?? null,
+    executorModel: row.executorModel ?? null,
+    executorModelStored: row.executorModelStored ?? null,
+    executorAvatarUrl: row.executorAvatarUrl ?? null,
   };
 }
 
@@ -167,11 +178,22 @@ export const useRunStore = create<RunStore>()((set) => ({
           const id = event.payload.taskId;
           const existing = tasks[id];
           if (existing) {
+            // Events emitted before v2.3 carry no executor — keep whatever
+            // identity the snapshot hydrated (possibly all null).
+            const executor = event.payload.executor;
             tasks[id] = {
               ...existing,
               liveRunning: true,
               status: 'running',
               startedAtMs: existing.startedAtMs ?? now,
+              ...(executor
+                ? {
+                    executorName: executor.name,
+                    executorModel: executor.model,
+                    executorModelStored: executor.modelStored,
+                    executorAvatarUrl: executor.avatarUrl,
+                  }
+                : {}),
             };
           }
           break;

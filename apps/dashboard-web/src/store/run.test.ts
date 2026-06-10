@@ -33,6 +33,10 @@ function makeTask(id: string, over: Partial<Task> = {}): Task {
     status: 'pending',
     worktreeBranch: null,
     sessionId: null,
+    executorName: null,
+    executorModel: null,
+    executorModelStored: null,
+    executorAvatarUrl: null,
     tokensIn: 0,
     tokensOut: 0,
     turnsUsed: 0,
@@ -65,6 +69,52 @@ describe('useRunStore', () => {
     const t = useRunStore.getState().tasks.a!;
     expect(t.liveRunning).toBe(true);
     expect(columnFor(t)).toBe('running');
+  });
+
+  it('task.started merges the executor identity into the card model', () => {
+    useRunStore.getState().hydrate({ run: makeRun(), tasks: [makeTask('a')] });
+    useRunStore.getState().applyEvent({
+      type: 'task.started',
+      payload: {
+        taskId: 'a',
+        executor: { name: 'Diego', model: 'sonnet', modelStored: 'opus', avatarUrl: '/d.webp' },
+      },
+    });
+    const t = useRunStore.getState().tasks.a!;
+    expect(t.executorName).toBe('Diego');
+    expect(t.executorModel).toBe('sonnet');
+    expect(t.executorModelStored).toBe('opus');
+    expect(t.executorAvatarUrl).toBe('/d.webp');
+  });
+
+  it('task.started without executor keeps the hydrated identity untouched', () => {
+    useRunStore.getState().hydrate({
+      run: makeRun(),
+      tasks: [makeTask('a', { executorName: 'Maya', executorModel: 'haiku' })],
+    });
+    useRunStore.getState().applyEvent({
+      type: 'task.started',
+      payload: { taskId: 'a' },
+    });
+    const t = useRunStore.getState().tasks.a!;
+    expect(t.executorName).toBe('Maya');
+    expect(t.executorModel).toBe('haiku');
+    expect(t.executorModelStored).toBeNull();
+    expect(t.executorAvatarUrl).toBeNull();
+  });
+
+  it('task.started without executor keeps all four fields null on a pre-migration row', () => {
+    // Rows from runs before the executor migration carry no identity at all.
+    useRunStore.getState().hydrate({ run: makeRun(), tasks: [makeTask('a')] });
+    useRunStore.getState().applyEvent({
+      type: 'task.started',
+      payload: { taskId: 'a' },
+    });
+    const t = useRunStore.getState().tasks.a!;
+    expect(t.executorName).toBeNull();
+    expect(t.executorModel).toBeNull();
+    expect(t.executorModelStored).toBeNull();
+    expect(t.executorAvatarUrl).toBeNull();
   });
 
   it('task.usage treats incoming counters as cumulative (Math.max)', () => {

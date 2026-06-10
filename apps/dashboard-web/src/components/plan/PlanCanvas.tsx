@@ -59,7 +59,18 @@ function PlanTaskNode({ data }: NodeProps<PlanNodeData>) {
       />
       <div className="flex flex-col gap-1 p-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">{taskNode.id}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-sm font-semibold">{taskNode.id}</span>
+            {taskNode.origin === 'system' && (
+              <span
+                className="shrink-0 rounded-full border px-1.5 py-0.5 text-2xs font-medium uppercase tracking-wider text-muted-foreground"
+                title={t([`systemNode.tooltip.${taskNode.role}`, 'systemNode.tooltip.default'])}
+                data-testid={`plan-node-system-${taskNode.id}`}
+              >
+                {t('systemNode.badge')}
+              </span>
+            )}
+          </span>
           <span
             className="rounded-full border px-2 py-0.5 text-2xs font-medium uppercase tracking-wider"
             style={rolePillStyle(taskNode.role)}
