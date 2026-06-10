@@ -530,9 +530,22 @@ export class PreviewProcessRegistry {
     const readStderrTail = (): string =>
       Buffer.concat(stderrChunks).toString('utf8').slice(-STDERR_TAIL_BYTES);
 
+    // Single exit handler, two behaviors: during startup it feeds the polling
+    // loop below (earlyExit); after startup it flips a still-`running` entry to
+    // error so the dashboard sees the crash without waiting for a status-poll
+    // pid probe. The entry-identity check is mandatory — stopPreview deletes
+    // the entry BEFORE taskkill, which fires this exit asynchronously on
+    // Windows, and a deliberately stopped (or restarted) preview must not
+    // resurrect as crashed.
     let earlyExit: string | null = null;
+    let startupFinished = false;
     child.once('exit', (code, signal) => {
       earlyExit = `process exited (code=${code}, signal=${signal ?? 'none'})`;
+      if (startupFinished && this.entries.get(projectId) === entry && entry.status === 'running') {
+        const tail = readStderrTail().trim();
+        entry.status = 'error';
+        entry.errorReason = tail.length > 0 ? `process-died\nstderr: ${tail}` : 'process-died';
+      }
     });
 
     const start = Date.now();
@@ -553,6 +566,7 @@ export class PreviewProcessRegistry {
         const r = await doFetch(effectiveProbeUrl);
         if (r.status < 500) {
           entry.status = 'running';
+          startupFinished = true;
           return {
             status: 'running',
             port,
@@ -566,6 +580,7 @@ export class PreviewProcessRegistry {
       await sleep(POLL_INTERVAL_MS);
     }
 
+    startupFinished = true;
     const tail = readStderrTail().trim();
     const base = `timeout waiting for ${effectiveProbeUrl} (${readyTimeoutMs}ms)`;
     entry.status = 'error';

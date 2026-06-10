@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import type { FastifyPluginAsync } from 'fastify';
 import { desc, eq } from 'drizzle-orm';
@@ -12,6 +13,7 @@ import { buildHardeningPlan, insertHardeningPlan } from '../orchestrator/self-he
 import { getLatestProjectState } from '../orchestrator/project-state-loader.js';
 import { ensureProjectRepoInitialized } from '../orchestrator/repo-init.js';
 import { ensureBriefRow } from './interview.js';
+import { detectProjectType } from '../orchestrator/detect-project-type.js';
 
 const createProjectSchema = z.object({
   name: z.string().min(1),
@@ -97,6 +99,16 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
     }),
   );
 
+  // Suggested base folder for new project repos (New Project dialog). A
+  // static segment, so it outranks the `/api/projects/:id` param route —
+  // same pattern as POST /api/projects/repo-status below.
+  app.get(
+    '/api/projects/default-repo-base',
+    wrap(async () => {
+      return { base: path.join(os.homedir(), 'wisp-projects'), sep: path.sep };
+    }),
+  );
+
   app.get(
     '/api/projects/:id',
     wrap(async (req, reply) => {
@@ -125,6 +137,26 @@ export const projectRoutes: FastifyPluginAsync = async (app) => {
       }
       const state = await getLatestProjectState(db, params.id);
       return { state };
+    }),
+  );
+
+  // Coarse repoPath-based classification for UI hints (e.g. whether a
+  // preview makes sense for this project). Do NOT reuse this endpoint for
+  // dev-command decisions — those must go through the boot-check / preview
+  // pipeline which inspects the actual result-branch checkout, not the
+  // possibly-stale repo root. Safe when repoPath is missing: the detector
+  // returns type 'unknown'.
+  app.get(
+    '/api/projects/:id/project-type',
+    wrap(async (req, reply) => {
+      const params = z.object({ id: z.string() }).parse(req.params);
+      const project = await db.select().from(projects).where(eq(projects.id, params.id)).get();
+      if (!project) {
+        reply.code(404);
+        return { error: 'project not found' };
+      }
+      const detection = detectProjectType(project.repoPath);
+      return { type: detection.type, framework: detection.framework, reason: detection.reason };
     }),
   );
 

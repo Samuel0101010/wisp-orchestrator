@@ -244,6 +244,63 @@ describe('PreviewProcessRegistry', () => {
     expect(status.status).toBe('running');
   });
 
+  it('post-startup exit flips a running entry to error with process-died', async () => {
+    registry = new PreviewProcessRegistry();
+    const child = fakeChild();
+    const spawnImpl = vi
+      .fn()
+      .mockReturnValue(child) as unknown as typeof import('node:child_process').spawn;
+    const fetchImpl = vi.fn().mockResolvedValueOnce({ ok: true, status: 200 });
+    const result = await registry.startPreview({
+      projectId: 'p1',
+      devCmd: 'pnpm dev',
+      probeUrl: 'http://127.0.0.1:5173/',
+      readyTimeoutMs: 2000,
+      fetchImpl,
+      spawnImpl,
+      isPortFreeImpl: async () => true,
+    });
+    expect(result.status).toBe('running');
+    // Crash AFTER the ready probe succeeded: stderr noise, then exit. Mark the
+    // fake child as exited so killTree (afterEach reset) short-circuits.
+    child.stderr?.emit('data', Buffer.from('Segmentation fault'));
+    (child as { exitCode: number | null }).exitCode = 1;
+    child.emit('exit', 1, null);
+    // No pid probing here — the exit handler alone must have flipped the entry.
+    const status = registry.getPreviewStatus('p1');
+    expect(status.running).toBe(false);
+    expect(status.status).toBe('error');
+    expect(status.error?.startsWith('process-died')).toBe(true);
+    expect(status.error).toContain('Segmentation fault');
+  });
+
+  it('stop-then-exit does not resurrect a stopped preview as crashed', async () => {
+    registry = new PreviewProcessRegistry();
+    const child = fakeChild();
+    const spawnImpl = vi
+      .fn()
+      .mockReturnValue(child) as unknown as typeof import('node:child_process').spawn;
+    const fetchImpl = vi.fn().mockResolvedValueOnce({ ok: true, status: 200 });
+    const result = await registry.startPreview({
+      projectId: 'p1',
+      devCmd: 'pnpm dev',
+      probeUrl: 'http://127.0.0.1:5173/',
+      readyTimeoutMs: 2000,
+      fetchImpl,
+      spawnImpl,
+      isPortFreeImpl: async () => true,
+    });
+    expect(result.status).toBe('running');
+    // Mark the fake child as exited so stopPreview's killTree short-circuits
+    // (no real taskkill); the OS-level exit still arrives asynchronously below.
+    (child as { exitCode: number | null }).exitCode = 1;
+    expect(registry.stopPreview('p1').stopped).toBe(true);
+    // Windows ordering: stopPreview deleted the entry, THEN the tree-kill
+    // triggers exit. The entry-identity guard must keep the map empty.
+    child.emit('exit', null, 'SIGTERM');
+    expect(registry.getPreviewStatus('p1')).toEqual({ running: false });
+  });
+
   it('stopPreview flips status back and is idempotent', async () => {
     registry = new PreviewProcessRegistry();
     registry.__test_register({ projectId: 'p2', port: 5174, pid: 1234 });

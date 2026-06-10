@@ -189,6 +189,80 @@ describe('projects routes', () => {
     });
   });
 
+  describe('GET /api/projects/default-repo-base', () => {
+    it('returns a home-dir base ending in wisp-projects and the platform separator', async () => {
+      const res = await app.inject({ method: 'GET', url: '/api/projects/default-repo-base' });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.base).toBe(path.join(os.homedir(), 'wisp-projects'));
+      expect(body.base.endsWith('wisp-projects')).toBe(true);
+      expect(body.sep).toBe(path.sep);
+    });
+  });
+
+  describe('GET /api/projects/:id/project-type', () => {
+    const tmpDirs: string[] = [];
+    afterEach(() => {
+      for (const d of tmpDirs.splice(0)) {
+        try {
+          fs.rmSync(d, { recursive: true, force: true });
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+
+    async function createProjectWithRepo(repoPath: string): Promise<string> {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/projects',
+        payload: { name: 'ptype-test', goal: 'cover project-type endpoint', repoPath },
+      });
+      return res.json().id;
+    }
+
+    it('classifies a vite repo as web-app with framework vite', async () => {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-ptype-'));
+      tmpDirs.push(dir);
+      fs.writeFileSync(
+        path.join(dir, 'package.json'),
+        JSON.stringify({
+          name: 'ptype-vite',
+          scripts: { dev: 'vite' },
+          devDependencies: { vite: '^5.0.0' },
+        }),
+      );
+      const id = await createProjectWithRepo(dir);
+      const res = await app.inject({ method: 'GET', url: `/api/projects/${id}/project-type` });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.type).toBe('web-app');
+      expect(body.framework).toBe('vite');
+      expect(typeof body.reason).toBe('string');
+      expect(body.reason.length).toBeGreaterThan(0);
+    });
+
+    it('returns unknown when the repoPath does not exist on disk', async () => {
+      const dir = path.join(os.tmpdir(), `harness-ptype-missing-${Date.now()}`);
+      const id = await createProjectWithRepo(dir);
+      const res = await app.inject({ method: 'GET', url: `/api/projects/${id}/project-type` });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.type).toBe('unknown');
+      expect(body.framework).toBeNull();
+      expect(typeof body.reason).toBe('string');
+    });
+
+    it('returns 404 on unknown project id', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/projects/00000000-0000-0000-0000-000000000000/project-type',
+      });
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toMatchObject({ error: 'project not found' });
+    });
+  });
+
   describe('POST /api/projects/repo-status', () => {
     const tmpDirs: string[] = [];
     afterEach(() => {
