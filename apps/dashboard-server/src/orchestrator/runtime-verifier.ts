@@ -44,6 +44,7 @@ const RUNTIME_VERIFIER_TOOLS = [
 
 export const RUNTIME_VERIFIER_ROLE: AgentSpec = {
   role: 'runtime-verifier',
+  origin: 'system',
   model: 'sonnet',
   allowedTools: RUNTIME_VERIFIER_TOOLS,
   systemPrompt: `You are the runtime verifier. Code compiles + unit-tests pass. Prove the app actually _renders_ + satisfies every DoD criterion. HTTP 200 is NOT proof — a blank dark screen also returns 200.
@@ -305,6 +306,7 @@ Set \`verdict="pass"\` only when boot + every smoke + every e2e criterion passes
   return {
     id: args.id ?? 'n-runtime-verify',
     role: 'runtime-verifier',
+    origin: 'system',
     prompt,
     deps: args.deps,
     successCriteria: {

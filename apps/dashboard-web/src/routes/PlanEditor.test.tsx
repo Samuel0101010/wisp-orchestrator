@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Plan } from '@wisp/schemas';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ToastViewportRoot } from '@/components/ui/use-toast';
 import { PlanEditor } from './PlanEditor';
 
 // Replace the heavy React Flow canvas with a thin div-based stub. Tests only
@@ -137,6 +138,7 @@ function renderEditor(projectId = 'p1') {
           <Routes>
             <Route path="/projects/:projectId/plan" element={<PlanEditor />} />
           </Routes>
+          <ToastViewportRoot />
         </MemoryRouter>
       </TooltipProvider>
     </QueryClientProvider>,
@@ -286,6 +288,37 @@ describe('PlanEditor', () => {
     renderEditor();
     expect(await screen.findByText('No plan yet')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /generate plan/i })).toBeInTheDocument();
+  });
+
+  it('surfaces a plan_invalid_roles 422 from generate-plan as a toast naming the roles', async () => {
+    const plan = buildPlan();
+    fetchHandler = (url, init) => {
+      if (url.endsWith('/plan') && (!init?.method || init.method === 'GET')) {
+        return new Response(JSON.stringify(planRowResponse(plan)), { status: 200 });
+      }
+      if (init?.method === 'POST' && url.endsWith('/api/projects/p1/plan')) {
+        return new Response(
+          JSON.stringify({
+            error: 'plan_invalid_roles',
+            invalidRoles: ['frontend-dev', 'sec-auditor'],
+            allowedRoles: ['architect', 'developer', 'qa'],
+            message: 'planner emitted roles outside the team',
+          }),
+          { status: 422 },
+        );
+      }
+      return new Response(JSON.stringify({ id: 'p1', name: 'Proj', goal: 'g', repoPath: '/r' }), {
+        status: 200,
+      });
+    };
+    renderEditor();
+    fireEvent.click(await screen.findByRole('button', { name: /re-generate/i }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /re-generate/i }));
+
+    // The toast must name the offending roles, not the raw error token.
+    expect(await screen.findByText(/frontend-dev, sec-auditor/)).toBeInTheDocument();
+    expect(screen.queryByText('plan_invalid_roles')).not.toBeInTheDocument();
   });
 
   it('Lock & Run on a clean draft calls the lock endpoint and toasts', async () => {

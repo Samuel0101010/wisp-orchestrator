@@ -46,7 +46,7 @@ export {
 } from './liveness.js';
 export type { LivenessProbe } from './liveness.js';
 
-export { Walker, composeTaskPrompt } from './walker.js';
+export { Walker, composeTaskPrompt, defaultIsQARole } from './walker.js';
 export type {
   WalkerDeps,
   WalkerStatus,

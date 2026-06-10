@@ -703,6 +703,9 @@
       "body": "Agents arbeiten in isolierten git-Worktrees. Initialisiere ein neues Git-Repository inkl. erstem Commit; danach starten wir Lock & Run automatisch neu. Verzeichnis:",
       "initialize": "Repo initialisieren",
       "initializing": "Initialisiere …"
+    },
+    "errors": {
+      "planInvalidRoles": "Der Planer hat Rollen verwendet, die nicht in deinem Team sind: {{roles}}. Bitte generiere den Plan erneut oder passe dein Team an."
     }
   },
   "runView": {
@@ -766,7 +769,9 @@
       "liveTailFor": "Live-Stream — {{title}}",
       "tailHint": "Letzte {{count}} Text-Deltas (max 200 pro Task).",
       "pinScroll": "Scroll oben pinnen",
-      "noOutput": "Noch keine Ausgabe."
+      "noOutput": "Noch keine Ausgabe.",
+      "executedBy": "Ausgeführt von {{name}} ({{model}})",
+      "executedByOverride": "Ausgeführt von {{name}} ({{model}} statt {{storedModel}})"
     },
     "controls": {
       "pause": "Pausieren",
@@ -799,6 +804,15 @@
       "rateLimitHit": "Rate-Limit getroffen"
     },
     "connecting": "Verbinde…"
+  },
+  "systemNode": {
+    "badge": "System",
+    "tooltip": {
+      "wire-up": "Automatisch eingefügt: gleicht die parallel erstellten Code-Stände ab, damit das Projekt baut.",
+      "runtime-verifier": "Automatisch eingefügt: startet die App und prüft, ob sie wirklich läuft.",
+      "lead": "Automatisch eingefügt: der Team-Lead prüft den Stand am Ende des Plans.",
+      "default": "Vom System hinzugefügt — nicht Teil deines gewählten Teams."
+    }
   },
   "firstRunModal": {
     "title": "WISP nutzt dein Claude-Abo",

@@ -58,6 +58,15 @@ describe('buildPlannerPrompt', () => {
     expect(p).toContain('team: { roles: AgentSpec[] }');
   });
 
+  it('instructs the planner to emit a short human title per node', () => {
+    const p = buildPlannerPrompt('x', team([{ role: 'architect' }]));
+    // Schema block documents the field…
+    expect(p).toContain('title: string');
+    // …and the constraints demand it on every node.
+    expect(p).toContain('Give every TaskNode a short imperative `title`');
+    expect(p).toContain('≤60 chars');
+  });
+
   it('mentions preflight prose so the planner emits the hint when appropriate', () => {
     const p = buildPlannerPrompt('x', team([{ role: 'architect' }]));
     expect(p).toContain('preflight runs ONCE');

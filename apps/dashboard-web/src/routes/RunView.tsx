@@ -62,6 +62,10 @@ import { roleHsl } from '@/lib/role-color';
 // only ever produced a permanently-empty sixth column.
 const COLUMN_ORDER: TaskColumn[] = ['pending', 'running', 'done', 'failed', 'cancelled'];
 
+// Locked minimum set of harness-injected roles. Keyed on task.role (not plan
+// origin) so the run view never has to load the plan to mark system nodes.
+const SYSTEM_TASK_ROLES = new Set<string>(['wire-up', 'runtime-verifier', 'lead']);
+
 function formatCompactNumber(n: number): string {
   if (n < 1000) return String(n);
   if (n < 10_000) return `${(n / 1000).toFixed(1)}k`;
@@ -263,6 +267,16 @@ function TaskCard({
           <span className="truncate text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             {task.role}
           </span>
+          {SYSTEM_TASK_ROLES.has(task.role) && (
+            <Badge
+              variant="outline"
+              className="shrink-0 px-1.5 py-0 text-2xs font-medium"
+              title={t(`systemNode.tooltip.${task.role}`)}
+              data-testid={`task-system-badge-${task.id}`}
+            >
+              {t('systemNode.badge')}
+            </Badge>
+          )}
         </span>
         {/* Inside a kanban column (~120 px content width), a full status pill
             with a translated label like "FEHLGESCHLAGEN" overflows and gets
@@ -291,6 +305,23 @@ function TaskCard({
       <div className="flex flex-col">
         <span className="text-sm font-medium">{task.title}</span>
         <span className="text-xs text-muted-foreground">{task.id}</span>
+        {(task.executorName || task.executorModel) && (
+          <span
+            className="truncate text-2xs text-muted-foreground"
+            data-testid={`task-executor-${task.id}`}
+          >
+            {task.executorModelStored
+              ? t('runView.task.executedByOverride', {
+                  name: task.executorName ?? task.role,
+                  model: task.executorModel ?? '',
+                  storedModel: task.executorModelStored,
+                })
+              : t('runView.task.executedBy', {
+                  name: task.executorName ?? task.role,
+                  model: task.executorModel ?? '',
+                })}
+          </span>
+        )}
       </div>
       {/* Metric rows. Stacked label-value pairs so they read cleanly in
           narrow kanban columns (~125px content width on 1440px viewports)

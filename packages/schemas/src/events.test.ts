@@ -7,6 +7,39 @@ describe('HarnessEvent', () => {
     expect(harnessEventSchema.parse(e)).toEqual(e);
   });
 
+  it('parses old task.started payload without executor (backward compat)', () => {
+    const old = { type: 'task.started', payload: { taskId: 't1' } };
+    const parsed = harnessEventSchema.parse(old);
+    expect(parsed).toEqual(old);
+    if (parsed.type === 'task.started') {
+      expect(parsed.payload.executor).toBeUndefined();
+    }
+  });
+
+  it('round-trips task.started with executor payload', () => {
+    const e: HarnessEvent = {
+      type: 'task.started',
+      payload: {
+        taskId: 't1',
+        executor: {
+          name: 'Maya',
+          model: 'haiku',
+          modelStored: 'sonnet',
+          avatarUrl: '/avatars/maya.webp',
+        },
+      },
+    };
+    expect(harnessEventSchema.parse(e)).toEqual(e);
+    const withNulls: HarnessEvent = {
+      type: 'task.started',
+      payload: {
+        taskId: 't2',
+        executor: { name: null, model: 'sonnet', modelStored: null, avatarUrl: null },
+      },
+    };
+    expect(harnessEventSchema.parse(withNulls)).toEqual(withNulls);
+  });
+
   it('round-trips task.completed', () => {
     const e: HarnessEvent = {
       type: 'task.completed',

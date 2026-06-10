@@ -67,6 +67,24 @@ describe('migrations', () => {
     expect(artifact!.notnull).toBe(0);
   });
 
+  it('tasks has the four nullable executor identity columns (migration 0020)', () => {
+    const cols = sqlite.prepare(`PRAGMA table_info('tasks')`).all() as Array<{
+      name: string;
+      notnull: number;
+    }>;
+    const byName = new Map(cols.map((c) => [c.name, c]));
+    for (const col of [
+      'executor_name',
+      'executor_model',
+      'executor_model_stored',
+      'executor_avatar_url',
+    ]) {
+      const c = byName.get(col);
+      expect(c, `tasks.${col} missing`).toBeDefined();
+      expect(c!.notnull).toBe(0);
+    }
+  });
+
   it('plans has kind + parent_state_id columns', () => {
     const cols = sqlite.prepare(`PRAGMA table_info('plans')`).all() as Array<{
       name: string;

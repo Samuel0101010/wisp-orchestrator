@@ -13,11 +13,13 @@ import { db } from '../db/index.js';
 import {
   defaultRunner,
   generatePlan,
+  isPlannerRoleError,
   isPlannerSuccess,
   isRateLimitOutcome,
   type Runner,
 } from './planner-runner.js';
 import { buildBriefContextSections } from './brief-context.js';
+import { normalizePlanIdentity } from './plan-identity.js';
 
 export interface ReplanArgs {
   parentPlanId: string;
@@ -110,6 +112,9 @@ export async function replanOnQAFailure(args: ReplanArgs): Promise<ReplanResult 
   );
 
   if (isRateLimitOutcome(outcome)) return null;
+  // Planner kept inventing roles even after the corrective retry — fall
+  // through to the walker's terminal-fail contract (null = task.failed).
+  if (isPlannerRoleError(outcome)) return null;
   if (!isPlannerSuccess(outcome)) return null;
 
   // Re-stamp the goal to the project's authoritative goal verbatim. plan.goal is
@@ -117,7 +122,25 @@ export async function replanOnQAFailure(args: ReplanArgs): Promise<ReplanResult 
   // walker feeds plan.goal to every executing agent, so the crew must build
   // against what the user wrote — not a drifted replan paraphrase. Mirrors the
   // same re-stamp in the POST plan route.
-  const plan = { ...outcome.plan, goal: projectRow.goal };
+  // Re-stamp the team too via normalizePlanIdentity: stored specs win over any
+  // planner paraphrase of model / prompt / allowedTools, and planner-set node
+  // origins are stripped. A re-stamp miss is NOT unreachable — the user can
+  // edit the team between run start and QA failure — so on a miss we log and
+  // fall through to the walker's terminal-fail contract (null = task.failed)
+  // instead of throwing out of the walker callback.
+  const normalized = normalizePlanIdentity({ ...outcome.plan, goal: projectRow.goal }, team);
+  if (!normalized.ok) {
+    console.warn(
+      JSON.stringify({
+        event: 'replan-restamp-role-missing',
+        projectId: parentRow.projectId,
+        parentPlanId: args.parentPlanId,
+        invalidRoles: normalized.invalidRoles,
+      }),
+    );
+    return null;
+  }
+  const plan = normalized.plan;
 
   // Persist with parent_plan_id linkage.
   const newPlanId = randomUUID();

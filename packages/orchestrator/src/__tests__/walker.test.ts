@@ -3,6 +3,7 @@ import type { HarnessEvent, Plan, Team, TaskNode } from '@wisp/schemas';
 import {
   Walker,
   composeTaskPrompt,
+  defaultIsQARole,
   type BudgetConfig,
   type TaskState,
   type WalkerDeps,
@@ -1287,6 +1288,151 @@ describe('Walker — QA-driven replan (M5)', () => {
     expect(h.deps.worktree.added).toContain('wisp/r-prefix/q');
     // After replan, the new plan's task adds under v2.
     expect(h.deps.worktree.added).toContain('wisp/r-prefix/v2/q');
+  });
+});
+
+describe('Walker — QA-role predicate (isQARole)', () => {
+  const failingVerify = async (): Promise<VerificationResult> => ({
+    pass: false,
+    output: 'qa gate failed',
+    failures: [{ kind: 'custom' as const, cmd: 'v', exitCode: 1, tail: 'x' }],
+  });
+
+  function planWithRole(role: string, taskId = 'q'): Plan {
+    const team: Team = {
+      roles: [
+        ...makeTeam().roles,
+        { role, model: 'sonnet', allowedTools: ['Read'], systemPrompt: `extra ${FILLER}` },
+      ],
+    };
+    const nodes = [node(taskId, role)];
+    return { goal: 'g', team, nodes, edges: [] };
+  }
+
+  it('defaultIsQARole matches qa as a token, not as a substring', () => {
+    expect(defaultIsQARole('qa')).toBe(true);
+    expect(defaultIsQARole('qa-engineer')).toBe(true);
+    expect(defaultIsQARole('senior_qa')).toBe(true);
+    expect(defaultIsQARole('quality-analyst')).toBe(false);
+  });
+
+  it('fires the replan hook for role qa-engineer with the default predicate', async () => {
+    const replanFn = vi.fn(async () => null);
+    const h = makeHarness({ defaultVerify: failingVerify });
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    await h.walker.start({
+      runId: 'r-qa-eng',
+      plan: planWithRole('qa-engineer'),
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(replanFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('still fires for the literal qa role', async () => {
+    const replanFn = vi.fn(async () => null);
+    const h = makeHarness({ defaultVerify: failingVerify });
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    await h.walker.start({
+      runId: 'r-qa-lit',
+      plan: makePlan([node('q', 'qa')]),
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(replanFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT fire for quality-analyst with the default predicate', async () => {
+    const replanFn = vi.fn(async () => null);
+    const h = makeHarness({ defaultVerify: failingVerify });
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    await h.walker.start({
+      runId: 'r-quality',
+      plan: planWithRole('quality-analyst'),
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(replanFn).not.toHaveBeenCalled();
+  });
+
+  it('an injected custom isQARole wins over the default', async () => {
+    const replanFn = vi.fn(async () => null);
+    const h = makeHarness({ defaultVerify: failingVerify });
+    h.walker = new Walker({
+      ...h.deps,
+      replanOnQAFailure: replanFn,
+      // Custom predicate flips the default verdict for quality-analyst.
+      isQARole: (role) => role === 'quality-analyst',
+    });
+    await h.walker.start({
+      runId: 'r-custom-pred',
+      plan: planWithRole('quality-analyst'),
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(replanFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Walker — executor identity at dispatch', () => {
+  it('running-state patch carries the override model + stored model when applyAgentOverride swaps it', async () => {
+    const h = makeHarness({});
+    h.walker = new Walker({
+      ...h.deps,
+      applyAgentOverride: (role, base) =>
+        role === 'developer' ? { ...base, model: 'haiku' } : base,
+    });
+    await h.walker.start({
+      runId: 'r-exec-override',
+      plan: makePlan([node('d', 'developer')]),
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    const state = h.taskStates.get('d')!;
+    // makeTeam stores developer as 'sonnet'; the override launched 'haiku'.
+    expect(state.executorModel).toBe('haiku');
+    expect(state.executorModelStored).toBe('sonnet');
+    // No resolveExecutor wired → identity fields are null, not undefined.
+    expect(state.executorName).toBeNull();
+    expect(state.executorAvatarUrl).toBeNull();
+  });
+
+  it('running-state patch carries modelStored=null when no override swaps the model', async () => {
+    const h = makeHarness({});
+    await h.walker.start({
+      runId: 'r-exec-plain',
+      plan: makePlan([node('d', 'developer')]),
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    const state = h.taskStates.get('d')!;
+    expect(state.executorModel).toBe('sonnet');
+    expect(state.executorModelStored).toBeNull();
+  });
+
+  it('task.started payload carries the executor object', async () => {
+    const h = makeHarness({});
+    h.walker = new Walker({
+      ...h.deps,
+      resolveExecutor: (role) =>
+        role === 'developer' ? { name: 'Maya', avatarUrl: '/avatars/maya.webp' } : null,
+    });
+    await h.walker.start({
+      runId: 'r-exec-event',
+      plan: makePlan([node('d', 'developer')]),
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    const started = h.emitted.find((e) => e.type === 'task.started');
+    expect(started).toBeDefined();
+    if (started?.type === 'task.started') {
+      expect(started.payload.executor).toEqual({
+        name: 'Maya',
+        model: 'sonnet',
+        modelStored: null,
+        avatarUrl: '/avatars/maya.webp',
+      });
+    }
   });
 });
 

@@ -140,3 +140,63 @@ describe('RunRuntime.startRun — task state reset between runs', () => {
     }
   });
 });
+
+describe('RunRuntime.startRun — task title seeding', () => {
+  it('seeds title from node.title when present and from the prompt-derived fallback otherwise — not node.id', async () => {
+    const runtime = makeRuntime();
+    const projectId = randomUUID();
+    await db
+      .insert(projects)
+      .values({
+        id: projectId,
+        name: 'p',
+        goal: 'g',
+        repoPath: '/tmp/repo',
+        createdAt: new Date(),
+      })
+      .run();
+    const planId = randomUUID();
+    const longPrompt = 'b'.repeat(75);
+    const plan = {
+      goal: 'g',
+      team: {
+        roles: [
+          { role: 'architect', model: 'opus', allowedTools: [], systemPrompt: 'a'.repeat(60) },
+          { role: 'developer', model: 'sonnet', allowedTools: [], systemPrompt: 'd'.repeat(60) },
+        ],
+      },
+      nodes: [
+        {
+          id: 'n1',
+          role: 'architect',
+          title: 'Design the data model',
+          prompt: 'ignored when title set',
+          deps: [],
+          successCriteria: {},
+          maxTurns: 5,
+        },
+        {
+          id: 'n2',
+          role: 'developer',
+          prompt: `${longPrompt}\nsecond line`,
+          deps: ['n1'],
+          successCriteria: {},
+          maxTurns: 5,
+        },
+      ],
+      edges: [{ from: 'n1', to: 'n2' }],
+    };
+    await db
+      .insert(plans)
+      .values({ id: planId, projectId, dagJson: plan as unknown, status: 'locked' })
+      .run();
+
+    const res = await runtime.startRun({ planId });
+    expect(res.ok).toBe(true);
+
+    const rows = await db.select().from(tasksTable).where(eq(tasksTable.planId, planId)).all();
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    expect(byId.get('n1')!.title).toBe('Design the data model');
+    expect(byId.get('n2')!.title).toBe(`${'b'.repeat(60)}…`);
+  });
+});

@@ -14,7 +14,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
+  agents,
   checkpoints,
+  deriveTaskTitle,
   events as eventsTable,
   parsePlan,
   plans,
@@ -22,6 +24,7 @@ import {
   projects,
   runs,
   tasks,
+  teams,
   type HarnessEvent,
   type Plan,
   type RunStatus,
@@ -34,6 +37,7 @@ import {
   abortMergeInWorktree,
   addWorktree,
   commitWorktreeChanges,
+  defaultIsQARole,
   getMergeStatusInWorktree,
   mergeBranchesInWorktree,
   removeWorktree,
@@ -271,6 +275,49 @@ export class RunRuntime {
         console.error('[runtime] load projectBrief failed:', err);
       }
     }
+    // Role → persistent agent identity, built ONCE per walker so the
+    // dispatch-time resolveExecutor call is a cheap in-memory lookup.
+    // Best-effort: roles without an agentId link resolve to null, and any
+    // load/parse failure degrades to "no identity" — never throws into the
+    // walker's dispatch path.
+    const executorByRole = new Map<string, { name: string; avatarUrl: string | null }>();
+    if (projectId) {
+      try {
+        const teamRow = await this.db
+          .select()
+          .from(teams)
+          .where(eq(teams.projectId, projectId))
+          .get();
+        const roles = teamRow?.rolesJson?.roles ?? [];
+        const agentIds = [
+          ...new Set(
+            roles
+              .map((r) => r.agentId)
+              .filter((id): id is string => typeof id === 'string' && id.length > 0),
+          ),
+        ];
+        if (agentIds.length > 0) {
+          const agentRows = await this.db
+            .select()
+            .from(agents)
+            .where(inArray(agents.id, agentIds))
+            .all();
+          const byId = new Map(agentRows.map((a) => [a.id, a]));
+          for (const r of roles) {
+            const agentRow = r.agentId ? byId.get(r.agentId) : undefined;
+            if (agentRow) {
+              executorByRole.set(r.role, {
+                name: agentRow.name,
+                avatarUrl: agentRow.avatarUrl ?? null,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[runtime] load executor identities failed:', err);
+        executorByRole.clear();
+      }
+    }
     return {
       pool,
       worktree: { add: addWorktree, remove: removeWorktree },
@@ -360,6 +407,11 @@ export class RunRuntime {
         );
         return merged as unknown as T;
       },
+      // Explicit per contract 6a: same behavior as the walker's internal
+      // fallback ('qa' as a -/_ separated token), now wired via the exported
+      // default so the dependency is visible at the composition root.
+      isQARole: defaultIsQARole,
+      resolveExecutor: (role) => executorByRole.get(role) ?? null,
       handoffsSection,
       briefContext,
       // WRITE side of the hand-off contract (the READ side is `handoffsSection`
@@ -512,6 +564,10 @@ export class RunRuntime {
           status: 'pending',
           worktreeBranch: null,
           sessionId: null,
+          executorName: null,
+          executorModel: null,
+          executorModelStored: null,
+          executorAvatarUrl: null,
           tokensIn: 0,
           tokensOut: 0,
           turnsUsed: 0,
@@ -530,7 +586,7 @@ export class RunRuntime {
             id: node.id,
             planId: args.planId,
             role: node.role as TaskRole,
-            title: node.id,
+            title: deriveTaskTitle(node),
             deps: node.deps,
             status: 'pending',
           })
@@ -1261,6 +1317,11 @@ export class RunRuntime {
     }
     if (patch.worktreeBranch !== undefined) update.worktreeBranch = patch.worktreeBranch;
     if (patch.sessionId !== undefined) update.sessionId = patch.sessionId;
+    if (patch.executorName !== undefined) update.executorName = patch.executorName;
+    if (patch.executorModel !== undefined) update.executorModel = patch.executorModel;
+    if (patch.executorModelStored !== undefined)
+      update.executorModelStored = patch.executorModelStored;
+    if (patch.executorAvatarUrl !== undefined) update.executorAvatarUrl = patch.executorAvatarUrl;
     if (patch.tokensIn !== undefined) update.tokensIn = patch.tokensIn;
     if (patch.tokensOut !== undefined) update.tokensOut = patch.tokensOut;
     if (patch.turnsUsed !== undefined) update.turnsUsed = patch.turnsUsed;

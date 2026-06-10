@@ -10,7 +10,21 @@ const resourceKind = z.enum(['time', 'turns', 'tokens']);
 export const harnessEventSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('task.started'),
-    payload: z.object({ taskId: z.string() }),
+    payload: z.object({
+      taskId: z.string(),
+      /** Identity of the agent executing this task. Optional so events
+       *  emitted before v2.3 (and replayed history) keep parsing.
+       *  `modelStored` carries the team's stored model when a per-project
+       *  override swapped it at dispatch time; null when no swap happened. */
+      executor: z
+        .object({
+          name: z.string().nullable(),
+          model: z.string(),
+          modelStored: z.string().nullable(),
+          avatarUrl: z.string().nullable(),
+        })
+        .optional(),
+    }),
   }),
   z.object({
     type: z.literal('task.completed'),

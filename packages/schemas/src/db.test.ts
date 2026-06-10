@@ -50,6 +50,33 @@ describe('drizzle table definitions', () => {
     expect(projects.id).toBeDefined();
   });
 
+  it('tasks has the four nullable executor identity columns (migration 0020)', () => {
+    expect(tasks.executorName).toBeDefined();
+    expect(tasks.executorModel).toBeDefined();
+    expect(tasks.executorModelStored).toBeDefined();
+    expect(tasks.executorAvatarUrl).toBeDefined();
+    // All nullable — task rows from runs before v2.3 have no identity.
+    const t: Task = {
+      id: 't1',
+      planId: 'p1',
+      role: 'developer',
+      title: 'do work',
+      deps: [],
+      status: 'pending',
+      worktreeBranch: null,
+      sessionId: null,
+      executorName: null,
+      executorModel: null,
+      executorModelStored: null,
+      executorAvatarUrl: null,
+      tokensIn: 0,
+      tokensOut: 0,
+      turnsUsed: 0,
+      durationMs: 0,
+    };
+    expect(t.executorName).toBeNull();
+  });
+
   it('runPausedReasonValues includes rate-limit, user, shutdown, consecutive-failures', () => {
     expect(runPausedReasonValues).toEqual([
       'rate-limit',

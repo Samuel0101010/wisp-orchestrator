@@ -73,6 +73,7 @@
     "0016_plan_kind.sql",
     "0017_package_target.sql",
     "0018_lead_notes.sql",
-    "0019_plan_created_at.sql"
+    "0019_plan_created_at.sql",
+    "0020_task_executor.sql"
   ]
 }

@@ -57,6 +57,7 @@ const DAG_SCHEMA_BLOCK = `Plan {
 }
 TaskNode {
   id: string                         // unique within plan
+  title: string                      // OPTIONAL: short imperative human title, max 60 chars (e.g. "Set up the data model")
   role: string                       // MUST be one of team.roles[].role; kebab-case
   prompt: string                     // task instruction for that node
   deps: string[]                     // node ids this node depends on
@@ -108,6 +109,7 @@ export function buildPlannerPrompt(goal: string, team: Team): string {
     `- The team has ${team.roles.length} ${team.roles.length === 1 ? 'role' : 'roles'}: ${team.roles.map((r) => `\`${r.role}\``).join(', ')}.`,
     `- Every TaskNode.role MUST exactly equal one of these literal strings.`,
     `- Mirror the team verbatim in the output JSON; do not invent extra roles.`,
+    `- Give every TaskNode a short imperative \`title\` (≤60 chars) a non-developer understands, in the language of the goal.`,
     ``,
     `## DAG schema`,
     '```',

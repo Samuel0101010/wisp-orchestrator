@@ -107,6 +107,20 @@ describe('injectWireUp', () => {
     expect(validateDag(r.plan).ok).toBe(true);
   });
 
+  it('stamps origin "system" on the injected node + role, planner-authored ones untouched', () => {
+    const plan = basePlan();
+    const r = injectWireUp({ plan });
+    expect(r.reason).toBe('injected');
+    expect(r.plan.nodes.find((n) => n.role === 'wire-up')?.origin).toBe('system');
+    expect(r.plan.team.roles.find((x) => x.role === 'wire-up')?.origin).toBe('system');
+    for (const n of r.plan.nodes.filter((n) => n.role !== 'wire-up')) {
+      expect(n.origin).toBeUndefined();
+    }
+    for (const x of r.plan.team.roles.filter((x) => x.role !== 'wire-up')) {
+      expect(x.origin).toBeUndefined();
+    }
+  });
+
   it('is idempotent — injecting twice yields the same plan as injecting once', () => {
     const plan = basePlan();
     const first = injectWireUp({ plan });

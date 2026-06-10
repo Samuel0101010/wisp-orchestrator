@@ -18,6 +18,7 @@ import { wrap } from './wrap.js';
 import {
   defaultRunner,
   generatePlan,
+  isPlannerRoleError,
   isPlannerSuccess,
   isRateLimitOutcome,
   type Runner,
@@ -33,6 +34,7 @@ import {
   type PlanKind,
 } from '@wisp/schemas';
 import { buildBriefContextSections } from '../orchestrator/brief-context.js';
+import { normalizePlanIdentity } from '../orchestrator/plan-identity.js';
 import { injectRuntimeVerifier } from '../orchestrator/inject-runtime-verifier.js';
 import { injectLeadCheckpoint } from '../orchestrator/inject-lead-checkpoint.js';
 import { injectWireUp } from '../orchestrator/inject-wire-up.js';
@@ -388,6 +390,17 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           return { error: 'rate-limit', resetAt: outcome.rateLimit.resetAt };
         }
 
+        if (isPlannerRoleError(outcome)) {
+          reply.code(422);
+          return {
+            error: 'plan_invalid_roles',
+            attempts: outcome.attempts,
+            invalidRoles: outcome.invalidRoles,
+            allowedRoles: outcome.allowedRoles,
+            message: outcome.error,
+          };
+        }
+
         if (!isPlannerSuccess(outcome)) {
           reply.code(422);
           return {
@@ -417,13 +430,20 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
         // walker.composeTaskPrompt feeds plan.goal to every executing agent. Set
         // it to project.goal verbatim so what the user wrote — not a drifted
         // paraphrase — is what the crew builds against.
+        // Strip node origins from planner output too: only the server-side
+        // injectors below may stamp origin:'system', so a planner (or spoofed
+        // plan.json) claiming a System badge is silently demoted.
+        const byRole = new Map(team.roles.map((sr) => [sr.role, sr]));
         finalPlan = {
           ...finalPlan,
           goal: project.goal,
+          nodes: finalPlan.nodes.map((n) => ({ ...n, origin: undefined })),
           team: {
-            roles: finalPlan.team.roles.map(
-              (r) => team.roles.find((sr) => sr.role === r.role) ?? r,
-            ),
+            roles: finalPlan.team.roles.map((r) => {
+              const sr = byRole.get(r.role);
+              if (!sr) throw new Error(`unreachable: role '${r.role}' survived validatePlanRoles`);
+              return sr;
+            }),
           },
         };
 
@@ -525,9 +545,32 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           return { error: 'invalid_dag', errors: dag.errors };
         }
 
+        // Security chokepoint: the walker resolves agent specs from plan.team,
+        // not the stored team row — so a PATCH body could smuggle an attacker-
+        // chosen systemPrompt / model / allowedTools. Normalise every role to
+        // the stored team spec (or the canonical system spec) before persisting.
+        const teamRow = await db
+          .select()
+          .from(teams)
+          .where(eq(teams.projectId, existing.projectId))
+          .get();
+        const storedTeam = teamRow ? safeTeamFromRow(teamRow.rolesJson) : null;
+        if (!storedTeam) {
+          reply.code(400);
+          return {
+            error: 'team_invalid',
+            message: 'stored team is missing or malformed; please save the team again',
+          };
+        }
+        const normalized = normalizePlanIdentity(parsed.data, storedTeam);
+        if (!normalized.ok) {
+          reply.code(422);
+          return { error: 'plan_invalid_roles', invalidRoles: normalized.invalidRoles };
+        }
+
         await db
           .update(plans)
-          .set({ dagJson: parsed.data as unknown })
+          .set({ dagJson: normalized.plan as unknown })
           .where(eq(plans.id, planId))
           .run();
 
@@ -566,7 +609,34 @@ export function createPlansRouter(deps: PlansRouterDeps = {}): FastifyPluginAsyn
           return { error: 'invalid_dag', errors: dag.errors };
         }
 
-        await db.update(plans).set({ status: 'locked' }).where(eq(plans.id, planId)).run();
+        // Defense in depth: re-pin every role to the stored / canonical spec at
+        // the lock boundary too, so a plan that reached the DB by any other
+        // means (older PATCH, manual insert) can't carry rogue agent identities
+        // into a run. The normalized dagJson is persisted alongside the lock.
+        const teamRow = await db
+          .select()
+          .from(teams)
+          .where(eq(teams.projectId, existing.projectId))
+          .get();
+        const storedTeam = teamRow ? safeTeamFromRow(teamRow.rolesJson) : null;
+        if (!storedTeam) {
+          reply.code(400);
+          return {
+            error: 'team_invalid',
+            message: 'stored team is missing or malformed; please save the team again',
+          };
+        }
+        const normalized = normalizePlanIdentity(parsed.data, storedTeam);
+        if (!normalized.ok) {
+          reply.code(422);
+          return { error: 'plan_invalid_roles', invalidRoles: normalized.invalidRoles };
+        }
+
+        await db
+          .update(plans)
+          .set({ status: 'locked', dagJson: normalized.plan as unknown })
+          .where(eq(plans.id, planId))
+          .run();
 
         const updated = await db.select().from(plans).where(eq(plans.id, planId)).get();
         return updated ?? { ...existing, status: 'locked' };

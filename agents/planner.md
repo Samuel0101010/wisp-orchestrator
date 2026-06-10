@@ -23,6 +23,7 @@ Plan {
 }
 TaskNode {
   id: string                       // unique within plan
+  title: string                    // OPTIONAL: short imperative human title, max 60 chars (e.g. "Set up the data model")
   role: string                     // MUST exactly equal one of team.roles[].role
   prompt: string                   // task instruction for that node
   deps: string[]                   // node ids this node depends on
@@ -47,6 +48,7 @@ AgentSpec {
 5. `maxTurns` is an integer in the inclusive range 5..100.
 6. The minimum viable plan is: a planning/architecture node (the role with planning-style responsibilities — typically the first role or one named `architect`/`planner`/similar), one or more implementation nodes that depend on it, and a verification node (typically a role named `qa`/`reviewer`/`verifier`) that depends on the implementation nodes. Larger goals decompose into multiple parallel implementation nodes where independence allows.
 7. The `team` object you emit MUST mirror the input team verbatim — do not invent new agent specs and do not drop existing ones.
+8. Give every TaskNode a short imperative `title` (≤60 chars) a non-developer understands, in the language of the goal.
 
 ## Authoring guidance
 

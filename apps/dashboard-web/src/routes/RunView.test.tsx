@@ -89,50 +89,42 @@ function buildRun(over: Partial<Run> = {}): Run {
   } as unknown as Run;
 }
 
+function buildTask(over: Partial<Task> & Pick<Task, 'id'>): Task {
+  return {
+    planId: 'plan-1',
+    role: 'developer',
+    title: 'task',
+    deps: [],
+    status: 'pending',
+    worktreeBranch: null,
+    sessionId: null,
+    executorName: null,
+    executorModel: null,
+    executorModelStored: null,
+    executorAvatarUrl: null,
+    tokensIn: 0,
+    tokensOut: 0,
+    turnsUsed: 0,
+    durationMs: 0,
+    ...over,
+  };
+}
+
 function buildTasks(): Task[] {
   return [
-    {
-      id: 't-pending',
-      planId: 'plan-1',
-      role: 'architect',
-      title: 'design',
-      deps: [],
-      status: 'pending',
-      worktreeBranch: null,
-      sessionId: null,
-      tokensIn: 0,
-      tokensOut: 0,
-      turnsUsed: 0,
-      durationMs: 0,
-    },
-    {
+    buildTask({ id: 't-pending', role: 'architect', title: 'design' }),
+    buildTask({
       id: 't-done',
-      planId: 'plan-1',
       role: 'developer',
       title: 'impl',
       deps: ['t-pending'],
       status: 'done',
-      worktreeBranch: null,
-      sessionId: null,
       tokensIn: 1000,
       tokensOut: 200,
       turnsUsed: 5,
       durationMs: 12_345,
-    },
-    {
-      id: 't-failed',
-      planId: 'plan-1',
-      role: 'qa',
-      title: 'verify',
-      deps: ['t-done'],
-      status: 'failed',
-      worktreeBranch: null,
-      sessionId: null,
-      tokensIn: 0,
-      tokensOut: 0,
-      turnsUsed: 0,
-      durationMs: 0,
-    },
+    }),
+    buildTask({ id: 't-failed', role: 'qa', title: 'verify', deps: ['t-done'], status: 'failed' }),
   ];
 }
 
@@ -279,6 +271,73 @@ describe('RunView', () => {
     const pill = await screen.findByTestId('ws-status-pill');
     expect(pill).toHaveTextContent(/connecting/i);
     expect(pill).not.toHaveTextContent('idle');
+  });
+
+  it('shows the executor line for tasks with identity and hides it for old null rows', async () => {
+    const tasks = [
+      buildTask({
+        id: 't-exec',
+        title: 'impl',
+        status: 'done',
+        executorName: 'Diego',
+        executorModel: 'sonnet',
+      }),
+      buildTask({
+        id: 't-override',
+        title: 'review',
+        status: 'done',
+        executorName: 'Maya',
+        executorModel: 'haiku',
+        executorModelStored: 'sonnet',
+      }),
+      buildTask({ id: 't-legacy', title: 'old row', status: 'done' }),
+    ];
+    fetchHandler = (url) => {
+      if (/\/api\/runs\/run-1$/.test(url)) {
+        return new Response(JSON.stringify(snapshot(buildRun(), tasks)), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    };
+    renderRunView();
+
+    expect(await screen.findByTestId('task-executor-t-exec')).toHaveTextContent(
+      'Executed by Diego (sonnet)',
+    );
+    // Override variant names both the dispatched and the stored model.
+    expect(screen.getByTestId('task-executor-t-override')).toHaveTextContent(
+      'Executed by Maya (haiku instead of sonnet)',
+    );
+    // Rows from runs before v2.3 carry no identity — no line, no "null".
+    expect(screen.queryByTestId('task-executor-t-legacy')).not.toBeInTheDocument();
+    expect(screen.getByTestId('task-card-t-legacy')).not.toHaveTextContent('null');
+
+    // A task.started event WITHOUT an executor payload (pre-migration replay)
+    // must not surface a literal "null" on the card either.
+    act(() => {
+      pushEvent?.({ type: 'task.started', payload: { taskId: 't-legacy' } });
+    });
+    expect(screen.queryByTestId('task-executor-t-legacy')).not.toBeInTheDocument();
+    expect(screen.getByTestId('task-card-t-legacy')).not.toHaveTextContent('null');
+  });
+
+  it('renders the System badge for harness-injected roles only', async () => {
+    const tasks = [
+      buildTask({ id: 't-wireup', role: 'wire-up', title: 'reconcile branches' }),
+      buildTask({ id: 't-dev', role: 'developer', title: 'impl' }),
+    ];
+    fetchHandler = (url) => {
+      if (/\/api\/runs\/run-1$/.test(url)) {
+        return new Response(JSON.stringify(snapshot(buildRun(), tasks)), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    };
+    renderRunView();
+
+    const badge = await screen.findByTestId('task-system-badge-t-wireup');
+    expect(badge).toHaveTextContent('System');
+    // Tooltip explains why the harness injected the node.
+    expect(badge).toHaveAttribute('title', expect.stringContaining('Auto-inserted'));
+    expect(screen.queryByTestId('task-system-badge-t-dev')).not.toBeInTheDocument();
   });
 
   it('disables the cancel-confirm button while a cancel is in flight', async () => {
