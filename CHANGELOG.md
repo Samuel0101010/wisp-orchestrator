@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.6.0 — built for non-developers
+
+The path from idea to finished app no longer assumes you know what a repository is. Paths fill themselves in, success has a clear moment, the UI speaks plain language, and the preview recovers gracefully.
+
+### Added
+
+- **Repo paths fill themselves in.** Both new-project dialogs suggest `~/wisp-projects/<name>` as you type the project name (umlauts folded, accents transliterated); the first manual edit takes over. Plain-language helper text replaces `/absolute/path/to/repo`.
+- **"Deine App ist fertig."** A success card on the run view: web apps get a one-click "View your app — open preview" button (deep-links to the Preview tab), desktop apps point to the build card, everyone sees where their files live and how to ask for next steps.
+
+### Changed
+
+- **Plain language everywhere it hurt.** "Plan fixieren & starten" instead of lock jargon, the repo-init dialog no longer talks about git worktrees, DoD and release gate carry one-line explainers, budget fields show examples ("z. B. 60 — max. Minuten"). Skipped release gates no longer display alarming FAIL detail rows.
+- **The preview recovers gracefully.** A crashed dev server is detected the moment it exits (not on the next poll) and reported in plain language with the technical detail demoted. The element picker now builds robust selectors (`data-testid` > `id` > unique `aria-label` > class-free paths) instead of relying on fragile Tailwind hash classes.
+
+### Fixed
+
+- `package.json` files saved with a UTF-8 BOM are detected correctly.
+
 ## 2.5.0 — efficient crews, honest gates
 
 No wasted tokens, and quality loops that work like a real team's: budgets are enforced before work starts, context goes only where it's needed, the harness verifies the app boots instead of trusting a report, and validation runs on the cheapest capable model.
