@@ -37,7 +37,11 @@ interface Props {
  * Shows what an agent actually receives at runtime: system prompt + composed
  * task prompt (goal + task spec + success criteria + retry context). The
  * composeTaskPrompt logic mirrors the orchestrator's; see
- * apps/dashboard-web/src/data/composedPrompt.ts.
+ * apps/dashboard-web/src/data/composedPrompt.ts. One known gap: the
+ * server-side "## Prior Handoffs" section is resolved per node at dispatch
+ * time (scoped to the node's transitive dependency closure, 10 most recent,
+ * read live from the project memory DB) and is intentionally not previewed
+ * in the browser.
  */
 export function ComposedPromptPreviewDialog({ team, defaultGoal, brief }: Props) {
   const { t } = useTranslation();

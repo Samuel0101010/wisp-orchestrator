@@ -12,12 +12,14 @@
  * means the orchestrator's package boundary stays free of memory-mcp
  * details until the wiring is done.
  *
- * Wiring (done): the READ path is live — `runtime.ts` calls
- * `loadHandoffsForProject` + `renderHandoffsSection` when building WalkerDeps
- * and passes the result as `handoffsSection`, which the walker injects into
- * each task's composed prompt. The WRITE path is also live: the walker calls
- * `WalkerDeps.writeHandoff` on task completion, which `runtime.ts` wires to
- * `writeProjectMemoryEntry` (key `handoff/<role>/<taskId>`).
+ * Wiring (done): the READ path is live — `runtime.ts` wires a
+ * `WalkerDeps.handoffsForNode` closure over `loadHandoffsForNode` +
+ * `renderHandoffsSection`; the walker calls it once per task dispatch with
+ * the node's transitive dependency closure, so hand-offs are read fresh
+ * per-dispatch and scoped to actual upstream tasks. The WRITE path is also
+ * live: the walker calls `WalkerDeps.writeHandoff` on task completion, which
+ * `runtime.ts` wires to `writeProjectMemoryEntry`
+ * (key `handoff/<role>/<taskId>`).
  */
 import { readProjectMemoryEntries, type ProjectMemoryEntry } from '@wisp/memory-mcp';
 
@@ -37,6 +39,19 @@ export interface LoadedHandoff extends Handoff {
 }
 
 const HANDOFF_KEY_RE = /^handoff\//;
+
+/** Shared read+parse pipeline: every well-formed `handoff/*` row, oldest-first. */
+function readParsedHandoffs(args: { dataDir: string; projectId: string }): LoadedHandoff[] {
+  const entries = readProjectMemoryEntries({
+    dataDir: args.dataDir,
+    projectId: args.projectId,
+  });
+  return entries
+    .filter((e: ProjectMemoryEntry) => HANDOFF_KEY_RE.test(e.key))
+    .map(safeParseHandoff)
+    .filter((h: LoadedHandoff | null): h is LoadedHandoff => h !== null)
+    .sort((a: LoadedHandoff, b: LoadedHandoff) => a.updatedAt - b.updatedAt);
+}
 
 function safeParseHandoff(entry: ProjectMemoryEntry): LoadedHandoff | null {
   try {
@@ -76,18 +91,33 @@ export function loadHandoffsForProject(args: {
   projectId: string;
   limit?: number;
 }): LoadedHandoff[] {
-  const entries = readProjectMemoryEntries({
-    dataDir: args.dataDir,
-    projectId: args.projectId,
-  });
-  const handoffs = entries
-    .filter((e: ProjectMemoryEntry) => HANDOFF_KEY_RE.test(e.key))
-    .map(safeParseHandoff)
-    .filter((h: LoadedHandoff | null): h is LoadedHandoff => h !== null)
-    .sort((a: LoadedHandoff, b: LoadedHandoff) => a.updatedAt - b.updatedAt);
+  const handoffs = readParsedHandoffs(args);
   const limit = args.limit ?? 15;
   // Tail-slice when over the cap so the most recent N survive (older entries
   // are likelier to be stale memory from prior runs and less useful).
+  return handoffs.length <= limit ? handoffs : handoffs.slice(-limit);
+}
+
+/**
+ * Per-node variant of {@link loadHandoffsForProject} for the walker's
+ * `handoffsForNode` resolver: only hand-offs written by the node's transitive
+ * dependency closure (matched by task id OR role) are returned, oldest-first,
+ * tail-sliced to `limit` (default 10) so the most recent entries survive.
+ * Empty dep lists → empty result (nothing upstream, nothing to inject).
+ */
+export function loadHandoffsForNode(args: {
+  dataDir: string;
+  projectId: string;
+  depTaskIds: string[];
+  depRoles: string[];
+  limit?: number;
+}): LoadedHandoff[] {
+  const depTaskIds = new Set(args.depTaskIds);
+  const depRoles = new Set(args.depRoles);
+  const handoffs = readParsedHandoffs(args).filter(
+    (h) => depTaskIds.has(h.taskId) || depRoles.has(h.role),
+  );
+  const limit = args.limit ?? 10;
   return handoffs.length <= limit ? handoffs : handoffs.slice(-limit);
 }
 

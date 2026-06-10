@@ -1,6 +1,18 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 
+/**
+ * "## Shared memory" protocol paragraph appended to every agent's brief
+ * context (see runtime.makeWalkerDeps). Teaches the crew the read-before-
+ * decide / write-after-decide convention over the wisp-memory MCP server so
+ * decisions propagate across tasks and runs. Keep it <= 450 chars total —
+ * it rides along in EVERY task prompt.
+ */
+export const MEMORY_PROTOCOL_SECTION = [
+  '## Shared memory',
+  'At task start, call memory.list (scope project), then memory.get the decisions/* and patterns/* keys it returns to pick up choices earlier agents already made. After any non-obvious choice (library, schema, naming, architecture), record it with memory.set (scope project) under a key like decisions/<topic> or patterns/<topic> so later agents follow it instead of re-deciding.',
+].join('\n');
+
 export interface WriteMemoryMcpConfigArgs {
   runId: string;
   dataDir: string;

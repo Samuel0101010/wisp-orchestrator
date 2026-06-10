@@ -48,6 +48,15 @@ export interface ReleaseGateInput {
    * addresses.
    */
   probeBootFn?: () => { ok: boolean; reason?: string };
+  /**
+   * Harness-side boot check of the RESULT-BRANCH code in a managed worktree
+   * (see harness-boot-check.ts). `null`/`undefined` = skipped (no bootable
+   * dev surface, or a harness infra error) — the gate ignores it. `ok:false`
+   * is authoritative and blocks regardless of the in-run verifier's report:
+   * the verifier may have probed a different tree, this check booted exactly
+   * what the run produced.
+   */
+  harnessBoot?: { ok: boolean; reason?: string } | null;
 }
 
 export interface ReleaseGateResult {
@@ -88,6 +97,12 @@ export function evaluateReleaseGate(input: ReleaseGateInput): ReleaseGateResult 
 
   if (!input.runSucceeded) {
     reasons.push('run did not complete with outcome=success');
+    return { verdict: 'blocked', reasons, summary };
+  }
+
+  if (input.harnessBoot && !input.harnessBoot.ok) {
+    summary.bootOk = false;
+    reasons.push(`harness boot check failed: ${input.harnessBoot.reason ?? 'no reason given'}`);
     return { verdict: 'blocked', reasons, summary };
   }
 

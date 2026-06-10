@@ -1,10 +1,24 @@
 import './setup.js';
-import { describe, it, expect } from 'vitest';
+import { afterAll, beforeAll, describe, it, expect } from 'vitest';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { writeMemoryMcpConfig } from '../orchestrator/mcp-config.js';
+import { randomUUID } from 'node:crypto';
+import { plans, projects } from '@wisp/schemas';
+import type { Walker, WalkerDeps } from '@wisp/orchestrator';
+import { MEMORY_PROTOCOL_SECTION, writeMemoryMcpConfig } from '../orchestrator/mcp-config.js';
+import { db, sqlite } from '../db/index.js';
+import { runMigrations } from '../db/migrate.js';
+import { RunRuntime } from '../orchestrator/runtime.js';
+
+beforeAll(() => {
+  runMigrations();
+});
+
+afterAll(() => {
+  sqlite.close();
+});
 
 describe('writeMemoryMcpConfig', () => {
   it('writes a JSON file with mcpServers.wisp-memory pointing at the entrypoint', async () => {
@@ -77,5 +91,77 @@ describe('writeMemoryMcpConfig', () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe('MEMORY_PROTOCOL_SECTION', () => {
+  it('stays within the 450-char prompt budget and teaches only tools the MCP server exposes', () => {
+    expect(MEMORY_PROTOCOL_SECTION.length).toBeLessThanOrEqual(450);
+    expect(MEMORY_PROTOCOL_SECTION).toContain('## Shared memory');
+    // The wisp-memory MCP surfaces memory.set/get/list/delete (see
+    // packages/memory-mcp/src/tools.ts) — there is NO memory_search tool.
+    expect(MEMORY_PROTOCOL_SECTION).toContain('memory.list');
+    expect(MEMORY_PROTOCOL_SECTION).toContain('memory.get');
+    expect(MEMORY_PROTOCOL_SECTION).toContain('memory.set');
+    expect(MEMORY_PROTOCOL_SECTION).not.toContain('memory_search');
+    expect(MEMORY_PROTOCOL_SECTION).toContain('decisions/');
+    expect(MEMORY_PROTOCOL_SECTION).toContain('patterns/');
+  });
+
+  it('reaches WalkerDeps.briefContext even for a project with NO brief', async () => {
+    const projectId = randomUUID();
+    await db
+      .insert(projects)
+      .values({
+        id: projectId,
+        name: 'p',
+        goal: 'g',
+        repoPath: '/tmp/repo',
+        createdAt: new Date(),
+      })
+      .run();
+    const planId = randomUUID();
+    const plan = {
+      goal: 'g',
+      team: {
+        roles: [
+          { role: 'developer', model: 'sonnet', allowedTools: [], systemPrompt: 'd'.repeat(60) },
+        ],
+      },
+      nodes: [
+        { id: 'n1', role: 'developer', prompt: 'p', deps: [], successCriteria: {}, maxTurns: 5 },
+      ],
+      edges: [],
+    };
+    await db
+      .insert(plans)
+      .values({ id: planId, projectId, dagJson: plan as unknown, status: 'locked' })
+      .run();
+
+    const captured: { deps: WalkerDeps | null } = { deps: null };
+    const runtime = new RunRuntime({
+      db,
+      ws: { publishToRun: () => {} },
+      snapshotIntervalMs: 60_000,
+      buildWalker: ({ walkerDeps }) => {
+        captured.deps = walkerDeps;
+        const walker: Partial<Walker> = {
+          async start() {
+            return new Promise(() => undefined); // never settles — keeps the run live
+          },
+          async pauseForShutdown() {},
+          async cancel() {},
+        };
+        return walker as Walker;
+      },
+    });
+
+    const start = await runtime.startRun({ planId });
+    expect(start.ok).toBe(true);
+    for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r));
+
+    expect(captured.deps).not.toBeNull();
+    expect(captured.deps!.briefContext).toBeDefined();
+    expect(captured.deps!.briefContext).toContain(MEMORY_PROTOCOL_SECTION);
   });
 });

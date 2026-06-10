@@ -361,7 +361,7 @@ const SEEDS: SeedDef[] = [
   {
     seedKey: 'qa-engineer',
     name: 'Priya',
-    model: 'sonnet',
+    model: 'haiku',
     systemPrompt: qaPrompt(),
     description: 'QA Engineer · test strategy, Playwright, accessibility.',
     allowedTools: DEFAULT_DEV_TOOLS,
@@ -498,17 +498,29 @@ export function seedAgents(): SeedStats {
           '#8B5CF6': '#6D28D9',
           '#10B981': '#047857',
         };
+        // Model is force-updated only when the existing row still has the
+        // legacy seed default we are migrating away from (mirrors the
+        // LEGACY_BAD_COLORS heuristic: a row still on the old default was
+        // never customised by the user, so it's safe to move; any other
+        // model is a deliberate user choice and stays untouched).
+        const LEGACY_MODEL_UPGRADES: Record<string, { from: AgentModel; to: AgentModel }> = {
+          'qa-engineer': { from: 'sonnet', to: 'haiku' },
+        };
         const upgradedColor = LEGACY_BAD_COLORS[(existing.color ?? '').toUpperCase()];
+        const modelUpgrade = LEGACY_MODEL_UPGRADES[s.seedKey];
+        const upgradedModel =
+          modelUpgrade && existing.model === modelUpgrade.from ? modelUpgrade.to : undefined;
         const promptChanged = existing.systemPrompt !== s.systemPrompt;
         const descChanged = (existing.description ?? '') !== s.description;
         const avatarChanged = (existing.avatarUrl ?? '') !== (s.avatarUrl ?? '');
         const colorChanged = upgradedColor && upgradedColor !== existing.color;
-        if (promptChanged || descChanged || avatarChanged || colorChanged) {
+        const modelChanged = upgradedModel !== undefined && upgradedModel !== existing.model;
+        if (promptChanged || descChanged || avatarChanged || colorChanged || modelChanged) {
           sqlite
             .prepare(
               `UPDATE agents
                  SET system_prompt = ?, description = ?, avatar_url = ?,
-                     color = ?, updated_at = ?
+                     color = ?, model = ?, updated_at = ?
                WHERE id = ?`,
             )
             .run(
@@ -516,6 +528,7 @@ export function seedAgents(): SeedStats {
               s.description,
               s.avatarUrl ?? null,
               upgradedColor ?? existing.color,
+              upgradedModel ?? existing.model,
               now,
               existing.id,
             );
