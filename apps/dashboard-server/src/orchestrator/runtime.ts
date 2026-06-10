@@ -1210,16 +1210,22 @@ export class RunRuntime {
         repoPath: ctx.repoPath,
         ref: resultBranch,
       });
-      if (stateMd !== null) {
-        const parsed = parseProjectStateMarkdown(stateMd);
-        await persistProjectState({
-          db: this.db,
-          projectId: ctx.projectId,
-          runId,
-          stateMdPath: PROJECT_STATE_MD_PATH,
-          parsed,
-        });
-      }
+      // Even when the crew never wrote docs/project-state.md, persist an
+      // empty state row: it marks "a verified run exists" so the next plan
+      // flips to 'iteration' kind and POST /iterations is unblocked.
+      const parsed = stateMd !== null ? parseProjectStateMarkdown(stateMd) : null;
+      await persistProjectState({
+        db: this.db,
+        projectId: ctx.projectId,
+        runId,
+        stateMdPath: stateMd !== null ? PROJECT_STATE_MD_PATH : null,
+        parsed: parsed ?? {
+          completedFeatures: [],
+          openTodos: [],
+          knownIssues: [],
+          architectureSnapshot: null,
+        },
+      });
     } catch (e) {
       console.error('[runtime] persistProjectState failed', e);
     }
