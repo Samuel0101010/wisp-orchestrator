@@ -273,7 +273,7 @@ describe('PlanEditor', () => {
 
     expect(await screen.findByTestId('validation-banner')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^save$/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /lock & run/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /lock plan & start/i })).toBeDisabled();
   });
 
   it('empty state (404) shows Generate Plan button', async () => {
@@ -337,12 +337,12 @@ describe('PlanEditor', () => {
       });
     };
     renderEditor();
-    const trigger = await screen.findByRole('button', { name: /lock & run/i });
+    const trigger = await screen.findByRole('button', { name: /lock plan & start/i });
     await waitFor(() => expect(trigger).toBeEnabled());
     fireEvent.click(trigger);
     // Confirm dialog opens; click the confirm button inside it.
     const dialog = await screen.findByRole('dialog');
-    const confirm = within(dialog).getByRole('button', { name: /lock & run/i });
+    const confirm = within(dialog).getByRole('button', { name: /lock plan & start/i });
     fireEvent.click(confirm);
     await waitFor(() => expect(lockCalled).toBe(true));
   });

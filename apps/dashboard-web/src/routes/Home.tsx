@@ -5,6 +5,7 @@ import { Bolt, ChevronRight, FolderOpen, Plus } from 'lucide-react';
 import {
   useCreateProject,
   useDailyRunCount,
+  useDefaultRepoBase,
   useGlobalRuns,
   useProjects,
   useRunsSummary,
@@ -13,6 +14,7 @@ import {
 import type { GlobalRunRow } from '@/api/queries';
 import { ApiError, apiFetch } from '@/api/client';
 import { cn } from '@/lib/utils';
+import { defaultRepoPath } from '@/lib/default-repo-path';
 import { LiveNowGrid } from '@/components/home/LiveNowGrid';
 import { GlobalRunsTable } from '@/components/home/GlobalRunsTable';
 import { AgentChat } from '@/components/AgentChat';
@@ -291,15 +293,26 @@ export function Home() {
   const [npName, setNpName] = useState('');
   const [npGoal, setNpGoal] = useState('');
   const [npRepoPath, setNpRepoPath] = useState('');
+  // Until the user edits the repo-path field themselves it auto-fills from
+  // the project name (server-suggested base dir + slugified name). The first
+  // manual edit flips this and stops the auto-fill for good.
+  const [npRepoPathTouched, setNpRepoPathTouched] = useState(false);
   const [npTemplateId, setNpTemplateId] = useState<string | null>(null);
+  const repoBase = useDefaultRepoBase();
+
+  const npRepoPathValue =
+    npRepoPathTouched || !repoBase.data
+      ? npRepoPath
+      : defaultRepoPath(repoBase.data.base, repoBase.data.sep, npName);
 
   const npReset = (): void => {
     setNpName('');
     setNpGoal('');
     setNpRepoPath('');
+    setNpRepoPathTouched(false);
     setNpTemplateId(null);
   };
-  const npValid = npName.trim() && npGoal.trim() && npRepoPath.trim();
+  const npValid = npName.trim() && npGoal.trim() && npRepoPathValue.trim();
 
   const handleCreateProject = async (): Promise<void> => {
     if (!npValid) return;
@@ -307,7 +320,7 @@ export function Home() {
       const project = await createProject.mutateAsync({
         name: npName.trim(),
         goal: npGoal.trim(),
-        repoPath: npRepoPath.trim(),
+        repoPath: npRepoPathValue.trim(),
       });
       if (npTemplateId) {
         const tpl = templates.find((x) => x.id === npTemplateId);
@@ -760,10 +773,16 @@ export function Home() {
               <Input
                 id="home-np-repo"
                 placeholder={t('newProject.fields.repoPathPlaceholder')}
-                value={npRepoPath}
-                onChange={(e) => setNpRepoPath(e.target.value)}
+                value={npRepoPathValue}
+                onChange={(e) => {
+                  setNpRepoPathTouched(true);
+                  setNpRepoPath(e.target.value);
+                }}
               />
-              <RepoPathHint path={npRepoPath} />
+              <p className="text-2xs text-muted-foreground">
+                {t('newProject.fields.repoPathHelp')}
+              </p>
+              <RepoPathHint path={npRepoPathValue} />
             </div>
           </div>
           <DialogFooter>

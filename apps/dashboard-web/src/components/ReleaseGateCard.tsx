@@ -46,24 +46,29 @@ export function ReleaseGateCard({ runId, runStatus }: { runId: string; runStatus
             {t(`releaseGate.verdict.${r.verdict}` as const)}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs">
-          <Badge variant={r.bootOk ? 'default' : 'destructive'} className="text-2xs">
-            {t('releaseGate.boot')}: {r.bootOk ? t('releaseGate.pass') : t('releaseGate.fail')}
-          </Badge>
-          <Badge variant={r.e2eOk ? 'default' : 'destructive'} className="text-2xs">
-            {t('releaseGate.e2e')}: {r.e2eOk ? t('releaseGate.pass') : t('releaseGate.fail')}
-          </Badge>
-          {r.dodTotal > 0 && (
-            <Badge variant="secondary" className="text-2xs">
-              {t('releaseGate.dod')}: {r.dodPassed}/{r.dodTotal}
+        <p className="text-xs text-muted-foreground">{t('releaseGate.subtitle')}</p>
+        {/* A skipped gate was never evaluated — red Boot/E2E FAIL badges would
+            be misleading (and scary) on an otherwise green run. */}
+        {r.verdict !== 'skipped' && (
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Badge variant={r.bootOk ? 'default' : 'destructive'} className="text-2xs">
+              {t('releaseGate.boot')}: {r.bootOk ? t('releaseGate.pass') : t('releaseGate.fail')}
             </Badge>
-          )}
-          {r.evidenceJson?.artifacts && r.evidenceJson.artifacts.length > 0 && (
-            <Badge variant="outline" className="text-2xs">
-              {t('releaseGate.artifacts', { count: r.evidenceJson.artifacts.length })}
+            <Badge variant={r.e2eOk ? 'default' : 'destructive'} className="text-2xs">
+              {t('releaseGate.e2e')}: {r.e2eOk ? t('releaseGate.pass') : t('releaseGate.fail')}
             </Badge>
-          )}
-        </div>
+            {r.dodTotal > 0 && (
+              <Badge variant="secondary" className="text-2xs">
+                {t('releaseGate.dod')}: {r.dodPassed}/{r.dodTotal}
+              </Badge>
+            )}
+            {r.evidenceJson?.artifacts && r.evidenceJson.artifacts.length > 0 && (
+              <Badge variant="outline" className="text-2xs">
+                {t('releaseGate.artifacts', { count: r.evidenceJson.artifacts.length })}
+              </Badge>
+            )}
+          </div>
+        )}
       </CardHeader>
       {r.reportMd && (
         <CardContent>

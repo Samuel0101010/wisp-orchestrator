@@ -12,7 +12,7 @@
  * raw JS string and evaluated there, so no TS / imports / closures over
  * module state in the bundle are visible to it.
  */
-export const INSPECTOR_VERSION = '1';
+export const INSPECTOR_VERSION = '2';
 
 export const INSPECTOR_SCRIPT = `(function() {
   if (window.__harnessInspector) return;
@@ -56,39 +56,53 @@ export const INSPECTOR_SCRIPT = `(function() {
     return el && el.getAttribute && el.getAttribute('data-harness-overlay') === '1';
   }
 
+  function anchorFor(node) {
+    if (!node.getAttribute) return null;
+    var tid = node.getAttribute('data-testid');
+    if (tid && /^[\\w-]+$/.test(tid)) return '[data-testid="' + tid + '"]';
+    if (node.id && /^[A-Za-z][\\w-]*$/.test(node.id)) return '#' + node.id;
+    return null;
+  }
+
   function buildSelector(el) {
     if (!el || el === document.body || el === document.documentElement) return 'body';
-    if (el.id && /^[A-Za-z][\\w-]*$/.test(el.id)) return '#' + el.id;
+    var anchor = anchorFor(el);
+    if (anchor) return anchor;
+    var aria = el.getAttribute ? el.getAttribute('aria-label') : null;
+    if (aria && /^[\\w-]+$/.test(aria)) {
+      var ariaSel = '[aria-label="' + aria + '"]';
+      try {
+        if (document.querySelectorAll(ariaSel).length === 1) return ariaSel;
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    // Fallback: absolute tag:nth-of-type path — deliberately WITHOUT class
+    // names (vite/tailwind class hashes change between builds), anchored at
+    // the nearest ancestor that has a stable data-testid / id.
     var parts = [];
     var node = el;
-    var depth = 0;
-    while (node && node.nodeType === 1 && depth < 5) {
+    while (node && node.nodeType === 1 && node !== document.body) {
       var tag = node.tagName.toLowerCase();
-      var classes = '';
-      if (node.classList && node.classList.length > 0) {
-        var first = node.classList[0];
-        if (first && /^[A-Za-z_][\\w-]*$/.test(first)) classes = '.' + first;
-      }
       var nth = '';
       var parent = node.parentElement;
       if (parent) {
         var siblings = Array.prototype.filter.call(parent.children, function (s) {
           return s.tagName === node.tagName;
         });
-        if (siblings.length > 1) {
-          var idx = siblings.indexOf(node) + 1;
-          nth = ':nth-of-type(' + idx + ')';
+        if (siblings.length > 1) nth = ':nth-of-type(' + (siblings.indexOf(node) + 1) + ')';
+      }
+      parts.unshift(tag + nth);
+      node = parent;
+      if (node && node !== document.body && node.nodeType === 1) {
+        var a = anchorFor(node);
+        if (a) {
+          parts.unshift(a);
+          return parts.join(' > ');
         }
       }
-      parts.unshift(tag + classes + nth);
-      if (node.id && /^[A-Za-z][\\w-]*$/.test(node.id)) {
-        parts[0] = '#' + node.id;
-        break;
-      }
-      node = node.parentElement;
-      depth++;
     }
-    return parts.join(' > ');
+    return 'body > ' + parts.join(' > ');
   }
 
   function paintOverlay(target) {

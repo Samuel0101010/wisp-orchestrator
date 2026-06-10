@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
@@ -244,12 +244,19 @@ function ProjectTabs({
   const { t } = useTranslation();
   const interview = useInterview(projectId);
   const stateQ = useProjectState(projectId);
+  const [searchParams] = useSearchParams();
 
   // Compute the initial tab once on first render and freeze it. Later
   // changes to the brief/state queries shouldn't yank the user off whatever
   // tab they're currently looking at — useState's lazy initializer is the
-  // idiomatic way to derive a frozen mount-time value.
+  // idiomatic way to derive a frozen mount-time value. A ?tab= deep link
+  // (e.g. the run-success card's "open preview" button) wins over the
+  // brief/state heuristic.
   const [activeTab, setActiveTab] = useState<string>(() => {
+    const fromUrl = searchParams.get('tab');
+    if (fromUrl && ['brief', 'plan', 'org', 'runs', 'preview', 'settings'].includes(fromUrl)) {
+      return fromUrl;
+    }
     const briefReady = interview.data?.brief?.briefReady === true;
     const hasState = !!stateQ.data?.state;
     return briefReady && hasState ? 'preview' : 'brief';

@@ -42,6 +42,7 @@ import { RepoPathHint } from '@/components/RepoPathHint';
 import {
   useCreateProject,
   useDailyRunCount,
+  useDefaultRepoBase,
   useDeleteProject,
   useGeneratedPlan,
   useProjectRuns,
@@ -51,6 +52,7 @@ import {
 import { ApiError, apiFetch } from '@/api/client';
 import { useUiStore } from '@/store/ui';
 import { cn } from '@/lib/utils';
+import { defaultRepoPath } from '@/lib/default-repo-path';
 import { statusLabel, statusMeta } from '@/lib/status-labels';
 
 /* ----- Wisp project tones for the project list dots ------------------ */
@@ -117,15 +119,27 @@ export function Sidebar() {
   const [name, setName] = useState('');
   const [goal, setGoal] = useState('');
   const [repoPath, setRepoPath] = useState('');
+  // Until the user edits the repo-path field themselves it auto-fills from
+  // the project name (server-suggested base dir + slugified name). The first
+  // manual edit flips this and stops the auto-fill for good. MUST stay
+  // behaviorally identical to the Home.tsx new-project dialog.
+  const [repoPathTouched, setRepoPathTouched] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const repoBase = useDefaultRepoBase();
+
+  const repoPathValue =
+    repoPathTouched || !repoBase.data
+      ? repoPath
+      : defaultRepoPath(repoBase.data.base, repoBase.data.sep, name);
 
   const reset = (): void => {
     setName('');
     setGoal('');
     setRepoPath('');
+    setRepoPathTouched(false);
     setTemplateId(null);
   };
-  const valid = name.trim() && goal.trim() && repoPath.trim();
+  const valid = name.trim() && goal.trim() && repoPathValue.trim();
 
   const handleCreate = async (): Promise<void> => {
     if (!valid) return;
@@ -133,7 +147,7 @@ export function Sidebar() {
       const project = await createProject.mutateAsync({
         name: name.trim(),
         goal: goal.trim(),
-        repoPath: repoPath.trim(),
+        repoPath: repoPathValue.trim(),
       });
       if (templateId) {
         const template = templates.find((tpl) => tpl.id === templateId);
@@ -406,10 +420,16 @@ export function Sidebar() {
                   <Input
                     id="np-repo"
                     placeholder={t('newProject.fields.repoPathPlaceholder')}
-                    value={repoPath}
-                    onChange={(e) => setRepoPath(e.target.value)}
+                    value={repoPathValue}
+                    onChange={(e) => {
+                      setRepoPathTouched(true);
+                      setRepoPath(e.target.value);
+                    }}
                   />
-                  <RepoPathHint path={repoPath} />
+                  <p className="text-2xs text-muted-foreground">
+                    {t('newProject.fields.repoPathHelp')}
+                  </p>
+                  <RepoPathHint path={repoPathValue} />
                 </div>
               </div>
               <DialogFooter>

@@ -29,6 +29,15 @@ import type { TFunction } from 'i18next';
 import { INSPECTOR_SCRIPT } from './preview-inspector';
 import { PendingChangesPanel } from './PendingChangesPanel';
 
+// Error reason codes the server emits that have a plain-language i18n
+// message under preview.errors.*.
+const KNOWN_PREVIEW_ERROR_CODES = new Set([
+  'no_dev_cmd',
+  'worktree_setup_failed',
+  'repo_not_initialized',
+  'process-died',
+]);
+
 /**
  * Turn a failed preview-start request into a plain-language message a
  * non-developer can act on, instead of the opaque "Request failed: 400". The
@@ -39,8 +48,7 @@ function friendlyStartError(err: unknown, t: TFunction): { title: string; detail
   if (err instanceof ApiError) {
     const body = (err.body ?? {}) as { error?: string; hint?: string; detail?: string };
     const code = body.error;
-    const known = new Set(['no_dev_cmd', 'worktree_setup_failed', 'repo_not_initialized']);
-    if (code && known.has(code)) {
+    if (code && KNOWN_PREVIEW_ERROR_CODES.has(code)) {
       // The i18n message is a self-contained, plain-language instruction — we
       // deliberately drop the server's technical hint to avoid dev jargon.
       return { title: t(`preview.errors.${code}`) };
@@ -48,6 +56,21 @@ function friendlyStartError(err: unknown, t: TFunction): { title: string; detail
     return { title: body.hint ?? body.error ?? err.message, detail: body.detail };
   }
   return { title: (err as Error).message };
+}
+
+/**
+ * Map a polled dev-server error to a plain-language message. The server
+ * reports a bare reason code on the first line (e.g. 'process-died'),
+ * optionally followed by a newline + a stderr tail — only the first line is
+ * the i18n key; the tail is surfaced as secondary detail. Returns null for
+ * unknown codes so the caller keeps the raw fallback.
+ */
+function friendlyStatusError(raw: string, t: TFunction): { title: string; detail?: string } | null {
+  const nl = raw.indexOf('\n');
+  const code = (nl === -1 ? raw : raw.slice(0, nl)).trim();
+  if (!KNOWN_PREVIEW_ERROR_CODES.has(code)) return null;
+  const detail = nl === -1 ? undefined : raw.slice(nl + 1).trim() || undefined;
+  return { title: t(`preview.errors.${code}`), detail };
 }
 
 interface PreviewFrameProps {
@@ -127,6 +150,7 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
   const startingSeconds =
     state === 'starting' && startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0;
   const errorMessage = state === 'error' ? (status.data?.error ?? '') : '';
+  const statusError = errorMessage ? friendlyStatusError(errorMessage, t) : null;
 
   // Listen for `harness:pick` messages from the inspector inside the iframe.
   useEffect(() => {
@@ -421,13 +445,26 @@ export function PreviewFrame({ projectId }: PreviewFrameProps) {
                   data-testid="preview-error-alert"
                   className="w-full max-w-2xl rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
                 >
-                  <div className="font-medium">{t('preview.toasts.startFailed')}</div>
-                  <div
-                    data-testid="preview-error-message"
-                    className="mt-0.5 break-words font-mono text-xs opacity-90"
-                  >
-                    {errorMessage}
+                  <div className="font-medium">
+                    {statusError ? statusError.title : t('preview.toasts.startFailed')}
                   </div>
+                  {statusError ? (
+                    statusError.detail ? (
+                      <div
+                        data-testid="preview-error-detail"
+                        className="mt-0.5 break-words font-mono text-xs opacity-70"
+                      >
+                        {statusError.detail}
+                      </div>
+                    ) : null
+                  ) : (
+                    <div
+                      data-testid="preview-error-message"
+                      className="mt-0.5 break-words font-mono text-xs opacity-90"
+                    >
+                      {errorMessage}
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>

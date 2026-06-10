@@ -340,6 +340,44 @@ describe('RunView', () => {
     expect(screen.queryByTestId('task-system-badge-t-dev')).not.toBeInTheDocument();
   });
 
+  it('shows the success card for a completed run with outcome=success', async () => {
+    fetchHandler = (url) => {
+      if (/\/api\/runs\/run-1$/.test(url)) {
+        return new Response(
+          JSON.stringify(
+            snapshot(
+              buildRun({
+                status: 'completed',
+                outcome: 'success',
+                endedAt: new Date(),
+              } as Partial<Run>),
+            ),
+          ),
+          { status: 200 },
+        );
+      }
+      // project + project-type probes 404 → the card falls back to the
+      // generic "ask the chat" branch but must still render.
+      return new Response('{}', { status: 404 });
+    };
+    renderRunView();
+
+    expect(await screen.findByTestId('run-success-card')).toBeInTheDocument();
+    expect(screen.getByTestId('run-success-next-hint')).toBeInTheDocument();
+  });
+
+  it('does not show the success card while the run is still running', async () => {
+    fetchHandler = (url) => {
+      if (/\/api\/runs\/run-1$/.test(url)) {
+        return new Response(JSON.stringify(snapshot()), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
+    };
+    renderRunView();
+    await screen.findByTestId('task-card-t-pending');
+    expect(screen.queryByTestId('run-success-card')).not.toBeInTheDocument();
+  });
+
   it('disables the cancel-confirm button while a cancel is in flight', async () => {
     cancelPending = true;
     fetchHandler = (url) => {

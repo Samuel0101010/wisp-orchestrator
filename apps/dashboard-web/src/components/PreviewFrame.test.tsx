@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import i18n from '@/i18n';
 import { PreviewFrame } from './PreviewFrame';
 
 const originalFetch = globalThis.fetch;
@@ -143,6 +144,36 @@ describe('PreviewFrame', () => {
     const alert = await screen.findByTestId('preview-error-alert');
     expect(alert).toBeInTheDocument();
     expect(screen.getByTestId('preview-error-message').textContent).toBe('port-occupied');
+  });
+
+  it('maps a process-died error to the friendly message with the stderr tail as detail', async () => {
+    // Another lane lands the real preview.errors.process-died locale entry;
+    // provide it here so this test pins the lookup, not the copywriting.
+    if (!i18n.exists('preview.errors.process-died')) {
+      i18n.addResource(
+        'en',
+        'common',
+        'preview.errors.process-died',
+        'The dev server stopped unexpectedly. Press Start to relaunch it.',
+      );
+    }
+    currentStatus = {
+      running: false,
+      status: 'error',
+      error: 'process-died\nError: Cannot find module vite\n    at require (node:internal)',
+    };
+    renderFrame();
+    const alert = await screen.findByTestId('preview-error-alert');
+    const headline = alert.querySelector('.font-medium');
+    // Friendly message is the headline — only the first line is the i18n key.
+    expect(headline?.textContent).toBe(i18n.t('preview.errors.process-died'));
+    expect(headline?.textContent).not.toContain('Cannot find module');
+    // The stderr tail stays available as a secondary muted line.
+    expect(screen.getByTestId('preview-error-detail').textContent).toContain(
+      'Cannot find module vite',
+    );
+    // The raw-fallback line is not rendered for known codes.
+    expect(screen.queryByTestId('preview-error-message')).toBeNull();
   });
 
   it('refresh button is disabled when stopped and reloads the iframe when running', async () => {

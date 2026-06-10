@@ -68,6 +68,53 @@ export function useProject(projectId: string | undefined) {
   });
 }
 
+/** Server-suggested parent directory for new project repos (+ path separator). */
+export interface DefaultRepoBaseResponse {
+  base: string;
+  sep: string;
+}
+
+export function useDefaultRepoBase() {
+  return useQuery<DefaultRepoBaseResponse | null>({
+    queryKey: ['default-repo-base'],
+    // Host machine + OS never change mid-session — fetch once.
+    staleTime: Infinity,
+    queryFn: async () => {
+      try {
+        return await apiFetch<DefaultRepoBaseResponse>('/api/projects/default-repo-base');
+      } catch {
+        // Older server / route missing — the dialog falls back to manual entry.
+        return null;
+      }
+    },
+  });
+}
+
+export type ProjectTypeKind = 'web-app' | 'backend' | 'cli' | 'library' | 'unknown';
+
+export interface ProjectTypeResponse {
+  type: ProjectTypeKind;
+  framework: string | null;
+  reason: string;
+}
+
+export function useProjectType(projectId: string | undefined) {
+  return useQuery<ProjectTypeResponse | null>({
+    queryKey: ['project-type', projectId ?? null],
+    enabled: Boolean(projectId),
+    staleTime: 60_000,
+    queryFn: async () => {
+      if (!projectId) return null;
+      try {
+        return await apiFetch<ProjectTypeResponse>(`/api/projects/${projectId}/project-type`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
+  });
+}
+
 export interface CreateProjectInput {
   name: string;
   goal: string;
