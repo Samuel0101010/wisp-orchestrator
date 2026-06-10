@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.3.0 — the team you pick is the team that builds
+
+You assemble a team of agents — so that exact team, with the exact prompts and models you chose, must be what executes the plan. A code audit found the chain broke at several hops; this release welds it shut and makes every actor visible.
+
+### Added
+
+- **Executor identity on every task.** At dispatch the run records which agent (display name, effective model — including project overrides) executes each task; the run view shows "Ausgeführt von … (Modell)". Migration `0020_task_executor`.
+- **"System" badges.** Server-injected nodes (wire-up, runtime-verifier, lead) are marked with an `origin: system` flag and render a badge with a plain-language tooltip in the plan editor and the run view — you always see which tasks are yours and which the harness added.
+- **Human task titles.** The planner now emits a short imperative title per task (fallback: first prompt line); task cards no longer show raw node ids.
+
+### Fixed
+
+- **Planner-invented agents can no longer run.** Plan generation hard-validates every role against your stored team (one corrective retry, then a clear `plan_invalid_roles` error). The silent fallback that let a planner-made agent spec execute is gone.
+- **Plan tampering via the editor is closed.** PATCH and lock now normalize the plan against the stored team: stored specs win by role name, system roles are restored to their canonical server specs, unknown roles are rejected — a modified `systemPrompt`/`allowedTools` can't reach the subprocess launcher anymore.
+- **QA-driven replanning was dead code.** It only fired for a role literally named `qa`, but real teams use roles like `qa-engineer`. A token-based predicate fixes it, so the QA failure → replan loop actually runs.
+- **Origin spoofing.** Planner-set `origin: system` markers are stripped; only server injectors can mark system nodes.
+
 ## 2.2.4 — the project brief now works end to end
 
 The project brief is what turns a rough goal into a real plan, so it has to be obvious for a first-time user and it has to actually reach the parts of the system that plan and build. A full code trace found gaps on both fronts; this release closes them.
