@@ -1245,6 +1245,8 @@
       "iterationFailed": "Iteration konnte nicht gestartet werden",
       "iterationPreparing": "Iteration wird vorbereitet …",
       "iterationPreparingDescription": "Plan wird basierend auf deinen Änderungen neu generiert. Das kann ein bis zwei Minuten dauern.",
+      "iterationRunStartFailed": "Der Plan wurde erstellt, aber der Run konnte nicht starten — deine Änderungswünsche bleiben in der Warteschlange.",
+      "iterationRunAlreadyActive": "Für dieses Projekt läuft bereits ein Run. Warte, bis er fertig ist, und starte die Iteration dann.",
       "autoRefreshed": "Iteration abgeschlossen — Vorschau aktualisiert"
     },
     "edit": {

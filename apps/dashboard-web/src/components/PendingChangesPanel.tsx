@@ -9,6 +9,7 @@ import {
   useRunIteration,
   type ChangeRequestRow,
 } from '@/api/queries';
+import { ApiError } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { dismissToast, toast } from '@/components/ui/use-toast';
@@ -101,9 +102,25 @@ export function PendingChangesPanel({ projectId }: PendingChangesPanelProps) {
       navigate(`/projects/${projectId}/run/${result.runId}`);
     } catch (err) {
       dismissToast(preparingToastId);
+      // 502 run_start_failed: the plan was created but the run didn't start —
+      // the change requests stay queued, so tell the user nothing was lost.
+      // 409 run_already_active: another run is in flight for this project —
+      // wait for it, then retry (the queue is preserved here too).
+      const errorCode =
+        err instanceof ApiError
+          ? (err.body as { error?: string } | null | undefined)?.error
+          : undefined;
+      let description: string;
+      if (errorCode === 'run_already_active') {
+        description = t('preview.toasts.iterationRunAlreadyActive');
+      } else if (errorCode === 'run_start_failed') {
+        description = t('preview.toasts.iterationRunStartFailed');
+      } else {
+        description = (err as Error).message;
+      }
       toast({
         title: t('preview.toasts.iterationFailed'),
-        description: (err as Error).message,
+        description,
         variant: 'destructive',
       });
     } finally {

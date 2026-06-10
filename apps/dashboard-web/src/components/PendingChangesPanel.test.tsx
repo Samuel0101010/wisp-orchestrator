@@ -75,23 +75,15 @@ beforeEach(() => {
         headers: { 'content-type': 'application/json' },
       });
     }
-    if (url.endsWith('/plan') && method === 'POST') {
+    if (url.endsWith('/iterations') && method === 'POST') {
       return new Response(
-        JSON.stringify({ id: 'plan-1', projectId: 'p1', status: 'draft', dagJson: {} }),
+        JSON.stringify({
+          planId: 'plan-1',
+          runId: 'run-99',
+          linkedChangeRequestCount: rows.length,
+        }),
         { status: 201, headers: { 'content-type': 'application/json' } },
       );
-    }
-    if (url.endsWith('/lock') && method === 'POST') {
-      return new Response(JSON.stringify({ id: 'plan-1', status: 'locked' }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
-    }
-    if (url.endsWith('/api/runs') && method === 'POST') {
-      return new Response(JSON.stringify({ runId: 'run-99' }), {
-        status: 201,
-        headers: { 'content-type': 'application/json' },
-      });
     }
     return new Response('{}', { status: 404 });
   }) as typeof fetch;
@@ -132,6 +124,7 @@ function renderPanel() {
             }
           />
         </Routes>
+        <ToastViewportRoot />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -167,7 +160,7 @@ describe('PendingChangesPanel', () => {
     expect(deleteCall).toBeTruthy();
   });
 
-  it('Run Iteration chains plan + lock + run and navigates to the new run view', async () => {
+  it('Run Iteration POSTs once to /iterations and navigates to the new run view', async () => {
     rows = [makeRow({ id: 'a', userPrompt: 'one' }), makeRow({ id: 'b', userPrompt: 'two' })];
     renderPanel();
     await waitFor(() => screen.getByTestId('pending-row-a'));
@@ -179,14 +172,18 @@ describe('PendingChangesPanel', () => {
       },
       { timeout: 4000 },
     );
-    const planCall = calls.find((c) => c.method === 'POST' && c.url.endsWith('/plan'));
-    const lockCall = calls.find((c) => c.method === 'POST' && c.url.endsWith('/lock'));
-    const runCall = calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/runs'));
-    expect(planCall).toBeTruthy();
-    expect(lockCall).toBeTruthy();
-    expect(runCall).toBeTruthy();
-    expect((planCall!.body as { changeRequestIds: string[] }).changeRequestIds).toEqual(['a', 'b']);
-    expect((runCall!.body as { planId: string; changeRequestIds: string[] }).planId).toBe('plan-1');
+    const iterationCalls = calls.filter(
+      (c) => c.method === 'POST' && c.url.endsWith('/projects/p1/iterations'),
+    );
+    expect(iterationCalls).toHaveLength(1);
+    expect((iterationCalls[0].body as { changeRequestIds: string[] }).changeRequestIds).toEqual([
+      'a',
+      'b',
+    ]);
+    // The old 3-step client sequence must be gone.
+    expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/plan'))).toBeUndefined();
+    expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/lock'))).toBeUndefined();
+    expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/runs'))).toBeUndefined();
     expect(screen.getByTestId('location-pathname').textContent).toBe('/projects/p1/run/run-99');
   });
 
@@ -198,20 +195,20 @@ describe('PendingChangesPanel', () => {
     expect(btn.disabled).toBe(true);
   });
 
-  it('fires the "preparing iteration" toast immediately on click, before the plan mutation resolves', async () => {
+  it('fires the "preparing iteration" toast immediately on click, before the iterations mutation resolves', async () => {
     rows = [makeRow({ id: 'a', userPrompt: 'one' })];
-    // Hold the /plan call open until we release it so we can assert the toast
-    // is visible while the mutation is still pending.
-    let releasePlan!: () => void;
-    const planGate = new Promise<void>((resolve) => {
-      releasePlan = resolve;
+    // Hold the /iterations call open until we release it so we can assert the
+    // toast is visible while the mutation is still pending.
+    let releaseIteration!: () => void;
+    const iterationGate = new Promise<void>((resolve) => {
+      releaseIteration = resolve;
     });
     const baseFetch = globalThis.fetch;
     globalThis.fetch = vi.fn(async (input, init) => {
       const url = typeof input === 'string' ? input : input.toString();
       const method = init?.method ?? 'GET';
-      if (url.endsWith('/plan') && method === 'POST') {
-        await planGate;
+      if (url.endsWith('/iterations') && method === 'POST') {
+        await iterationGate;
       }
       return (baseFetch as typeof fetch)(input, init);
     }) as typeof fetch;
@@ -248,20 +245,88 @@ describe('PendingChangesPanel', () => {
     await waitFor(() => screen.getByTestId('pending-row-a'));
     fireEvent.click(screen.getByTestId('run-iteration-button'));
 
-    // The preparing toast must appear immediately, while /plan is still pending.
+    // The preparing toast must appear immediately, while /iterations is still pending.
     await waitFor(() => {
       expect(screen.getByText('Preparing iteration …')).toBeInTheDocument();
     });
-    // Run has not been created yet — we're still gated.
-    expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/api/runs'))).toBeUndefined();
-    // Release the plan mutation and confirm the run is created + navigation occurs.
-    releasePlan();
+    // The iterations call has not reached the server yet — we're still gated.
+    expect(calls.find((c) => c.method === 'POST' && c.url.endsWith('/iterations'))).toBeUndefined();
+    // Release the iterations mutation and confirm the run is created + navigation occurs.
+    releaseIteration();
     await waitFor(
       () => {
         expect(screen.getByTestId('run-view')).toBeInTheDocument();
       },
       { timeout: 4000 },
     );
+  });
+
+  it('shows the queued-preserved description when the server responds 502 run_start_failed', async () => {
+    rows = [makeRow({ id: 'a', userPrompt: 'one' })];
+    const baseFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (input, init) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      const method = init?.method ?? 'GET';
+      if (url.endsWith('/iterations') && method === 'POST') {
+        return new Response(
+          JSON.stringify({
+            error: 'run_start_failed',
+            planId: 'plan-1',
+            runStartError: 'spawn failed',
+          }),
+          { status: 502, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return (baseFetch as typeof fetch)(input, init);
+    }) as typeof fetch;
+
+    renderPanel();
+    await waitFor(() => screen.getByTestId('pending-row-a'));
+    fireEvent.click(screen.getByTestId('run-iteration-button'));
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'The plan was created but the run could not start — your change requests are still queued.',
+        ),
+      ).toBeInTheDocument();
+    });
+    // No navigation — we stay on the project page; the queued row is preserved.
+    expect(screen.queryByTestId('run-view')).toBeNull();
+    expect(screen.getByTestId('pending-row-a')).toBeInTheDocument();
+  });
+
+  it('shows the wait-for-active-run description when the server responds 409 run_already_active', async () => {
+    rows = [makeRow({ id: 'a', userPrompt: 'one' })];
+    const baseFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (input, init) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      const method = init?.method ?? 'GET';
+      if (url.endsWith('/iterations') && method === 'POST') {
+        return new Response(
+          JSON.stringify({
+            error: 'run_already_active',
+            planId: 'plan-1',
+            details: { activeRunId: 'run-9' },
+          }),
+          { status: 409, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return (baseFetch as typeof fetch)(input, init);
+    }) as typeof fetch;
+
+    renderPanel();
+    await waitFor(() => screen.getByTestId('pending-row-a'));
+    fireEvent.click(screen.getByTestId('run-iteration-button'));
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'A run is already in progress for this project. Wait for it to finish, then start the iteration.',
+        ),
+      ).toBeInTheDocument();
+    });
+    // No navigation — we stay on the project page; the queued row is preserved.
+    expect(screen.queryByTestId('run-view')).toBeNull();
+    expect(screen.getByTestId('pending-row-a')).toBeInTheDocument();
   });
 
   it('text-mode form POSTs a new text-source change-request', async () => {

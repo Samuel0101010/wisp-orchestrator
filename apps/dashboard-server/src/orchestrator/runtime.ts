@@ -55,6 +55,7 @@ import { writeMemoryMcpConfig } from './mcp-config.js';
 import { checkAutopilotBudget } from '../autopilot/budget.js';
 import { replanOnQAFailure } from './replan.js';
 import { buildBriefSummaryForAgents } from './brief-context.js';
+import { buildCodebaseSection, ensureWispExcluded, writeRepoMapToWorktree } from './repo-tree.js';
 import { applyAgentOverride, loadAgentOverridesForProject } from './agent-overrides.js';
 import { loadHandoffsForProject, renderHandoffsSection } from './handoff-loader.js';
 import { storeTrajectory } from '../reasoningbank/store.js';
@@ -155,6 +156,8 @@ export const DEFAULT_AUTOPILOT_BUDGET_TOKENS = 50_000_000;
 interface ResidentRun {
   walker: Walker;
   snapshotTimer: NodeJS.Timeout | null;
+  /** Owning project — drives the per-project active-run guard in startRun. */
+  projectId: string;
 }
 
 const TASK_STATUS_MAP: Record<NonNullable<TaskState['status']>, TaskStatus> = {
@@ -184,6 +187,14 @@ export class RunRuntime {
   // concurrent POST /api/runs for the same planId can't both pass the
   // status read and produce two walkers writing to the same git worktree.
   private readonly launchingPlans: Set<string> = new Set();
+  // Project ids currently being launched into a run. Mirrors launchingPlans:
+  // closes the window between the per-project active-run guard check in
+  // startRun and registerResidentWalker, so two near-simultaneous startRun
+  // calls with DIFFERENT planIds for the SAME project can't both pass the
+  // resident-walker scan and produce two walkers merging into the same repo.
+  // Deliberately in-memory (not runs.status): a stale 'running' DB row from a
+  // crashed session must never deadlock new runs.
+  private readonly launchingProjects: Set<string> = new Set();
   // Run ids currently in cold-path resume. Hot-path resumes (resident walker)
   // are already idempotent inside Walker.resume(); the cold-path rebuilds a
   // walker from DB state and must not race with itself.
@@ -216,6 +227,7 @@ export class RunRuntime {
     runId: string,
     planId: string,
     maxParallel: number,
+    repoPath: string,
     projectId?: string,
   ): Promise<WalkerDeps> {
     const mcpConfigPath = env.WISP_MOCK_CLI
@@ -320,7 +332,22 @@ export class RunRuntime {
     }
     return {
       pool,
-      worktree: { add: addWorktree, remove: removeWorktree },
+      worktree: {
+        add: async (args) => {
+          const p = await addWorktree(args);
+          // Seed the fresh worktree with the repo map + keep .wisp/ out of
+          // git status / auto-commits. Best-effort: a failure here must
+          // never fail worktree creation.
+          try {
+            ensureWispExcluded(args.repoPath);
+            writeRepoMapToWorktree(p);
+          } catch {
+            /* best-effort */
+          }
+          return p;
+        },
+        remove: removeWorktree,
+      },
       verify: runVerification,
       emit: (ev) => {
         // task.tool-use was filtered out under M5 because the parser at the
@@ -414,6 +441,10 @@ export class RunRuntime {
       resolveExecutor: (role) => executorByRole.get(role) ?? null,
       handoffsSection,
       briefContext,
+      // "## Existing codebase" section (compact file tree + modify-don't-
+      // scaffold instruction) injected into every node's prompt. Null →
+      // undefined for fresh/scaffold-only repos, where the composer omits it.
+      codebaseContext: buildCodebaseSection(repoPath) ?? undefined,
       // WRITE side of the hand-off contract (the READ side is `handoffsSection`
       // above). The walker calls this on task completion; we persist a
       // `handoff/<role>/<taskId>` row into the per-project memory DB so the
@@ -448,14 +479,38 @@ export class RunRuntime {
    * Register a freshly-built walker as resident for `runId` and start its
    * periodic snapshot timer. Wires up cleanup on terminate.
    */
-  private registerResidentWalker(runId: string, walker: Walker): void {
+  private registerResidentWalker(runId: string, walker: Walker, projectId: string): void {
     const snapshotTimer = setInterval(() => {
       void this.writeSnapshot(runId).catch(() => {
         /* swallow */
       });
     }, this.snapshotIntervalMs);
     if (typeof snapshotTimer.unref === 'function') snapshotTimer.unref();
-    this.walkers.set(runId, { walker, snapshotTimer });
+    this.walkers.set(runId, { walker, snapshotTimer, projectId });
+  }
+
+  /**
+   * Per-project active-run guard: returns the runId of a resident walker for
+   * `projectId` that should block a new run, or null when the project is free.
+   *
+   * Self-healing-chain exemption: handlePostRunSuccess spawns the follow-up
+   * hardening run from inside the parent walker's `.then` — i.e. BEFORE the
+   * `.finally` cleanup and its 1-second grace `walkers.delete`, so the parent
+   * is still resident at that point. By then the parent walker has finalized
+   * (Walker.finalize sets state 'completed' for every outcome before start()
+   * resolves), so it cannot dispatch more work or merge again. We therefore
+   * allow a new run whose `parentRunId` IS that finalized resident — this
+   * covers the self-healing chain, the manual hardening route, and an
+   * iteration launched while the prior run sits in its grace window. A parent
+   * that is still actively running keeps blocking.
+   */
+  private findBlockingRunForProject(projectId: string, parentRunId?: string): string | null {
+    for (const [activeRunId, resident] of this.walkers) {
+      if (resident.projectId !== projectId) continue;
+      if (activeRunId === parentRunId && resident.walker.status().state === 'completed') continue;
+      return activeRunId;
+    }
+    return null;
   }
 
   async startRun(
@@ -505,10 +560,36 @@ export class RunRuntime {
       }
     }
 
-    // Acquire the launch guard once all validation/early-return checks have
-    // passed. From here on every code path must release it before the method
-    // returns, including thrown errors.
+    // Per-project active-run guard. Source of truth is the runtime's
+    // IN-MEMORY walker registry (plus the launchingProjects set), never
+    // runs.status — a stale 'running' DB row from a crashed session must not
+    // deadlock new runs. Check + acquire happen in one synchronous stretch
+    // (no awaits in between), so two interleaved startRun calls for the same
+    // project cannot both pass.
+    const projectId = planRow.projectId;
+    const blockingRunId = this.findBlockingRunForProject(projectId, args.parentRunId);
+    if (blockingRunId) {
+      return {
+        ok: false,
+        status: 409,
+        error: 'run_already_active',
+        details: { activeRunId: blockingRunId },
+      };
+    }
+    if (this.launchingProjects.has(projectId)) {
+      return {
+        ok: false,
+        status: 409,
+        error: 'run_already_active',
+        details: { activeRunId: null },
+      };
+    }
+
+    // Acquire the launch guards once all validation/early-return checks have
+    // passed. From here on every code path must release them before the
+    // method returns, including thrown errors.
     this.launchingPlans.add(args.planId);
+    this.launchingProjects.add(projectId);
     const runId = randomUUID();
     const startedAt = new Date();
     const budgetMinutes = args.budgetMinutes ?? DEFAULT_BUDGET_MIN;
@@ -604,14 +685,18 @@ export class RunRuntime {
         runId,
         args.planId,
         maxParallel,
+        repoPath,
         planRow?.projectId,
       );
       walker = this.buildWalker({ walkerDeps, runId });
-      this.registerResidentWalker(runId, walker);
+      this.registerResidentWalker(runId, walker, projectId);
     } finally {
       // Release whether the launch succeeded or threw — a leaked entry would
-      // block all future startRun calls for this plan until server restart.
+      // block all future startRun calls for this plan/project until server
+      // restart. On success the resident walker registered above takes over
+      // as the per-project guard.
       this.launchingPlans.delete(args.planId);
+      this.launchingProjects.delete(projectId);
     }
 
     // Fire-and-forget the walker. On any error or completion, clean up.
@@ -868,10 +953,11 @@ export class RunRuntime {
         runId,
         planRow.id,
         run.maxParallel,
+        projectRow.repoPath,
         planRow.projectId,
       );
       walker = this.buildWalker({ walkerDeps, runId });
-      this.registerResidentWalker(runId, walker);
+      this.registerResidentWalker(runId, walker, planRow.projectId);
     } catch (err) {
       this.resumingRuns.delete(runId);
       throw err;
@@ -1124,16 +1210,22 @@ export class RunRuntime {
         repoPath: ctx.repoPath,
         ref: resultBranch,
       });
-      if (stateMd !== null) {
-        const parsed = parseProjectStateMarkdown(stateMd);
-        await persistProjectState({
-          db: this.db,
-          projectId: ctx.projectId,
-          runId,
-          stateMdPath: PROJECT_STATE_MD_PATH,
-          parsed,
-        });
-      }
+      // Even when the crew never wrote docs/project-state.md, persist an
+      // empty state row: it marks "a verified run exists" so the next plan
+      // flips to 'iteration' kind and POST /iterations is unblocked.
+      const parsed = stateMd !== null ? parseProjectStateMarkdown(stateMd) : null;
+      await persistProjectState({
+        db: this.db,
+        projectId: ctx.projectId,
+        runId,
+        stateMdPath: stateMd !== null ? PROJECT_STATE_MD_PATH : null,
+        parsed: parsed ?? {
+          completedFeatures: [],
+          openTodos: [],
+          knownIssues: [],
+          architectureSnapshot: null,
+        },
+      });
     } catch (e) {
       console.error('[runtime] persistProjectState failed', e);
     }

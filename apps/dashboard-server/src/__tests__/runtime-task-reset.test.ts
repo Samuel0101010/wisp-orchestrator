@@ -123,6 +123,12 @@ describe('RunRuntime.startRun — task state reset between runs', () => {
     // not currently mutate plan.status, but this stays robust if it ever does).
     await db.update(plans).set({ status: 'locked' }).where(eq(plans.id, planId)).run();
 
+    // The stub walker's start() never settles, so the first run stays
+    // resident forever — the per-project active-run guard would 409 the
+    // second startRun. Drop the residency to simulate the first run being
+    // gone; this test is about DB-level task reset, not concurrency.
+    runtime.walkers.clear();
+
     // Second run on the SAME plan: every task row must be reset.
     const second = await runtime.startRun({ planId });
     expect(second.ok).toBe(true);

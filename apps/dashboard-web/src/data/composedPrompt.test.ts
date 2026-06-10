@@ -78,3 +78,52 @@ describe('composeTaskPromptPreview — project context section', () => {
     expect(out).not.toContain('## Project context');
   });
 });
+
+describe('composeTaskPromptPreview — existing-codebase section', () => {
+  const codebaseContext =
+    '## Existing codebase\n\nsrc/\n  index.ts\nModify the existing files; do not scaffold.';
+
+  it('emits "## Existing codebase" between the brief context and # Task (goal → brief → codebase → task)', () => {
+    const briefContext = buildBriefSummaryForAgentsPreview(makeBrief({ platform: 'web' }))!;
+    const out = composeTaskPromptPreview(
+      'Build a thing',
+      node,
+      null,
+      briefContext,
+      codebaseContext,
+    );
+
+    const goalIdx = out.indexOf('# Goal');
+    const briefIdx = out.indexOf('## Project context');
+    const codebaseIdx = out.indexOf('## Existing codebase');
+    const taskIdx = out.indexOf('# Task:');
+    expect(goalIdx).toBeGreaterThanOrEqual(0);
+    expect(briefIdx).toBeGreaterThan(goalIdx);
+    expect(codebaseIdx).toBeGreaterThan(briefIdx);
+    expect(taskIdx).toBeGreaterThan(codebaseIdx);
+    expect(out).toContain('Modify the existing files; do not scaffold.');
+  });
+
+  it('emits the codebase section even without a brief, still before # Task', () => {
+    const out = composeTaskPromptPreview('Build a thing', node, null, undefined, codebaseContext);
+    const goalIdx = out.indexOf('# Goal');
+    const codebaseIdx = out.indexOf('## Existing codebase');
+    const taskIdx = out.indexOf('# Task:');
+    expect(codebaseIdx).toBeGreaterThan(goalIdx);
+    expect(taskIdx).toBeGreaterThan(codebaseIdx);
+  });
+
+  it('omits the section when codebase context is undefined', () => {
+    const out = composeTaskPromptPreview('Build a thing', node, null);
+    expect(out).not.toContain('## Existing codebase');
+  });
+
+  it('omits the section for empty/whitespace codebase context', () => {
+    expect(composeTaskPromptPreview('Build a thing', node, null, undefined, '')).not.toContain(
+      '## Existing codebase',
+    );
+    expect(composeTaskPromptPreview('Build a thing', node, null, undefined, '   ')).not.toContain(
+      '## Existing codebase',
+    );
+  });
+});

@@ -1161,6 +1161,38 @@ describe('composeTaskPrompt — retry-error truncation', () => {
       '## Project context',
     );
   });
+
+  it('emits the "## Existing codebase" section between brief and task when set', () => {
+    const plan = makePlan([node('t1', 'developer')]);
+    const brief = '## Project context\n\nPlatform: web';
+    const codebase =
+      '## Existing codebase\n\nMODIFY the existing code.\n\n```\nsrc/\n  index.ts\n```';
+    const out = composeTaskPrompt(plan, plan.nodes[0]!, null, undefined, brief, codebase);
+    expect(out).toContain('## Existing codebase');
+    expect(out).toContain('src/');
+    // Order locked: # Goal → brief → codebase → # Task:
+    expect(out.indexOf('# Goal')).toBeLessThan(out.indexOf('## Project context'));
+    expect(out.indexOf('## Project context')).toBeLessThan(out.indexOf('## Existing codebase'));
+    expect(out.indexOf('## Existing codebase')).toBeLessThan(out.indexOf('# Task:'));
+  });
+
+  it('places the codebase section after the goal when there is no brief', () => {
+    const plan = makePlan([node('t1', 'developer')]);
+    const codebase = '## Existing codebase\n\nMODIFY the existing code.';
+    const out = composeTaskPrompt(plan, plan.nodes[0]!, null, undefined, undefined, codebase);
+    expect(out.indexOf('# Goal')).toBeLessThan(out.indexOf('## Existing codebase'));
+    expect(out.indexOf('## Existing codebase')).toBeLessThan(out.indexOf('# Task:'));
+  });
+
+  it('omits the codebase section when codebaseContext is undefined/empty', () => {
+    const plan = makePlan([node('t1', 'developer')]);
+    expect(
+      composeTaskPrompt(plan, plan.nodes[0]!, null, undefined, undefined, undefined),
+    ).not.toContain('## Existing codebase');
+    expect(
+      composeTaskPrompt(plan, plan.nodes[0]!, null, undefined, undefined, '   '),
+    ).not.toContain('## Existing codebase');
+  });
 });
 
 describe('Walker — QA-driven replan (M5)', () => {

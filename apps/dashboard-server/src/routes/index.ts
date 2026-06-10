@@ -5,6 +5,7 @@ import { healthRoutes } from './health.js';
 import { projectRoutes } from './projects.js';
 import { planRoutes } from './plans.js';
 import { runRoutes, setRuntimeSkillRegistry, getDefaultRuntime } from './runs.js';
+import { iterationRoutes } from './iterations.js';
 import { teamTemplatesRoutes } from './team-templates.js';
 import { planChainRoutes } from './plan-chain.js';
 import { probePromptRoutes } from './probe-prompt.js';
@@ -132,6 +133,9 @@ export const registerRoutes: FastifyPluginAsync = async (app) => {
   // runRoutes registers (which constructs the default runtime), so that the
   // singleton is fully initialized before the worker references it.
   setRetryMaxTurnsRuntime(getDefaultRuntime());
+  // After runRoutes: the iterations router resolves the default runtime in its
+  // body, which must already exist (constructed when runRoutes registered).
+  await app.register(iterationRoutes);
   await app.register(teamTemplatesRoutes);
   await app.register(planChainRoutes);
   await app.register(probePromptRoutes());
