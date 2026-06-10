@@ -19,6 +19,7 @@ import { planSchema, MAX_TEAM_ROLES } from '@wisp/schemas';
 
 export const LEAD_ROLE: AgentSpec = {
   role: 'lead',
+  origin: 'system',
   model: 'opus',
   allowedTools: ['Read', 'Grep', 'Glob'],
   systemPrompt: [
@@ -63,6 +64,7 @@ function buildLeadCheckpointNode(args: { id: string; deps: string[] }): TaskNode
   return {
     id: args.id,
     role: 'lead',
+    origin: 'system',
     prompt:
       "Synthesize the project's state. Decide whether to continue, replan, or wait for the user. Emit one <<LEAD_DECISION>>{...}<<END>> directive at the end of your reply.",
     deps: args.deps,

@@ -40,6 +40,7 @@ const WIRE_UP_TOOLS = [
 
 export const WIRE_UP_ROLE: AgentSpec = {
   role: 'wire-up',
+  origin: 'system',
   model: 'sonnet',
   allowedTools: WIRE_UP_TOOLS,
   systemPrompt: `You are the Wire-up reviewer. Prior core-dev tasks ran in parallel worktrees and have been merged. Your job is to reconcile cross-file inconsistencies so the project builds, typechecks, and renders. You do NOT add features, you do NOT refactor working code, you do NOT remove tests. Minimal-invasive only.
@@ -180,6 +181,7 @@ export function buildWireUpNode(args: BuildWireUpNodeArgs): TaskNode {
   return {
     id: args.id ?? WIRE_UP_NODE_ID,
     role: 'wire-up',
+    origin: 'system',
     prompt: `Reconcile the changes from the prior core-dev tasks so the project builds, typechecks, lints, and renders.
 
 Follow the workflow in the system prompt verbatim:

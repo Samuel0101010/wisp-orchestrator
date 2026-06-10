@@ -110,6 +110,20 @@ describe('injectRuntimeVerifier', () => {
     expect(validateDag(r.plan).ok).toBe(true);
   });
 
+  it('stamps origin "system" on the injected node + role, planner-authored ones untouched', () => {
+    const plan = basePlan();
+    const r = injectRuntimeVerifier({ plan, dodCriteria: dod() });
+    expect(r.reason).toBe('injected');
+    expect(r.plan.nodes.find((n) => n.role === 'runtime-verifier')?.origin).toBe('system');
+    expect(r.plan.team.roles.find((x) => x.role === 'runtime-verifier')?.origin).toBe('system');
+    for (const n of r.plan.nodes.filter((n) => n.role !== 'runtime-verifier')) {
+      expect(n.origin).toBeUndefined();
+    }
+    for (const x of r.plan.team.roles.filter((x) => x.role !== 'runtime-verifier')) {
+      expect(x.origin).toBeUndefined();
+    }
+  });
+
   it('refuses to inject when the team is already at the role cap', () => {
     const roles: AgentSpec[] = Array.from({ length: MAX_TEAM_ROLES }).map((_, i) => ({
       role: `dev-${i + 1}`,

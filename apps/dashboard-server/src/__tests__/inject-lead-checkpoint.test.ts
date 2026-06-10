@@ -64,6 +64,20 @@ describe('injectLeadCheckpoint', () => {
     expect(second.plan.nodes.filter((n) => n.role === 'lead')).toHaveLength(1);
   });
 
+  it('stamps origin "system" on the injected node + role, planner-authored ones untouched', () => {
+    const plan = basePlan();
+    const r = injectLeadCheckpoint({ plan });
+    expect(r.reason).toBe('injected');
+    expect(r.plan.nodes.find((n) => n.role === 'lead')?.origin).toBe('system');
+    expect(r.plan.team.roles.find((x) => x.role === 'lead')?.origin).toBe('system');
+    for (const n of r.plan.nodes.filter((n) => n.role !== 'lead')) {
+      expect(n.origin).toBeUndefined();
+    }
+    for (const x of r.plan.team.roles.filter((x) => x.role !== 'lead')) {
+      expect(x.origin).toBeUndefined();
+    }
+  });
+
   it('refuses when the team is at the role cap', () => {
     const roles: AgentSpec[] = Array.from({ length: MAX_TEAM_ROLES }).map((_, i) => ({
       role: `dev-${i + 1}`,

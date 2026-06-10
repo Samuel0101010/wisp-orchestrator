@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { mkdtempSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { safeParsePlan, validateDag, type Plan, type Team } from '@wisp/schemas';
+import { safeParsePlan, validateDag, validatePlanRoles, type Plan, type Team } from '@wisp/schemas';
 import { runClaude } from '@wisp/orchestrator';
 import type { RunClaudeOpts } from '@wisp/orchestrator';
 import type { HarnessEvent } from '@wisp/schemas';
@@ -21,6 +21,21 @@ export interface PlannerError {
   error: string;
 }
 
+/**
+ * Terminal outcome when the planner kept emitting roles that don't exist in
+ * the stored team even after one corrective retry. Distinct from PlannerError
+ * so the route can surface the invalid/allowed role lists to the client.
+ */
+export interface PlannerRoleError {
+  attempts: number;
+  code: 'invalid_roles';
+  /** Union of invalid team + node roles, deduped. */
+  invalidRoles: string[];
+  /** Stored team role strings. */
+  allowedRoles: string[];
+  error: string;
+}
+
 export interface PlannerSuccess {
   attempts: number;
   plan: Plan;
@@ -30,7 +45,7 @@ export interface RateLimitOutcome {
   rateLimit: { resetAt: number | null };
 }
 
-export type PlannerOutcome = PlannerSuccess | PlannerError | RateLimitOutcome;
+export type PlannerOutcome = PlannerSuccess | PlannerError | PlannerRoleError | RateLimitOutcome;
 
 export function isRateLimitOutcome(o: PlannerOutcome): o is RateLimitOutcome {
   return (o as RateLimitOutcome).rateLimit !== undefined;
@@ -38,6 +53,10 @@ export function isRateLimitOutcome(o: PlannerOutcome): o is RateLimitOutcome {
 
 export function isPlannerSuccess(o: PlannerOutcome): o is PlannerSuccess {
   return (o as PlannerSuccess).plan !== undefined;
+}
+
+export function isPlannerRoleError(o: PlannerOutcome): o is PlannerRoleError {
+  return (o as PlannerRoleError).code === 'invalid_roles';
 }
 
 async function runPlannerOnce(
@@ -104,9 +123,15 @@ export async function generatePlan(
 
   let lastError = '';
   let attempts = 0;
+  let roleRetryUsed = false;
+  // Tracks whether the MOST RECENT failure was a role failure, so exhausting
+  // the attempt budget on a role failure still surfaces PlannerRoleError (with
+  // its invalidRoles/allowedRoles diagnostic) instead of the generic error.
+  let lastRoleFailure: { invalidRoles: string[]; allowedRoles: string[] } | null = null;
   try {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       attempts = attempt;
+      lastRoleFailure = null;
       const prompt =
         attempt === 1
           ? basePrompt
@@ -157,9 +182,41 @@ export async function generatePlan(
         continue;
       }
 
+      // Role chokepoint: every role in the plan must exist in the stored team.
+      // Runs BEFORE any server-side injection (wire-up / runtime-verifier /
+      // lead happen later in plans.ts), so system roles are never flagged.
+      // One corrective retry with the exact allowed list; persistent failure
+      // is a distinct terminal outcome so the route can surface the lists.
+      const roleCheck = validatePlanRoles(safe.data, team);
+      if (!roleCheck.ok) {
+        const invalidRoles = [
+          ...new Set([...roleCheck.invalidTeamRoles, ...roleCheck.invalidNodeRoles]),
+        ];
+        const allowedRoles = team.roles.map((r) => r.role);
+        lastError = `plan uses roles not in the team: ${invalidRoles.join(', ')}. Allowed roles are EXACTLY: ${allowedRoles.join(', ')}. Use only these literal strings.`;
+        lastRoleFailure = { invalidRoles, allowedRoles };
+        if (!roleRetryUsed) {
+          roleRetryUsed = true;
+          continue;
+        }
+        return { attempts, code: 'invalid_roles', invalidRoles, allowedRoles, error: lastError };
+      }
+
       return { plan: safe.data, attempts };
     }
 
+    // Budget exhausted. If the final attempt failed on roles (e.g. the FIRST
+    // role failure landed on the last attempt, so the corrective retry never
+    // ran), surface the structured role outcome — not the generic error.
+    if (lastRoleFailure) {
+      return {
+        attempts,
+        code: 'invalid_roles',
+        invalidRoles: lastRoleFailure.invalidRoles,
+        allowedRoles: lastRoleFailure.allowedRoles,
+        error: lastError || 'planner failed',
+      };
+    }
     return { error: lastError || 'planner failed', attempts };
   } finally {
     try {
