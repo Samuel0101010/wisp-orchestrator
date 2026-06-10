@@ -4,6 +4,8 @@ import {
   Walker,
   composeTaskPrompt,
   defaultIsQARole,
+  isBuilderReplanFailure,
+  BUILDER_REPLAN_SIGNATURES,
   type BudgetConfig,
   type TaskState,
   type WalkerDeps,
@@ -1084,7 +1086,12 @@ describe('Walker — D3: consecutive-failures pause', () => {
       runId: 'r-d3-reset',
       plan,
       repoPath: '/fake/repo',
-      budget: DEFAULT_BUDGET,
+      // maxParallel: 1 at the WALKER level (dispatch enforces budget.maxParallel;
+      // the harness arg above only caps the fake pool, which the walker ignores)
+      // so the t1✗ → t2✗ → t3✓(reset) → t4✗ → t5✗ order this test's comment
+      // describes is deterministic instead of depending on the microtask
+      // interleaving of 5 parallel tasks.
+      budget: { ...DEFAULT_BUDGET, maxParallel: 1 },
     });
 
     // Walker should complete (failure outcome due to failed tasks), not pause.
@@ -1320,6 +1327,135 @@ describe('Walker — QA-driven replan (M5)', () => {
     expect(h.deps.worktree.added).toContain('wisp/r-prefix/q');
     // After replan, the new plan's task adds under v2.
     expect(h.deps.worktree.added).toContain('wisp/r-prefix/v2/q');
+  });
+});
+
+describe('Walker — builder replan broadening (P3)', () => {
+  const buildFail = async (): Promise<VerificationResult> => ({
+    pass: false,
+    output: 'src/x.ts(3,1): error TS2304: Cannot find name',
+    failures: [{ kind: 'build' as const, cmd: 'pnpm build', exitCode: 2, tail: 'TS2304' }],
+  });
+
+  it('isBuilderReplanFailure: structured build/test kinds are the primary signal', () => {
+    expect(
+      isBuilderReplanFailure([{ kind: 'build', cmd: 'b', exitCode: 1, tail: '' }], 'no sigs here'),
+    ).toBe(true);
+    expect(
+      isBuilderReplanFailure([{ kind: 'test', cmd: 't', exitCode: 1, tail: '' }], 'no sigs here'),
+    ).toBe(true);
+    // pnpm appends ELIFECYCLE noise to EVERY failing script — a lint-only
+    // failure must still take the plain terminal-fail path, not replan.
+    expect(
+      isBuilderReplanFailure(
+        [{ kind: 'lint', cmd: 'l', exitCode: 1, tail: 'eslint found 3 problems (3 errors)' }],
+        'eslint found 3 problems (3 errors)\nELIFECYCLE  Command failed with exit code 1.',
+      ),
+    ).toBe(false);
+  });
+
+  it('isBuilderReplanFailure: signature regexes are the fallback over custom-failure tails only', () => {
+    const custom = (tail: string) => [{ kind: 'custom' as const, cmd: 'c', exitCode: 1, tail }];
+    // Custom verify wrapping a test/build run triggers via its tail.
+    expect(isBuilderReplanFailure(custom('Tests: 3 failed, 12 passed'), 'full transcript')).toBe(
+      true,
+    );
+    expect(isBuilderReplanFailure(custom('2 specs failed'), 'full transcript')).toBe(true);
+    expect(isBuilderReplanFailure(custom('Build failed with 1 error'), 'full transcript')).toBe(
+      true,
+    );
+    expect(isBuilderReplanFailure(custom("Cannot find module './foo.js'"), 'full transcript')).toBe(
+      true,
+    );
+    expect(isBuilderReplanFailure(custom('exit code 1, no details'), 'full transcript')).toBe(
+      false,
+    );
+    // Non-custom failures never feed the fallback, even with build-ish text in the transcript.
+    const lintOnly = [{ kind: 'lint' as const, cmd: 'l', exitCode: 1, tail: 'style nits' }];
+    expect(isBuilderReplanFailure(lintOnly, 'error TS2307: Cannot find module x')).toBe(false);
+    expect(isBuilderReplanFailure([], 'Tests: 3 failed, 12 passed')).toBe(false);
+    // npm ERR!/ELIFECYCLE is generic package-manager noise, not a signature.
+    expect(isBuilderReplanFailure(custom('npm ERR! code ELIFECYCLE'), 'full transcript')).toBe(
+      false,
+    );
+    expect(BUILDER_REPLAN_SIGNATURES.length).toBe(6);
+  });
+
+  it('isBuilderReplanFailure: harness verify exceptions (verification threw) never replan', () => {
+    // Mirrors the walker's catch wrapper: kind 'custom', output prefixed
+    // "verification threw:", tail = the raw error message — which may itself
+    // contain signature-like text (e.g. a module-resolution infra error).
+    const errStr = "Cannot find module 'x'";
+    expect(
+      isBuilderReplanFailure(
+        [{ kind: 'custom', cmd: '<verify>', exitCode: 1, tail: errStr }],
+        `verification threw: ${errStr}`,
+      ),
+    ).toBe(false);
+  });
+
+  it('builder role + kind=build failure triggers the replan hook', async () => {
+    const failedIds: string[] = [];
+    const replanFn = vi.fn(
+      async (args: { failedPlan: Plan; failedTaskId: string; qaError: string }) => {
+        failedIds.push(args.failedTaskId);
+        return null;
+      },
+    );
+    const h = makeHarness({ defaultVerify: buildFail });
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    const plan = makePlan([node('d', 'developer')]);
+    const outcome = await h.walker.start({
+      runId: 'r-builder-replan',
+      plan,
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(outcome).toBe('failure');
+    expect(replanFn).toHaveBeenCalledTimes(1);
+    expect(failedIds).toEqual(['d']);
+  });
+
+  it('lint-only builder failure does NOT trigger the replan hook', async () => {
+    const replanFn = vi.fn(async () => null);
+    const h = makeHarness({
+      defaultVerify: async () => ({
+        pass: false,
+        // pnpm appends this line to every failing script — it must not replan.
+        output: 'eslint found 3 problems (3 errors)\nELIFECYCLE  Command failed with exit code 1.',
+        failures: [{ kind: 'lint' as const, cmd: 'pnpm lint', exitCode: 1, tail: 'nits' }],
+      }),
+    });
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    const plan = makePlan([node('d', 'developer')]);
+    await h.walker.start({
+      runId: 'r-builder-lint',
+      plan,
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(replanFn).not.toHaveBeenCalled();
+  });
+
+  it('combined builder + QA failures still cap at 1 replan per run', async () => {
+    // The builder failure consumes the single replan; the swapped-in plan's
+    // qa task then fails terminally and must hit qa.replan-exhausted.
+    const replanFn = vi.fn(async () => ({
+      newPlan: makePlan([node('q2', 'qa')]),
+      newPlanId: 'p2',
+    }));
+    const h = makeHarness({ defaultVerify: buildFail });
+    h.walker = new Walker({ ...h.deps, replanOnQAFailure: replanFn });
+    const plan = makePlan([node('d', 'developer')]);
+    await h.walker.start({
+      runId: 'r-builder-cap',
+      plan,
+      repoPath: '/fake',
+      budget: DEFAULT_BUDGET,
+    });
+    expect(replanFn).toHaveBeenCalledTimes(1);
+    const exhausted = h.emitted.find((e) => e.type === 'qa.replan-exhausted');
+    expect(exhausted).toBeDefined();
   });
 });
 

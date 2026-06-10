@@ -302,6 +302,57 @@ describe('cost-kill — autopilot budget hard-aborts a live run', () => {
     expect(outcome).toBe('success');
   });
 
+  it('pre-dispatch gate: extraBudgetCheck exceeded before the second task → pool.run called exactly once', async () => {
+    // P3 budget gate: task 'a' emits NO usage events, so the legacy
+    // checkBudget path (task.usage-driven) never runs. The only consumer of
+    // extraBudgetCheck is the walker's pre-dispatch gate — first call (before
+    // 'a') passes, second call (before 'b') reports exceeded. 'b' must never
+    // spawn.
+    const runId = 'r-cost-kill-predispatch';
+    const scripts = new Map<string, HarnessEvent[]>([
+      ['a', [{ type: 'task.completed', payload: { taskId: 'a', outcome: 'pass', exitCode: 0 } }]],
+      ['b', [{ type: 'task.completed', payload: { taskId: 'b', outcome: 'pass', exitCode: 0 } }]],
+    ]);
+    let budgetCheckCalls = 0;
+    const h = makeHarness({
+      runId,
+      scripts,
+      extraBudgetCheck: async () => {
+        budgetCheckCalls += 1;
+        return budgetCheckCalls >= 2
+          ? { exceeded: true, reason: 'autopilot token cap' }
+          : { exceeded: false, reason: null };
+      },
+    });
+
+    const outcome = await h.walker.start({
+      runId,
+      plan: makePlan([
+        { id: 'a', role: 'architect', prompt: 'do a', deps: [], successCriteria: {}, maxTurns: 5 },
+        {
+          id: 'b',
+          role: 'architect',
+          prompt: 'do b',
+          deps: ['a'],
+          successCriteria: {},
+          maxTurns: 5,
+        },
+      ]),
+      repoPath: '/fake/repo',
+      budget: HUGE_BUDGET,
+    });
+
+    expect(outcome).toBe('budget_exceeded');
+    // Exactly one subprocess launched — the gate blocked 'b' BEFORE spawn.
+    expect(h.spawned).toHaveLength(1);
+    const exceeded = h.emitted.find(
+      (e) => e.type === 'resource.exceeded' && e.payload.kind === 'tokens',
+    );
+    expect(exceeded).toBeTruthy();
+    const terminal = h.runStatePatches.find((p) => p.patch.outcome === 'budget_exceeded');
+    expect(terminal?.patch.status).toBe('failed');
+  });
+
   it('checkAutopilotBudget driving the closure aborts when run row has autopilotBudgetTokens', async () => {
     // End-to-end: seed a row with autopilot caps, build the closure exactly
     // like makeWalkerDeps does, drive the walker. This is the integration

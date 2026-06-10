@@ -13,6 +13,7 @@ import {
   previewProcesses,
   isPortFree,
   ensurePreviewWorktree,
+  cleanupPreviewWorktree,
 } from '../orchestrator/preview-server.js';
 import { dirname, join, resolve } from 'node:path';
 
@@ -440,6 +441,15 @@ describe('ensurePreviewWorktree', () => {
     expect(install?.args).toEqual(['install', '--frozen-lockfile']);
   });
 
+  it('(c3) alwaysInstall: runs `pnpm install` even when node_modules is present', async () => {
+    nodeModulesPresent = true;
+    const { impl, calls } = makeExeca({ worktreeExists: true });
+    await ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl, alwaysInstall: true });
+    const install = calls.find((c) => c.cmd === 'pnpm');
+    expect(install).toBeDefined();
+    expect(install?.args).toEqual(['install', '--frozen-lockfile']);
+  });
+
   it('(d) main absent: falls back to `rev-parse --verify HEAD`', async () => {
     const { impl, calls } = makeExeca({ worktreeExists: false, mainMissing: true });
     const result = await ensurePreviewWorktree(repoPath, projectId, { execaImpl: impl });
@@ -483,5 +493,47 @@ describe('ensurePreviewWorktree', () => {
     // The expensive pipeline ran exactly once despite two concurrent callers.
     expect(revParseMainCount).toBe(1);
     expect(calls.filter((c) => c.cmd === 'git' && c.args[1] === 'add').length).toBe(1);
+  });
+});
+
+describe('cleanupPreviewWorktree', () => {
+  const repoPath = '/tmp/wisp-repo';
+  const projectId = 'proj-wt-1';
+  const wtBase = join(dirname(resolve(repoPath)), '.harness-worktrees');
+
+  it('removes the preview worktree by default and the bootcheck worktree via dirName', async () => {
+    const calls: Array<{ cmd: string; args: string[] }> = [];
+    const impl = vi.fn(async (cmd: string, args: string[]) => {
+      calls.push({ cmd, args });
+      return { stdout: '' };
+    }) as unknown as typeof import('execa').execa;
+
+    await cleanupPreviewWorktree(repoPath, projectId, { execaImpl: impl });
+    await cleanupPreviewWorktree(repoPath, projectId, {
+      dirName: `bootcheck-${projectId}`,
+      execaImpl: impl,
+    });
+
+    expect(calls[0]?.args).toEqual([
+      'worktree',
+      'remove',
+      '--force',
+      join(wtBase, `preview-${projectId}`),
+    ]);
+    expect(calls[1]?.args).toEqual([
+      'worktree',
+      'remove',
+      '--force',
+      join(wtBase, `bootcheck-${projectId}`),
+    ]);
+  });
+
+  it('never throws when git fails (worktree was never created)', async () => {
+    const impl = vi.fn(async () => {
+      throw new Error('fatal: not a working tree');
+    }) as unknown as typeof import('execa').execa;
+    await expect(
+      cleanupPreviewWorktree(repoPath, projectId, { execaImpl: impl }),
+    ).resolves.toBeUndefined();
   });
 });

@@ -175,9 +175,9 @@ function killTree(child: ChildProcess | null): void {
  * `worktree.ts` `computeWorktreePath`. The name is keyed on projectId so the
  * worktree survives stop/start cycles and is reused rather than re-created.
  */
-function previewWorktreePath(repoPath: string, projectId: string): string {
+function previewWorktreePath(repoPath: string, projectId: string, dirName?: string): string {
   const absRepo = resolve(repoPath);
-  return join(dirname(absRepo), '.harness-worktrees', `preview-${projectId}`);
+  return join(dirname(absRepo), '.harness-worktrees', dirName ?? `preview-${projectId}`);
 }
 
 /**
@@ -228,35 +228,49 @@ const PREVIEW_WT_MAX_RETRIES = 3;
  * `pnpm install --frozen-lockfile` only when node_modules is absent so
  * stop/start cycles after the first preview skip the install cost.
  *
+ * Optional `opts.sha` pins the checkout to an exact commit instead of
+ * main/HEAD, `opts.dirName` overrides the worktree directory name (default
+ * `preview-<projectId>`), and `opts.alwaysInstall` runs the install step
+ * even when node_modules already exists (keeps a persistent worktree's deps
+ * in sync with a result branch that added dependencies — pnpm install is
+ * idempotent and fast when up to date) — all used by the harness boot check
+ * (harness-boot-check.ts) to boot result-branch code in its own persistent
+ * `bootcheck-<projectId>` worktree. Default behavior is unchanged when
+ * none is set.
+ *
  * Returns the absolute worktree path. Idempotent across concurrent calls for
- * the same projectId (see {@link inFlightWorktrees}).
+ * the same worktree directory (see {@link inFlightWorktrees}).
  */
 export async function ensurePreviewWorktree(
   repoPath: string,
   projectId: string,
-  opts: { execaImpl?: typeof execa } = {},
+  opts: { execaImpl?: typeof execa; sha?: string; dirName?: string; alwaysInstall?: boolean } = {},
 ): Promise<string> {
-  const pending = inFlightWorktrees.get(projectId);
+  // Keyed on the effective directory name so a preview and a bootcheck
+  // worktree for the same project never share (and never block) each other.
+  const key = opts.dirName ?? `preview-${projectId}`;
+  const pending = inFlightWorktrees.get(key);
   if (pending) return pending;
 
   const promise = ensurePreviewWorktreeImpl(repoPath, projectId, opts).finally(() => {
-    inFlightWorktrees.delete(projectId);
+    inFlightWorktrees.delete(key);
   });
-  inFlightWorktrees.set(projectId, promise);
+  inFlightWorktrees.set(key, promise);
   return promise;
 }
 
 async function ensurePreviewWorktreeImpl(
   repoPath: string,
   projectId: string,
-  opts: { execaImpl?: typeof execa },
+  opts: { execaImpl?: typeof execa; sha?: string; dirName?: string; alwaysInstall?: boolean },
 ): Promise<string> {
   const run = opts.execaImpl ?? execa;
-  const wtPath = previewWorktreePath(repoPath, projectId);
+  const wtPath = previewWorktreePath(repoPath, projectId, opts.dirName);
   await mkdir(dirname(wtPath), { recursive: true });
 
   // Resolve the SHA now — this is the ref auto-merge already advanced.
-  const sha = await resolvePreviewSha(repoPath, run);
+  // A caller-pinned sha (harness boot check → result-branch commit) wins.
+  const sha = opts.sha ?? (await resolvePreviewSha(repoPath, run));
 
   // Check if the worktree already exists (registered in git).
   const { stdout: wtList } = await run('git', ['worktree', 'list', '--porcelain'], {
@@ -300,14 +314,18 @@ async function ensurePreviewWorktreeImpl(
   }
 
   // Install deps only when node_modules is absent (avoids re-running on every
-  // stop/start cycle after the first preview).
+  // stop/start cycle after the first preview). `alwaysInstall` callers (the
+  // harness boot check) skip the shortcut so a stale node_modules can never
+  // mask a dependency the result branch just added.
   const nmPath = join(wtPath, 'node_modules');
   let needsInstall = true;
-  try {
-    await access(nmPath, constants.F_OK);
-    needsInstall = false;
-  } catch {
-    /* absent — install below */
+  if (opts.alwaysInstall !== true) {
+    try {
+      await access(nmPath, constants.F_OK);
+      needsInstall = false;
+    } catch {
+      /* absent — install below */
+    }
   }
 
   if (needsInstall) {
@@ -327,15 +345,24 @@ async function ensurePreviewWorktreeImpl(
 }
 
 /**
- * Remove the preview worktree. Best-effort — the worktree may never have been
+ * Remove a managed worktree. Best-effort — the worktree may never have been
  * created (preview never started) or may already be gone. Never throws. Called
  * on project-delete (and fire-and-forget from stopPreview); NOT on a plain
  * stop, so a stop/start cycle reuses the worktree and skips re-install.
+ *
+ * `opts.dirName` targets a non-default worktree directory — project-delete
+ * uses it to also reap the harness boot check's `bootcheck-<projectId>`
+ * worktree (same naming scheme as {@link ensurePreviewWorktree}).
  */
-export async function cleanupPreviewWorktree(repoPath: string, projectId: string): Promise<void> {
-  const wtPath = previewWorktreePath(repoPath, projectId);
+export async function cleanupPreviewWorktree(
+  repoPath: string,
+  projectId: string,
+  opts: { dirName?: string; execaImpl?: typeof execa } = {},
+): Promise<void> {
+  const run = opts.execaImpl ?? execa;
+  const wtPath = previewWorktreePath(repoPath, projectId, opts.dirName);
   try {
-    await execa('git', ['worktree', 'remove', '--force', wtPath], { cwd: repoPath });
+    await run('git', ['worktree', 'remove', '--force', wtPath], { cwd: repoPath });
   } catch {
     /* best-effort: worktree may never have been created */
   }

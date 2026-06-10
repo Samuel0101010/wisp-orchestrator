@@ -7,6 +7,13 @@
  * If the canonical composeTaskPrompt in packages/orchestrator/src/walker.ts
  * changes shape, update this file to match (it currently mirrors the goal,
  * briefContext, codebaseContext, task, success-criteria and retry sections).
+ * The server-side "## Prior Handoffs" section is intentionally NOT mirrored
+ * here: it is resolved per node at dispatch time (scoped to the node's
+ * transitive dependency closure, 10 most recent entries, read live from the
+ * project memory DB), so the browser cannot reproduce it.
+ * The server-side "## Shared memory" protocol section (mcp-config.ts
+ * MEMORY_PROTOCOL_SECTION, appended to briefContext at run start) is likewise
+ * intentionally NOT mirrored in this browser preview.
  * The preview is a guide, not a source of truth.
  */
 

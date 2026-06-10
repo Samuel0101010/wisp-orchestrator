@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildHardeningPlan, shouldChainHardeningRun } from '../orchestrator/self-healing.js';
+import {
+  buildHardeningPlan,
+  isPlateau,
+  shouldChainHardeningRun,
+} from '../orchestrator/self-healing.js';
 import type { Finding } from '../orchestrator/findings.js';
 
 const F_CRIT: Finding = {
@@ -39,6 +43,25 @@ describe('shouldChainHardeningRun', () => {
 
   it('chains at the iteration boundary (cap - 1)', () => {
     expect(shouldChainHardeningRun({ ...base, chainIteration: 2 })).toBe(true);
+  });
+});
+
+describe('isPlateau', () => {
+  it('never reports a plateau when the parent run was unscannable (null)', () => {
+    expect(isPlateau(null, 3)).toBe(false);
+    expect(isPlateau(null, 0)).toBe(false);
+  });
+
+  it('reports a plateau when the count did not decrease (3 → 3)', () => {
+    expect(isPlateau(3, 3)).toBe(true);
+  });
+
+  it('reports a plateau when the count grew (3 → 5)', () => {
+    expect(isPlateau(3, 5)).toBe(true);
+  });
+
+  it('does not report a plateau on real progress (3 → 2)', () => {
+    expect(isPlateau(3, 2)).toBe(false);
   });
 });
 

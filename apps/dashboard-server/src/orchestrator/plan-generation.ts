@@ -73,7 +73,7 @@ const DEFAULT_PLAN_TEAM: Team = {
     },
     {
       role: 'qa',
-      model: 'sonnet',
+      model: 'haiku',
       allowedTools: ['Read', 'Grep', 'Glob', 'Bash'],
       systemPrompt:
         'You are QA. Verify the build, run the tests, and confirm the goal is actually met before the run is allowed to finish.',

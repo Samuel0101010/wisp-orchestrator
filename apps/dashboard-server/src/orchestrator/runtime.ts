@@ -51,13 +51,13 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { writeProjectMemoryEntry } from '@wisp/memory-mcp';
 import { env } from '../env.js';
 import { getLastAuthProbe } from '../auth-status.js';
-import { writeMemoryMcpConfig } from './mcp-config.js';
+import { MEMORY_PROTOCOL_SECTION, writeMemoryMcpConfig } from './mcp-config.js';
 import { checkAutopilotBudget } from '../autopilot/budget.js';
 import { replanOnQAFailure } from './replan.js';
 import { buildBriefSummaryForAgents } from './brief-context.js';
 import { buildCodebaseSection, ensureWispExcluded, writeRepoMapToWorktree } from './repo-tree.js';
 import { applyAgentOverride, loadAgentOverridesForProject } from './agent-overrides.js';
-import { loadHandoffsForProject, renderHandoffsSection } from './handoff-loader.js';
+import { loadHandoffsForNode, renderHandoffsSection } from './handoff-loader.js';
 import { storeTrajectory } from '../reasoningbank/store.js';
 import {
   autoMergeResultIntoMain,
@@ -68,10 +68,12 @@ import { actionableFindings, scanRefForFindings } from './findings.js';
 import {
   buildHardeningPlan,
   insertHardeningPlan,
+  isPlateau,
   loadProjectChainContext,
   shouldChainHardeningRun,
 } from './self-healing.js';
 import { evaluateReleaseGate } from './release-gate.js';
+import { runHarnessBootCheck } from './harness-boot-check.js';
 import { tryCheckoutRun, releaseCheckout } from '../checkout/atomic-checkout.js';
 import { buildResumeWalkerState, escalatedMaxTurns } from './resume-state.js';
 import {
@@ -220,8 +222,9 @@ export class RunRuntime {
   /**
    * Build the Walker dependencies for a given run. Factored out so both
    * startRun() and resumeRun() (rebuild path) share the same wiring. Async
-   * because it loads per-project overrides and handoffs from SQLite + the
-   * per-project memory DB before the walker is constructed.
+   * because it loads per-project overrides + the brief from SQLite before
+   * the walker is constructed. (Hand-offs are read per-dispatch via the
+   * `handoffsForNode` closure, not snapshotted here.)
    */
   private async makeWalkerDeps(
     runId: string,
@@ -247,33 +250,45 @@ export class RunRuntime {
       runner: this.runner,
       defaultMcpConfigPath: mcpConfigPath,
     });
-    // Per-project overrides + handoffs. Both are loaded fresh every time a
-    // walker is built (start-run AND cold-resume), so edits made between
-    // pause and resume take effect on the next run. The hot-resume path
-    // (resident walker) keeps the snapshot from its original startRun —
-    // documented as a known limitation.
+    // Per-project overrides are loaded fresh every time a walker is built
+    // (start-run AND cold-resume), so edits made between pause and resume
+    // take effect on the next run. The hot-resume path (resident walker)
+    // keeps the snapshot from its original startRun — documented as a known
+    // limitation. Handoffs are NOT snapshotted here any more: they are read
+    // per-dispatch via the `handoffsForNode` closure below, so a hand-off
+    // written by an upstream task in the SAME run is visible downstream.
     const overrides = projectId
       ? await loadAgentOverridesForProject(projectId, this.db).catch((err) => {
           console.error('[runtime] loadAgentOverridesForProject failed:', err);
           return {} as Awaited<ReturnType<typeof loadAgentOverridesForProject>>;
         })
       : {};
-    let handoffsSection = '';
-    if (projectId) {
-      try {
-        const handoffs = loadHandoffsForProject({ dataDir: env.WISP_DATA_DIR, projectId });
-        handoffsSection = renderHandoffsSection(handoffs);
-      } catch (err) {
-        console.error('[runtime] loadHandoffsForProject failed:', err);
-      }
-    }
+    // Per-node handoff resolver — the walker calls this once per task attempt
+    // with the node's transitive dependency closure (collectTransitiveDeps),
+    // and we return only hand-offs written by those task ids / roles.
+    // Best-effort: any load error yields an empty section, never a failed task.
+    const handoffsForNode: WalkerDeps['handoffsForNode'] = projectId
+      ? ({ depTaskIds, depRoles }) => {
+          try {
+            const handoffs = loadHandoffsForNode({
+              dataDir: env.WISP_DATA_DIR,
+              projectId,
+              depTaskIds,
+              depRoles,
+            });
+            return renderHandoffsSection(handoffs);
+          } catch (err) {
+            console.error('[runtime] loadHandoffsForNode failed:', err);
+            return '';
+          }
+        }
+      : undefined;
     // Compact brief summary (six structured fields, capped) injected into every
     // node's prompt so the executing agents see the user's design prefs /
     // constraints / success criteria — not just whatever the planner baked into
     // node prompts. Best-effort: no brief row / no projectId → undefined, and
     // the prompt composer omits the "## Project context" section. Loaded here so
-    // both startRun and the cold-resume rebuild path pick it up, mirroring how
-    // handoffsSection is loaded.
+    // both startRun and the cold-resume rebuild path pick it up.
     let briefContext: string | undefined;
     if (projectId) {
       try {
@@ -287,6 +302,10 @@ export class RunRuntime {
         console.error('[runtime] load projectBrief failed:', err);
       }
     }
+    // The shared-memory protocol rides along with the brief context so EVERY
+    // agent learns the memory.list/get/set convention — present even
+    // when no brief exists (the section stands alone in that case).
+    briefContext = [briefContext, MEMORY_PROTOCOL_SECTION].filter(Boolean).join('\n\n');
     // Role → persistent agent identity, built ONCE per walker so the
     // dispatch-time resolveExecutor call is a cheap in-memory lookup.
     // Best-effort: roles without an agentId link resolve to null, and any
@@ -439,16 +458,17 @@ export class RunRuntime {
       // default so the dependency is visible at the composition root.
       isQARole: defaultIsQARole,
       resolveExecutor: (role) => executorByRole.get(role) ?? null,
-      handoffsSection,
+      handoffsForNode,
       briefContext,
       // "## Existing codebase" section (compact file tree + modify-don't-
       // scaffold instruction) injected into every node's prompt. Null →
       // undefined for fresh/scaffold-only repos, where the composer omits it.
       codebaseContext: buildCodebaseSection(repoPath) ?? undefined,
-      // WRITE side of the hand-off contract (the READ side is `handoffsSection`
+      // WRITE side of the hand-off contract (the READ side is `handoffsForNode`
       // above). The walker calls this on task completion; we persist a
       // `handoff/<role>/<taskId>` row into the per-project memory DB so the
-      // next walker's loadHandoffsForProject picks it up. Advisory only —
+      // per-dispatch loadHandoffsForNode reads pick it up — including
+      // downstream tasks in the SAME run. Advisory only —
       // a write failure must not affect task completion. We store the summary
       // under `prompt` because handoff-loader's safeParseHandoff requires a
       // `prompt` field and renderHandoffsSection renders it.
@@ -1180,6 +1200,22 @@ export class RunRuntime {
       manual: 0,
     }));
 
+    // Harness-side boot check: boot the RESULT-BRANCH code in a managed
+    // worktree (never the working tree — the FocusBoard mis-probe class).
+    // Gated on the same effective runtime-verify flag as the runtime report,
+    // so projects that disabled runtime verification skip the (up to 90s +
+    // install) boot cost. null = skipped (gated off, non-bootable project or
+    // harness infra error) — the gate ignores it; only a genuine app boot
+    // failure blocks.
+    const harnessBoot = effectiveRuntimeVerifyEnabled
+      ? await runHarnessBootCheck({
+          repoPath: ctx.repoPath,
+          projectId: ctx.projectId,
+          runId,
+          resultBranch,
+        }).catch(() => null)
+      : null;
+
     const gate = evaluateReleaseGate({
       runSucceeded: true,
       runtime: runtimeReport,
@@ -1187,6 +1223,7 @@ export class RunRuntime {
       dodTotal: dodCounts.total,
       dodManual: dodCounts.manual,
       runtimeVerifyEnabled: effectiveRuntimeVerifyEnabled,
+      harnessBoot,
     });
 
     try {
@@ -1305,6 +1342,25 @@ export class RunRuntime {
 
     if (!ctx.selfHealingEnabled) return;
 
+    // Plateau detection (efficiency loop): when this run is itself a hardening
+    // iteration, recompute the PARENT run's actionable-findings count from its
+    // result ref. No decrease means the iteration closed nothing — another
+    // pass would likely burn budget without progress. Best-effort: an
+    // unscannable parent (pruned ref, scan error) yields null and never
+    // blocks chaining.
+    let parentActionableCount: number | null = null;
+    if (ctx.selfHealingEnabled && runRow.chainIteration >= 1 && runRow.parentRunId) {
+      try {
+        const parentAll = await scanRefForFindings({
+          repoPath: ctx.repoPath,
+          ref: `wisp/${runRow.parentRunId}/result`,
+        });
+        parentActionableCount = actionableFindings(parentAll).length;
+      } catch {
+        parentActionableCount = null;
+      }
+    }
+
     const willChain = shouldChainHardeningRun({
       selfHealingEnabled: ctx.selfHealingEnabled,
       chainIteration: runRow.chainIteration,
@@ -1323,6 +1379,16 @@ export class RunRuntime {
           text: `[harness] self-healing: ${actionable.length === 0 ? 'no remaining HIGH+ findings — chain complete' : `iteration cap reached (${runRow.chainIteration}/${ctx.maxChainIterations})`}\n`,
         },
       });
+      return;
+    }
+
+    if (isPlateau(parentActionableCount, actionable.length)) {
+      const msg = `[harness] self-healing: PLATEAU — iteration ${runRow.chainIteration} closed 0 findings (${parentActionableCount} -> ${actionable.length}); stopping chain early`;
+      this.persistEvent(runId, {
+        type: 'task.text-delta',
+        payload: { taskId: 'system', text: msg + '\n' },
+      });
+      console.log(msg);
       return;
     }
 

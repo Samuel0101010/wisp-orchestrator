@@ -157,6 +157,49 @@ describe('evaluateReleaseGate', () => {
     expect(r.verdict).toBe('ready');
   });
 
+  describe('harness boot check (result-branch worktree boot)', () => {
+    it('blocks when harnessBoot.ok is false even with a passing runtime report', () => {
+      const r = evaluateReleaseGate({
+        runSucceeded: true,
+        runtime: passReport(), // verifier said pass — the harness boot wins
+        actionableFindingsCount: 0,
+        dodTotal: 1,
+        dodManual: 0,
+        runtimeVerifyEnabled: true,
+        harnessBoot: { ok: false, reason: 'dev server did not answer within 90000ms' },
+      });
+      expect(r.verdict).toBe('blocked');
+      expect(r.summary.bootOk).toBe(false);
+      expect(r.reasons.join(' ')).toMatch(/harness boot check failed: dev server did not answer/);
+    });
+
+    it('a skipped check (null) changes nothing — gate stays ready', () => {
+      const r = evaluateReleaseGate({
+        runSucceeded: true,
+        runtime: passReport(),
+        actionableFindingsCount: 0,
+        dodTotal: 1,
+        dodManual: 0,
+        runtimeVerifyEnabled: true,
+        harnessBoot: null,
+      });
+      expect(r.verdict).toBe('ready');
+    });
+
+    it('a passing check (ok:true) changes nothing — gate stays ready', () => {
+      const r = evaluateReleaseGate({
+        runSucceeded: true,
+        runtime: passReport(),
+        actionableFindingsCount: 0,
+        dodTotal: 1,
+        dodManual: 0,
+        runtimeVerifyEnabled: true,
+        harnessBoot: { ok: true },
+      });
+      expect(r.verdict).toBe('ready');
+    });
+  });
+
   // Regression: FocusBoard run eac482c1 — runtime-verifier wrote
   // `Boot: PASS` to docs/runtime-report.{md,json}, but the release-gate
   // displayed "Boot: FAIL" because it tried to re-probe boot from scratch

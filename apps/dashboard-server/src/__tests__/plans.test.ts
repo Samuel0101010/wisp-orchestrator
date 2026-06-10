@@ -489,7 +489,12 @@ describe('plan generation route', () => {
       url: `/api/projects/${projectId}/team`,
     });
     expect(teamRes.statusCode).toBe(200);
-    expect(teamRes.json().roles.length).toBeGreaterThanOrEqual(1);
+    const roles = teamRes.json().roles as Array<{ role: string; model: string }>;
+    expect(roles.length).toBeGreaterThanOrEqual(1);
+    // Default-team model tiers: opus architect, sonnet developer, haiku qa.
+    expect(roles.find((r) => r.role === 'architect')?.model).toBe('opus');
+    expect(roles.find((r) => r.role === 'developer')?.model).toBe('sonnet');
+    expect(roles.find((r) => r.role === 'qa')?.model).toBe('haiku');
   });
 
   it('returns 503 on rate-limit mid-stream with resetAt propagated', async () => {

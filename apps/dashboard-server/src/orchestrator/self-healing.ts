@@ -50,7 +50,7 @@ const HARDEN_TEAM = {
     },
     {
       role: 'qa-engineer',
-      model: 'sonnet' as const,
+      model: 'haiku' as const,
       allowedTools: [
         'Read',
         'Glob',
@@ -187,6 +187,17 @@ export interface ShouldChainArgs {
   chainIteration: number;
   maxChainIterations: number;
   actionableFindingsCount: number;
+}
+
+/**
+ * Plateau detection for the self-healing chain: true when the just-finished
+ * iteration closed zero findings (the actionable count did not decrease vs.
+ * the parent run). `previousCount === null` means the parent run could not
+ * be scanned — never report a plateau in that case (an unscannable parent
+ * must not stop the chain).
+ */
+export function isPlateau(previousCount: number | null, currentCount: number): boolean {
+  return previousCount !== null && currentCount >= previousCount;
 }
 
 /** Pure-logic gate for whether the post-success hook should spawn another iteration. */

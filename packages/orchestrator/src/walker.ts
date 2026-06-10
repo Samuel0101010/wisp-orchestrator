@@ -26,7 +26,7 @@ import type {
   TaskNode,
 } from '@wisp/schemas';
 import type { SubprocessPool } from './pool.js';
-import type { SuccessCriteria, VerificationResult } from './verification.js';
+import type { SuccessCriteria, VerificationFailure, VerificationResult } from './verification.js';
 
 // ---------- public types ----------
 
@@ -190,6 +190,15 @@ export interface WalkerDeps {
     tokensTotal: number;
   }) => Promise<{ exceeded: boolean; reason: string | null }>;
   /**
+   * Fraction of the turns/minutes budget held back as a launch reserve by the
+   * pre-dispatch budget gate. With reserve `r`, no NEW task launches once
+   * `turnFrac` or `timeFrac` reaches `1 - r` — so a near-exhausted budget is
+   * not spent on a task that would be killed mid-flight by {@link Walker.checkBudget}
+   * moments later. Clamped to `[0, 0.5]`; defaults to `0` (gate only blocks
+   * at/over the full budget).
+   */
+  budgetReserveFraction?: number;
+  /**
    * Optional inactivity-watchdog liveness probe. When the watchdog timer
    * fires the walker calls this with the task id and uses the result to
    * decide whether to kill+retry or extend the grace period.
@@ -240,8 +249,28 @@ export interface WalkerDeps {
    * project. Built by the runtime from
    * `loadHandoffsForProject + renderHandoffsSection`. Empty string when no
    * handoffs exist (the prompt composer omits the section in that case).
+   *
+   * @deprecated Fallback only — one global section injected into EVERY
+   * node's prompt. Prefer {@link WalkerDeps.handoffsForNode}, which scopes
+   * the section to the node's transitive dependencies. This field is used
+   * only when `handoffsForNode` is not wired.
    */
   handoffsSection?: string;
+  /**
+   * Per-node handoff-section resolver. When set, the walker calls this once
+   * per task ATTEMPT immediately before launching the subprocess, passing the
+   * node plus its transitive dependency closure (task ids + deduped roles,
+   * computed via {@link collectTransitiveDeps}), and injects the returned
+   * markdown into that node's prompt instead of the global
+   * {@link WalkerDeps.handoffsSection}. Return an empty string to omit the
+   * section. Best-effort: a thrown/rejected resolver yields an empty section
+   * — a handoff failure must never fail a task.
+   */
+  handoffsForNode?: (args: {
+    node: TaskNode;
+    depTaskIds: string[];
+    depRoles: string[];
+  }) => string | Promise<string>;
   /**
    * Pre-rendered "## Project context" block summarising the project brief
    * (the six structured fields, capped). Built by the runtime via
@@ -325,6 +354,79 @@ export const TRANSIENT_RE =
  */
 export function defaultIsQARole(role: string): boolean {
   return role.split(/[-_]/).includes('qa');
+}
+
+/**
+ * Output signatures that mark a builder (non-QA) verification failure as
+ * replan-worthy: compiler errors, failing test summaries, unresolved
+ * modules. Fallback signal for {@link isBuilderReplanFailure} when the
+ * structured failure list carries no `build`/`test` entry — matched only
+ * against the tails of `custom` failures, never the full transcript
+ * (pnpm prints "ELIFECYCLE Command failed" on every failing script, so
+ * generic package-manager noise must not appear here).
+ */
+export const BUILDER_REPLAN_SIGNATURES: RegExp[] = [
+  /\berror TS\d{4,5}\b/,
+  /\bTS\d{4,5}:/,
+  /\bTests?:\s+\d+\s+failed/i,
+  /\b\d+\s+(tests?|specs?)\s+failed\b/i,
+  /\b(build|compilation)\s+failed\b/i,
+  /Cannot find module/,
+];
+
+/**
+ * Decides whether a terminally-failed builder task should trigger the QA
+ * replan hook. Structured failures with kind `build` or `test` are the
+ * primary signal; {@link BUILDER_REPLAN_SIGNATURES} over the joined tails
+ * of `custom` failures is the fallback (covers `custom` verify commands
+ * that wrap a build or test run). Lint/preflight failures and harness-level
+ * verify exceptions (`verification threw: …`, wrapped as kind `custom`)
+ * never match the fallback.
+ */
+export function isBuilderReplanFailure(failures: VerificationFailure[], output: string): boolean {
+  if (failures.some((f) => f.kind === 'build' || f.kind === 'test')) return true;
+  // Harness infra errors are wrapped as kind 'custom' — never a build/test signal.
+  if (output.startsWith('verification threw')) return false;
+  const customTails = failures
+    .filter((f) => f.kind === 'custom')
+    .map((f) => f.tail)
+    .join('\n');
+  if (!customTails) return false;
+  return BUILDER_REPLAN_SIGNATURES.some((re) => re.test(customTails));
+}
+
+/**
+ * Collects the transitive dependency closure of `nodeId` in `plan` via BFS
+ * over `node.deps`. Returns the dep task ids (visit order, deduped) and their
+ * roles (deduped, in first-seen order). Excludes the node itself; cycle-safe
+ * via a visited set; unknown dep ids are skipped. Pure — exported so the
+ * runtime can build per-node handoff scopes ({@link WalkerDeps.handoffsForNode})
+ * with the exact same closure the walker passes to the resolver.
+ */
+export function collectTransitiveDeps(
+  plan: Plan,
+  nodeId: string,
+): { taskIds: string[]; roles: string[] } {
+  const nodesById = new Map(plan.nodes.map((n) => [n.id, n]));
+  const visited = new Set<string>();
+  const taskIds: string[] = [];
+  const roles: string[] = [];
+  const seenRoles = new Set<string>();
+  const queue = [...(nodesById.get(nodeId)?.deps ?? [])];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    if (id === nodeId || visited.has(id)) continue;
+    visited.add(id);
+    const dep = nodesById.get(id);
+    if (!dep) continue;
+    taskIds.push(id);
+    if (!seenRoles.has(dep.role)) {
+      seenRoles.add(dep.role);
+      roles.push(dep.role);
+    }
+    queue.push(...dep.deps);
+  }
+  return { taskIds, roles };
 }
 
 /**
@@ -754,6 +856,17 @@ export class Walker {
           }
           return;
         }
+
+        // Pre-dispatch budget gate: don't launch new tasks when the budget is
+        // (nearly) spent — checkBudget only fires on task.usage events, so
+        // without this gate the gap BETWEEN tasks is never re-checked.
+        if (await this.preDispatchBudgetExceeded()) {
+          await this.cancel('budget_exceeded');
+          return;
+        }
+        // The await above is a suspension point — a concurrent pause/cancel
+        // may have flipped the state while the gate ran.
+        if (this.state !== 'running') return;
 
         // Inter-task pacing: enforce a minimum gap between subprocess launches.
         const pacingMs = this.deps.interTaskPacingMs;
@@ -1349,6 +1462,24 @@ export class Walker {
       inactivityCancel = this.deps.setTimeout(onWatchdogFire, INACTIVITY_TIMEOUT_MS);
     };
 
+    // Resolve the handoffs section per attempt: scoped to this node's
+    // transitive deps when the per-node resolver is wired, else the global
+    // (deprecated-fallback) section. Best-effort — a handoff failure must
+    // never fail a task, so a throwing resolver degrades to no section.
+    let handoffsSection = this.deps.handoffsSection;
+    if (this.deps.handoffsForNode) {
+      try {
+        const { taskIds, roles } = collectTransitiveDeps(plan, node.id);
+        handoffsSection = await this.deps.handoffsForNode({
+          node,
+          depTaskIds: taskIds,
+          depRoles: roles,
+        });
+      } catch {
+        handoffsSection = '';
+      }
+    }
+
     try {
       const iter = this.deps.pool.run({
         cwd: worktreePath,
@@ -1356,7 +1487,7 @@ export class Walker {
           plan,
           node,
           t.attempt > 1 ? t.lastError : null,
-          this.deps.handoffsSection,
+          handoffsSection,
           this.deps.briefContext,
           this.deps.codebaseContext,
         ),
@@ -1639,9 +1770,14 @@ export class Walker {
       },
     });
 
-    // QA-driven replan (M5/5.3): only on qa-role terminal fails, capped at MAX_REPLANS_PER_RUN.
+    // QA-driven replan (M5/5.3), capped at MAX_REPLANS_PER_RUN. Broadened to
+    // builder terminal fails whose verification failed on build/test (the
+    // structured failure kinds, or the output-signature fallback) — a broken
+    // build is as replan-worthy as a QA verdict. Lint-/custom-only builder
+    // failures still take the plain terminal-fail path.
+    const qaRole = (this.deps.isQARole ?? defaultIsQARole)(node.role);
     if (
-      (this.deps.isQARole ?? defaultIsQARole)(node.role) &&
+      (qaRole || (!qaRole && isBuilderReplanFailure(verifyResult.failures, verifyResult.output))) &&
       this.deps.replanOnQAFailure &&
       this.runId &&
       this.plan
@@ -1741,6 +1877,60 @@ export class Walker {
       await this.pause('consecutive-failures');
     }
     // Leave worktree intact for forensics.
+  }
+
+  /**
+   * Pre-dispatch budget gate. {@link checkBudget} only runs on `task.usage`
+   * events — between tasks nothing re-checks the budget, so a run sitting at
+   * 99% of its turn cap would happily launch the next subprocess and burn the
+   * remainder before the first usage event killed it. This gate runs in
+   * `dispatch()` right before launching new tasks: it computes the same
+   * turn/time fractions as `checkBudget` against a threshold of
+   * `1 - budgetReserveFraction` (reserve clamped to [0, 0.5], default 0) and
+   * consults {@link WalkerDeps.extraBudgetCheck} with the cumulative token
+   * total. Returns `true` (after emitting the matching `resource.exceeded`
+   * event) when dispatch must stop; the caller cancels with
+   * `budget_exceeded`. A thrown `extraBudgetCheck` is logged and ignored —
+   * mirroring `checkBudget` — so a flaky probe never blocks dispatch.
+   */
+  private async preDispatchBudgetExceeded(): Promise<boolean> {
+    if (!this.budget || !this.runId) return false;
+    const elapsedMin = (this.deps.now() - this.startedAt) / 60_000;
+    const timeFrac = this.budget.budgetMinutes == null ? 0 : elapsedMin / this.budget.budgetMinutes;
+    const turnFrac =
+      this.budget.budgetTurns == null ? 0 : this.runTurnsTotal / this.budget.budgetTurns;
+    const reserve = Math.min(Math.max(this.deps.budgetReserveFraction ?? 0, 0), 0.5);
+    const threshold = 1 - reserve;
+
+    if (this.budget.budgetTurns != null && turnFrac >= threshold) {
+      this.deps.emit({ type: 'resource.exceeded', payload: { runId: this.runId, kind: 'turns' } });
+      return true;
+    }
+    if (this.budget.budgetMinutes != null && timeFrac >= threshold) {
+      this.deps.emit({ type: 'resource.exceeded', payload: { runId: this.runId, kind: 'time' } });
+      return true;
+    }
+    if (this.deps.extraBudgetCheck) {
+      try {
+        const verdict = await this.deps.extraBudgetCheck({
+          runId: this.runId,
+          tokensTotal: this.runTokensInTotal + this.runTokensOutTotal,
+        });
+        if (verdict.exceeded) {
+          this.runErrorReason = verdict.reason ?? 'budget_exceeded';
+          this.deps.emit({
+            type: 'resource.exceeded',
+            payload: { runId: this.runId, kind: 'tokens' },
+          });
+          return true;
+        }
+      } catch (err) {
+        // A failing budget probe must not block dispatch. Best-effort log.
+        console.error('[walker] extraBudgetCheck threw — ignoring', err);
+        return false;
+      }
+    }
+    return false;
   }
 
   private async checkBudget(): Promise<void> {
