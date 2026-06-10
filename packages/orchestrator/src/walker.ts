@@ -252,6 +252,8 @@ export interface WalkerDeps {
    * the section in that case).
    */
   briefContext?: string;
+  /** Pre-rendered "## Existing codebase" section (file tree + modify-don't-scaffold instruction). Computed server-side from the project repo; undefined/empty for fresh repos — composer omits it. */
+  codebaseContext?: string;
   /**
    * Best-effort hand-off WRITE seam. Called once per task right after it
    * verifies + auto-commits and just before it transitions to `done`, so
@@ -1356,6 +1358,7 @@ export class Walker {
           t.attempt > 1 ? t.lastError : null,
           this.deps.handoffsSection,
           this.deps.briefContext,
+          this.deps.codebaseContext,
         ),
         systemPrompt: effective.systemPrompt,
         allowedTools: effective.allowedTools,
@@ -1923,6 +1926,7 @@ export function composeTaskPrompt(
   retryError: string | null,
   handoffsSection?: string,
   briefContext?: string,
+  codebaseContext?: string,
 ): string {
   const parts: string[] = [];
   parts.push(`# Goal\n${plan.goal}`);
@@ -1931,6 +1935,13 @@ export function composeTaskPrompt(
   // its own "## Project context" header; omitted when empty.
   if (briefContext && briefContext.trim().length > 0) {
     parts.push(briefContext);
+  }
+  // Existing-codebase section (file tree + modify-don't-scaffold instruction)
+  // between the brief and the task, so agents on incremental runs know to
+  // re-use the repo instead of scaffolding. Carries its own "## Existing
+  // codebase" header; omitted when empty (fresh repos).
+  if (codebaseContext && codebaseContext.trim().length > 0) {
+    parts.push(codebaseContext);
   }
   parts.push(`# Task: ${node.id} (${node.role})\n${node.prompt}`);
   const sc = node.successCriteria;
