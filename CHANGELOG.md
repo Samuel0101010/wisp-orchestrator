@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.4.0 — runs build on the existing app
+
+Run 2 must not rebuild what run 1 shipped. The planner and every executing agent now know the code that already exists, iterating is one robust action instead of three fragile steps, and two crews can no longer race the same repository.
+
+### Added
+
+- **The planner sees your repository.** Every plan on a non-empty repo includes an `## Existing repository` section — capped file tree, `architecture.md`, and the previous plan's task list — with an explicit "plan changes ON TOP of this code" instruction. Applies to initial plans, iterations, and QA replans.
+- **Agents see the codebase.** Every dispatched agent prompt gains a compact `## Existing codebase` section ("MODIFY the existing code; do NOT scaffold a new project") plus a fuller `.wisp/repo-map.md` in the worktree (git-excluded via `info/exclude`, covering all linked worktrees) — no more per-task re-discovery of the repo.
+- **One-call iteration.** `POST /api/projects/:id/iterations` generates, locks, starts, and links change requests server-side with real rollback: failed plan generation leaves zero rows; a failed (or crashed) run start demotes the plan to draft and keeps your change requests queued. The dashboard now uses this single call instead of the fragile plan → lock → run client chain.
+
+### Fixed
+
+- **Concurrent runs on the same repo are blocked.** A per-project active-run guard (409 `run_already_active`) prevents two crews from building and merging the same repository at once; the self-healing chain's finalized parent is exempt.
+- **Iterations no longer require `docs/project-state.md`.** Every verified run now persists a project-state row (empty if the crew didn't write the file), so the iteration endpoint works after any successful run.
+- **Markdown-safe file trees.** Repository file names can no longer break out of the fenced tree block in prompts (dynamic fence length).
+- **One `h1` per page on Insights.** Agent-written run-summary headings are demoted (h1→h3), fixing an accessibility issue and a flaky e2e check at the source.
+
 ## 2.3.0 — the team you pick is the team that builds
 
 You assemble a team of agents — so that exact team, with the exact prompts and models you chose, must be what executes the plan. A code audit found the chain broke at several hops; this release welds it shut and makes every actor visible.
