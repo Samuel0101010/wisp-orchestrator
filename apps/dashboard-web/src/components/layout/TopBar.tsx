@@ -139,13 +139,15 @@ export function TopBar() {
       className="wisp-aurora-scope relative z-[2] flex h-14 items-center gap-3 border-b border-[color:var(--wisp-hairline)] bg-[color:var(--wisp-topbar-bg)] px-3 backdrop-blur-[20px] md:gap-5 md:px-5"
       data-testid="topbar-run-active"
     >
-      <Breadcrumbs />
+      <Breadcrumbs className="min-w-0 overflow-hidden whitespace-nowrap" />
       <StatusDotBadge
         status={run.status}
         pulse={run.status === 'running'}
         data-testid="topbar-run-status"
       />
-      <div className="flex flex-1 items-center gap-4 text-xs">
+      {/* The time/turns bars duplicate the resource cards on the run page —
+          hide them before they crush the row on narrow windows. */}
+      <div className="hidden flex-1 items-center gap-4 text-xs lg:flex">
         <div className="flex flex-1 items-center gap-2">
           <span className="w-12 text-[color:var(--wisp-ink-3)]">{t('topBar.time')}</span>
           <div className="wisp-bar mint relative max-w-40 flex-1">
@@ -175,7 +177,7 @@ export function TopBar() {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2 text-sm">
+      <div className="ml-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-sm">
         <Coins className="h-4 w-4 text-[color:var(--wisp-ink-3)]" />
         <AnimatedCounter
           value={aggregates.tokensInTotal + aggregates.tokensOutTotal}

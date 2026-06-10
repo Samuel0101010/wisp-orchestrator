@@ -411,8 +411,8 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between gap-3 rounded-md border bg-card p-3">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-card p-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <h2 className="text-lg font-semibold">{projectName}</h2>
           <Badge variant={statusBadgeVariant(planRow.status)} data-testid="plan-status">
             {statusLabel(planRow.status, t)}
@@ -486,15 +486,15 @@ function PlanEditorBody({ projectId, projectName, planRow }: PlanEditorBodyProps
           </ul>
         </div>
       )}
-      <div className="flex flex-1 gap-3 overflow-hidden">
-        <div className="relative flex-1 overflow-hidden rounded-md border bg-card">
+      <div className="flex flex-1 flex-col gap-3 overflow-hidden md:flex-row">
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-md border bg-card">
           <PlanCanvas
             plan={localPlan}
             selectedNodeId={selectedNodeId}
             onSelectNode={setSelectedNodeId}
           />
         </div>
-        <aside className="flex w-[360px] shrink-0 flex-col overflow-hidden rounded-md border bg-card">
+        <aside className="flex max-h-[45%] w-full shrink-0 flex-col overflow-hidden rounded-md border bg-card md:max-h-none md:w-[300px] xl:w-[360px]">
           <div className="border-b p-3">
             <h2 className="text-sm font-semibold">
               {selectedNode
@@ -633,12 +633,12 @@ export function PlanEditor() {
         <div className="rounded-md border bg-card p-3">
           <div className="h-5 w-40 animate-pulse rounded bg-muted" />
         </div>
-        <div className="flex flex-1 gap-3 overflow-hidden">
+        <div className="flex flex-1 flex-col gap-3 overflow-hidden md:flex-row">
           <div
             className="flex-1 animate-pulse rounded-md border bg-card"
             data-testid="plan-loading"
           />
-          <div className="w-[360px] animate-pulse rounded-md border bg-card" />
+          <div className="hidden animate-pulse rounded-md border bg-card md:block md:w-[300px] xl:w-[360px]" />
         </div>
       </div>
     );
