@@ -194,7 +194,7 @@ function HeroHeader({
   }, [t]);
 
   return (
-    <section className="mb-6 flex items-end justify-between gap-5">
+    <section className="mb-6 flex flex-wrap items-end justify-between gap-5">
       <div className="min-w-0 flex-1">
         <div className="t-eyebrow mb-1.5">
           {t('home.eyebrow', 'Mission Control')} · {dateLabel}
@@ -235,7 +235,7 @@ function HeroHeader({
           )}
         </div>
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <div
           className="wisp-segment"
           role="group"
@@ -595,8 +595,8 @@ export function Home() {
               {t('home.byProject.empty')}
             </div>
           ) : (
-            <div className="wisp-card overflow-hidden p-0">
-              <div className="grid grid-cols-[1.6fr_72px_64px_84px_64px_72px_36px] items-center gap-3 border-b border-[color:var(--wisp-hairline)] px-4 py-2.5">
+            <div className="wisp-card overflow-hidden overflow-x-auto p-0">
+              <div className="grid min-w-[560px] grid-cols-[1.6fr_72px_64px_84px_64px_72px_36px] items-center gap-3 border-b border-[color:var(--wisp-hairline)] px-4 py-2.5">
                 {[
                   { label: t('home.byProject.cols.project') },
                   { label: t('home.byProject.cols.runs') },
@@ -633,7 +633,7 @@ export function Home() {
                   >
                     <Link
                       to={`/projects/${p.project.id}`}
-                      className="grid grid-cols-[1.6fr_72px_64px_84px_64px_72px_36px] items-center gap-3 px-4 py-3 transition-colors hover:bg-[color:var(--wisp-glass-hover)]"
+                      className="grid min-w-[560px] grid-cols-[1.6fr_72px_64px_84px_64px_72px_36px] items-center gap-3 px-4 py-3 transition-colors hover:bg-[color:var(--wisp-glass-hover)]"
                     >
                       <div className="flex min-w-0 items-center gap-2">
                         <FolderOpen className="h-3.5 w-3.5 text-[color:var(--wisp-ink-3)]" />

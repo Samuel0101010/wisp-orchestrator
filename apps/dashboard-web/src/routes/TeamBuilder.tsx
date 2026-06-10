@@ -415,7 +415,7 @@ export function TeamBuilder() {
       <CostEstimatePanel team={draftTeam} projectId={projectId} />
       {teamQuery.isFetching && !hydrated ? (
         <div
-          className="grid gap-4 lg:grid-cols-3"
+          className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3"
           data-testid="team-hydration-skeleton"
           role="status"
           aria-busy="true"
@@ -432,7 +432,7 @@ export function TeamBuilder() {
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={ids} strategy={rectSortingStrategy}>
-            <div className="grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
               {draft.map((d, i) => (
                 <SortableTeamRoleCard
                   key={ids[i] ?? i}

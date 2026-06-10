@@ -283,7 +283,7 @@ function ProjectTabs({
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col gap-6">
       <NextStepsCard projectId={projectId} planStatus={planStatus} onGoToTab={setActiveTab} />
-      <TabsList className="self-start">
+      <TabsList className="max-w-full justify-start self-start overflow-x-auto">
         <TabsTrigger value="brief" data-testid="project-tabs-trigger-brief">
           {t('projectTabs.brief')}
         </TabsTrigger>

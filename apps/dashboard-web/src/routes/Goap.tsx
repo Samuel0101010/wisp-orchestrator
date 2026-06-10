@@ -1012,7 +1012,7 @@ export function GoapRoute() {
   return (
     <div className="wisp-fade-up flex h-[calc(100vh-3.5rem-3rem)] flex-col">
       {/* Header */}
-      <div className="mb-3.5 flex items-end justify-between gap-5">
+      <div className="mb-3.5 flex flex-wrap items-end justify-between gap-5">
         <div className="min-w-0">
           <div className="t-eyebrow mb-1">{t('goap.eyebrow', 'Goal-Oriented Action Planning')}</div>
           <h1
@@ -1034,7 +1034,7 @@ export function GoapRoute() {
             )}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             className="wisp-btn"

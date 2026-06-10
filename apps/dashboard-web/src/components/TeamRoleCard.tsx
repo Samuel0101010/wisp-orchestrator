@@ -103,10 +103,8 @@ export function TeamRoleCard({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="min-w-0 flex-1 truncate sm:overflow-visible sm:whitespace-normal">
-            {displayTitle}
-          </CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <CardTitle className="min-w-[8rem] flex-1 break-words">{displayTitle}</CardTitle>
           <div className="flex shrink-0 items-center gap-1">
             {dragHandleProps && (
               <button

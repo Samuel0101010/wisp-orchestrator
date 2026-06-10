@@ -92,7 +92,7 @@ export function AutopilotToggle({
     : t('runView.autopilot.save');
 
   return (
-    <div className="flex items-center gap-3 rounded border border-border bg-card p-3 text-sm">
+    <div className="flex flex-wrap items-center gap-3 rounded border border-border bg-card p-3 text-sm">
       <label className="flex items-center gap-2">
         <input
           type="checkbox"

@@ -357,7 +357,7 @@ export function ChatRoute() {
   const actions = detail.data?.actions ?? [];
 
   return (
-    <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-1 overflow-hidden md:grid-cols-[240px_1fr] lg:grid-cols-[260px_1fr_280px]">
+    <div className="-m-6 grid h-[calc(100vh-3.5rem)] grid-cols-1 overflow-hidden md:grid-cols-[240px_1fr] xl:grid-cols-[260px_1fr_280px]">
       <h1 className="sr-only">{t('chat.pageHeading')}</h1>
       {/* LEFT: Thread list */}
       <aside className="hidden h-full min-h-0 flex-col border-r bg-card/40 md:flex">
@@ -639,8 +639,9 @@ export function ChatRoute() {
         )}
       </section>
 
-      {/* RIGHT: Participants */}
-      <aside className="hidden h-full min-h-0 flex-col border-l bg-card/40 lg:flex">
+      {/* RIGHT: Participants — xl-gated like the grid above: at lg the three
+          columns would crush the message pane to ~230px. */}
+      <aside className="hidden h-full min-h-0 flex-col border-l bg-card/40 xl:flex">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Users className="h-4 w-4" /> {t('chat.participants.title')}
