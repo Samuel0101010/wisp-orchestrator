@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.5.0 — efficient crews, honest gates
+
+No wasted tokens, and quality loops that work like a real team's: budgets are enforced before work starts, context goes only where it's needed, the harness verifies the app boots instead of trusting a report, and validation runs on the cheapest capable model.
+
+### Added
+
+- **Harness boot check (trust-but-verify).** With runtime verification enabled, the harness itself boots the result-branch code in a dedicated worktree and probes HTTP before the release gate — a non-booting app blocks the release even when the verifier's report passes. Infra problems skip the check, never block.
+- **Self-healing plateau detection.** When a hardening iteration closes zero findings compared to its parent, the chain stops early with a clear reason instead of silently burning the remaining iterations.
+- **Shared-memory protocol.** Every agent prompt now teaches the crew to read (`memory.list`/`memory.get`) and record (`memory.set`) project decisions and patterns, so later tasks reuse earlier findings.
+
+### Changed
+
+- **Budgets gate dispatch.** The walker checks time/turns/token budgets BEFORE launching a task (optional reserve fraction) — a run can no longer start new work past its cap and overshoot.
+- **Handoffs are dependency-scoped.** Each task receives only the handoffs of its transitive dependency closure (10 most recent) instead of a global broadcast — and reads them fresh at dispatch, so same-run handoffs finally reach downstream tasks.
+- **Replanning covers builder failures.** Build/test verification failures of developer roles now trigger the same bounded replan loop as QA failures (lint-only or harness infra errors never do).
+- **QA runs on Haiku.** The built-in QA agent (seed, refresh upgrade, self-healing team, default plan team) validates on the cheapest capable model.
+
 ## 2.4.0 — runs build on the existing app
 
 Run 2 must not rebuild what run 1 shipped. The planner and every executing agent now know the code that already exists, iterating is one robust action instead of three fragile steps, and two crews can no longer race the same repository.
