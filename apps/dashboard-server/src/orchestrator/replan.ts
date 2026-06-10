@@ -19,6 +19,7 @@ import {
   type Runner,
 } from './planner-runner.js';
 import { buildBriefContextSections } from './brief-context.js';
+import { buildPlannerRepoSections, loadLatestPreviousPlan } from './planner-repo-context.js';
 import { normalizePlanIdentity } from './plan-identity.js';
 
 export interface ReplanArgs {
@@ -100,7 +101,15 @@ export async function replanOnQAFailure(args: ReplanArgs): Promise<ReplanResult 
     .where(eq(projectBriefs.projectId, parentRow.projectId))
     .get();
   const briefSections = buildBriefContextSections(projectRow.repoPath, briefRow);
-  const additionalContext = briefSections.length > 0 ? briefSections.join('\n\n') : undefined;
+  // P2 — incremental builds: a QA-replan must also see the existing codebase
+  // (file tree, architecture.md, previous plan) so the corrected plan stays a
+  // delta instead of re-scaffolding. previousPlan = the latest plan that
+  // reached execution for this project (simplest correct read — the failed
+  // plan itself is the most recent locked/running one).
+  const previousPlan = await loadLatestPreviousPlan(parentRow.projectId);
+  const repoSections = buildPlannerRepoSections({ repoPath: projectRow.repoPath, previousPlan });
+  const sections = [...briefSections, ...repoSections];
+  const additionalContext = sections.length > 0 ? sections.join('\n\n') : undefined;
 
   const runner = args.runner ?? defaultRunner();
   const outcome = await generatePlan(

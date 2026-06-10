@@ -576,6 +576,74 @@ describe('plan generation route', () => {
     fs.rmSync(repoDir, { recursive: true, force: true });
   });
 
+  it('feeds the repo tree into the planner prompt when the repo contains real code', async () => {
+    const team = defaultTeamPayload();
+    let capturedPrompt = '';
+    const baseRunner = makeRunner([{ events: [], writePlan: () => buildValidPlan(team) }]).runner;
+    const runner = (opts: RunClaudeOpts): AsyncIterable<HarnessEvent> => {
+      capturedPrompt = opts.prompt;
+      return baseRunner(opts);
+    };
+    app = await buildAppWithRunner(runner);
+    await app.ready();
+
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wisp-repo-ctx-'));
+    fs.mkdirSync(path.join(repoDir, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(repoDir, 'src', 'main.ts'), 'export const x = 1;\n', 'utf8');
+    fs.writeFileSync(path.join(repoDir, 'package.json'), '{"name":"app"}\n', 'utf8');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/projects',
+      payload: { name: 'repo-ctx-proj', goal: 'goal', repoPath: repoDir },
+    });
+    const projectId = created.json().id as string;
+    await saveTeam(app, projectId, team);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projectId}/plan`,
+      payload: {},
+    });
+    expect(res.statusCode).toBe(201);
+    expect(capturedPrompt).toContain('## Existing repository');
+    expect(capturedPrompt).toContain('### File tree (truncated)');
+    expect(capturedPrompt).toContain('main.ts');
+
+    fs.rmSync(repoDir, { recursive: true, force: true });
+  });
+
+  it('omits the repo-tree section for a scaffold-only (README) repo', async () => {
+    const team = defaultTeamPayload();
+    let capturedPrompt = '';
+    const baseRunner = makeRunner([{ events: [], writePlan: () => buildValidPlan(team) }]).runner;
+    const runner = (opts: RunClaudeOpts): AsyncIterable<HarnessEvent> => {
+      capturedPrompt = opts.prompt;
+      return baseRunner(opts);
+    };
+    app = await buildAppWithRunner(runner);
+    await app.ready();
+
+    const repoDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wisp-repo-empty-'));
+    fs.writeFileSync(path.join(repoDir, 'README.md'), '# fresh project\n', 'utf8');
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/projects',
+      payload: { name: 'repo-empty-proj', goal: 'goal', repoPath: repoDir },
+    });
+    const projectId = created.json().id as string;
+    await saveTeam(app, projectId, team);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${projectId}/plan`,
+      payload: {},
+    });
+    expect(res.statusCode).toBe(201);
+    expect(capturedPrompt).not.toContain('## Existing repository');
+
+    fs.rmSync(repoDir, { recursive: true, force: true });
+  });
+
   it('re-stamps plan.goal to project.goal verbatim (planner paraphrase ignored)', async () => {
     const team = defaultTeamPayload();
     // buildValidPlan returns goal "Build a thing"; the project goal differs.
