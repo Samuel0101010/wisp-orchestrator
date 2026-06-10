@@ -76,7 +76,8 @@ function readPkg(repoPath: string): Record<string, unknown> | null {
   try {
     const p = path.join(repoPath, 'package.json');
     const raw = fs.readFileSync(p, 'utf8');
-    return JSON.parse(raw) as Record<string, unknown>;
+    // Strip a UTF-8 BOM (PowerShell Set-Content legacy) — JSON.parse rejects it.
+    return JSON.parse(raw.replace(/^\uFEFF/, '')) as Record<string, unknown>;
   } catch {
     return null;
   }

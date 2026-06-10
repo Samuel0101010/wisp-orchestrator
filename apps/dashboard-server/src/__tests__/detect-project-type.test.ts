@@ -83,6 +83,16 @@ describe('detectProjectType', () => {
     expect(detectProjectType(r).type).toBe('library');
   });
 
+  it('detects a package.json written with a UTF-8 BOM (PowerShell Set-Content legacy)', () => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'detect-type-'));
+    tmpDirs.push(d);
+    const json = JSON.stringify({ devDependencies: { vite: '^7' }, scripts: { dev: 'vite' } });
+    fs.writeFileSync(path.join(d, 'package.json'), '\uFEFF' + json);
+    const result = detectProjectType(d);
+    expect(result.type).toBe('web-app');
+    expect(result.framework).toBe('vite');
+  });
+
   it('returns unknown when package.json is missing', () => {
     const r = repo(null);
     expect(detectProjectType(r).type).toBe('unknown');

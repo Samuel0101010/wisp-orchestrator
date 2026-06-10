@@ -137,7 +137,7 @@ describe('AutopilotToggle', () => {
     renderToggle({ initialEnabled: false });
     const checkbox = screen.getByRole('checkbox');
     fireEvent.click(checkbox);
-    const minInput = screen.getByPlaceholderText(/Budget Min/i) as HTMLInputElement;
+    const minInput = screen.getByPlaceholderText(/max minutes/i) as HTMLInputElement;
     fireEvent.change(minInput, { target: { value: '300' } });
     fireEvent.click(screen.getByTestId('autopilot-save'));
 

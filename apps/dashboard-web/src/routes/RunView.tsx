@@ -53,6 +53,7 @@ import {
 import { PlanVersionBadge } from '@/components/PlanVersionBadge';
 import { AutopilotToggle } from '@/components/AutopilotToggle';
 import { ReleaseGateCard } from '@/components/ReleaseGateCard';
+import { SuccessCard } from '@/components/SuccessCard';
 import type { TFunction } from 'i18next';
 import { statusLabel } from '@/lib/status-labels';
 import { roleHsl } from '@/lib/role-color';
@@ -1008,6 +1009,10 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
           </div>
         )}
       </div>
+
+      {/* "Your app is ready" banner — renders only for completed+success runs
+          (the gate lives inside the component, fed by the shared run query). */}
+      {projectId && <SuccessCard projectId={projectId} runId={run.id} />}
 
       <ResourceBar
         percentTime={aggregates.percentTime}

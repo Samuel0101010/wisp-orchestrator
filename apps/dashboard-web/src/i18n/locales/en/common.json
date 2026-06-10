@@ -6,7 +6,7 @@
   },
   "dod": {
     "title": "Definition of Done",
-    "description": "What must be true for the release-gate to call this run finished.",
+    "description": "Checklist: how WISP knows your app is truly done.",
     "empty": "No acceptance criteria yet — without these the release-gate has nothing to verify.",
     "kinds": {
       "smoke": "Smoke",
@@ -30,6 +30,7 @@
   },
   "releaseGate": {
     "title": "Release gate",
+    "subtitle": "Automatic final check before your app is approved.",
     "boot": "Boot",
     "e2e": "E2E",
     "dod": "DoD",
@@ -441,7 +442,7 @@
     "back": "Back",
     "loading": "Loading…",
     "run": "Run",
-    "lockAndRun": "Lock & Run",
+    "lockAndRun": "Lock plan & start",
     "lockAndRunDisabled": "Plan is locked",
     "starting": "Starting…",
     "regenerate": "Re-generate",
@@ -535,7 +536,8 @@
       "goalPlaceholder": "What should the agents accomplish? Be specific about the deliverable, the verification command, and any constraints.",
       "goalPlaceholderTemplate": "Describe what you want to build. The {{template}} template's suggested goals will guide you.",
       "repoPath": "Repo path",
-      "repoPathPlaceholder": "/absolute/path/to/repo"
+      "repoPathPlaceholder": "Folder where WISP stores this app",
+      "repoPathHelp": "WISP creates this folder for you. Only change it if you want the app stored somewhere else."
     },
     "repoStatus": {
       "checking": "Checking path…",
@@ -700,7 +702,7 @@
     },
     "repoInit": {
       "title": "This project's directory isn't a git repository yet.",
-      "body": "Agents work in isolated git worktrees. Initialize a fresh git repo and an initial commit, then we'll retry Lock & Run automatically. Directory:",
+      "body": "WISP needs a project folder with version history so agents can work safely in parallel. We set this up automatically and then start right away. Folder:",
       "initialize": "Initialize repo",
       "initializing": "Initializing…"
     },
@@ -710,6 +712,17 @@
   },
   "runView": {
     "title": "Run View",
+    "success": {
+      "title": "Your app is ready.",
+      "web": {
+        "cta": "View your app — open preview"
+      },
+      "desktop": {
+        "hint": "Almost there: build the installable app from the project settings card \"Build app\"."
+      },
+      "folder": "Your files are here: {{path}}",
+      "next": "Not sure what's next? Ask the chat: \"Explain my next steps.\""
+    },
     "noRunId": "No run id supplied.",
     "loadFailed": "Could not load run",
     "loadFailedDesc": "The server returned an error or the run id is invalid.",
@@ -733,8 +746,8 @@
     "autopilot": {
       "label": "Autopilot",
       "tooltip": "Auto-resumes the run when it's paused by rate-limit or server restart. User-pause + structural failures are NOT auto-resumed. Stops at the Budget Min/Tokens cap.",
-      "budgetMinPlaceholder": "budget min",
-      "budgetTokensPlaceholder": "budget tokens",
+      "budgetMinPlaceholder": "e.g. 60 — max minutes",
+      "budgetTokensPlaceholder": "e.g. 500000 — max tokens",
       "save": "Save",
       "saving": "Saving…",
       "saved": "Saved",
@@ -1232,7 +1245,8 @@
     "errors": {
       "no_dev_cmd": "No web preview is available for this project yet. Run the team once so it builds the app — or set a dev command in the project settings.",
       "worktree_setup_failed": "Could not prepare the preview (installing dependencies failed). Try again; if it keeps failing, check the repo path and that pnpm is installed.",
-      "repo_not_initialized": "This project's folder isn't a git repository yet. Open the project, initialize the repo, then try again."
+      "repo_not_initialized": "This project's folder isn't a git repository yet. Open the project, initialize the repo, then try again.",
+      "process-died": "The preview crashed. Click \"Start\" to relaunch it."
     },
     "toasts": {
       "startFailed": "Could not start preview",
@@ -1603,7 +1617,7 @@
     "continueFailedRun": "Continue this run — finished steps are kept, only the failed step is re-attempted",
     "cancelRun": "Cancel and clean up the run",
     "replayCheckpoint": "Re-open the last checkpoint snapshot",
-    "lockAndRun": "Lock the plan and start a run",
+    "lockAndRun": "Freezes the plan so it can't change mid-build, then starts the agents.",
     "regeneratePlan": "Re-generate the plan from current team + goal",
     "applyTemplate": "Apply a team template",
     "saveAsTemplate": "Save current team as a reusable template",
