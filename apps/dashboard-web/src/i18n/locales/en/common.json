@@ -1245,6 +1245,8 @@
       "iterationFailed": "Could not start iteration",
       "iterationPreparing": "Preparing iteration …",
       "iterationPreparingDescription": "Generating a new plan based on your change-requests. This may take one to two minutes.",
+      "iterationRunStartFailed": "The plan was created but the run could not start — your change requests are still queued.",
+      "iterationRunAlreadyActive": "A run is already in progress for this project. Wait for it to finish, then start the iteration.",
       "autoRefreshed": "Iteration complete — preview refreshed"
     },
     "edit": {

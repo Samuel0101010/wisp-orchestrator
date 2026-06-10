@@ -70,6 +70,9 @@ export function ComposedPromptPreviewDialog({ team, defaultGoal, brief }: Props)
       },
       null,
       briefContext,
+      // codebaseContext: the client preview has no repo tree — the server
+      // computes the "## Existing codebase" section at dispatch time.
+      undefined,
     );
   }, [role, goal, taskPrompt, preflight, build, test, briefContext]);
 

@@ -174,7 +174,12 @@ export function InsightsRoute() {
                   <span className="font-mono">{s.runId.slice(0, 8)}</span>
                 </div>
                 <div className={SUMMARY_PROSE}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.summaryMd}</ReactMarkdown>
+                  {/* Summaries are agent-written markdown and routinely start with
+                      "# …" headings — demote them so the page keeps a single h1
+                      (a11y) and heading-scoped tests stay deterministic. */}
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ h1: 'h3', h2: 'h4' }}>
+                    {s.summaryMd}
+                  </ReactMarkdown>
                 </div>
               </li>
             ))}

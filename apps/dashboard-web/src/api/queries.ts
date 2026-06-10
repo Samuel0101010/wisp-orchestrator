@@ -686,44 +686,27 @@ export interface RunIterationResult {
 }
 
 /**
- * Chains the three calls needed to kick off an iteration run from the queue:
- *   1. POST /api/projects/:id/plan  → generate iteration plan with the queue
- *   2. POST /api/plans/:planId/lock → flip draft → locked
- *   3. POST /api/runs               → start run + link change_requests
- * Each step is awaited sequentially; on failure the thrown error includes
- * which step failed so the caller can toast a meaningful message.
+ * Kicks off an iteration run from the queue with a single server-side call:
+ *   POST /api/projects/:id/iterations → 201 { planId, runId, linkedChangeRequestCount }
+ * (replaces the old client-driven plan → lock → run sequence). Errors
+ * propagate as ApiError so callers can inspect the server body — e.g.
+ * `run_start_failed` (502): the plan was created but demoted; change requests
+ * remain queued.
  */
 export function useRunIteration(projectId: string | undefined) {
   const qc = useQueryClient();
   return useMutation<RunIterationResult, Error, { changeRequestIds: string[] }>({
     mutationFn: async ({ changeRequestIds }) => {
       if (!projectId) throw new Error('No project id');
-      let planId: string;
-      try {
-        const planRes = await apiFetch<{ id: string }>(`/api/projects/${projectId}/plan`, {
-          method: 'POST',
-          body: JSON.stringify({ changeRequestIds }),
-        });
-        planId = planRes.id;
-      } catch (err) {
-        throw new Error(`Step 1/3 failed: ${(err as Error).message}`);
-      }
-      try {
-        await apiFetch(`/api/plans/${planId}/lock`, { method: 'POST' });
-      } catch (err) {
-        throw new Error(`Step 2/3 failed: lock plan (${(err as Error).message})`);
-      }
-      let runId: string;
-      try {
-        const runRes = await apiFetch<{ runId: string }>(`/api/runs`, {
-          method: 'POST',
-          body: JSON.stringify({ planId, changeRequestIds }),
-        });
-        runId = runRes.runId;
-      } catch (err) {
-        throw new Error(`Step 3/3 failed: start run (${(err as Error).message})`);
-      }
-      return { planId, runId };
+      const res = await apiFetch<{
+        planId: string;
+        runId: string;
+        linkedChangeRequestCount: number;
+      }>(`/api/projects/${projectId}/iterations`, {
+        method: 'POST',
+        body: JSON.stringify({ changeRequestIds }),
+      });
+      return { planId: res.planId, runId: res.runId };
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['change-requests', projectId] });

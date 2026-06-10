@@ -5,8 +5,9 @@
  * orchestrator deps into the web bundle.
  *
  * If the canonical composeTaskPrompt in packages/orchestrator/src/walker.ts
- * changes shape, update this file to match. The preview is a guide, not a
- * source of truth.
+ * changes shape, update this file to match (it currently mirrors the goal,
+ * briefContext, codebaseContext, task, success-criteria and retry sections).
+ * The preview is a guide, not a source of truth.
  */
 
 /**
@@ -93,6 +94,7 @@ export function composeTaskPromptPreview(
   node: PreviewTaskNode,
   retryError: string | null,
   briefContext?: string,
+  codebaseContext?: string,
 ): string {
   const parts: string[] = [];
   parts.push(`# Goal\n${goal}`);
@@ -102,6 +104,13 @@ export function composeTaskPromptPreview(
   // guarded so empty/whitespace contributes nothing.
   if (briefContext && briefContext.trim().length > 0) {
     parts.push(briefContext);
+  }
+  // Mirror of walker.ts:composeTaskPrompt — the "## Existing codebase" section
+  // (file tree + modify-don't-scaffold instruction) goes between the brief and
+  // the task. codebaseContext already carries its own header; emit it raw,
+  // omitted when empty/undefined (fresh repos).
+  if (codebaseContext && codebaseContext.trim().length > 0) {
+    parts.push(codebaseContext);
   }
   parts.push(`# Task: ${node.id} (${node.role})\n${node.prompt}`);
   const sc = node.successCriteria;
