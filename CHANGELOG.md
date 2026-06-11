@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.6.1 — chat pipeline unblocked, honest release gate, responsive everywhere
+
+Creating a project through the team chat works again on machines with large skill collections, the release gate now tells you when (and why) it held a merge back, bare-HTML projects finally preview, and no pane overlaps another at any window width.
+
+### Fixed
+
+- **Chat project creation no longer dies at spawn on Windows.** Large system prompts (the manager's skill appendix grew with every installed skill) exceeded the 32,767-char command-line limit and failed instantly with `ENAMETOOLONG`. Prompts over 8k chars now reach the CLI via a temp file (`--system-prompt-file`) — this also protects the planner and every task agent. The skill appendix itself is capped at 6k chars (seed/project/plugin sources first), saving ~13k tokens per manager turn.
+- **The manager no longer re-issues directives it already executed.** Conversation history (and the compress summary) now carries receipts of executed directives — previously the model only saw its own prose, concluded `create_project` never ran, and created the project twice.
+- **A finished app can no longer be silently stranded on its result branch.** When the runtime verifier passes every check but forgets to attribute the DoD criteria, the gate ships with a manual-review flag instead of blocking; the verifier prompt now demands per-criterion attribution. The gate's actual decision and reasons are persisted (migration 0021) and shown on the release-gate card — no more "READY" while auto-merge was held back.
+- **Malformed manager actions are no longer dropped silently** — a warning chip in the chat composer reports them.
+- The pending message stub no longer flashes "INTERRUPTED (no response)" while the manager is still streaming its reply.
+- Home's success-rate KPI shows "—" instead of an alarming red 0 % when the window has no runs; German singular for "Team aus 1 Person".
+
+### Added
+
+- **Static-site preview.** Chat-created "no build tool" projects (a bare `index.html`, no framework) are served by a bundled zero-dependency static server — the preview pane no longer claims there is nothing to show.
+
+### Changed
+
+- **Responsive sweep across every route (PR #108).** Side rails gate one breakpoint later so three-pane layouts (Focusboard, Chat, Plan Editor) no longer crush the middle pane at ~1024px; panes clip instead of bleeding under neighbors; headers wrap instead of pushing buttons off-screen; the project tab list scrolls; tables scroll horizontally on narrow windows. Verified: 0 overflow on 18 pages at 640/1024/1366px.
+
 ## 2.6.0 — built for non-developers
 
 The path from idea to finished app no longer assumes you know what a repository is. Paths fill themselves in, success has a clear moment, the UI speaks plain language, and the preview recovers gracefully.
