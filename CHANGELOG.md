@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.7.0 — skilled agents, specs that travel, a chat that heals
+
+Execution agents now carry working methods (skills) in their instructions — the lever that keeps smaller models reliable. A spec attached in the team chat becomes the project brief with one manager action. And a transient auth hiccup at boot no longer bricks chat and runs until restart.
+
+### Added
+
+- **Role skills reach the executing agents.** Teams can assign skills per role (new picker in the Team Builder); the orchestrator renders each skill's instructions into that agent's system prompt at dispatch. Three new built-in execution skills ship with the harness: `builder-discipline` (read before write, smallest correct change, run the gates before claiming done), `qa-verification` (execute, don't assume; evidence per claim), `frontend-quality` (states, responsiveness, accessibility, consistency). Every surface that creates a team — templates, the default team, chat project creation, the add-built-in-agent flow — assigns sensible defaults by role. Plan generation re-stamps skills from the stored team, so no model can drop them. Verified live: a real run showed the skill sections in the spawned agents' prompts (sonnet builder and haiku QA alike).
+- **`import_brief` chat directive.** A markdown spec attached in the team chat can now become the project brief: the manager writes the uploaded file verbatim to `docs/PRD.md` and finalises the brief right after creating the project — the build agents work from the full spec, not just the one-line goal. Receipt card included.
+- **Restore task output after reload** (PR #110). The live-tail dialog reconstructs a finished task's output from the persisted run log instead of showing "no output yet".
+
+### Fixed
+
+- **A failed boot-time auth probe no longer blocks chat and runs until restart.** The probe can time out on a busy machine (e.g. during a build); the chat/run gates now re-probe on a cached failure (throttled to once per minute) and self-heal — the warning banner clears on its own.
+- **Merge conflicts are no longer resolved blind.** The merge-resolver subprocess receives the project brief context, so conflict resolution honors the user's actual requirements.
+- **Chat links to deleted projects** (PR #110) degrade to a plain "project has since been deleted" note instead of leading to a 404 page.
+
 ## 2.6.1 — chat pipeline unblocked, honest release gate, responsive everywhere
 
 Creating a project through the team chat works again on machines with large skill collections, the release gate now tells you when (and why) it held a merge back, bare-HTML projects finally preview, and no pane overlaps another at any window width.
