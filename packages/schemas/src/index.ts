@@ -172,6 +172,14 @@ export type {
   RoleValidationResult,
 } from './plan.js';
 
+// Default execution-skill assignment per role name (shared server + web)
+export {
+  defaultSkillsForRole,
+  BUILDER_DISCIPLINE_SKILL,
+  QA_VERIFICATION_SKILL,
+  FRONTEND_QUALITY_SKILL,
+} from './role-skills.js';
+
 // Events (Zod)
 export { harnessEventSchema, parseHarnessEvent, safeParseHarnessEvent } from './events.js';
 export type { HarnessEvent, HarnessEventType } from './events.js';
@@ -199,6 +207,7 @@ export {
   createProjectDirectiveSchema,
   startRunDirectiveSchema,
   generatePlanDirectiveSchema,
+  importBriefDirectiveSchema,
   directiveSchema,
 } from './agents.js';
 export type {

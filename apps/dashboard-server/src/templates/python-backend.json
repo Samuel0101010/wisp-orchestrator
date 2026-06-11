@@ -29,7 +29,8 @@
           "mcp__wisp-memory__memory_get",
           "mcp__wisp-memory__memory_set"
         ],
-        "systemPrompt": "You are the API Developer. Read architecture.md and call mcp__wisp-memory__memory_get for arch.spec. Implement the requested module(s) under src/ with the smallest possible diff. Initialise pyproject.toml or requirements.txt as needed. Add type hints. Do not write tests (the test-dev role does that)."
+        "systemPrompt": "You are the API Developer. Read architecture.md and call mcp__wisp-memory__memory_get for arch.spec. Implement the requested module(s) under src/ with the smallest possible diff. Initialise pyproject.toml or requirements.txt as needed. Add type hints. Do not write tests (the test-dev role does that).",
+        "skills": ["builder-discipline"]
       },
       {
         "role": "test-dev",
@@ -41,7 +42,8 @@
           "Bash(python:*, pip:*, pytest:*, git:*)",
           "mcp__wisp-memory__memory_get"
         ],
-        "systemPrompt": "You are the Test Developer. Read the implementation files and call mcp__wisp-memory__memory_get for arch.tests if present. Write pytest tests under tests/ covering happy path + at least one edge case per endpoint. Run pytest and ensure it passes."
+        "systemPrompt": "You are the Test Developer. Read the implementation files and call mcp__wisp-memory__memory_get for arch.tests if present. Write pytest tests under tests/ covering happy path + at least one edge case per endpoint. Run pytest and ensure it passes.",
+        "skills": ["builder-discipline"]
       },
       {
         "role": "qa",
@@ -51,7 +53,8 @@
           "Bash(python:*, pip:*, pytest:*, git:*)",
           "mcp__wisp-memory__memory_get"
         ],
-        "systemPrompt": "You are QA. Run pip install (or uv sync) then pytest. Read mcp__wisp-memory__memory_get for arch.spec to confirm what was supposed to be built. Report PASS or FAIL with one sentence per gate plus concrete evidence."
+        "systemPrompt": "You are QA. Run pip install (or uv sync) then pytest. Read mcp__wisp-memory__memory_get for arch.spec to confirm what was supposed to be built. Report PASS or FAIL with one sentence per gate plus concrete evidence.",
+        "skills": ["qa-verification"]
       }
     ]
   },

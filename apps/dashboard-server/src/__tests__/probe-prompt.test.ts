@@ -4,7 +4,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import type { HarnessEvent } from '@wisp/schemas';
 import type { RunClaudeOpts } from '@wisp/orchestrator';
 import { probePromptRoutes } from '../routes/probe-prompt.js';
-import { setLastAuthProbe } from '../auth-status.js';
+import { _setAuthProbeImplForTests, setLastAuthProbe } from '../auth-status.js';
 
 /**
  * Async generator factory mocking the runClaude contract: emits a few
@@ -70,6 +70,7 @@ describe('POST /api/probe-prompt', () => {
 
   afterEach(() => {
     setLastAuthProbe(null);
+    _setAuthProbeImplForTests();
   });
 
   it('returns response, tokens, and elapsed on the happy path', async () => {
@@ -133,6 +134,13 @@ describe('POST /api/probe-prompt', () => {
       return;
     }
     setLastAuthProbe({ ok: false, error: 'expired', hint: 'run claude login' });
+    // The gate re-probes on a cached failure (self-heal); pin the re-probe to
+    // the same failure so the test stays deterministic and CLI-free.
+    _setAuthProbeImplForTests(async () => ({
+      ok: false,
+      error: 'expired',
+      hint: 'run claude login',
+    }));
     app = await buildTestApp({ text: 'should never run' });
     const res = await app.inject({
       method: 'POST',

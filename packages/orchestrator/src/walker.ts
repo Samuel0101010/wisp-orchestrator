@@ -284,6 +284,14 @@ export interface WalkerDeps {
   /** Pre-rendered "## Existing codebase" section (file tree + modify-don't-scaffold instruction). Computed server-side from the project repo; undefined/empty for fresh repos — composer omits it. */
   codebaseContext?: string;
   /**
+   * Render the named skills (AgentSpec.skills) into a "## Skills" markdown
+   * section appended to the agent's system prompt at dispatch. The runtime
+   * wires this to the harness SkillRegistry (capped, unknown names skipped).
+   * Optional + best-effort: absent renderer or a throw → no section, the
+   * task dispatches with the base system prompt.
+   */
+  renderSkillsSection?: (skillNames: string[]) => string;
+  /**
    * Best-effort hand-off WRITE seam. Called once per task right after it
    * verifies + auto-commits and just before it transitions to `done`, so
    * downstream tasks see a `## Prior Handoffs` entry in their composed
@@ -1000,7 +1008,12 @@ export class Walker {
       `  - Do NOT introduce new functionality beyond what is needed to integrate the conflicting changes.\n` +
       `  - Do NOT modify files that are not unmerged.\n\n` +
       `Context (do not start implementing this task itself — only resolve the merge):\n` +
-      `  Role: ${node.role}\n  Task: ${node.id}\n`;
+      `  Role: ${node.role}\n  Task: ${node.id}\n` +
+      // Project context (brief summary) so conflict resolution honors the
+      // user's actual requirements instead of flying blind on intent.
+      (this.deps.briefContext && this.deps.briefContext.trim().length > 0
+        ? `\n${this.deps.briefContext}\n`
+        : '');
 
     // Transient infrastructure errors (Anthropic 529 / 503 / "Overloaded" /
     // rate-limit chatter) can kill a resolver subprocess before it does any
@@ -1260,6 +1273,21 @@ export class Walker {
       avatarUrl: executorIdentity?.avatarUrl ?? null,
     };
 
+    // Append the role's skill instructions to the system prompt so the
+    // executing model carries the methodology, not just the task. Best-effort:
+    // a throwing renderer or all-unknown skill names → base prompt unchanged.
+    let effectiveSystemPrompt = effective.systemPrompt;
+    if (agent.skills && agent.skills.length > 0 && this.deps.renderSkillsSection) {
+      try {
+        const skillsSection = this.deps.renderSkillsSection(agent.skills);
+        if (skillsSection.trim().length > 0) {
+          effectiveSystemPrompt = `${effective.systemPrompt}\n\n${skillsSection}`;
+        }
+      } catch {
+        // skills are advisory — never block a dispatch
+      }
+    }
+
     let worktreePath: string | null = t.worktreePath;
     let createdWorktreeNow = false;
     try {
@@ -1491,7 +1519,7 @@ export class Walker {
           this.deps.briefContext,
           this.deps.codebaseContext,
         ),
-        systemPrompt: effective.systemPrompt,
+        systemPrompt: effectiveSystemPrompt,
         allowedTools: effective.allowedTools,
         model: effective.model,
         maxTurns: node.maxTurns,

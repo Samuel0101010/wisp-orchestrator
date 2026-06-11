@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { AgentSpec } from '@wisp/schemas';
 import { ToolMultiSelect } from '@/components/ToolMultiSelect';
+import { SkillMultiSelect } from '@/components/SkillMultiSelect';
 import { SnippetMenu } from '@/components/SnippetMenu';
 import { MODEL_INFO, MODEL_LIST } from '@/data/modelInfo';
 
@@ -32,6 +33,11 @@ export interface DraftAgent {
    * created from chat (which sets agentId) does not silently strip the link.
    */
   agentId?: string;
+  /**
+   * Skill names rendered into the agent's system prompt at dispatch
+   * (AgentSpec.skills). Edited via SkillMultiSelect.
+   */
+  skills?: string[];
 }
 
 const ROLE_REGEX = /^[a-z][a-z0-9-]*$/;
@@ -190,6 +196,15 @@ export function TeamRoleCard({
             id={`tools-${index}`}
             value={draft.allowedTools}
             onChange={(next) => onChange({ ...draft, allowedTools: next })}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor={`skills-${index}`}>{t('teamRoleCard.fields.skills')}</Label>
+          <p className="text-xs text-muted-foreground">{t('teamRoleCard.fields.skillsHint')}</p>
+          <SkillMultiSelect
+            id={`skills-${index}`}
+            value={draft.skills ?? []}
+            onChange={(next) => onChange({ ...draft, skills: next })}
           />
         </div>
         <div className="flex flex-col gap-1.5">

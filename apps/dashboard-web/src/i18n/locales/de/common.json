@@ -309,6 +309,17 @@
     "customCount_one": "{{count}} eigenes Tool oben angezeigt.",
     "customCount_other": "{{count}} eigene Tools oben angezeigt."
   },
+  "skillMultiSelect": {
+    "noneSelected": "Keine Skills zugewiesen",
+    "selected_one": "{{count}} Skill zugewiesen",
+    "selected_other": "{{count}} Skills zugewiesen",
+    "pick": "Skills auswählen",
+    "hide": "Skills verbergen",
+    "removeAria": "{{name}} entfernen",
+    "unknownMarker": "Auf diesem Rechner nicht installiert (wird beim Run übersprungen)",
+    "limit": "Maximal {{count}} Skills pro Rolle.",
+    "empty": "Keine Skills installiert. Seed-Skills erscheinen nach dem Serverstart; weitere kommen aus .claude/skills-Ordnern."
+  },
   "modelInfo": {
     "costClass": {
       "cheap": "günstig",
@@ -627,6 +638,8 @@
       "model": "Modell",
       "tools": "Erlaubte Tools",
       "toolsHint": "Schränke ein, was dieser Agent aufrufen darf. Leer lassen für Claude Code Defaults.",
+      "skills": "Skills",
+      "skillsHint": "Arbeitsmethoden, die beim Run in die Anweisungen dieses Agenten eingefügt werden — sie halten kleinere Modelle auf Kurs.",
       "systemPrompt": "System-Prompt"
     },
     "promptCount": {
@@ -1514,6 +1527,9 @@
       "noPlan": "Run noch nicht möglich — kein Plan. Öffne das Projekt, um einen zu generieren.",
       "generatingPlan": "Plan wird generiert…",
       "planGenerated": "Plan generiert",
+      "briefImported": "Brief importiert · {{filename}}",
+      "briefImportedHint": "Die angehängte Spezifikation ist jetzt der Projekt-Brief (docs/PRD.md) — die Build-Agenten arbeiten damit.",
+      "briefImportedDbOnly": "Brief gespeichert, aber docs/PRD.md konnte nicht ins Repo geschrieben werden — im Brief-Tab des Projekts erneut versuchen.",
       "actionFailed": "Aktion fehlgeschlagen: {{kind}}",
       "unknownError": "unbekannter Fehler",
       "generic": "Aktion: {{kind}} · {{status}}",

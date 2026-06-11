@@ -8,6 +8,8 @@ import {
   projects,
   teams,
   teamSchema,
+  BUILDER_DISCIPLINE_SKILL,
+  QA_VERIFICATION_SKILL,
   type ChangeRequestStatus,
   type Plan,
   type PlanKind,
@@ -70,6 +72,7 @@ const DEFAULT_PLAN_TEAM: Team = {
       allowedTools: ['Read', 'Grep', 'Glob', 'Edit', 'Write', 'Bash'],
       systemPrompt:
         'You are the developer. Implement the smallest correct slice that satisfies the plan, with clean, idiomatic, well-tested code.',
+      skills: [BUILDER_DISCIPLINE_SKILL],
     },
     {
       role: 'qa',
@@ -77,6 +80,7 @@ const DEFAULT_PLAN_TEAM: Team = {
       allowedTools: ['Read', 'Grep', 'Glob', 'Bash'],
       systemPrompt:
         'You are QA. Verify the build, run the tests, and confirm the goal is actually met before the run is allowed to finish.',
+      skills: [QA_VERIFICATION_SKILL],
     },
   ],
 };

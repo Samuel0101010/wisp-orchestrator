@@ -11,7 +11,7 @@ import websocket from '@fastify/websocket';
 import { plans, projects, runs, tasks } from '@wisp/schemas';
 import { db, sqlite } from '../db/index.js';
 import { runMigrations } from '../db/migrate.js';
-import { setLastAuthProbe } from '../auth-status.js';
+import { _setAuthProbeImplForTests, setLastAuthProbe } from '../auth-status.js';
 import { RunRuntime } from '../orchestrator/runtime.js';
 import { createRunsRouter } from '../routes/runs.js';
 
@@ -107,6 +107,7 @@ describe('POST /api/runs — auth probe gate', () => {
   });
   afterEach(() => {
     setLastAuthProbe(null);
+    _setAuthProbeImplForTests();
   });
 
   it('returns 503 when auth probe last failed and mode=subscription', async () => {
@@ -115,6 +116,14 @@ describe('POST /api/runs — auth probe gate', () => {
       return;
     }
     setLastAuthProbe({ ok: false, error: 'invalid', hint: 'run claude login' });
+    // The gate re-probes on a cached failure (self-heal); pin the re-probe to
+    // the same failure so the test asserts the still-failing path without
+    // spawning the real CLI.
+    _setAuthProbeImplForTests(async () => ({
+      ok: false,
+      error: 'invalid',
+      hint: 'run claude login',
+    }));
     const app = await buildApp();
     try {
       const { planId } = await seedLockedPlan();

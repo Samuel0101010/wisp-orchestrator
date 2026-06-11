@@ -98,6 +98,86 @@ function getBriefRow(projectId: string): BriefRow | undefined {
   return { ...raw, briefReady: !!raw.briefReady };
 }
 
+export type ImportBriefResult =
+  | { ok: true; brief: BriefRow | undefined; prdPath: string | null; prdWriteError: string | null }
+  | { ok: false; error: 'project_not_found' | 'empty_markdown' };
+
+/**
+ * Import a markdown spec as the project brief: write it VERBATIM to
+ * docs/PRD.md (git-initing the repo if needed, best-effort committing) and
+ * finalise the brief (ready, 100%) without touching the six structured
+ * fields. Shared by POST /interview/import and the chat import_brief
+ * directive. Re-import over a finalised brief is allowed — it's an explicit
+ * action to overwrite the PRD.
+ */
+export async function importBriefMarkdownForProject(
+  projectId: string,
+  markdown: string,
+): Promise<ImportBriefResult> {
+  if (markdown.trim() === '') {
+    return { ok: false, error: 'empty_markdown' };
+  }
+  const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+  if (!project) {
+    return { ok: false, error: 'project_not_found' };
+  }
+  ensureBriefRow(projectId);
+
+  let prdPath: string | null = null;
+  let prdWriteError: string | null = null;
+  try {
+    const repo = fs.existsSync(path.join(project.repoPath, '.git'))
+      ? ({ ok: true } as const)
+      : ensureProjectRepoInitialized({
+          repoPath: project.repoPath,
+          name: project.name,
+          goal: project.goal,
+          createDir: true,
+        });
+    if (!repo.ok) {
+      prdWriteError = `${repo.error}: ${project.repoPath}`;
+    } else {
+      const docsDir = path.join(project.repoPath, 'docs');
+      fs.mkdirSync(docsDir, { recursive: true });
+      const target = path.join(docsDir, 'PRD.md');
+      fs.writeFileSync(target, markdown, 'utf8');
+      prdPath = 'docs/PRD.md';
+      // Best-effort commit so the imported PRD survives a run's working-tree
+      // sync and is visible to the architect — mirrors /finalize.
+      try {
+        const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+        execFileSync('git', ['add', 'docs/PRD.md'], {
+          cwd: project.repoPath,
+          env,
+          stdio: 'pipe',
+        });
+        execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-m', 'brief: import PRD'], {
+          cwd: project.repoPath,
+          env,
+          stdio: 'pipe',
+        });
+      } catch {
+        // Non-fatal: the PRD is written to the working tree regardless.
+      }
+    }
+  } catch (err) {
+    prdWriteError = err instanceof Error ? err.message : String(err);
+  }
+
+  const now = Date.now();
+  // Mark the brief ready + 100% complete; leave the six structured fields
+  // untouched (an imported spec is the PRD, not a field-by-field brief).
+  sqlite
+    .prepare(
+      `UPDATE project_briefs
+          SET brief_ready = 1, completeness_score = 100, prd_path = ?, updated_at = ?
+        WHERE project_id = ?`,
+    )
+    .run(prdPath, now, projectId);
+
+  return { ok: true, brief: getBriefRow(projectId), prdPath, prdWriteError };
+}
+
 /**
  * Idempotent create-if-missing. Returns the brief row (existing or newly
  * created). Used by both the dedicated route and by the create-project paths
@@ -471,75 +551,19 @@ export function createInterviewRouter(deps: InterviewRouterDeps = {}): FastifyPl
           return { error: 'invalid_markdown' };
         }
         const markdown = body.data.markdown;
-        if (markdown.trim() === '') {
-          reply.code(400);
-          return { error: 'empty_markdown' };
-        }
-        const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
-        if (!project) {
+        const result = await importBriefMarkdownForProject(projectId, markdown);
+        if (!result.ok) {
+          if (result.error === 'empty_markdown') {
+            reply.code(400);
+            return { error: 'empty_markdown' };
+          }
           reply.code(404);
           return { error: 'project not found' };
         }
-        // Re-import is allowed even on a finalised brief — it's an explicit user
-        // action to overwrite the PRD.
-        ensureBriefRow(projectId);
-
-        let prdPath: string | null = null;
-        let prdWriteError: string | null = null;
-        try {
-          const repo = fs.existsSync(path.join(project.repoPath, '.git'))
-            ? ({ ok: true } as const)
-            : ensureProjectRepoInitialized({
-                repoPath: project.repoPath,
-                name: project.name,
-                goal: project.goal,
-                createDir: true,
-              });
-          if (!repo.ok) {
-            prdWriteError = `${repo.error}: ${project.repoPath}`;
-          } else {
-            const docsDir = path.join(project.repoPath, 'docs');
-            fs.mkdirSync(docsDir, { recursive: true });
-            const target = path.join(docsDir, 'PRD.md');
-            fs.writeFileSync(target, markdown, 'utf8');
-            prdPath = 'docs/PRD.md';
-            // Best-effort commit so the imported PRD survives a run's working-tree
-            // sync and is visible to the architect — mirrors /finalize.
-            try {
-              const env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
-              execFileSync('git', ['add', 'docs/PRD.md'], {
-                cwd: project.repoPath,
-                env,
-                stdio: 'pipe',
-              });
-              execFileSync(
-                'git',
-                ['-c', 'commit.gpgsign=false', 'commit', '-m', 'brief: import PRD'],
-                { cwd: project.repoPath, env, stdio: 'pipe' },
-              );
-            } catch {
-              // Non-fatal: the PRD is written to the working tree regardless.
-            }
-          }
-        } catch (err) {
-          prdWriteError = err instanceof Error ? err.message : String(err);
-        }
-
-        const now = Date.now();
-        // Mark the brief ready + 100% complete; leave the six structured fields
-        // untouched (an imported spec is the PRD, not a field-by-field brief).
-        sqlite
-          .prepare(
-            `UPDATE project_briefs
-                SET brief_ready = 1, completeness_score = 100, prd_path = ?, updated_at = ?
-              WHERE project_id = ?`,
-          )
-          .run(prdPath, now, projectId);
-
         return {
-          brief: getBriefRow(projectId),
-          prdPath,
-          prdWriteError,
+          brief: result.brief,
+          prdPath: result.prdPath,
+          prdWriteError: result.prdWriteError,
         };
       }),
     );

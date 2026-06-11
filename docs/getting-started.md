@@ -75,7 +75,8 @@ the Dashboard for the canonical names):
 - **Mission Control** — KPIs and live runs
 - **Team Chat** — conversation surface for the active run
 - **Agents** — registry of available roles
-- **Skills** — installed plugin skills
+- **Skills** — installed skills; assign them to team roles in the Team
+  Builder and they are injected into those agents' instructions at run time
 - **Workers** — real-time view of each agent's subprocess
 - **Insights** — trajectories, costs, replan history
 - **GOAP Planner** — a standalone GOAP (Goal-Oriented Action Planning) solver

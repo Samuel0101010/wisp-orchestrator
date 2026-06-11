@@ -89,6 +89,7 @@ AgentSpec {
   model: "opus" | "sonnet" | "haiku"
   allowedTools: string[]
   systemPrompt: string
+  skills?: string[]                  // optional skill names; MIRROR from the team verbatim — never invent or drop
 }`;
 
 export function buildPlannerPrompt(goal: string, team: Team): string {

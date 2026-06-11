@@ -43,7 +43,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { asc, desc, eq } from 'drizzle-orm';
@@ -64,7 +64,14 @@ import {
 import { runClaude, type SubprocessRunner } from '@wisp/orchestrator';
 import { db, sqlite } from '../db/index.js';
 import { env } from '../env.js';
-import { getLastAuthProbe } from '../auth-status.js';
+import {
+  readAttachmentIndex,
+  sanitizeFilename,
+  uploadDirFor,
+  writeAttachmentIndex,
+  type AttachmentEntry,
+} from './chat-attachments.js';
+import { refreshAuthProbeIfFailed } from '../auth-status.js';
 import { publishToThread } from '../ws.js';
 import { wrap } from './wrap.js';
 import {
@@ -165,6 +172,7 @@ function summarizeActionReceipt(resultJson: unknown): string {
   if (typeof r.projectId === 'string') bits.push(`projectId=${r.projectId}`);
   if (typeof r.runId === 'string') bits.push(`runId=${r.runId}`);
   if (typeof r.skillName === 'string') bits.push(`skill=${r.skillName}`);
+  if (typeof r.filename === 'string') bits.push(`filename=${r.filename}`);
   if (typeof r.error === 'string') bits.push(`error=${r.error.slice(0, 120)}`);
   return bits.length > 0 ? ` (${bits.join(', ')})` : '';
 }
@@ -183,44 +191,8 @@ function buildReceiptsByMessage(threadId: string): Map<string, string[]> {
 }
 
 // ----- Attachments (MVP: on-disk + JSON sidecar, no DB migration) -----
-
-interface AttachmentEntry {
-  id: string;
-  filename: string;
-  mimeType: string;
-  sizeBytes: number;
-  storagePath: string;
-}
-
-type AttachmentIndex = Record<string, AttachmentEntry>;
-
-function uploadDirFor(threadId: string): string {
-  return path.join(env.WISP_DATA_DIR, 'uploads', threadId);
-}
-
-function indexPathFor(threadId: string): string {
-  return path.join(uploadDirFor(threadId), 'index.json');
-}
-
-/** Strip path separators / traversal so a filename can never escape the dir. */
-function sanitizeFilename(name: string): string {
-  const base = name.replace(/[\\/]/g, '_').replace(/\.\.+/g, '_').trim();
-  return base.length > 0 ? base.slice(0, 200) : 'file';
-}
-
-async function readAttachmentIndex(threadId: string): Promise<AttachmentIndex> {
-  try {
-    const raw = await readFile(indexPathFor(threadId), 'utf8');
-    const parsed = JSON.parse(raw) as unknown;
-    return parsed && typeof parsed === 'object' ? (parsed as AttachmentIndex) : {};
-  } catch {
-    return {};
-  }
-}
-
-async function writeAttachmentIndex(threadId: string, index: AttachmentIndex): Promise<void> {
-  await writeFile(indexPathFor(threadId), JSON.stringify(index, null, 2), 'utf8');
-}
+// Storage + index helpers live in chat-attachments.ts (shared with
+// chat-directives.ts, which reads uploads for import_brief).
 
 interface AgentRow {
   id: string;
@@ -822,7 +794,9 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
               : parsed.data.content;
 
           if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
-            const last = getLastAuthProbe();
+            // Re-probes (throttled) when the cached boot result is a failure,
+            // so a transient probe timeout never blocks chat until restart.
+            const last = await refreshAuthProbeIfFailed();
             if (last && !last.ok) {
               reply.code(503);
               return { error: 'auth-failed', hint: last.hint };

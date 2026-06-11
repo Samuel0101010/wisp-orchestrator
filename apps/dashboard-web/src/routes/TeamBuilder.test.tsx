@@ -415,4 +415,41 @@ describe('TeamBuilder', () => {
     // empty tool list falls back to a safe default.
     expect(role.allowedTools).toEqual(['Read']);
   });
+
+  it('round-trips skills through specToDraft → draftToSpec and strips empty arrays', () => {
+    const spec: AgentSpec = {
+      role: 'developer',
+      model: 'sonnet',
+      allowedTools: ['Read'],
+      systemPrompt: 'y'.repeat(60),
+      skills: ['builder-discipline'],
+    };
+    const round = draftToSpec(specToDraft(spec));
+    expect(round.skills).toEqual(['builder-discipline']);
+    // Removing every skill must not persist an empty array.
+    const cleared = draftToSpec({ ...specToDraft(spec), skills: [] });
+    expect('skills' in cleared).toBe(false);
+  });
+
+  it('buildRoleFromAgent assigns default skills by role (qa wins over builder)', () => {
+    const base = {
+      model: 'sonnet' as const,
+      systemPrompt: 'z'.repeat(60),
+      allowedTools: ['Read'],
+      createdAt: 0,
+      updatedAt: 0,
+    };
+    const dev = buildRoleFromAgent(
+      { ...base, id: 'a1', name: 'Lena', seedKey: 'frontend-dev' },
+      [],
+    );
+    expect(dev.skills).toEqual(['builder-discipline', 'frontend-quality']);
+    const qa = buildRoleFromAgent({ ...base, id: 'a2', name: 'Priya', seedKey: 'qa-engineer' }, []);
+    expect(qa.skills).toEqual(['qa-verification']);
+    const designer = buildRoleFromAgent(
+      { ...base, id: 'a3', name: 'Maya', seedKey: 'designer' },
+      [],
+    );
+    expect(designer.skills).toBeUndefined();
+  });
 });

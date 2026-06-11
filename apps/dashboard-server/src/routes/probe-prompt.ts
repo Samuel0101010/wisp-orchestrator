@@ -20,7 +20,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { runClaude, type SubprocessRunner } from '@wisp/orchestrator';
 import { wrap } from './wrap.js';
 import { env } from '../env.js';
-import { getLastAuthProbe } from '../auth-status.js';
+import { refreshAuthProbeIfFailed } from '../auth-status.js';
 
 export interface ProbePromptDeps {
   /** Test seam — swap the underlying runner. Default: real runClaude. */
@@ -52,7 +52,8 @@ export function probePromptRoutes(deps: ProbePromptDeps = {}): FastifyPluginAsyn
         const { systemPrompt, sampleGoal, model, allowedTools } = parsed.data;
 
         if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
-          const last = getLastAuthProbe();
+          // Throttled re-probe on cached failure — see auth-status.ts.
+          const last = await refreshAuthProbeIfFailed();
           if (last && !last.ok) {
             reply.code(503);
             return { error: 'auth-failed', hint: last.hint };
