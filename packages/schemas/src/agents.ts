@@ -116,6 +116,7 @@ export const sendMessageResponseSchema = z.object({
           'start_run',
           'invoke_skill',
           'generate_plan',
+          'import_brief',
         ]),
         status: z.enum(['pending', 'ok', 'failed']),
         payload: z.unknown(),
@@ -202,6 +203,17 @@ export const generatePlanDirectiveSchema = z.object({
   projectId: z.string().min(1).optional(),
 });
 
+export const importBriefDirectiveSchema = z.object({
+  kind: z.literal('import_brief'),
+  /**
+   * Project whose brief (docs/PRD.md) the attachment becomes. If omitted,
+   * resolves from the most recent create_project action in this thread.
+   */
+  projectId: z.string().min(1).optional(),
+  /** Filename of a markdown attachment previously uploaded to this thread. */
+  filename: z.string().min(1).max(255),
+});
+
 export const directiveSchema = z.union([
   consultDirectiveSchema,
   addMemberDirectiveSchema,
@@ -209,5 +221,6 @@ export const directiveSchema = z.union([
   startRunDirectiveSchema,
   invokeSkillDirectiveSchema,
   generatePlanDirectiveSchema,
+  importBriefDirectiveSchema,
 ]);
 export type ManagerDirective = z.infer<typeof directiveSchema>;

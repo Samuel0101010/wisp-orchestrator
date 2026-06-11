@@ -27,6 +27,14 @@ export const agentSpecSchema = z.object({
    *  harness-injected ones (wire-up, runtime-verifier, lead). Optional so
    *  pre-existing plans keep parsing. */
   origin: z.enum(['planner', 'system']).optional(),
+  /**
+   * Skill names from the harness skill registry. At dispatch the orchestrator
+   * renders each skill's instructions into the agent's system prompt, so the
+   * role works with a distilled methodology instead of relying on the model
+   * to know it — the lever that makes weaker models (haiku/sonnet) reliable.
+   * Unknown names are skipped at render time, never fail a run.
+   */
+  skills: z.array(z.string().min(1).max(80)).max(8).optional(),
 });
 export type AgentSpec = z.infer<typeof agentSpecSchema>;
 

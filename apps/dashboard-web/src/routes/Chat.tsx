@@ -1262,6 +1262,27 @@ function ActionCard({ action }: { action: ChatActionRow }) {
       </div>
     );
   }
+  if (action.kind === 'import_brief' && status === 'ok') {
+    const r = action.resultJson as {
+      projectId?: string;
+      filename?: string;
+      prdWriteError?: string | null;
+    } | null;
+    return (
+      <div className={cardClass}>
+        <div className="flex items-center gap-1.5 font-semibold">
+          <ReceiptIcon tone="success" />
+          {t('chat.action.briefImported', { filename: r?.filename ?? '' })}
+        </div>
+        <div className="mt-0.5 pl-5 text-muted-foreground">
+          {r?.prdWriteError
+            ? t('chat.action.briefImportedDbOnly')
+            : t('chat.action.briefImportedHint')}
+        </div>
+        {r?.projectId ? <ProjectOpenLink projectId={r.projectId} /> : null}
+      </div>
+    );
+  }
   if (action.kind === 'generate_plan') {
     if (status === 'pending') {
       return (

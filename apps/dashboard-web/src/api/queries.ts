@@ -1683,7 +1683,8 @@ export interface ChatActionRow {
     | 'create_project'
     | 'start_run'
     | 'invoke_skill'
-    | 'generate_plan';
+    | 'generate_plan'
+    | 'import_brief';
   payloadJson: unknown;
   resultJson: unknown;
   status: 'pending' | 'ok' | 'failed';

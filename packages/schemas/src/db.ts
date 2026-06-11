@@ -430,6 +430,7 @@ export const chatActionKindValues = [
   'start_run',
   'invoke_skill',
   'generate_plan',
+  'import_brief',
 ] as const;
 export type ChatActionKind = (typeof chatActionKindValues)[number];
 

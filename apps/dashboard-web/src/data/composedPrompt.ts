@@ -14,6 +14,9 @@
  * The server-side "## Shared memory" protocol section (mcp-config.ts
  * MEMORY_PROTOCOL_SECTION, appended to briefContext at run start) is likewise
  * intentionally NOT mirrored in this browser preview.
+ * The per-role "## Skills" section (AgentSpec.skills, rendered from the skill
+ * registry at dispatch) is appended to the agent's SYSTEM prompt — not the
+ * task prompt — so it is also not part of this preview.
  * The preview is a guide, not a source of truth.
  */
 

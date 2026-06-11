@@ -50,11 +50,12 @@ import {
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { writeProjectMemoryEntry } from '@wisp/memory-mcp';
 import { env } from '../env.js';
-import { getLastAuthProbe } from '../auth-status.js';
+import { refreshAuthProbeIfFailed } from '../auth-status.js';
 import { MEMORY_PROTOCOL_SECTION, writeMemoryMcpConfig } from './mcp-config.js';
 import { checkAutopilotBudget } from '../autopilot/budget.js';
 import { replanOnQAFailure } from './replan.js';
 import { buildBriefSummaryForAgents } from './brief-context.js';
+import { renderSkillsSection } from './skills-section.js';
 import { buildCodebaseSection, ensureWispExcluded, writeRepoMapToWorktree } from './repo-tree.js';
 import { applyAgentOverride, loadAgentOverridesForProject } from './agent-overrides.js';
 import { loadHandoffsForNode, renderHandoffsSection } from './handoff-loader.js';
@@ -464,6 +465,13 @@ export class RunRuntime {
       // scaffold instruction) injected into every node's prompt. Null →
       // undefined for fresh/scaffold-only repos, where the composer omits it.
       codebaseContext: buildCodebaseSection(repoPath) ?? undefined,
+      // Render AgentSpec.skills into a "## Skills" system-prompt section from
+      // the harness skill registry. Unknown names are skipped (a team may
+      // reference skills that aren't installed); content is capped so eight
+      // verbose skills can't blow up the prompt. The >8k case is safe on
+      // Windows — the subprocess writes long system prompts to a temp file
+      // (--system-prompt-file).
+      renderSkillsSection: (skillNames) => renderSkillsSection(skillNames, this.skillRegistry),
       // WRITE side of the hand-off contract (the READ side is `handoffsForNode`
       // above). The walker calls this on task completion; we persist a
       // `handoff/<role>/<taskId>` row into the per-project memory DB so the
@@ -569,7 +577,8 @@ export class RunRuntime {
     }
 
     if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
-      const last = getLastAuthProbe();
+      // Throttled re-probe on cached failure — see auth-status.ts.
+      const last = await refreshAuthProbeIfFailed();
       if (last && !last.ok) {
         return {
           ok: false,
@@ -820,7 +829,8 @@ export class RunRuntime {
     // failed auth probe, burning retry budget on errors the user can't fix
     // from inside the orchestrator.
     if (env.WISP_AUTH_MODE === 'subscription' && !env.WISP_MOCK_CLI) {
-      const last = getLastAuthProbe();
+      // Throttled re-probe on cached failure — see auth-status.ts.
+      const last = await refreshAuthProbeIfFailed();
       if (last && !last.ok) {
         return {
           ok: false,

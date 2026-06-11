@@ -20,6 +20,7 @@ import {
   agentMessages,
   agentThreads,
   chatActions,
+  defaultSkillsForRole,
   plans as plansTable,
   projects as projectsTable,
   teams as teamsTable,
@@ -37,7 +38,8 @@ import { publishToThread } from '../ws.js';
 import type { SubprocessRunner } from '@wisp/orchestrator';
 import type { SkillRegistry } from '../skills/registry.js';
 import { invokeSkill } from '../skills/invoker.js';
-import { ensureBriefRow } from './interview.js';
+import { ensureBriefRow, importBriefMarkdownForProject } from './interview.js';
+import { readAttachmentIndex, sanitizeFilename } from './chat-attachments.js';
 
 export interface DirectiveContext {
   threadId: string;
@@ -118,6 +120,11 @@ export async function executeDirective(
         // 'chat.action-update' once the plan is locked (or fails).
         result = await handleGeneratePlan(d, ctx, id);
         status = 'pending';
+        break;
+      }
+      case 'import_brief': {
+        result = await handleImportBrief(d, ctx);
+        status = 'ok';
         break;
       }
     }
@@ -354,13 +361,20 @@ async function handleCreateProject(
 
   // Build the team rolesJson. Use seedKey (or sanitized name) as the role name.
   const team: Team = {
-    roles: resolved.map((a) => ({
-      role: a.seedKey ?? a.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      agentId: a.id,
-      model: a.model,
-      allowedTools: a.allowedTools,
-      systemPrompt: a.systemPrompt,
-    })),
+    roles: resolved.map((a) => {
+      const role = a.seedKey ?? a.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      // Default execution skills by role (builder-discipline / qa-verification /
+      // frontend-quality) — same mapping the Team Builder applies.
+      const skills = defaultSkillsForRole(role);
+      return {
+        role,
+        agentId: a.id,
+        model: a.model,
+        allowedTools: a.allowedTools,
+        systemPrompt: a.systemPrompt,
+        ...(skills.length > 0 ? { skills } : {}),
+      };
+    }),
   };
 
   // Ensure the repo exists + is git-initialized (relatives resolved to absolute)
@@ -402,6 +416,74 @@ async function handleCreateProject(
     repoInitialized: repoInit.initialized,
     teamSize: resolved.length,
     teamAgents: resolved.map((a) => ({ id: a.id, name: a.name })),
+  };
+}
+
+/** Brief import accepts only text specs — the PRD is markdown by contract. */
+const BRIEF_IMPORT_EXT_RE = /\.(md|markdown|txt)$/i;
+const BRIEF_IMPORT_MAX_CHARS = 100_000; // mirrors POST /interview/import
+
+async function handleImportBrief(
+  d: Extract<ManagerDirective, { kind: 'import_brief' }>,
+  ctx: DirectiveContext,
+): Promise<unknown> {
+  // Resolve projectId (same pattern as handleStartRun).
+  let projectId = d.projectId;
+  if (!projectId) {
+    const recent = db
+      .select()
+      .from(chatActions)
+      .where(eq(chatActions.threadId, ctx.threadId))
+      .orderBy(desc(chatActions.createdAt))
+      .all();
+    const created = recent.find((r) => r.kind === 'create_project' && r.status === 'ok');
+    const result = created?.resultJson as { projectId?: string } | null | undefined;
+    if (!result?.projectId) {
+      throw new Error('no_project: pass projectId or create_project first');
+    }
+    projectId = result.projectId;
+  }
+
+  // Resolve the attachment by filename from this thread's upload index.
+  // Uploads sanitize filenames, so compare against the sanitized form too;
+  // on duplicate names the most recently uploaded entry wins (insertion
+  // order of the JSON index).
+  const index = await readAttachmentIndex(ctx.threadId);
+  const wanted = d.filename.trim().toLowerCase();
+  const wantedSanitized = sanitizeFilename(d.filename).toLowerCase();
+  const matches = Object.values(index).filter((e) => {
+    const have = e.filename.toLowerCase();
+    return have === wanted || have === wantedSanitized;
+  });
+  const entry = matches[matches.length - 1];
+  if (!entry) {
+    throw new Error(`attachment_not_found: no uploaded file named "${d.filename}" in this thread`);
+  }
+  if (!BRIEF_IMPORT_EXT_RE.test(entry.filename)) {
+    throw new Error(`attachment_not_markdown: "${entry.filename}" — only .md/.markdown/.txt`);
+  }
+
+  let markdown: string;
+  try {
+    markdown = fs.readFileSync(entry.storagePath, 'utf8');
+  } catch (err) {
+    throw new Error(`attachment_unreadable: ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (markdown.length > BRIEF_IMPORT_MAX_CHARS) {
+    throw new Error('attachment_too_large: brief import is capped at 100 KB');
+  }
+
+  const result = await importBriefMarkdownForProject(projectId, markdown);
+  if (!result.ok) {
+    throw new Error(
+      result.error === 'project_not_found' ? `project_not_found: ${projectId}` : result.error,
+    );
+  }
+  return {
+    projectId,
+    filename: entry.filename,
+    prdPath: result.prdPath,
+    prdWriteError: result.prdWriteError,
   };
 }
 

@@ -1,3 +1,4 @@
+import { BUILDER_DISCIPLINE_SKILL, QA_VERIFICATION_SKILL } from '@wisp/schemas';
 import type { AgentSpec, Team } from '@wisp/schemas';
 
 export const ARCHITECT_DEFAULT_PROMPT = `You are the Architect. Given a high-level goal, you decompose it into a concrete architecture and a tasks list. Read existing code, identify the seams, and write \`architecture.md\` (system overview, components, data flow) and \`tasks.md\` (ordered, actionable tasks with acceptance criteria) at the project root. Be specific about file paths, module boundaries, and integration points. Prefer simple, surgical designs over speculative abstractions. Reference existing patterns in the codebase rather than inventing new ones. If the goal is ambiguous, document the assumption explicitly in architecture.md. Drop key decisions into shared memory under arch.* keys via mcp__wisp-memory__memory_set so downstream developers can read them via mcp__wisp-memory__memory_get.`;
@@ -36,6 +37,7 @@ export const DEVELOPER_DEFAULT: AgentSpec = {
     'mcp__wisp-memory__memory_list',
   ],
   systemPrompt: DEVELOPER_DEFAULT_PROMPT,
+  skills: [BUILDER_DISCIPLINE_SKILL],
 };
 
 export const QA_DEFAULT: AgentSpec = {
@@ -49,6 +51,7 @@ export const QA_DEFAULT: AgentSpec = {
     'mcp__wisp-memory__memory_list',
   ],
   systemPrompt: QA_DEFAULT_PROMPT,
+  skills: [QA_VERIFICATION_SKILL],
 };
 
 export const DEFAULT_TEAM: Team = {

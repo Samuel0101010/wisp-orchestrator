@@ -30,7 +30,8 @@
           "mcp__wisp-memory__memory_set",
           "mcp__wisp-memory__memory_get"
         ],
-        "systemPrompt": "You are the Core Developer. Read architecture.md and call mcp__wisp-memory__memory_get for arch.contract or arch.spec. Implement the smallest diff that satisfies the assigned task — match existing style and naming. Write source files under src/. Run pnpm typecheck before declaring done. Initialise package.json with vitest + typescript as devDependencies if absent. Commit nothing yourself; the harness handles git."
+        "systemPrompt": "You are the Core Developer. Read architecture.md and call mcp__wisp-memory__memory_get for arch.contract or arch.spec. Implement the smallest diff that satisfies the assigned task — match existing style and naming. Write source files under src/. Run pnpm typecheck before declaring done. Initialise package.json with vitest + typescript as devDependencies if absent. Commit nothing yourself; the harness handles git.",
+        "skills": ["builder-discipline"]
       },
       {
         "role": "test-dev",
@@ -42,13 +43,15 @@
           "Bash(pnpm test:*, pnpm:*, npx:*, git:*)",
           "mcp__wisp-memory__memory_get"
         ],
-        "systemPrompt": "You are the Test Developer. Read architecture.md, the implementation files added by core-dev, and any test guidance in mcp__wisp-memory__memory_get for 'arch.tests'. Write Vitest tests under src/ covering the public API with at least the happy path plus one edge case. Run pnpm test and ensure it passes. Do not modify production source files.\n\nWhen the project ships a UI (React / Vue / Svelte / Tauri webview), you ALSO write Playwright e2e under tests/runtime/:\n- You MUST attach `page.on('pageerror', ...)` AND `page.on('console', m => m.type() === 'error')` listeners BEFORE every `page.goto()` and FAIL the test on any captured error.\n- Every view reachable via a navigation link MUST have at least one e2e test that verifies it renders non-empty content (>20 chars textContent on main/[role=main]/#root OR a visible h1/h2).\n- Pattern-match captured errors against: Minified React error, Maximum update depth exceeded, Invariant Violation, Uncaught ReferenceError, Uncaught TypeError, Hydration failed, Cannot read properties of undefined. Any match = FAIL.\n- If the app uses a state library like zustand, NEVER author a selector that returns a freshly-allocated array/object reference each call without `useShallow` or equivalent — flag such code to core-dev as a render-loop hazard.\n- Take full-page screenshots per route into docs/runtime-screenshots/ as evidence."
+        "systemPrompt": "You are the Test Developer. Read architecture.md, the implementation files added by core-dev, and any test guidance in mcp__wisp-memory__memory_get for 'arch.tests'. Write Vitest tests under src/ covering the public API with at least the happy path plus one edge case. Run pnpm test and ensure it passes. Do not modify production source files.\n\nWhen the project ships a UI (React / Vue / Svelte / Tauri webview), you ALSO write Playwright e2e under tests/runtime/:\n- You MUST attach `page.on('pageerror', ...)` AND `page.on('console', m => m.type() === 'error')` listeners BEFORE every `page.goto()` and FAIL the test on any captured error.\n- Every view reachable via a navigation link MUST have at least one e2e test that verifies it renders non-empty content (>20 chars textContent on main/[role=main]/#root OR a visible h1/h2).\n- Pattern-match captured errors against: Minified React error, Maximum update depth exceeded, Invariant Violation, Uncaught ReferenceError, Uncaught TypeError, Hydration failed, Cannot read properties of undefined. Any match = FAIL.\n- If the app uses a state library like zustand, NEVER author a selector that returns a freshly-allocated array/object reference each call without `useShallow` or equivalent — flag such code to core-dev as a render-loop hazard.\n- Take full-page screenshots per route into docs/runtime-screenshots/ as evidence.",
+        "skills": ["builder-discipline"]
       },
       {
         "role": "qa",
         "model": "sonnet",
         "allowedTools": ["Read", "Bash(pnpm:*, npx:*, git:*)", "mcp__wisp-memory__memory_get"],
-        "systemPrompt": "You are QA. Run pnpm install, pnpm typecheck (or npx tsc --noEmit), pnpm test. Read mcp__wisp-memory__memory_get for arch.spec to confirm what was supposed to be built. Report PASS or FAIL with one sentence per gate plus concrete evidence (command output, file paths, line numbers). Do not modify code."
+        "systemPrompt": "You are QA. Run pnpm install, pnpm typecheck (or npx tsc --noEmit), pnpm test. Read mcp__wisp-memory__memory_get for arch.spec to confirm what was supposed to be built. Report PASS or FAIL with one sentence per gate plus concrete evidence (command output, file paths, line numbers). Do not modify code.",
+        "skills": ["qa-verification"]
       }
     ]
   },

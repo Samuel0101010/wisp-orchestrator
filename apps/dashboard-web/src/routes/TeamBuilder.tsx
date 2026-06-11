@@ -17,6 +17,7 @@ import {
   rectSortingStrategy,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
+import { defaultSkillsForRole } from '@wisp/schemas';
 import type { Agent, AgentSpec, Team } from '@wisp/schemas';
 import { MAX_TEAM_ROLES } from '@wisp/schemas';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,7 @@ export function specToDraft(spec: AgentSpec): DraftAgent {
     allowedTools: [...spec.allowedTools],
     systemPrompt: spec.systemPrompt,
     agentId: spec.agentId,
+    skills: spec.skills ? [...spec.skills] : undefined,
   };
 }
 
@@ -84,6 +86,7 @@ export function draftToSpec(d: DraftAgent): AgentSpec {
     allowedTools: d.allowedTools,
     systemPrompt: d.systemPrompt,
     ...(d.agentId ? { agentId: d.agentId } : {}),
+    ...(d.skills && d.skills.length > 0 ? { skills: d.skills } : {}),
   };
 }
 
@@ -153,12 +156,16 @@ export function buildRoleFromAgent(agent: Agent, existingRoles: string[]): Draft
   let role = base;
   let n = 2;
   while (existing.has(role)) role = `${base}-${n++}`;
+  // Default execution skills by role — same mapping the chat create_project
+  // directive applies server-side.
+  const skills = defaultSkillsForRole(role);
   return {
     role,
     model: agent.model,
     allowedTools: agent.allowedTools.length > 0 ? [...agent.allowedTools] : ['Read'],
     systemPrompt: agent.systemPrompt.slice(0, SYSTEM_PROMPT_MAX),
     agentId: agent.id,
+    ...(skills.length > 0 ? { skills } : {}),
   };
 }
 
@@ -174,6 +181,13 @@ function teamsEqual(a: DraftAgent[], b: Team): boolean {
     if (x.allowedTools.length !== y.allowedTools.length) return false;
     for (let j = 0; j < x.allowedTools.length; j++) {
       if (x.allowedTools[j] !== y.allowedTools[j]) return false;
+    }
+    // Treat undefined and [] as equal — draftToSpec strips empty arrays.
+    const xs = x.skills ?? [];
+    const ys = y.skills ?? [];
+    if (xs.length !== ys.length) return false;
+    for (let j = 0; j < xs.length; j++) {
+      if (xs[j] !== ys[j]) return false;
     }
   }
   return true;

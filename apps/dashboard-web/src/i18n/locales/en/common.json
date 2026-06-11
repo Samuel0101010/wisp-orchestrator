@@ -309,6 +309,17 @@
     "customCount_one": "{{count}} custom tool shown above.",
     "customCount_other": "{{count}} custom tools shown above."
   },
+  "skillMultiSelect": {
+    "noneSelected": "No skills assigned",
+    "selected_one": "{{count}} skill assigned",
+    "selected_other": "{{count}} skills assigned",
+    "pick": "Pick skills",
+    "hide": "Hide skills",
+    "removeAria": "Remove {{name}}",
+    "unknownMarker": "Not installed on this machine (skipped at run time)",
+    "limit": "Maximum of {{count}} skills per role.",
+    "empty": "No skills installed. Seed skills appear after the server starts; more come from .claude/skills folders."
+  },
   "modelInfo": {
     "costClass": {
       "cheap": "cheap",
@@ -627,6 +638,8 @@
       "model": "Model",
       "tools": "Allowed tools",
       "toolsHint": "Restrict what this agent can call. Leave empty to grant Claude Code defaults.",
+      "skills": "Skills",
+      "skillsHint": "Working methods injected into this agent's instructions at run time — they keep smaller models on track.",
       "systemPrompt": "System prompt"
     },
     "promptCount": {
@@ -1513,6 +1526,9 @@
       "noPlan": "Cannot start run yet — no plan. Open the project to generate one.",
       "generatingPlan": "Generating plan…",
       "planGenerated": "Plan generated",
+      "briefImported": "Brief imported · {{filename}}",
+      "briefImportedHint": "The attached spec is now the project brief (docs/PRD.md) — the build agents will work from it.",
+      "briefImportedDbOnly": "Brief saved, but writing docs/PRD.md to the repo failed — open the project's Brief tab to retry.",
       "actionFailed": "Action failed: {{kind}}",
       "unknownError": "unknown error",
       "generic": "Action: {{kind}} · {{status}}",

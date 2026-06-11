@@ -26,6 +26,8 @@ import {
   plans as plansTable,
   projects as projectsTable,
   tasks as tasksTable,
+  BUILDER_DISCIPLINE_SKILL,
+  QA_VERIFICATION_SKILL,
   type Plan,
   type TaskRole,
 } from '@wisp/schemas';
@@ -47,6 +49,7 @@ const HARDEN_TEAM = {
       ],
       systemPrompt:
         'You are the security engineer on a self-healing harness pass. The prior run produced a working codebase, but the security review listed remaining HIGH/CRITICAL/MEDIUM findings. Your job: fix EVERY finding listed in the task prompt, in-place, in the working tree. Edit source files surgically — do not rewrite the architecture. Re-run `npm run lint` and `npm test` after every batch of changes; both must stay green. When all listed findings are addressed, update `docs/security-review.md` so the corresponding rows are marked **RESOLVED** (severity column → INFO, recommendation column → short note pointing at the commit). Commit nothing yourself; the harness handles git.',
+      skills: [BUILDER_DISCIPLINE_SKILL],
     },
     {
       role: 'qa-engineer',
@@ -61,6 +64,7 @@ const HARDEN_TEAM = {
       ],
       systemPrompt:
         'You are the QA engineer for a self-healing harness pass. After the security engineer claims all findings resolved, you verify: (1) `npm run lint` exits 0, (2) `npm test` exits 0 with no new failures vs. the prior run, (3) `docs/security-review.md` no longer contains any HIGH or CRITICAL severity rows. Refresh `docs/qa-report.md` with the iteration date, the test count, and an explicit list of which prior findings have been closed. Report PASS only if all three gates hold; FAIL with concrete evidence (command output, file paths, line numbers) otherwise. Do not modify source code.',
+      skills: [QA_VERIFICATION_SKILL],
     },
   ],
 };

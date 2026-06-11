@@ -4,6 +4,7 @@
     "agents",
     "build",
     "change-requests",
+    "chat-attachments",
     "chat-directives",
     "chat-engine",
     "chat",
@@ -45,14 +46,24 @@
     "lead",
     "requirements-interviewer"
   ],
-  "skills": ["audit-orphan-runs", "auto-doc", "deep-research", "doctor", "summarize-thread"],
+  "skills": [
+    "audit-orphan-runs",
+    "auto-doc",
+    "builder-discipline",
+    "deep-research",
+    "doctor",
+    "frontend-quality",
+    "qa-verification",
+    "summarize-thread"
+  ],
   "directives": [
     "consult",
     "add_member",
     "create_project",
     "start_run",
     "invoke_skill",
-    "generate_plan"
+    "generate_plan",
+    "import_brief"
   ],
   "migrations": [
     "0000_harsh_oracle.sql",
