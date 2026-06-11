@@ -101,6 +101,16 @@ function stripDirectiveSigils(text: string): string {
   return text.replace(/<<ACTION>>/g, '«ACTION»').replace(/<<END>>/g, '«END»');
 }
 
+/**
+ * Char budget for the "## Available skills" appendix. Discovery also pulls in
+ * user- and plugin-level skills; on a machine with a large personal skill
+ * collection the uncapped appendix grew to ~50k chars — blowing the Windows
+ * argv limit at spawn (ENAMETOOLONG) and costing ~13k tokens per manager
+ * turn. WISP-own sources (seed, then project) are listed first; whatever does
+ * not fit is summarised as a count.
+ */
+const SKILLS_SECTION_BUDGET_CHARS = 6_000;
+
 export function buildManagerSystemPrompt(
   base: string,
   registry: SkillRegistry | undefined,
@@ -108,20 +118,68 @@ export function buildManagerSystemPrompt(
   if (!registry) return base;
   const skills = registry.list();
   if (skills.length === 0) return base;
-  const skillsList = skills
-    .map((s) => {
-      const desc = stripDirectiveSigils(s.description);
-      const hint = s.argumentHint ? stripDirectiveSigils(s.argumentHint) : null;
-      return `- ${s.name}: ${desc}` + (hint ? ` (args: ${hint})` : '');
-    })
-    .join('\n');
-  return `${base}\n\n## Available skills\n\nUse <<ACTION>>{"kind":"invoke_skill","name":"<NAME>","args":"<args>"}<<END>> to invoke:\n${skillsList}`;
+  const sourceRank = (source: string | undefined): number => {
+    if (source === undefined || source === 'seed') return 0;
+    if (source === 'project') return 1;
+    if (source.startsWith('plugin:')) return 2;
+    return 3; // user
+  };
+  const ordered = [...skills].sort((a, b) => sourceRank(a.source) - sourceRank(b.source));
+  const lines: string[] = [];
+  let used = 0;
+  let omitted = 0;
+  for (const s of ordered) {
+    const desc = stripDirectiveSigils(s.description);
+    const hint = s.argumentHint ? stripDirectiveSigils(s.argumentHint) : null;
+    const line = `- ${s.name}: ${desc}` + (hint ? ` (args: ${hint})` : '');
+    if (used + line.length + 1 > SKILLS_SECTION_BUDGET_CHARS) {
+      omitted += 1;
+      continue;
+    }
+    used += line.length + 1;
+    lines.push(line);
+  }
+  const note =
+    omitted > 0
+      ? `\n(${omitted} more skills exist but are not listed — prefer the ones above.)`
+      : '';
+  return `${base}\n\n## Available skills\n\nUse <<ACTION>>{"kind":"invoke_skill","name":"<NAME>","args":"<args>"}<<END>> to invoke:\n${lines.join('\n')}${note}`;
 }
 
 function autoTitle(firstMessage: string): string {
   const trimmed = firstMessage.trim().replace(/\s+/g, ' ');
   if (trimmed.length <= 60) return trimmed;
   return trimmed.slice(0, 57) + '…';
+}
+
+/**
+ * Compact key facts from a chat_actions result for the manager's history
+ * receipt — enough for the model to recognise "this already happened" and
+ * reference the created entity (projectId/runId) in follow-up directives.
+ */
+function summarizeActionReceipt(resultJson: unknown): string {
+  if (!resultJson || typeof resultJson !== 'object') return '';
+  const r = resultJson as Record<string, unknown>;
+  const bits: string[] = [];
+  if (typeof r.name === 'string') bits.push(`name=${r.name}`);
+  if (typeof r.projectId === 'string') bits.push(`projectId=${r.projectId}`);
+  if (typeof r.runId === 'string') bits.push(`runId=${r.runId}`);
+  if (typeof r.skillName === 'string') bits.push(`skill=${r.skillName}`);
+  if (typeof r.error === 'string') bits.push(`error=${r.error.slice(0, 120)}`);
+  return bits.length > 0 ? ` (${bits.join(', ')})` : '';
+}
+
+/** Receipts of executed directives, grouped by the manager message that emitted them. */
+function buildReceiptsByMessage(threadId: string): Map<string, string[]> {
+  const actionRows = db.select().from(chatActions).where(eq(chatActions.threadId, threadId)).all();
+  const map = new Map<string, string[]>();
+  for (const a of actionRows) {
+    if (!a.messageId) continue;
+    const list = map.get(a.messageId) ?? [];
+    list.push(`${a.kind} → ${a.status}${summarizeActionReceipt(a.resultJson)}`);
+    map.set(a.messageId, list);
+  }
+  return map;
 }
 
 // ----- Attachments (MVP: on-disk + JSON sidecar, no DB migration) -----
@@ -527,11 +585,24 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
           reply.code(500);
           return { error: 'no_summariser_agent_available' };
         }
-        const transcript = messages.map((m) => `${m.role}: ${m.content}`).join('\n\n');
+        // Include directive receipts: compress deletes the original messages
+        // (the chat_actions messageId FK nulls out), so the summary is the
+        // only place that can carry "create_project actually ran" forward.
+        const compressReceipts = buildReceiptsByMessage(threadId);
+        const transcript = messages
+          .map((m) => {
+            const receipts = m.role === 'assistant' ? compressReceipts.get(m.id) : undefined;
+            const line = `${m.role}: ${m.content}`;
+            return receipts && receipts.length > 0
+              ? `${line}\n[executed directives: ${receipts.join('; ')}]`
+              : line;
+          })
+          .join('\n\n');
         const summaryPrompt =
           'Summarise the conversation below into 4–8 short bullet points covering ' +
           'decisions, open questions, and any action items. Keep it neutral, ' +
           'preserve names of people / projects, and do not invent facts. ' +
+          'Mention executed directives (project/run IDs) as facts that already happened. ' +
           'Output the bullets only — no preamble.';
         const turn = await runAgentTurn({
           systemPrompt: summaryPrompt,
@@ -808,13 +879,25 @@ export function createChatRouter(deps: ChatRouterDeps = {}): FastifyPluginAsync 
             .where(eq(agentMessages.threadId, threadId))
             .orderBy(asc(agentMessages.createdAt))
             .all();
+          // Directive receipts per assistant message. Persisted assistant
+          // content is the CLEANED prose (directive blocks stripped), so
+          // without these the manager only ever sees its own promises — it
+          // cannot tell that a directive actually ran, and re-issues it on
+          // the next turn (live-seen: duplicate create_project for the same
+          // project).
+          const receiptsByMessage = buildReceiptsByMessage(threadId);
           const history: HistoryMessage[] = prior
             .filter((m) => m.id !== userMsgId && m.id !== assistantId && m.errorReason == null)
             .map((m) => {
               const author = m.authorAgentId ? loadAgent(m.authorAgentId) : null;
+              const receipts = m.role === 'assistant' ? receiptsByMessage.get(m.id) : undefined;
+              const content =
+                receipts && receipts.length > 0
+                  ? `${m.content}\n[directives already executed for this reply — do not re-issue them: ${receipts.join('; ')}]`
+                  : m.content;
               return {
                 role: m.role as 'user' | 'assistant',
-                content: m.content,
+                content,
                 authorName: author?.name,
               };
             });

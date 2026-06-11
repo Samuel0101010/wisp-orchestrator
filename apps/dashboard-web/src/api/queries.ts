@@ -336,6 +336,7 @@ export function useDeleteDod(projectId: string | undefined) {
 // ---------- runtime report (v1.8) ----------
 
 export type RuntimeReportVerdict = 'pass' | 'fail' | 'skipped' | 'error';
+export type ReleaseGateVerdict = 'ready' | 'blocked' | 'manual-review';
 
 export interface RuntimeReportRow {
   id: string;
@@ -347,6 +348,9 @@ export interface RuntimeReportRow {
   dodTotal: number;
   reportMd: string | null;
   evidenceJson: { artifacts?: string[] } | null;
+  /** Gate decision at auto-merge time — null on rows from before migration 0021. */
+  gateVerdict: ReleaseGateVerdict | null;
+  gateReasons: string[] | null;
   createdAt: string | Date;
 }
 

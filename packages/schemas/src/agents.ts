@@ -123,6 +123,13 @@ export const sendMessageResponseSchema = z.object({
       }),
     )
     .default([]),
+  /**
+   * Parse failures for <<ACTION>> blocks the manager emitted but that were
+   * not valid directives (invalid JSON / wrong shape). Without surfacing
+   * these, a malformed directive is silently dropped while the manager's
+   * prose claims the action happened.
+   */
+  directiveErrors: z.array(z.string()).default([]),
 });
 export type SendMessageResponse = z.infer<typeof sendMessageResponseSchema>;
 

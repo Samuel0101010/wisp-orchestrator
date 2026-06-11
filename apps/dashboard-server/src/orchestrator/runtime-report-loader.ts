@@ -126,6 +126,10 @@ export async function persistRuntimeReport(args: {
       dodTotal: args.gate.summary.dodTotal,
       reportMd: args.markdownReport,
       evidenceJson: args.report?.artifacts ? { artifacts: args.report.artifacts } : null,
+      // The gate decision itself — a verifier "pass" can still end blocked
+      // (unevidenced DoD, open findings); the dashboard must be able to say so.
+      gateVerdict: args.gate.verdict,
+      gateReasons: args.gate.reasons,
     })
     .run();
   return id;

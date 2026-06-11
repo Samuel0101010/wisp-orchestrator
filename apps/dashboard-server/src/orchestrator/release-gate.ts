@@ -191,6 +191,21 @@ export function evaluateReleaseGate(input: ReleaseGateInput): ReleaseGateResult 
   // Auto-verified gates pass; do manual gates still need a human?
   const autoVerifiable = Math.max(0, summary.dodTotal - summary.dodManual);
   if (summary.dodVerified < autoVerifiable) {
+    // Distinguish "the verifier attributed criteria and some failed" (honest
+    // negative evidence → block) from "the verifier attributed NOTHING"
+    // (empty dod.criteria despite the prompt demanding one entry per
+    // criterion). In the latter case every check it DID run passed — boot ok,
+    // zero smoke/e2e failures, no findings (all enforced above). Blocking
+    // here strands the finished app on the result branch behind a
+    // READY-looking report (live-seen); ship with a visible manual-review
+    // flag instead, same philosophy as the missing-report path.
+    const attributed = (input.runtime.dod?.criteria ?? []).length;
+    if (attributed === 0 && summary.smokeFailed === 0 && summary.e2eFailed === 0) {
+      reasons.push(
+        `verifier did not attribute the ${autoVerifiable} declared DoD criterion/criteria (empty dod.criteria despite all executed checks passing) — shipping with a manual-review flag (please verify the criteria manually)`,
+      );
+      return { verdict: 'manual-review', reasons, summary };
+    }
     reasons.push(
       `${autoVerifiable - summary.dodVerified} non-manual DoD criterion/criteria still unevidenced`,
     );

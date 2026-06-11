@@ -141,6 +141,9 @@ export function ChatRoute() {
   const [attachments, setAttachments] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Malformed <<ACTION>> blocks the server dropped this turn — without this
+  // notice the manager's prose claims an action happened that never ran.
+  const [directiveWarnings, setDirectiveWarnings] = useState<string[]>([]);
   const [showAddMember, setShowAddMember] = useState(false);
   // Mention picker state. null = closed; '' or 'Le' = open with that query.
   // mentionStart is the caret index of the `@` that opened the picker.
@@ -168,6 +171,7 @@ export function ChatRoute() {
     if ((!hasText && attachments.length === 0) || !selectedThreadId || !managerId) return;
     if (sendMessage.isPending || uploadAttachments.isPending) return;
     setError(null);
+    setDirectiveWarnings([]);
     let threadId = selectedThreadId;
     if (!threadId) {
       try {
@@ -193,7 +197,13 @@ export function ChatRoute() {
         const res = await uploadAttachments.mutateAsync({ threadId, files: pendingAttachments });
         attachmentIds = res.attachments.map((a) => a.id);
       }
-      await sendMessage.mutateAsync({ threadId, agentId: managerId, content, attachmentIds });
+      const res = await sendMessage.mutateAsync({
+        threadId,
+        agentId: managerId,
+        content,
+        attachmentIds,
+      });
+      if (res.directiveErrors.length > 0) setDirectiveWarnings(res.directiveErrors);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       // Restore the composer text + attachments so the user doesn't lose them.
@@ -492,6 +502,21 @@ export function ChatRoute() {
                   type="button"
                   onClick={() => setError(null)}
                   className="shrink-0 rounded p-0.5 hover:bg-destructive/20"
+                  aria-label={t('chat.composer.dismissError')}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            {directiveWarnings.length > 0 && (
+              <div className="mb-2 flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-1.5 text-xs text-warning">
+                <span className="flex-1">
+                  {t('chat.composer.directiveDropped', { count: directiveWarnings.length })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDirectiveWarnings([])}
+                  className="shrink-0 rounded p-0.5 hover:bg-warning/20"
                   aria-label={t('chat.composer.dismissError')}
                 >
                   <X className="h-3 w-3" />
@@ -912,9 +937,19 @@ function Transcript({
     return map;
   }, [actions]);
 
+  // The write-ahead assistant stub (errorReason='pending', empty content) is
+  // a crash-recovery marker. While the turn is actively in flight the live
+  // preview below already represents it — rendering the stub too shows a
+  // misleading "INTERRUPTED (no response)" row DURING streaming. After a real
+  // interruption (server died mid-turn) isPending is false and the stub
+  // renders as intended.
+  const visibleMessages = isPending
+    ? messages.filter((m) => !(m.errorReason === 'pending' && m.content === ''))
+    : messages;
+
   return (
     <div className="space-y-4">
-      {messages.map((m) => (
+      {visibleMessages.map((m) => (
         <MessageBlock
           key={m.id}
           message={m}

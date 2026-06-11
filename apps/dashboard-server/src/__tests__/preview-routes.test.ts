@@ -150,6 +150,46 @@ describe('POST /api/projects/:id/preview/start', () => {
     expect(startSpy).not.toHaveBeenCalled();
   });
 
+  it('falls back to the bundled static server when the worktree has an index.html but no framework', async () => {
+    // Chat-created "no build tool" projects: bare index.html, detection
+    // 'unknown'. The route must spawn the static preview server via the argv
+    // seam (paths may contain spaces) instead of 400ing.
+    const { mkdtempSync, writeFileSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const wt = mkdtempSync(join(tmpdir(), 'preview-static-'));
+    writeFileSync(join(wt, 'index.html'), '<h1>Hallo Welt</h1>', 'utf8');
+
+    const id = `proj-${randomUUID()}`;
+    await seedProject({ id, devCmd: null, probeUrl: null });
+
+    const registry = new PreviewProcessRegistry();
+    const startSpy = vi
+      .spyOn(registry, 'startPreview')
+      .mockResolvedValue(runningResult(5500) as never);
+    const ensureWt = vi.fn().mockResolvedValue(wt);
+    const detectFn = vi.fn().mockReturnValue(detection(null, null, null));
+
+    app = await buildPreviewApp({
+      registry,
+      ensurePreviewWorktree: ensureWt as unknown as PreviewRouterDeps['ensurePreviewWorktree'],
+      detectProjectType: detectFn as unknown as PreviewRouterDeps['detectProjectType'],
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/projects/${id}/preview/start`,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(startSpy).toHaveBeenCalledTimes(1);
+    const callArgs = startSpy.mock.calls[0]![0] as StartPreviewArgs;
+    expect(callArgs.argv?.[0]).toBe(process.execPath);
+    expect(callArgs.argv?.[1]).toMatch(/static-preview-server\.js$/);
+    expect(callArgs.argv?.[2]).toBe(wt);
+    expect(callArgs.probeUrl).toBe('http://127.0.0.1:5500/');
+  });
+
   it('500 worktree_setup_failed when ensurePreviewWorktree throws', async () => {
     const id = `proj-${randomUUID()}`;
     await seedProject({ id });

@@ -38,6 +38,8 @@
     "fail": "FAIL",
     "artifacts": "{{count}} artifacts",
     "showReport": "Show report",
+    "mergeBlocked": "Auto-merge held back",
+    "manualReview": "Shipped with a manual-review flag",
     "verdict": {
       "pass": "READY",
       "fail": "BLOCKED",
@@ -1446,7 +1448,9 @@
       "dismissError": "Dismiss error",
       "attach": "Attach files",
       "removeAttachment": "Remove attachment",
-      "mentionPicker": "Mention a teammate"
+      "mentionPicker": "Mention a teammate",
+      "directiveDropped_one": "{{count}} manager action was malformed and did not run. Please ask again.",
+      "directiveDropped_other": "{{count}} manager actions were malformed and did not run. Please ask again."
     },
     "participants": {
       "title": "People",

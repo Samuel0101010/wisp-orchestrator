@@ -132,6 +132,41 @@ describe('evaluateReleaseGate', () => {
     expect(r.reasons.join(' ')).toMatch(/unevidenced/);
   });
 
+  it('ships with manual-review when the verifier passed but attributed NO DoD criteria (empty array)', () => {
+    // Live-seen: smoke 1/1 + boot ok + verdict=pass, but dod.criteria=[] —
+    // blocking stranded the finished app behind a READY-looking report.
+    const r = evaluateReleaseGate({
+      runSucceeded: true,
+      runtime: passReport({
+        smoke: { ok: true, passed: 1, failed: 0 },
+        e2e: { ok: true, passed: 0, failed: 0 },
+        dod: { criteria: [] },
+      }),
+      actionableFindingsCount: 0,
+      dodTotal: 1,
+      dodManual: 0,
+      runtimeVerifyEnabled: true,
+    });
+    expect(r.verdict).toBe('manual-review');
+    expect(r.reasons.join(' ')).toMatch(/did not attribute/);
+  });
+
+  it('still blocks on empty dod.criteria when a smoke or e2e check failed', () => {
+    const r = evaluateReleaseGate({
+      runSucceeded: true,
+      runtime: passReport({
+        smoke: { ok: false, passed: 0, failed: 1 },
+        e2e: { ok: true, passed: 0, failed: 0 },
+        dod: { criteria: [] },
+      }),
+      actionableFindingsCount: 0,
+      dodTotal: 1,
+      dodManual: 0,
+      runtimeVerifyEnabled: true,
+    });
+    expect(r.verdict).toBe('blocked');
+  });
+
   it('returns manual-review when auto gates pass and a manual gate remains', () => {
     const r = evaluateReleaseGate({
       runSucceeded: true,
