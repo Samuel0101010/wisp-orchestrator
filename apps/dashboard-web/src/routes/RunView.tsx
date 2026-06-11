@@ -41,6 +41,7 @@ import {
   useResumeRun,
   useRun,
   useStartRun,
+  useTaskTextDeltas,
   type RunSnapshotResponse,
 } from '@/api/queries';
 import {
@@ -388,21 +389,28 @@ function TaskCard({
 }
 
 interface LiveTailSheetProps {
+  runId: string;
   task: TaskCardModel | null;
   onClose: () => void;
 }
 
-function LiveTailSheet({ task, onClose }: LiveTailSheetProps) {
+function LiveTailSheet({ runId, task, onClose }: LiveTailSheetProps) {
   const { t } = useTranslation();
   const [pinTop, setPinTop] = useState(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+
+  // The live buffer is page-local — after a reload it is empty even for tasks
+  // with plenty of output. Fall back to the persisted event log in that case.
+  const history = useTaskTextDeltas(runId, task && task.deltas.length === 0 ? task.id : null);
+  const fromLog = !!task && task.deltas.length === 0 && (history.data?.length ?? 0) > 0;
+  const deltas = task ? (task.deltas.length > 0 ? task.deltas : (history.data ?? [])) : [];
 
   useEffect(() => {
     if (!task || pinTop) return;
     const el = scrollerRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [task, task?.deltas.length, pinTop]);
+  }, [task, deltas.length, pinTop]);
 
   return (
     <Dialog open={!!task} onOpenChange={(open) => (!open ? onClose() : undefined)}>
@@ -413,7 +421,9 @@ function LiveTailSheet({ task, onClose }: LiveTailSheetProps) {
         <DialogHeader>
           <DialogTitle>{t('runView.task.liveTailFor', { title: task?.title ?? '' })}</DialogTitle>
           <DialogDescription>
-            {t('runView.task.tailHint', { count: task?.deltas.length ?? 0 })}
+            {fromLog
+              ? t('runView.task.tailFromLog', { count: deltas.length })
+              : t('runView.task.tailHint', { count: deltas.length })}
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center justify-end gap-2">
@@ -427,10 +437,12 @@ function LiveTailSheet({ task, onClose }: LiveTailSheetProps) {
           className="h-72 overflow-auto rounded-md border bg-muted p-2 font-mono text-xs"
           data-testid="task-tail-scroller"
         >
-          {task?.deltas.length === 0 ? (
-            <div className="text-muted-foreground">{t('runView.task.noOutput')}</div>
+          {deltas.length === 0 ? (
+            <div className="text-muted-foreground">
+              {history.isLoading ? t('runView.task.tailLoading') : t('runView.task.noOutput')}
+            </div>
           ) : (
-            task?.deltas.map((d, i) => (
+            deltas.map((d, i) => (
               <div key={i} className="whitespace-pre-wrap">
                 {d}
               </div>
@@ -1081,7 +1093,7 @@ function RunViewBody({ runId, projectId, snapshot, refetch }: RunViewBodyProps) 
         }
       />
 
-      <LiveTailSheet task={tailTask} onClose={() => setTailTaskId(null)} />
+      <LiveTailSheet runId={runId} task={tailTask} onClose={() => setTailTaskId(null)} />
     </div>
   );
 }
