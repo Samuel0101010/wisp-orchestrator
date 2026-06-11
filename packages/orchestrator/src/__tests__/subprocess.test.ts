@@ -314,6 +314,68 @@ describe('buildArgs — mcpConfigPath', () => {
   });
 });
 
+describe('buildArgs — system prompt inline vs file', () => {
+  it('passes --system-prompt inline by default', () => {
+    const args = buildArgs({
+      cwd: '/x',
+      prompt: 'p',
+      allowedTools: [],
+      maxTurns: 1,
+      taskId: 't',
+      systemPrompt: 'small prompt',
+    });
+    const idx = args.indexOf('--system-prompt');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe('small prompt');
+    expect(args).not.toContain('--system-prompt-file');
+  });
+
+  it('switches to --system-prompt-file when a file path is provided', () => {
+    const args = buildArgs(
+      {
+        cwd: '/x',
+        prompt: 'p',
+        allowedTools: [],
+        maxTurns: 1,
+        taskId: 't',
+        systemPrompt: 'x'.repeat(40_000),
+      },
+      '/tmp/sp.md',
+    );
+    const idx = args.indexOf('--system-prompt-file');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe('/tmp/sp.md');
+    expect(args).not.toContain('--system-prompt');
+  });
+});
+
+describe('runClaude — oversized system prompt (Windows ENAMETOOLONG guard)', () => {
+  it('completes with a >32k system prompt and cleans up its temp file', async () => {
+    // Inline argv with a 40k-char system prompt exceeds the Windows
+    // CreateProcess command-line limit (32,767 chars) and fails at spawn with
+    // ENAMETOOLONG. The file-based fallback must keep the subprocess alive.
+    const { readdirSync } = await import('node:fs');
+    const countTempFiles = (): number =>
+      readdirSync(tmpdir()).filter((f) => f.startsWith('wisp-sysprompt-')).length;
+    const before = countTempFiles();
+    const events = await collect(
+      runClaude({
+        cwd: tmpdir(),
+        prompt: 'hi',
+        allowedTools: [],
+        maxTurns: 1,
+        taskId: 't-bigsp',
+        systemPrompt: 'x'.repeat(40_000),
+        __mockBin: MOCK_BIN,
+      }),
+    );
+    const types = events.map((e) => e.type);
+    expect(types).toContain('task.completed');
+    expect(types).not.toContain('task.failed');
+    expect(countTempFiles()).toBe(before);
+  });
+});
+
 describe('ClaudeSubprocess class', () => {
   it('exposes pid after start and supports kill()', async () => {
     const sp = new ClaudeSubprocess({

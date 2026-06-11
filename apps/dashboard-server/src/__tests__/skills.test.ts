@@ -120,4 +120,33 @@ describe('buildManagerSystemPrompt', () => {
     expect(result).toContain('- summarise: Test skill summarise');
     expect(result).toContain('invoke_skill');
   });
+
+  it('caps the appendix at the char budget, prioritising seed/project/plugin over user skills', () => {
+    // An uncapped appendix once grew to ~50k chars on a machine with many
+    // user-level skills — blowing the Windows argv limit at spawn
+    // (ENAMETOOLONG). The cap must keep WISP-own sources and report the cut.
+    const mk = (name: string, source: string | undefined) => ({
+      name,
+      description: 'd'.repeat(400),
+      model: 'haiku' as const,
+      allowedTools: [],
+      timeoutMs: 1000,
+      systemPrompt: '',
+      filePath: '',
+      source,
+    });
+    const skills = [
+      ...Array.from({ length: 30 }, (_, i) => mk(`user-skill-${i}`, 'user')),
+      mk('project-skill', 'project'),
+      mk('seed-skill', 'seed'),
+      mk('plugin-skill', 'plugin:foo'),
+    ];
+    const reg = { list: () => skills } as unknown as SkillRegistry;
+    const result = buildManagerSystemPrompt('base', reg);
+    expect(result.length).toBeLessThan('base'.length + 7_000);
+    expect(result).toContain('- seed-skill:');
+    expect(result).toContain('- project-skill:');
+    expect(result).toContain('- plugin-skill:');
+    expect(result).toMatch(/\d+ more skills exist but are not listed/);
+  });
 });

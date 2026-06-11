@@ -57,6 +57,14 @@ export interface StartPreviewArgs {
    * passing it to next/nuxt would error.
    */
   basePath?: string;
+  /**
+   * Pre-split spawn vector. When set, it replaces the whitespace-split of
+   * `devCmd` for spawning: argv[0] is executed with argv.slice(1) +
+   * `--port <port>`, WITHOUT a shell. Required for absolute paths containing
+   * spaces (node.exe under "Program Files", the bundled static preview
+   * server under a spaced repo path) which the devCmd split would mangle.
+   */
+  argv?: string[];
   /** Optional override — defaults to 30s. */
   readyTimeoutMs?: number;
   /** Test seam — supplied fetch impl. */
@@ -454,7 +462,7 @@ export class PreviewProcessRegistry {
     // confuses its arg parser). So:
     //   pnpm dev   →  pnpm dev --port 5174   →  vite --port 5174
     //   vite       →  vite --port 5174
-    const parts = devCmd.trim().split(/\s+/);
+    const parts = args.argv ?? devCmd.trim().split(/\s+/);
     const cmd = parts[0]!;
     const cmdArgs = [...parts.slice(1), '--port', String(port)];
     // When the caller specifies a basePath (vite / SvelteKit only — see
@@ -475,7 +483,9 @@ export class PreviewProcessRegistry {
       child = doSpawn(cmd, cmdArgs, {
         cwd: args.cwd ?? process.cwd(),
         env,
-        shell: process.platform === 'win32',
+        // argv mode targets a real executable directly (node.exe) — no shell
+        // needed, and shell:true would re-split spaced paths on Windows.
+        shell: args.argv ? false : process.platform === 'win32',
         detached: process.platform !== 'win32',
         stdio: ['ignore', 'pipe', 'pipe'],
       });

@@ -273,6 +273,10 @@ function renderCriteriaBlock(criteria: DodCriterion[]): string {
     const spec = JSON.stringify(c.specJson).replace(/\|/g, '\\|');
     lines.push(`| ${c.id} | ${c.kind} | ${c.title.replace(/\|/g, '\\|')} | ${spec} |`);
   }
+  lines.push(
+    '',
+    'IMPORTANT: `docs/runtime-report.json` → `dod.criteria` MUST contain exactly one entry per criterion above, using the exact `id` from the table. An empty `dod.criteria` while criteria are declared is itself a CRITICAL reporting failure — the release gate cannot credit unattributed checks.',
+  );
   return lines.join('\n');
 }
 

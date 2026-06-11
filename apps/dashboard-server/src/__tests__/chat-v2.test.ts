@@ -780,6 +780,58 @@ describe('chat v2 — participants, @mentions, directives, compress', () => {
     ).c;
     expect(count).toBe(4);
   });
+
+  // --- Directive receipts in manager history ---
+  it('the next manager turn sees executed-directive receipts in its history', async () => {
+    // Without receipts the manager only sees its own cleaned prose, cannot
+    // tell that create_project actually ran, and re-issues the directive on
+    // the next turn — live-seen as a duplicate project.
+    const captured: RunClaudeOpts[] = [];
+    const replies = [
+      directiveReply(
+        'Creating it now.',
+        '{"kind":"create_project","name":"ReceiptProj","goal":"g","repoPath":"C:/tmp/receipt-proj"}',
+      ),
+      'Already created — not re-issuing.',
+    ];
+    let turn = 0;
+    async function* capturingRunner(opts: RunClaudeOpts): AsyncGenerator<HarnessEvent> {
+      captured.push(opts);
+      const text = replies[Math.min(turn, replies.length - 1)]!;
+      turn += 1;
+      yield { type: 'task.text-delta', payload: { taskId: opts.taskId, text } };
+      yield {
+        type: 'task.completed',
+        payload: { taskId: opts.taskId, outcome: 'pass', exitCode: 0 },
+      };
+    }
+    app = Fastify({ logger: false });
+    await app.register(agentRoutes);
+    await app.register(projectRoutes);
+    await app.register(createPlansRouter({}));
+    await app.register(createChatRouter({ runner: capturingRunner }));
+    await app.ready();
+
+    const threadId = await newManagerThread(app);
+    const r1 = await app.inject({
+      method: 'POST',
+      url: `/api/threads/${threadId}/messages`,
+      payload: { content: 'Create ReceiptProj please.' },
+    });
+    expect(r1.statusCode).toBe(201);
+    const r2 = await app.inject({
+      method: 'POST',
+      url: `/api/threads/${threadId}/messages`,
+      payload: { content: 'Now generate the plan.' },
+    });
+    expect(r2.statusCode).toBe(201);
+
+    expect(captured).toHaveLength(2);
+    const secondPrompt = captured[1]!.prompt;
+    expect(secondPrompt).toContain('directives already executed');
+    expect(secondPrompt).toContain('create_project → ok');
+    expect(secondPrompt).toContain('name=ReceiptProj');
+  });
 });
 
 /**

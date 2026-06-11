@@ -38,6 +38,8 @@
     "fail": "FAIL",
     "artifacts": "{{count}} Artefakte",
     "showReport": "Bericht zeigen",
+    "mergeBlocked": "Auto-Merge zurückgehalten",
+    "manualReview": "Mit Manuell-Prüfen-Hinweis ausgeliefert",
     "verdict": {
       "pass": "READY",
       "fail": "BLOCKED",
@@ -1446,7 +1448,9 @@
       "dismissError": "Fehler ausblenden",
       "attach": "Dateien anhängen",
       "removeAttachment": "Anhang entfernen",
-      "mentionPicker": "Teammitglied erwähnen"
+      "mentionPicker": "Teammitglied erwähnen",
+      "directiveDropped_one": "{{count}} Aktion des Managers war fehlerhaft formatiert und wurde nicht ausgeführt. Bitte erneut formulieren.",
+      "directiveDropped_other": "{{count}} Aktionen des Managers waren fehlerhaft formatiert und wurden nicht ausgeführt. Bitte erneut formulieren."
     },
     "participants": {
       "title": "Personen",
@@ -1497,7 +1501,8 @@
     },
     "action": {
       "projectCreated": "Projekt erstellt · {{name}}",
-      "projectTeam": "Team aus {{count}} Personen. Bereit zum Planen & Starten.",
+      "projectTeam_one": "Team aus {{count}} Person. Bereit zum Planen & Starten.",
+      "projectTeam_other": "Team aus {{count}} Personen. Bereit zum Planen & Starten.",
       "openProject": "Projekt öffnen",
       "projectCreatedNoLink": "Projekt erstellt — zum Öffnen aktualisieren.",
       "memberAdded": "<strong>{{name}}</strong> zur Konversation hinzugefügt.",

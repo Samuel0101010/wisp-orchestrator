@@ -47,6 +47,31 @@ export function ReleaseGateCard({ runId, runStatus }: { runId: string; runStatus
           </div>
         </div>
         <p className="text-xs text-muted-foreground">{t('releaseGate.subtitle')}</p>
+        {/* The gate can hold back the merge even when the verifier passed
+            (unevidenced DoD, open findings) — without this line the card
+            looks green while main never received the code. */}
+        {r.gateVerdict === 'blocked' && (
+          <div
+            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            data-testid="release-gate-merge-blocked"
+          >
+            <span className="font-semibold">{t('releaseGate.mergeBlocked')}</span>
+            {r.gateReasons && r.gateReasons.length > 0 && (
+              <span> — {r.gateReasons.join('; ')}</span>
+            )}
+          </div>
+        )}
+        {r.gateVerdict === 'manual-review' && (
+          <div
+            className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning"
+            data-testid="release-gate-manual-review"
+          >
+            <span className="font-semibold">{t('releaseGate.manualReview')}</span>
+            {r.gateReasons && r.gateReasons.length > 0 && (
+              <span> — {r.gateReasons.join('; ')}</span>
+            )}
+          </div>
+        )}
         {/* A skipped gate was never evaluated — red Boot/E2E FAIL badges would
             be misleading (and scary) on an otherwise green run. */}
         {r.verdict !== 'skipped' && (

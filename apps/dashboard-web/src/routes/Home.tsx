@@ -402,10 +402,20 @@ export function Home() {
     {
       id: 'success',
       label: t('home.kpis.successRate', 'Success rate · {{window}}', { window: windowLabel }),
-      value: `${successPercent}`,
-      suffix: '%',
-      trend: successPercent >= 80 ? 'up' : successPercent >= 50 ? 'flat' : 'down',
-      tone: successPercent >= 80 ? 'mint' : successPercent >= 50 ? '' : 'rose',
+      // Zero runs in the window means "no data", not 0% — a red 0% would
+      // suggest failures where none happened (Ø duration shows '—' likewise).
+      value: totalRuns > 0 ? `${successPercent}` : '—',
+      suffix: totalRuns > 0 ? '%' : undefined,
+      trend:
+        totalRuns === 0
+          ? 'flat'
+          : successPercent >= 80
+            ? 'up'
+            : successPercent >= 50
+              ? 'flat'
+              : 'down',
+      tone:
+        totalRuns === 0 ? '' : successPercent >= 80 ? 'mint' : successPercent >= 50 ? '' : 'rose',
     },
     {
       id: 'avg',

@@ -7,7 +7,10 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { delimiter, extname, join } from 'node:path';
 import process from 'node:process';
 import type { HarnessEvent } from '@wisp/schemas';
@@ -103,7 +106,16 @@ const STDERR_TAIL_BYTES = 4096;
 
 const MAX_TURNS_STDERR_PATTERN = /max[- ]turns?\s*(exceeded|reached|exhausted)/i;
 
-export function buildArgs(opts: RunClaudeOpts): string[] {
+/**
+ * Windows caps the full CreateProcess command line at 32,767 chars. A large
+ * system prompt passed inline as `--system-prompt <text>` makes spawn() fail
+ * with ENAMETOOLONG before the CLI even starts (hit in production once the
+ * chat manager's skill appendix grew past the limit). Above this threshold
+ * the prompt is written to a temp file and passed via `--system-prompt-file`.
+ */
+export const SYSTEM_PROMPT_INLINE_MAX = 8_000;
+
+export function buildArgs(opts: RunClaudeOpts, systemPromptFile?: string): string[] {
   const args = [
     '-p',
     '--output-format',
@@ -129,7 +141,9 @@ export function buildArgs(opts: RunClaudeOpts): string[] {
   if (opts.resumeSessionId) {
     args.push('--resume', opts.resumeSessionId);
   }
-  if (opts.systemPrompt) {
+  if (systemPromptFile) {
+    args.push('--system-prompt-file', systemPromptFile);
+  } else if (opts.systemPrompt) {
     args.push('--system-prompt', opts.systemPrompt);
   }
   if (opts.mcpConfigPath) {
@@ -325,7 +339,23 @@ export class ClaudeSubprocess {
   private async *iterate(): AsyncGenerator<HarnessEvent, void, void> {
     const opts = this.opts;
     const { cmd, argPrefix } = resolveBin(opts);
-    const args = [...argPrefix, ...buildArgs(opts)];
+    let systemPromptFile: string | null = null;
+    if (opts.systemPrompt && opts.systemPrompt.length > SYSTEM_PROMPT_INLINE_MAX) {
+      systemPromptFile = join(tmpdir(), `wisp-sysprompt-${randomUUID()}.md`);
+      try {
+        await writeFile(systemPromptFile, opts.systemPrompt, 'utf8');
+      } catch (err) {
+        yield {
+          type: 'task.failed',
+          payload: {
+            taskId: opts.taskId,
+            error: `system-prompt temp file write failed: ${err instanceof Error ? err.message : String(err)}`,
+          },
+        };
+        return;
+      }
+    }
+    const args = [...argPrefix, ...buildArgs(opts, systemPromptFile ?? undefined)];
     const env = buildEnv(opts);
 
     const child = spawn(cmd, args, {
@@ -599,6 +629,11 @@ export class ClaudeSubprocess {
       }
     } finally {
       if (opts.signal) opts.signal.removeEventListener('abort', onAbort);
+      if (systemPromptFile) {
+        // The CLI reads the file at startup; by the time the process closed
+        // it is safe to remove. Best-effort — a leaked temp file is harmless.
+        await rm(systemPromptFile, { force: true }).catch(() => {});
+      }
     }
   }
 }

@@ -219,6 +219,42 @@ describe('persistRuntimeReport', () => {
     expect(rows[0]?.verdict).toBe('fail');
     expect(rows[0]?.reportMd).toContain('FAIL');
   });
+
+  it('persists the gate verdict + reasons alongside the verifier verdict (migration 0021)', async () => {
+    // A verifier "pass" with an unevidenced DoD criterion → gate=blocked. The
+    // dashboard needs that decision on the row, else it shows READY while
+    // auto-merge silently held the code back.
+    const report: RuntimeReportJson = {
+      verdict: 'pass',
+      boot: { ok: true },
+      e2e: { ok: true, passed: 0, failed: 0 },
+      smoke: { ok: true, passed: 1, failed: 0 },
+      dod: {
+        criteria: [
+          { id: 'dod-1', title: 'Login', verified: true },
+          { id: 'dod-2', title: 'Cart', verified: false },
+        ],
+      },
+    };
+    const gate = evaluateReleaseGate({
+      runSucceeded: true,
+      runtime: report,
+      actionableFindingsCount: 0,
+      dodTotal: 2,
+      dodManual: 0,
+      runtimeVerifyEnabled: true,
+    });
+    expect(gate.verdict).toBe('blocked');
+    await persistRuntimeReport({ db, runId, report, gate, markdownReport: null });
+    const rows = db
+      .select()
+      .from(runtimeReportsTable)
+      .where(eq(runtimeReportsTable.runId, runId))
+      .all();
+    expect(rows[0]?.verdict).toBe('pass');
+    expect(rows[0]?.gateVerdict).toBe('blocked');
+    expect(rows[0]?.gateReasons?.join(' ')).toMatch(/unevidenced/);
+  });
 });
 
 describe('loadRuntimeReportFromRef', () => {

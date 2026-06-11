@@ -29,6 +29,9 @@
  * separate gate).
  */
 import http, { type IncomingMessage } from 'node:http';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { FastifyPluginAsync, FastifyRequest, RouteHandlerMethod } from 'fastify';
 import { WebSocket as UpstreamWs } from 'ws';
 import type { WebSocket as WsSocket, RawData } from 'ws';
@@ -116,6 +119,20 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
           devCmd = devCmd ?? detection.devCommand;
           probeUrl = probeUrl ?? detection.probeUrl;
         }
+        // Static-site fallback: chat-created "no build tool" projects ship a
+        // bare index.html (no framework dep, no dev script) — detection stays
+        // 'unknown' by design, but the page is trivially servable. Spawn the
+        // bundled zero-dep static server against the worktree via the argv
+        // seam (paths contain spaces — a devCmd string would be re-split).
+        let staticArgv: string[] | undefined;
+        if (!devCmd && existsSync(join(previewCwd, 'index.html'))) {
+          const staticServerJs = fileURLToPath(
+            new URL('../orchestrator/static-preview-server.js', import.meta.url),
+          );
+          staticArgv = [process.execPath, staticServerJs, previewCwd];
+          devCmd = 'node static-preview-server';
+          probeUrl = probeUrl ?? 'http://127.0.0.1:5500/';
+        }
         if (!devCmd || !probeUrl) {
           reply.code(400);
           return {
@@ -129,8 +146,11 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
         // the box; next/nuxt require config-file changes and would crash
         // on an unknown flag — leave them as-is for now.
         const BASE_FLAG_FRAMEWORKS = new Set(['vite', '@sveltejs/kit']);
+        // The static fallback server implements the same --base contract as
+        // vite: the proxy forwards the full /preview/<id>/ path and the
+        // server strips it.
         const basePath =
-          detection.framework && BASE_FLAG_FRAMEWORKS.has(detection.framework)
+          staticArgv || (detection.framework && BASE_FLAG_FRAMEWORKS.has(detection.framework))
             ? `/preview/${projectId}/`
             : undefined;
 
@@ -139,6 +159,7 @@ export function createPreviewRouter(deps: PreviewRouterDeps = {}): FastifyPlugin
           devCmd,
           probeUrl,
           cwd: previewCwd,
+          ...(staticArgv ? { argv: staticArgv } : {}),
           ...(basePath ? { basePath } : {}),
         });
         return result;

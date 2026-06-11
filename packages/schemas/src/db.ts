@@ -618,6 +618,14 @@ export type NewDodCriterion = typeof dodCriteria.$inferInsert;
 export const runtimeReportVerdictValues = ['pass', 'fail', 'skipped', 'error'] as const;
 export type RuntimeReportVerdict = (typeof runtimeReportVerdictValues)[number];
 
+// What the harness ULTIMATELY decided at auto-merge time (release gate).
+// Kept separate from `verdict` (the VERIFIER's own verdict): a verifier
+// "pass" can still end in a blocked gate (unevidenced DoD, open findings),
+// and without persisting that the dashboard showed READY while the code
+// silently never reached main.
+export const releaseGateVerdictValues = ['ready', 'blocked', 'manual-review'] as const;
+export type ReleaseGateVerdict = (typeof releaseGateVerdictValues)[number];
+
 export interface RuntimeEvidenceJson {
   /** Relative paths in the result branch to screenshots or trace files. */
   artifacts?: string[];
@@ -640,6 +648,10 @@ export const runtimeReports = sqliteTable('runtime_reports', {
   dodTotal: integer('dod_total').notNull().default(0),
   reportMd: text('report_md'),
   evidenceJson: text('evidence_json', { mode: 'json' }).$type<RuntimeEvidenceJson>(),
+  // v2.6.1 (migration 0021): the gate decision + reasons, nullable for
+  // pre-migration rows.
+  gateVerdict: text('gate_verdict', { enum: releaseGateVerdictValues }),
+  gateReasons: text('gate_reasons', { mode: 'json' }).$type<string[]>(),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull()
     .$defaultFn(() => new Date()),
