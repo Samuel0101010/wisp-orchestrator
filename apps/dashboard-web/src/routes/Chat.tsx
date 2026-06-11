@@ -45,6 +45,7 @@ import {
   useAddParticipant,
   useAgents,
   useAgentThreads,
+  useProjects,
   useCompressThread,
   useCreateThread,
   useDeleteThread,
@@ -1117,6 +1118,28 @@ function ReceiptIcon({ tone }: { tone: 'success' | 'info' | 'destructive' }) {
   return <CheckCircle2 className="size-3.5 shrink-0 text-success" aria-hidden />;
 }
 
+/**
+ * "Open project" link on an action card. Action cards are an audit trail and
+ * outlive their project — once it is deleted, render a plain note instead of
+ * a link into the 404 page.
+ */
+function ProjectOpenLink({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
+  const projects = useProjects();
+  const deleted = projects.data ? !projects.data.some((p) => p.id === projectId) : false;
+  if (deleted) {
+    return <div className="mt-1 ml-5 text-muted-foreground">{t('chat.action.projectDeleted')}</div>;
+  }
+  return (
+    <Link
+      to={`/projects/${projectId}`}
+      className="mt-1 ml-5 inline-flex items-center gap-1 text-info hover:underline"
+    >
+      {t('chat.action.openProject')} <ArrowRight className="h-3 w-3" />
+    </Link>
+  );
+}
+
 function ActionCard({ action }: { action: ChatActionRow }) {
   const { t } = useTranslation();
   const status = action.status;
@@ -1142,12 +1165,7 @@ function ActionCard({ action }: { action: ChatActionRow }) {
           {t('chat.action.projectTeam', { count: r?.teamSize ?? 0 })}
         </div>
         {r?.projectId ? (
-          <Link
-            to={`/projects/${r.projectId}`}
-            className="mt-1 ml-5 inline-flex items-center gap-1 text-info hover:underline"
-          >
-            {t('chat.action.openProject')} <ArrowRight className="h-3 w-3" />
-          </Link>
+          <ProjectOpenLink projectId={r.projectId} />
         ) : (
           <div className="mt-1 ml-5 text-muted-foreground">
             {t('chat.action.projectCreatedNoLink')}
@@ -1263,14 +1281,7 @@ function ActionCard({ action }: { action: ChatActionRow }) {
             <ReceiptIcon tone="success" />
             {t('chat.action.planGenerated')}
           </div>
-          {r?.projectId ? (
-            <Link
-              to={`/projects/${r.projectId}`}
-              className="mt-1 ml-5 inline-flex items-center gap-1 text-info hover:underline"
-            >
-              {t('chat.action.openProject')} <ArrowRight className="h-3 w-3" />
-            </Link>
-          ) : null}
+          {r?.projectId ? <ProjectOpenLink projectId={r.projectId} /> : null}
         </div>
       );
     }

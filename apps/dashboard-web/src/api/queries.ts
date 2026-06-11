@@ -354,6 +354,30 @@ export interface RuntimeReportRow {
   createdAt: string | Date;
 }
 
+/**
+ * Persisted text-deltas of a single task, restored from the run's event log.
+ * The run view's tail dialog uses this as a fallback when its page-local live
+ * buffer is empty (i.e. after a reload) — without it a finished task showed
+ * "no output" although every delta is in the DB.
+ */
+export function useTaskTextDeltas(runId: string | undefined, taskId: string | null) {
+  return useQuery<string[]>({
+    queryKey: ['task-text-deltas', runId ?? null, taskId],
+    enabled: Boolean(runId && taskId),
+    staleTime: 10_000,
+    queryFn: async () => {
+      const res = await apiFetch<{
+        events: Array<{ payload: { taskId?: string; text?: string } | null }>;
+      }>(
+        `/api/runs/${runId}/events?type=task.text-delta&taskId=${encodeURIComponent(taskId!)}&limit=500`,
+      );
+      return res.events
+        .map((e) => (typeof e.payload?.text === 'string' ? e.payload.text : ''))
+        .filter((s) => s.length > 0);
+    },
+  });
+}
+
 export function useRuntimeReport(runId: string | undefined, runStatus?: string) {
   // Only poll while the run is producing or finalising a report. Terminal runs
   // without one (cancelled/failed) or not-yet-started runs have no report to

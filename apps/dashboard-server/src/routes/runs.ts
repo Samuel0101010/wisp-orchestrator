@@ -400,6 +400,10 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
           .object({
             limit: z.coerce.number().int().min(1).max(2000).optional().default(500),
             type: z.string().optional(),
+            // Per-task filter — used by the run view's tail dialog to restore
+            // a finished task's output from the persisted log after a reload
+            // (the live WS buffer is page-local and empty by then).
+            taskId: z.string().optional(),
           })
           .parse(req.query ?? {});
 
@@ -409,14 +413,13 @@ export function createRunsRouter(deps: RunsRouterDeps = {}): FastifyPluginAsync 
           return { error: 'run not found' };
         }
 
+        const conditions = [eq(eventsTable.runId, runId)];
+        if (query.type) conditions.push(eq(eventsTable.type, query.type));
+        if (query.taskId) conditions.push(eq(eventsTable.taskId, query.taskId));
         const q = db
           .select()
           .from(eventsTable)
-          .where(
-            query.type
-              ? and(eq(eventsTable.runId, runId), eq(eventsTable.type, query.type))
-              : eq(eventsTable.runId, runId),
-          )
+          .where(and(...conditions))
           .orderBy(desc(eventsTable.ts))
           .limit(query.limit);
         const rows = await q.all();

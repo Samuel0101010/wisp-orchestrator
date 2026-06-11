@@ -804,4 +804,43 @@ describe('run routes', () => {
     expect(filteredBody.events).toHaveLength(1);
     expect(filteredBody.events[0].type).toBe('task.failed');
   });
+
+  it('GET /api/runs/:runId/events supports ?taskId= filter (tail restore after reload)', async () => {
+    const runtime = makeFakeRuntime();
+    app = await buildAppWithRuntime(runtime);
+    const { planId } = await seedLockedPlan();
+    const start = await app.inject({
+      method: 'POST',
+      url: '/api/runs',
+      payload: { planId },
+    });
+    const { runId } = start.json();
+
+    const now = new Date();
+    for (const [i, taskId] of (['t1', 't1', 't2'] as const).entries()) {
+      await db
+        .insert(eventsTable)
+        .values({
+          id: randomUUID(),
+          runId,
+          taskId,
+          type: 'task.text-delta',
+          payload: { taskId, text: `chunk-${i}` },
+          ts: new Date(now.getTime() + i * 100),
+        })
+        .run();
+    }
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/api/runs/${runId}/events?type=task.text-delta&taskId=t1`,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.events).toHaveLength(2);
+    expect(body.events.map((e: { payload: { text: string } }) => e.payload.text)).toEqual([
+      'chunk-0',
+      'chunk-1',
+    ]);
+  });
 });
