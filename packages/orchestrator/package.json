@@ -2,7 +2,7 @@
   "name": "@wisp/orchestrator",
   "version": "2.7.1",
   "private": true,
-  "description": "WISP orchestrator core â€” plan graph, dispatch, retry, and gate logic.",
+  "description": "WISP orchestrator core — plan graph, dispatch, retry, and gate logic.",
   "keywords": [
     "wisp",
     "orchestrator",
