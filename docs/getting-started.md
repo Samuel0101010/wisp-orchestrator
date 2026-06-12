@@ -39,7 +39,7 @@ git --version
 The plugin install is the supported path. From any shell:
 
 ```sh
-claude plugin marketplace add Samuel0101010/wisp-orchestrator
+claude plugin marketplace add https://github.com/Samuel0101010/wisp-orchestrator.git
 claude plugin install wisp@wisp-local
 claude /wisp-dashboard
 ```
@@ -50,10 +50,10 @@ otherwise `corepack`, which is bundled with Node).
 After that, the launcher boots straight to the dashboard server, picks a
 free port in the `4400–4500` range, and opens your default browser.
 
-> If the first command fails with `Permission denied (publickey)`, `plugin
-> marketplace add` is cloning over SSH; on a machine with no GitHub SSH key,
-> run `git config --global "url.https://github.com/.insteadOf" "git@github.com:"`
-> once (keep the space between the two quoted args in PowerShell) and re-run it.
+> Everything clones over plain HTTPS — no GitHub account, SSH key, or
+> `known_hosts` entry needed. If you ever see an SSH error (`Permission denied
+> (publickey)` or `Host key verification failed`), you are on a marketplace
+> entry added before v2.7.1 — remove and re-add it with the HTTPS URL above.
 > See [troubleshooting](./troubleshooting.md) for details.
 
 **Developer install** (if you cloned the repo locally):

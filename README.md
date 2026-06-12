@@ -35,10 +35,10 @@ Most agent UIs run a single agent in a chat box. Orchestrators hide the plan beh
 
 ## Quickstart (60 seconds)
 
-> First time on this machine and `git` has no GitHub SSH key? Run the one-time HTTPS shim from [Install](#install) **before** command 1, or it fails with `Permission denied (publickey)` — even though the repo is public. Prerequisites: `git`, Node 22/24 LTS, and the `claude` CLI on `PATH`.
+> Prerequisites: `git`, Node 22/24 LTS, and the `claude` CLI on `PATH`. No GitHub account or SSH key needed — everything clones over plain HTTPS.
 
 ```sh
-claude plugin marketplace add Samuel0101010/wisp-orchestrator
+claude plugin marketplace add https://github.com/Samuel0101010/wisp-orchestrator.git
 claude plugin install wisp@wisp-local
 claude /wisp-dashboard          # opens http://127.0.0.1:4400 in your browser
 ```
@@ -107,7 +107,18 @@ There are two supported paths.
 
 **Prerequisites on a fresh machine:** `git`, **Node 22 LTS or 24 LTS** (>= 20.10 works, but an LTS ships a prebuilt `better-sqlite3` so the first build needs no compiler), and the standalone `claude` CLI on `PATH`. pnpm is bootstrapped for you on first launch.
 
-**One-time, only if `git` has no GitHub SSH key:** `claude plugin marketplace add` clones over SSH by default, which fails with `Permission denied (publickey)` even for this public repo. Tell git to use HTTPS for GitHub once, **before** the commands below:
+```sh
+claude plugin marketplace add https://github.com/Samuel0101010/wisp-orchestrator.git
+claude plugin install wisp@wisp-local
+claude /wisp-dashboard
+```
+
+Both the marketplace and the plugin source are fetched over plain HTTPS — no GitHub account, SSH key, or `known_hosts` entry required.
+
+<details>
+<summary>Troubleshooting: SSH errors on older installs (<code>Permission denied (publickey)</code> / <code>Host key verification failed</code>)</summary>
+
+If you added the marketplace with the `owner/repo` shorthand on an older Claude Code version, or your git config rewrites GitHub URLs to SSH, the clone can go over SSH and fail without an SSH key or `known_hosts` entry. Fix: refresh the marketplace (`claude plugin marketplace remove wisp-local`, then re-add with the HTTPS URL above), or tell git to use HTTPS for GitHub once:
 
 ```sh
 git config --global "url.https://github.com/.insteadOf" "git@github.com:"
@@ -115,11 +126,7 @@ git config --global "url.https://github.com/.insteadOf" "git@github.com:"
 
 (In PowerShell keep the space between the two quoted arguments.)
 
-```sh
-claude plugin marketplace add Samuel0101010/wisp-orchestrator
-claude plugin install wisp@wisp-local
-claude /wisp-dashboard
-```
+</details>
 
 (For local development, replace the first line with `claude plugin marketplace add /absolute/path/to/agent-harness`.)
 

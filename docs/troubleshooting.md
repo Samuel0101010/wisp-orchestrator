@@ -6,7 +6,7 @@ This guide assumes a working knowledge of the [Quickstart](../README.md#quicksta
 
 ---
 
-## Problem: `claude plugin marketplace add` fails with `Permission denied (publickey)`
+## Problem: install fails with an SSH error (`Permission denied (publickey)` or `Host key verification failed`)
 
 **Symptom**
 
@@ -15,15 +15,29 @@ git@github.com: Permission denied (publickey).
 fatal: Could not read from remote repository.
 ```
 
-The very first install command (`claude plugin marketplace add Samuel0101010/wisp-orchestrator`) aborts before the plugin is ever registered.
+or, during `claude plugin install wisp@wisp-local`:
+
+```
+No ED25519 host key is known for github.com and you have requested strict checking.
+Host key verification failed.
+fatal: Could not read from remote repository.
+```
 
 **Cause**
 
-`plugin marketplace add owner/repo` clones over SSH by default. On a machine with no GitHub SSH key configured, that clone fails — even though `wisp-orchestrator` is a **public** repo that needs no authentication over HTTPS.
+The clone is going over SSH on a machine that has no GitHub SSH key and/or no `github.com` entry in `known_hosts` (Claude Code suppresses interactive SSH prompts, so the host-key question fails hard instead of asking). This happens when the marketplace was added with the `owner/repo` shorthand on an older Claude Code version, when a marketplace entry predates v2.7.1 (whose plugin source was the SSH-prone `github` type), or when a local git config rewrites GitHub URLs to SSH. The repo itself is **public** — HTTPS needs no authentication at all.
 
 **Fix**
 
-Tell git to rewrite GitHub SSH URLs to HTTPS once, then re-run the command:
+Refresh the marketplace so both the catalog and the plugin source resolve over plain HTTPS, then re-install:
+
+```sh
+claude plugin marketplace remove wisp-local
+claude plugin marketplace add https://github.com/Samuel0101010/wisp-orchestrator.git
+claude plugin install wisp@wisp-local
+```
+
+If it still goes over SSH, a local git config is rewriting GitHub URLs; either remove that rewrite or add the reverse one:
 
 ```sh
 git config --global "url.https://github.com/.insteadOf" "git@github.com:"
@@ -401,7 +415,7 @@ claude plugin list
 If WISP is missing, re-register the marketplace and re-install:
 
 ```sh
-claude plugin marketplace add Samuel0101010/wisp-orchestrator
+claude plugin marketplace add https://github.com/Samuel0101010/wisp-orchestrator.git
 claude plugin install wisp@wisp-local
 ```
 
