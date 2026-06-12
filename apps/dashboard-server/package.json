@@ -1,8 +1,8 @@
 {
   "name": "@wisp/dashboard-server",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "private": true,
-  "description": "WISP dashboard backend — Fastify + Drizzle + WebSocket orchestrator for Claude Code agent crews.",
+  "description": "WISP dashboard backend â€” Fastify + Drizzle + WebSocket orchestrator for Claude Code agent crews.",
   "keywords": [
     "wisp",
     "dashboard",

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.7.1 — installs everywhere: plain-HTTPS plugin clone
+
+A fresh machine without a GitHub SSH key or `known_hosts` entry could not install the plugin: the marketplace's `github` source type resolved to an SSH clone, and Claude Code's suppressed SSH prompts turned the missing host key into a hard `Host key verification failed`. The plugin source is now an explicit HTTPS URL — installing needs no GitHub account, no SSH key, no git config.
+
+### Fixed
+
+- **`claude plugin install wisp@wisp-local` no longer requires SSH.** `marketplace.json` now declares the plugin source as `{ "source": "url", "url": "https://github.com/Samuel0101010/wisp-orchestrator.git" }`, forcing the plain-HTTPS clone path on every machine (PR #112). Previously installed marketplaces keep the old SSH-prone source until refreshed: `claude plugin marketplace remove wisp-local`, then re-add with the HTTPS URL.
+
+### Changed
+
+- **Install docs (README, getting-started, troubleshooting):** the quickstart adds the marketplace via the explicit HTTPS URL; the one-time `insteadOf` SSH shim is no longer a prerequisite, only a troubleshooting fallback; the troubleshooting guide covers both SSH failure modes (`Permission denied (publickey)` and `Host key verification failed`).
+
 ## 2.7.0 — skilled agents, specs that travel, a chat that heals
 
 Execution agents now carry working methods (skills) in their instructions — the lever that keeps smaller models reliable. A spec attached in the team chat becomes the project brief with one manager action. And a transient auth hiccup at boot no longer bricks chat and runs until restart.

@@ -1,8 +1,8 @@
 {
   "name": "wisp",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "private": true,
-  "description": "WISP — visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews.",
+  "description": "WISP â€” visual team-builder, plan-as-artifact, and live execution graph for autonomous Claude Code agent crews.",
   "keywords": [
     "claude-code",
     "claude-code-plugin",
